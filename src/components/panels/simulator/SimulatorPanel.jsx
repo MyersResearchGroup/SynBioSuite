@@ -38,7 +38,7 @@ export default function SimulatorPanel({ id }) {
                             {panel.state.results ?
                                 Object.values(panel.state.results).map((resultData, i) =>
                                     <>
-                                        <Space h='xl' key={'space'+i} />
+                                        <Space h='xl' key={'space' + i} />
                                         <LineChart
                                             key={i}
                                             data={resultData.slice(1)}
@@ -46,7 +46,7 @@ export default function SimulatorPanel({ id }) {
                                             showSeries={[1]}
                                             title={`Run ${i + 1}`}
                                         />
-                                        <Space h='xl' key={'space'+(i*2)} />
+                                        <Space h='xl' key={'space2' + i} />
                                     </>
                                 ) :
                                 <></>}
