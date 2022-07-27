@@ -126,7 +126,7 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
 }
 
 const containerStyle = {
-    minHeight: '50vh'
+    minHeight: '100vh'
 }
 
 const scrollBarWidth = 8

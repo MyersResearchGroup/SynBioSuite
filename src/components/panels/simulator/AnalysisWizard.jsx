@@ -148,7 +148,7 @@ export default function AnalysisWizard() {
                     <Tabs grow position='center' active={parameterSource} onTabChange={setParameterSource} >
                         <Tabs.Tab label="Select an environment archive">
                             <Dropzone
-                                allowedTypes={["environment"]}
+                                allowedTypes={[ObjectTypes.OMEX.id]}
                                 item={environment?.name}
                                 onItemChange={handleEnvironmentChange}
                             >

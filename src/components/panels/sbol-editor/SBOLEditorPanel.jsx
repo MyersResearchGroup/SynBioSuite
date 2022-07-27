@@ -1,6 +1,8 @@
 import { Tabs, Center } from '@mantine/core'
+import { useEffect } from 'react'
 import { createContext } from 'react'
-import { usePanel } from '../../../redux/slices/panelSlice'
+import { useMarkPanelUnsavedEffect, usePanel } from '../../../redux/slices/panelSlice'
+import CanvasFrame from './CanvasFrame'
 
 export const PanelContext = createContext()
 
@@ -10,14 +12,14 @@ export default function SBOLEditorPanel({ id }) {
 
     const [activeTab, setActiveTab] = usePanelState('activeTab', 0)
 
+    // handle marking as unsaved
+    useMarkPanelUnsavedEffect(id, [panel.state.sbol])
+
     return (
         <PanelContext.Provider value={[panel, usePanelState]}>
-            <Tabs styles={tabStyles} active={activeTab} onTabChange={setActiveTab}>
+            {/* <Tabs styles={tabStyles} active={activeTab} onTabChange={setActiveTab}>
                 <Tabs.Tab label="Design" >
-                    <Center sx={centerStyle}>
-                        <h3>COMING SOON</h3>
-                        <p>Design circuits with Canvas designer</p>
-                    </Center>
+                    <DesignView />
                 </Tabs.Tab>
                 <Tabs.Tab label="Export" >
                     <Center sx={centerStyle}>
@@ -31,7 +33,8 @@ export default function SBOLEditorPanel({ id }) {
                         <p>Upload to SynBioHub</p>
                     </Center>
                 </Tabs.Tab>
-            </Tabs>
+            </Tabs> */}
+            <CanvasFrame />
         </PanelContext.Provider>
     )
 }

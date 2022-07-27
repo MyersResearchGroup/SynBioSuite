@@ -1,7 +1,8 @@
 import DragTabs from "./DragTabs"
-import { useActivePanel, useClosePanel, useOpenPanel, usePanels, useReorderPanels } from '../../redux/slices/panelSlice'
+import { useActivePanel, useClosePanel, useOpenPanel, usePanels, useReorderPanels, useSaveActivePanel } from '../../redux/slices/panelSlice'
 import { titleFromFileName } from "../../redux/slices/workingDirectorySlice"
 import { getPanelType } from "../../panels"
+import { useEffect, useRef } from "react"
 
 export default function Panels() {
 
@@ -10,13 +11,12 @@ export default function Panels() {
     const [activePanel, setActivePanel] = useActivePanel()
     const closePanel = useClosePanel()
     const reoderPanels = useReorderPanels()
-    const openPanel = useOpenPanel()
 
     // create tabs
     const tabs = panels.map(panel => {
         const panelTypeDef = getPanelType(panel.type)
         return {
-            title: titleFromFileName(panel.fileHandle.name),
+            title: titleFromFileName(panel.fileHandle.name) + (panel.saved ? '' : '*'),
             icon: panelTypeDef.icon && <panelTypeDef.icon />,
             content: <panelTypeDef.component id={panel.id} />,
         }
@@ -30,6 +30,23 @@ export default function Panels() {
 
     // handle tab close
     const handleClose = index => closePanel(panels[index].id)
+
+    // handle saving
+    const saveActivePanel = useRef()
+    saveActivePanel.current = useSaveActivePanel()
+    const ctrlSHandler = event => {
+        if (event.ctrlKey && event.code === 'KeyS') {
+            console.debug("Saving active panel")
+            event.preventDefault()
+            saveActivePanel.current()
+        }
+    }
+
+    // add Ctrl+S listener on mount
+    useEffect(() => {
+        window.addEventListener("keydown", ctrlSHandler)
+        return () => window.removeEventListener("keydown", ctrlSHandler)
+    }, [])
 
     return (
         <div style={{ flexGrow: 1 }}>

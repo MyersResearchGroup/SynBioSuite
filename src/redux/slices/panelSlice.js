@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
 import { useSelector, useDispatch } from 'react-redux'
-import { getPanelTypeForObject } from "../../panels"
+import { getPanelType, getPanelTypeForObject } from "../../panels"
 import { showNotification } from '@mantine/notifications'
 import { v4 as uuidv4 } from 'uuid'
 import { useEffect } from "react"
@@ -19,8 +19,9 @@ export const panelSlice = createSlice({
             const { select = true, ...newPanel } = action.payload
 
             state.open.push({
+                state: {},
+                saved: true,
                 ...newPanel,
-                state: {}
             })
             select && (state.active = newPanel.id)
 
@@ -57,10 +58,10 @@ export const panelSlice = createSlice({
                 (panel.state[stateKey] = newState) :
                 (panel.state = newState)
         },
-        setPanelSaved: (state, action) => {
-            const { target, saved } = action.payload
+        setPanelProperty: (state, action) => {
+            const { target, property, payload } = action.payload
             const panel = state.open.find(p => p.id == target)
-            panel.saved = saved
+            panel[property] = payload
         }
     }
 })
@@ -81,8 +82,9 @@ export function useOpenPanel() {
     const dispatch = useDispatch()
     const panels = usePanels()
 
-    return newPanel => {
-        const type = getPanelTypeForObject(newPanel.fileHandle.objectType)?.id
+    return async newPanel => {
+        const typeDef = getPanelTypeForObject(newPanel.fileHandle.objectType)
+        const type = typeDef?.id
 
         // dispatch notification if type doesn't exist
         if (!type) {
@@ -95,13 +97,19 @@ export function useOpenPanel() {
 
         // if panel is already open, switch to it; otherwise, open panel
         const existingPanel = panels.find(panel => panel.fileHandle == newPanel.fileHandle)
-        existingPanel ?
-            dispatch(actions.setActive(existingPanel.id)) :
-            dispatch(actions.openPanel({
-                ...newPanel,
-                id: uuidv4(),
-                type
-            }))
+        if(existingPanel) {
+            dispatch(actions.setActive(existingPanel.id))
+            return
+        }
+
+        // otherwise, we'll read the file and open it
+        const content = await (await newPanel.fileHandle.getFile()).text()
+        dispatch(actions.openPanel({
+            ...newPanel,
+            id: uuidv4(),
+            type,
+            ...typeDef?.onOpen?.(content)
+        }))
     }
 }
 
@@ -168,18 +176,46 @@ export function usePanel(id) {
     ]
 }
 
-export function useSavePanel(id) {
+export function useSaveActivePanel() {
+
     const dispatch = useDispatch()
-    const panel = useSelector(state => state.panels.open.find(panel => panel.id == id))
+    const activePanel = useSelector(state => state.panels.open.find(panel => panel.id == state.panels.active))
 
-    const save = async () => {
-        const writableStream = await panel.fileHandle.createWritable()
-        await writableStream.write(JSON.stringify(panel.state))
+    return async () => {
+
+        if(!activePanel)
+            return
+
+        const panelTypeDef = getPanelType(activePanel.type)
+
+        // create write stream
+        const writableStream = await activePanel.fileHandle.createWritable()
+        
+        // serialize & write panel according to function defined in its type def
+        await writableStream.write(
+            panelTypeDef?.onSave?.(activePanel)
+        )
+        
+        // close stream
         await writableStream.close()
-    }
 
-    return [
-        /* saved */  panel.saved,
-        /* save */  save,
-    ]
+        // mark panel as saved
+        dispatch(actions.setPanelProperty({
+            target: activePanel.id,
+            property: 'saved',
+            payload: true
+        }))
+    }
+}
+
+export function useMarkPanelUnsavedEffect(id, dependencies) {
+    const dispatch = useDispatch()
+
+    useEffect(() => {
+        dispatch(actions.setPanelProperty({
+            target: id,
+            property: 'saved',
+            payload: false
+        }))
+    }, dependencies)
 }

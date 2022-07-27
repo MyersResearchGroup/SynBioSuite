@@ -5,12 +5,15 @@ import FolderIcon from './folder.svg?component'
 import FileIcon from './file.svg?component'
 import CanvasIcon from './canvas.svg?component'
 import SimulationIcon from './simulation.svg?component'
+import RemoteControlIcon from './remote-control.svg?component'
+
 
 export {
     FolderIcon,
     FileIcon,
     CanvasIcon,
-    SimulationIcon
+    SimulationIcon,
+    RemoteControlIcon
 }
 
 
@@ -23,7 +26,7 @@ export function SVGIcon({ icon: Icon, size = 'md', color }) {
     const iconStyle = {
         width: parsedSize,
         height: parsedSize,
-        ...(color && { fill: color })
+        ...(color && { fill: color, stroke: color })
     }
 
     return (

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Container, ScrollArea, Space, Tabs } from '@mantine/core'
 import AnalysisWizard from './AnalysisWizard'
 import LineChart from "./LineChart"
-import { usePanel, useSavePanel } from '../../../redux/slices/panelSlice'
+import { useMarkPanelUnsavedEffect, usePanel } from '../../../redux/slices/panelSlice'
 import { createContext } from 'react'
 import { useEffect } from 'react'
 import { useDebouncedValue } from '@mantine/hooks'
@@ -15,16 +15,9 @@ export default function SimulatorPanel({ id }) {
 
     const [activeTab, setActiveTab] = usePanelState('activeTab', 0)
 
-    // handle saving
-    const [saved, save] = useSavePanel(id)
-    const [debouncedState] = useDebouncedValue(panel.state, 5000)
-
-    useEffect(() => {
-        console.debug("Auto saving...")
-        save().then(() => {
-            console.debug("Saved.")
-        })
-    }, [debouncedState])
+    // debounce state and mark panel as unsaved when it changes
+    const [debouncedState] = useDebouncedValue(panel.state, 200)
+    useMarkPanelUnsavedEffect(id, [debouncedState])
 
     return (
         <PanelContext.Provider value={[panel, usePanelState]}>

@@ -11,6 +11,17 @@ export const PanelTypes = {
         component: SimulatorPanel,
         objectTypes: [ ObjectTypes.Analysis.id ],
         icon: SimulationIcon,
+
+        onOpen: content => {
+            try {
+                return { state: JSON.parse(content) }
+            }
+            catch {
+                return { state: {} }
+            }
+        },
+
+        onSave: panel => JSON.stringify(panel.state)
     },
     SBOLEditor: {
         id: "synbio.panel-type.sbol-editor",
@@ -18,6 +29,14 @@ export const PanelTypes = {
         component: SBOLEditorPanel,
         objectTypes: [ ObjectTypes.SBOL.id ],
         icon: CanvasIcon,
+
+        onOpen: content => ({
+            state: {
+                sbol: content
+            }
+        }),
+
+        onSave: panel => panel.state.sbol
     }
 }
 
