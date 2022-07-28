@@ -105,5 +105,5 @@ async function findFilesInDirectory(dirHandle) {
 }
 
 export function titleFromFileName(fileName) {
-    return fileName.match(/([\w\W]+)\./)?.[1]
+    return fileName?.match(/([\w\W]+)\./)?.[1]
 }

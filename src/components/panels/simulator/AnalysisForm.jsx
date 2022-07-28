@@ -1,5 +1,6 @@
 import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, Box } from '@mantine/core'
-import { useDebouncedValue, useForm } from '@mantine/hooks'
+import { useForm } from '@mantine/form'
+import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
 import InputWrapper from "./InputWrapper"
 import RandomNumberInput from './RandomNumberInput'

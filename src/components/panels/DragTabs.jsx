@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react"
-import { Tabs as MantineTabs } from '@mantine/core'
+import { Tabs } from '@mantine/core'
 import TabLabel from "./TabLabel"
 import CenteredTitle from "../CenteredTitle"
+import SimulatorPanel from "./simulator/SimulatorPanel"
 
 
 export default function DragTabs({ tabs, active, onSelect, onClose, onReorder }) {
@@ -14,11 +15,6 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
     useEffect(() => {
         tabRefs.current = tabRefs.current.slice(0, tabs.length)
     }, [tabs])
-
-    // handle closing
-    const closeTab = index => {
-        onClose(index)
-    }
 
 
     // drag handlers
@@ -100,26 +96,31 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}>
-                <MantineTabs variant="outline" styles={tabsStyles} active={active} >
-                    {tabs.map((tab, i) =>
-                        <MantineTabs.Tab
-                            onMouseDown={handleMouseDown(i)}
-                            onMouseUp={() => onSelect(i)}
-                            ref={el => tabRefs.current[i] = el}
-                            key={i}
-                            label={
+                <Tabs variant="outline" styles={tabsStyles} value={active} >
+                    <Tabs.List>
+                        {tabs.map((tab, i) =>
+                            <Tabs.Tab
+                                onMouseDown={handleMouseDown(i)}
+                                onMouseUp={() => onSelect(tab.id)}
+                                ref={el => tabRefs.current[i] = el}
+                                key={tab.id}
+                                value={tab.id}
+                            >
                                 <TabLabel
                                     title={tab.title}
                                     icon={tab.icon}
-                                    index={i}
-                                    onClose={closeTab}
+                                    id={tab.id}
+                                    onClose={onClose}
                                 />
-                            }
-                        >
+                            </Tabs.Tab>
+                        )}
+                    </Tabs.List>
+                    {tabs.map(tab =>
+                        <Tabs.Panel key={tab.id} value={tab.id}>
                             {tab.content}
-                        </MantineTabs.Tab>
+                        </Tabs.Panel>
                     )}
-                </MantineTabs>
+                </Tabs>
             </div> :
             <CenteredTitle>Open a file to start</CenteredTitle>
     )
@@ -138,20 +139,20 @@ const tabsStyles = theme => ({
         whiteSpace: 'nowrap',
         display: 'block',
     },
-    tabControl: {
+    tab: {
         padding: 0,
         display: 'inline-block',
         position: 'relative',
         backgroundColor: theme.colors.dark[7],
         '&:hover': {
             backgroundColor: theme.colors.dark[6]
+        },
+        '&[data-active]': {
+            borderColor: theme.colors.dark[3] + ' !important',
+            backgroundColor: theme.colors.dark[6] + ' !important',
         }
     },
-    tabActive: {
-        borderColor: theme.colors.dark[3] + ' !important',
-        backgroundColor: theme.colors.dark[6] + ' !important',
-    },
-    body: {
+    panel: {
         padding: 0
     },
     tabsListWrapper: {

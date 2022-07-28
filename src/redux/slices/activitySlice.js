@@ -28,10 +28,8 @@ export default activitiesSlice.reducer
 
 // custom hooks for selectors
 
-export function useActivityStates() {
-    return [
-        /* activities */ useSelector(state => state.activities.states)
-    ]
+export function useActivities() {
+    return /* activities */ useSelector(state => state.activities.states)
 }
 
 export function useActiveActivity() {

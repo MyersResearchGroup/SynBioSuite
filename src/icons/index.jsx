@@ -17,7 +17,7 @@ export {
 }
 
 
-export function SVGIcon({ icon: Icon, size = 'md', color }) {
+export function SVGIcon({ icon: Icon, size = 'md', color, ...props }) {
 
     const theme = useMantineTheme()
 
@@ -31,8 +31,8 @@ export function SVGIcon({ icon: Icon, size = 'md', color }) {
 
     return (
         typeof Icon == 'function' ?
-            <Icon style={iconStyle} /> :
-            cloneElement(Icon, { style: iconStyle })
+            <Icon style={iconStyle} {...props} /> :
+            cloneElement(Icon, { style: iconStyle, ...props })
     )
 }
 

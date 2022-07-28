@@ -11,10 +11,10 @@ export default function ReviewTable() {
     const [panel] = useContext(PanelContext)
 
     const [inputFile] = useFile(panel.state.componentId)
-    const inputFileObjectType = getObjectType(inputFile.objectType)
+    const inputFileObjectType = getObjectType(inputFile?.objectType)
 
     const [environmentFile] = useFile(panel.state.environmentId)
-    const environmentFileObjectType = getObjectType(inputFile.objectType)
+    const environmentFileObjectType = getObjectType(environmentFile?.objectType)
 
     return (
         <Container>
@@ -30,8 +30,8 @@ export default function ReviewTable() {
                         <td><Text weight={600}>Input</Text></td>
                         <td>
                             <Group position='right'>
-                                <Text weight={600}>{titleFromFileName(inputFile.name)}</Text>
-                                {inputFileObjectType.badgeLabel &&
+                                <Text weight={600}>{titleFromFileName(inputFile?.name)}</Text>
+                                {inputFileObjectType?.badgeLabel &&
                                     <Badge>{inputFileObjectType.badgeLabel}</Badge>}
                             </Group>
                         </td>
@@ -47,8 +47,8 @@ export default function ReviewTable() {
                             <td><Text weight={600}>Environment</Text></td>
                             <td>
                                 <Group position='right'>
-                                    <Text weight={600}>{titleFromFileName(environmentFile.name)}</Text>
-                                    {environmentFileObjectType.badgeLabel &&
+                                    <Text weight={600}>{titleFromFileName(environmentFile?.name)}</Text>
+                                    {environmentFileObjectType?.badgeLabel &&
                                         <Badge>{environmentFileObjectType.badgeLabel}</Badge>}
                                 </Group>
                             </td>

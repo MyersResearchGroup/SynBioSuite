@@ -16,20 +16,12 @@ export default function Panels() {
     const tabs = panels.map(panel => {
         const panelTypeDef = getPanelType(panel.type)
         return {
+            id: panel.id,
             title: titleFromFileName(panel.fileHandle.name) + (panel.saved ? '' : '*'),
             icon: panelTypeDef.icon && <panelTypeDef.icon />,
             content: <panelTypeDef.component id={panel.id} />,
         }
     })
-
-    // find active tab index
-    const activeTabIndex = panels.findIndex(panel => panel.id == activePanel)
-
-    // handle tab change
-    const handleTabChange = index => setActivePanel(panels[index].id)
-
-    // handle tab close
-    const handleClose = index => closePanel(panels[index].id)
 
     // handle saving
     const saveActivePanel = useRef()
@@ -52,9 +44,9 @@ export default function Panels() {
         <div style={{ flexGrow: 1 }}>
             <DragTabs
                 tabs={tabs}
-                active={activeTabIndex}
-                onSelect={handleTabChange}
-                onClose={handleClose}
+                active={activePanel}
+                onSelect={setActivePanel}
+                onClose={closePanel}
                 onReorder={reoderPanels}
             />
         </div>

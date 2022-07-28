@@ -39,12 +39,9 @@ export default function ExplorerList() {
 
     return (
         <Accordion
+        mt={10}
             multiple
-            initialState={
-                Object.fromEntries(
-                    Object.keys(ObjectTypes).map((_, i) => [i, true])
-                )
-            }
+            defaultValue={Object.values(ObjectTypes).map(({ id }) => id)}
             styles={accordionStyles}
             key={Math.random()}     // this forces re-render and fixes accordion heights
         >
@@ -55,16 +52,20 @@ export default function ExplorerList() {
                     const filesOfType = files.filter(file => file.objectType == objectType.id)
 
                     return (
-                        <Accordion.Item key={i} label={
-                            <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
-                        }>
-                            {objectType.createable &&
-                                <CreateNewButton
-                                    onClick={handleCreateObject(objectType.extension, `New ${objectType.title}`)}
-                                >
-                                    New {objectType.title}
-                                </CreateNewButton>}
-                            {createDragObjects(filesOfType, objectType.id, objectType.icon)}
+                        <Accordion.Item value={objectType.id} key={i}>
+                            <Accordion.Control>
+                                <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
+                            </Accordion.Control>
+                            <Accordion.Panel>
+                                {objectType.createable &&
+                                    <CreateNewButton
+                                        onClick={handleCreateObject(objectType.extension, `New ${objectType.title}`)}
+                                    >
+                                        New {objectType.title}
+                                    </CreateNewButton>
+                                }
+                                {createDragObjects(filesOfType, objectType.id, objectType.icon)}
+                            </Accordion.Panel>
                         </Accordion.Item>
                     )
                 })
@@ -78,14 +79,14 @@ const accordionStyles = theme => ({
         padding: '4px 0',
         borderRadius: 4
     },
-    contentInner: {
+    content: {
         fontSize: 12,
-        padding: '5px 0'
+        padding: '5px 0 10px 5px'
     }
 })
 
 const titleStyle = theme => ({
     fontWeight: 600,
     fontSize: 12,
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
 })

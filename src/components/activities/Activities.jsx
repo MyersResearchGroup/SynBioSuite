@@ -1,49 +1,59 @@
-import { Tabs, Title } from '@mantine/core'
-import TabIcon from './TabIcon'
-import { useActiveActivity, useActivityStates } from '../../redux/slices/activitySlice'
+import { Box, Tabs, Title, Tooltip } from '@mantine/core'
+import { useActiveActivity, useActivities } from '../../redux/slices/activitySlice'
 import { getActivity } from '../../activities'
+import { SVGIcon } from '../../icons'
 
 
 export default function Activities() {
 
     // activity state
-    const [activities] = useActivityStates()
+    const activities = useActivities()
     const [activeActivity, setActiveActivity] = useActiveActivity()
 
     // create tabs
     const tabs = Object.entries(activities).map(([activityId, activityState]) => {
-
         const activityDef = getActivity(activityId)
-
-        return {
-            activityId,
-            component:
-                <Tabs.Tab
-                    key={activityId}
-                    icon={<TabIcon icon={activityDef.icon} >{activityDef.title}</TabIcon>}
-                >
-                    <Title order={6}>{activityDef.title}</Title>
-                    <activityDef.component {...activityState} />
-                </Tabs.Tab>
-        }
+        return (
+            <Tabs.Tab
+                key={activityId}
+                value={activityId}
+            >
+                <Tooltip label={activityDef.title} position="right" withArrow>
+                    <Box py={15} px={14}>
+                        <SVGIcon
+                            icon={activityDef.icon}
+                            size={30}
+                        />
+                    </Box>
+                </Tooltip>
+            </Tabs.Tab>
+        )
     })
 
-    // find active tab index
-    const activeTabIndex = tabs.find(tab => tab.activityId == activeActivity)
-
-    // handle tab change
-    const handleTabChange = index => setActiveActivity(tabs[index].activityId)
+    // create tab panels
+    const tabPanels = Object.entries(activities).map(([activityId, activityState]) => {
+        const activityDef = getActivity(activityId)
+        return (
+            <Tabs.Panel value={activityId} key={activityId}>
+                <Title order={6}>{activityDef.title}</Title>
+                <activityDef.component {...activityState} />
+            </Tabs.Panel>
+        )
+    })
 
     return (
         <Tabs
-            active={activeTabIndex}
-            onTabChange={handleTabChange}
+            value={activeActivity}
+            onTabChange={setActiveActivity}
             variant='unstyled'
             orientation='vertical'
-            tabPadding='xl'
+            allowTabDeactivation={true}
             styles={tabStyles}
         >
-            {tabs.map(tab => tab.component)}
+            <Tabs.List>
+                {tabs}
+            </Tabs.List>
+            {tabPanels}
         </Tabs>
     )
 }
@@ -59,16 +69,13 @@ const tabStyles = theme => {
             minHeight: '100vh'
         },
         tabActive: {
-            fill: activeColor,
-            borderLeft: '3px solid ' + activeColor,
-            '& svg': {
-                marginLeft: '-3px'
-            }
+
         },
-        tabControl: {
+        tab: {
             fill: dark ? theme.other.inactiveColor : theme.colors.gray[7],
             padding: 0,
             height: 'auto',
+            zIndex: 100,
             '&:hover': {
                 fill: activeColor
             },
@@ -80,11 +87,18 @@ const tabStyles = theme => {
                 backgroundColor: theme.colors.dark[4],
                 margin: '0 auto'
             },
+            '&[data-active]': {
+                fill: activeColor,
+                borderLeft: '3px solid ' + activeColor,
+                '& svg': {
+                    marginLeft: '-3px'
+                }
+            }
         },
-        body: {
+        panel: {
             backgroundColor: dark ? theme.colors.dark[6] : theme.colors.gray[3],
             width: 260,
             padding: '10px 6px 24px 6px'
-        }
+        },
     }
 }

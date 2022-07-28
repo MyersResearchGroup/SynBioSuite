@@ -1,5 +1,4 @@
 import { Tabs, Center } from '@mantine/core'
-import { useEffect } from 'react'
 import { createContext } from 'react'
 import { useMarkPanelUnsavedEffect, usePanel } from '../../../redux/slices/panelSlice'
 import CanvasFrame from './CanvasFrame'

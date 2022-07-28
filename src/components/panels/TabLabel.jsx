@@ -3,13 +3,13 @@ import { Group, ActionIcon } from '@mantine/core'
 import { IoClose } from "react-icons/io5"
 import { SVGIcon } from '../../icons'
 
-export default function TabLabel({ title, icon, index, onClose }) {
+export default function TabLabel({ title, icon, id, onClose }) {
 
     return (
         <Group sx={groupStyle} spacing='sm' >
             <SVGIcon icon={icon} size='md' />
             <span style={spanStyle}>{title}</span>
-            <ActionIcon sx={iconStyle} onClick={() => onClose(index)} ><IoClose /></ActionIcon>
+            <ActionIcon sx={iconStyle} onClick={() => onClose(id)} ><IoClose /></ActionIcon>
         </Group>
     )
 }

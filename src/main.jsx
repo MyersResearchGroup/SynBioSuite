@@ -19,7 +19,7 @@ const theme = {
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <Provider store={store}>
-            <MantineProvider theme={theme} withGlobalStyles >
+            <MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
                 <App />
             </MantineProvider>
         </Provider>

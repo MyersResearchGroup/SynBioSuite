@@ -10,11 +10,13 @@
     "build-storybook": "build-storybook"
   },
   "dependencies": {
+    "@emotion/cache": "^11.9.3",
+    "@emotion/react": "^11.9.3",
     "@honkhonk/vite-plugin-svgr": "^1.1.0",
-    "@mantine/core": "^4.2.8",
-    "@mantine/form": "^4.2.8",
-    "@mantine/hooks": "^4.2.8",
-    "@mantine/notifications": "^4.2.8",
+    "@mantine/core": "^5.0.0",
+    "@mantine/form": "^5.0.0",
+    "@mantine/hooks": "^5.0.0",
+    "@mantine/notifications": "^5.0.0",
     "@reduxjs/toolkit": "^1.8.3",
     "@visx/legend": "^2.10.0",
     "@visx/scale": "^2.2.2",

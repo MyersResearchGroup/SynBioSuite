@@ -1,12 +1,12 @@
-import { Center, InputWrapper as MantineInputWrapper } from '@mantine/core'
+import { Center, Input } from '@mantine/core'
 
 
 export default function InputWrapper({ children, ...props }) {
     return (
         <Center>
-            <MantineInputWrapper {...props} styles={inputWrapperStyles} >
+            <Input.Wrapper {...props} styles={inputWrapperStyles} >
                 {children}
-            </MantineInputWrapper>
+            </Input.Wrapper>
         </Center>
     )
 }
