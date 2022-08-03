@@ -6,6 +6,9 @@ import { scaleOrdinal } from '@visx/scale'
 import { randomId, useDebouncedValue, useForceUpdate, useListState, useTimeout } from '@mantine/hooks'
 import { GlyphCircle, GlyphDot } from '@visx/glyph'
 import { useEffect } from 'react'
+import { usePanelProperty } from "../../../redux/slices/panelsSlice"
+import { useContext } from 'react'
+import { PanelContext } from './SimulatorPanel'
 
 const accessors = {
     xAccessor: d => d?.[0],
@@ -14,6 +17,8 @@ const accessors = {
 
 
 export default function LineChart({ data, labels, showSeries, title }) {
+
+    const panelId = useContext(PanelContext)
 
     // Stylistic and theme stuff
     const mantineTheme = useMantineTheme()
@@ -42,16 +47,23 @@ export default function LineChart({ data, labels, showSeries, title }) {
     })
 
     // Series selection states
-    const [series, seriesHandlers] = useListState(labels.map((label, i) => ({
+    const [seriesInStore, setSeriesInStore] = usePanelProperty(panelId, "chartSeries", false)
+    const [series, seriesHandlers] = useListState(seriesInStore || labels.map((label, i) => ({
         dataIndex: i,
         key: label,
-        show: showSeries.includes(i),
+        show: true,
         stroke: randomFromSet(lineColors)
     })))
     const [seriesSelectorOpened, setSeriesSelectorOpened] = useState(false)
+    
+    // debound series and put in global stores
+    const [debouncedSeries] = useDebouncedValue(series, 300)
+    useEffect(() => {
+        setSeriesInStore(series)
+    }, [debouncedSeries])
 
     // Create legend
-    const seriesShowing = series.filter(s => s.show)
+    const seriesShowing = (series || []).filter(s => s.show)
     const legendScale = scaleOrdinal({
         domain: seriesShowing.map(s => s.key),
         range: seriesShowing.map(s => s.stroke),
@@ -175,7 +187,7 @@ export default function LineChart({ data, labels, showSeries, title }) {
                 title="Select series"
             >
                 <SimpleGrid cols={3}>
-                    {series.map((s, i) => (
+                    {(series || []).map((s, i) => (
                         <Checkbox
                             key={s.key}
                             label={s.key}
