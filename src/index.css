@@ -15,3 +15,11 @@ code {
 #root {
     display: flex
 }
+
+svg:not(:root) {
+    overflow: visible !important;
+}
+
+html, body {
+    overflow: hidden
+}

@@ -18,6 +18,7 @@
     "@mantine/hooks": "^5.0.0",
     "@mantine/notifications": "^5.0.0",
     "@reduxjs/toolkit": "^1.8.3",
+    "@visx/glyph": "^2.10.0",
     "@visx/legend": "^2.10.0",
     "@visx/scale": "^2.2.2",
     "@visx/xychart": "^2.11.1",

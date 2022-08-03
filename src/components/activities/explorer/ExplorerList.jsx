@@ -1,6 +1,6 @@
 import DragObject from '../../DragObject'
-import { useOpenPanel } from "../../../redux/slices/panelSlice"
-import { titleFromFileName, useCreateFile, useWorkingDirectory } from '../../../redux/slices/workingDirectorySlice'
+import { useOpenPanel } from "../../../redux/slices/panelsSlice"
+import { titleFromFileName, useCreateFile, useFiles } from '../../../redux/slices/workingDirectorySlice'
 import CreateNewButton from "./CreateNewButton"
 import { Accordion, Title } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
@@ -9,14 +9,12 @@ import { ObjectTypes } from '../../../objectTypes'
 export default function ExplorerList() {
 
     // grab file handles
-    const [, , files] = useWorkingDirectory()
+    const files = useFiles()
 
     // handle opening of file
     const openPanel = useOpenPanel()
     const handleOpenFile = fileHandle => () => {
-        openPanel({
-            fileHandle
-        })
+        openPanel(fileHandle)
     }
 
     // handle creation

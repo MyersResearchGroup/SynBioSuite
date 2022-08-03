@@ -2,10 +2,16 @@ import { useState, useRef, useEffect } from "react"
 import { Tabs } from '@mantine/core'
 import TabLabel from "./TabLabel"
 import CenteredTitle from "../CenteredTitle"
-import SimulatorPanel from "./simulator/SimulatorPanel"
 
 
-export default function DragTabs({ tabs, active, onSelect, onClose, onReorder }) {
+export default function DragTabs({
+    tabComponent: TabComponent,
+    contentComponent: ContentComponent,
+    tabIds,
+    active,
+    onSelect,
+    onReorder
+}) {
 
     // drag states
     const tabRefs = useRef([])
@@ -13,17 +19,18 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
 
     // update tab refs
     useEffect(() => {
-        tabRefs.current = tabRefs.current.slice(0, tabs.length)
-    }, [tabs])
+        tabRefs.current = tabRefs.current.slice(0, tabIds.length)
+    }, [tabIds])
 
 
     // drag handlers
 
-    const handleMouseDown = index => event => {
+    const handleMouseDown = (id, index) => event => {
         if (event.button == 0) {
             dragState ?
                 handleMouseLeave() :
                 setDragState({
+                    id,
                     index,
                     start: [event.clientX, event.clientY],
                     width: tabRefs.current[index].clientWidth
@@ -33,6 +40,13 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
 
     const handleMouseMove = event => {
         if (dragState) {
+
+            // handle what happens when tab is closed
+            if (!tabIds.includes(dragState.id)) {
+                handleMouseLeave()
+                return
+            }
+
             const diffX = event.clientX - dragState.start[0]
             const diffY = Math.abs(event.clientY - dragState.start[1])
 
@@ -71,26 +85,39 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
     const handleMouseLeave = event => {
         if (dragState) {
             tabRefs.current.forEach(element => element.style.transform = 'none')
-            tabRefs.current[dragState.index].style.zIndex = 1
+            tabRefs.current[dragState.index] &&
+                (tabRefs.current[dragState.index].style.zIndex = 1)
         }
         setDragState(null)
     }
 
     const handleMouseUp = event => {
         if (dragState) {
-            if (dragState.newPos != null) {
+            if (dragState.newPos != null)
+                // this is a drag; items should be reordered
                 onReorder({
                     from: dragState.index,
                     to: dragState.newPos,
-                    select: true
                 })
+            else {
+                // this is a click; item should be selected
+                const id = tabIds[tabRefs.current.findIndex(
+                    el => el.contains(event.target) || el == event.target
+                )]
+                onSelect(id)
             }
+
             handleMouseLeave()
         }
     }
 
+    // clear drag state if all tabs are closed
+    useEffect(() => {
+        !tabIds.length && setDragState(null)
+    }, [tabIds.length])
+
     return (
-        tabs.length ?
+        tabIds.length ?
             <div
                 style={containerStyle}
                 onMouseUp={handleMouseUp}
@@ -98,27 +125,17 @@ export default function DragTabs({ tabs, active, onSelect, onClose, onReorder })
                 onMouseLeave={handleMouseLeave}>
                 <Tabs variant="outline" styles={tabsStyles} value={active} >
                     <Tabs.List>
-                        {tabs.map((tab, i) =>
-                            <Tabs.Tab
-                                onMouseDown={handleMouseDown(i)}
-                                onMouseUp={() => onSelect(tab.id)}
+                        {tabIds.map((id, i) =>
+                            <TabComponent
+                                id={id}
+                                key={id}
+                                onMouseDown={handleMouseDown(id, i)}
                                 ref={el => tabRefs.current[i] = el}
-                                key={tab.id}
-                                value={tab.id}
-                            >
-                                <TabLabel
-                                    title={tab.title}
-                                    icon={tab.icon}
-                                    id={tab.id}
-                                    onClose={onClose}
-                                />
-                            </Tabs.Tab>
+                            />
                         )}
                     </Tabs.List>
-                    {tabs.map(tab =>
-                        <Tabs.Panel key={tab.id} value={tab.id}>
-                            {tab.content}
-                        </Tabs.Panel>
+                    {tabIds.map(id =>
+                        <ContentComponent id={id} key={id} />
                     )}
                 </Tabs>
             </div> :

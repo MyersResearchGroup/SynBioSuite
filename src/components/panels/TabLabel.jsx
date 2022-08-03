@@ -5,11 +5,16 @@ import { SVGIcon } from '../../icons'
 
 export default function TabLabel({ title, icon, id, onClose }) {
 
+    const handleClose = event => {
+        onClose(id)
+        event.stopPropagation()
+    }
+
     return (
         <Group sx={groupStyle} spacing='sm' >
             <SVGIcon icon={icon} size='md' />
             <span style={spanStyle}>{title}</span>
-            <ActionIcon sx={iconStyle} onClick={() => onClose(id)} ><IoClose /></ActionIcon>
+            <ActionIcon sx={iconStyle} onMouseUp={handleClose} ><IoClose /></ActionIcon>
         </Group>
     )
 }

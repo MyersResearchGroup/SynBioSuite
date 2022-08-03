@@ -1,12 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
 import activityReducer from "./slices/activitySlice"
 import workingDirectoryReducer from "./slices/workingDirectorySlice"
-import panelReducer from "./slices/panelSlice"
+import panelsReducer from "./slices/panelsSlice"
 
 export default configureStore({
     reducer: {
         activities: activityReducer,
         workingDirectory: workingDirectoryReducer,
-        panels: panelReducer,
+        panels: panelsReducer,
     }
 })

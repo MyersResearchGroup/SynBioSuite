@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Container, Stepper, Group, Button, Tabs, Space, Title, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
 import Dropzone from '../../Dropzone'
 import CenteredTitle from '../../CenteredTitle'
@@ -6,50 +6,59 @@ import { showNotification } from '@mantine/notifications'
 import { TbComponents } from 'react-icons/tb'
 import { IoAnalyticsSharp } from 'react-icons/io5'
 import { BiWorld } from "react-icons/bi"
-import AnalysisForm from './AnalysisForm'
+import ParameterForm from './ParameterForm'
 import ReviewTable from './ReviewTable'
 import { ObjectTypes } from '../../../objectTypes'
 import { titleFromFileName, useFile } from '../../../redux/slices/workingDirectorySlice'
 import { useContext } from 'react'
-import { PanelContext } from './SimulatorPanel'
-import { pollStatus, submitAnalysis } from '../../../ibiosim'
+import { pollStatus, submitAnalysis, terminateAnalysis } from '../../../ibiosim'
 import { useRef } from 'react'
+import { PanelContext } from './SimulatorPanel'
+import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { useTimeout } from '@mantine/hooks'
 
 
-export default function AnalysisWizard() {
+export const TabValues = {
+    ENVIRONMENT: 'environment',
+    PARAMETERS: 'parameters'
+}
 
-    // error boundary for weird bug
-    const panelContext = useContext(PanelContext)
-    if(!panelContext)
-        return <></>
 
-    const [panel, usePanelState] = panelContext
-    const [running, setRunning] = usePanelState('running', false)
-    const [activeTab, setActiveTab] = usePanelState('activeTab')
-    // console.log(panel.state)
+export default function AnalysisWizard() {    
+
+    const panelId = useContext(PanelContext)
+
+    // file info
+    const fileHandle = usePanelProperty(panelId, "fileHandle")
+    const panelTitle = titleFromFileName(fileHandle.name)
+    
+    console.log("Weird bug, panel ID:", panelId)
+
+    const [running, setRunning] = usePanelProperty(panelId, 'running', false)
 
     // stepper states
     const numSteps = 3
-    const [activeStep, setActiveStep] = usePanelState('activeStep', 0)
+    const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
 
     // Step 1: select component
-    const [componentId, setComponentId] = usePanelState('componentId')
-    const [component] = useFile(componentId)
+    const [componentId, setComponentId] = usePanelProperty(panelId, 'component', false)
+    const component = useFile(componentId)
     const handleComponentChange = name => {
         setComponentId(name)
     }
 
     // Step 2: select parameter source
-    const [parameterSource, setParameterSource] = usePanelState('parameterSource', null)
-    const [environmentId, setEnvironmentId] = usePanelState('environmentId')
-    const [environment] = useFile(environmentId)
+    const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.ENVIRONMENT)
+    const [environmentId, setEnvironmentId] = usePanelProperty(panelId, 'environment', false)
+    const environment = useFile(environmentId)
     const handleEnvironmentChange = name => {
         setEnvironmentId(name)
     }
 
     // form state
+    const formValues = usePanelProperty(panelId, "formValues")
     const [formValidated, setFormValidated] = useState()
 
     // determine if we can move to next step or not
@@ -57,38 +66,38 @@ export default function AnalysisWizard() {
     switch (activeStep) {
         case 0: showNextButton = !!componentId
             break
-        case 1: showNextButton = !!environmentId || (parameterSource == 1 && formValidated)
+        case 1: showNextButton = (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
+            (parameterSource == TabValues.PARAMETERS && formValidated)
             break
     }
 
     // submission & response tracking
-    const [orchestrationUris, setOrchestrationUris] = usePanelState('orchestrationUris')
-    const [results, setResults] = usePanelState('results')
+    const [results, setResults] = usePanelProperty(panelId, 'results', false)
+    const [orchestrationUris, setOrchestrationUris] = usePanelProperty(panelId, 'orchestrationUris', false)
 
-    const orchestrationUrisRef = useRef(orchestrationUris)
+    const orchestrationUrisRef = useRef(orchestrationUris)  // have to use refs for access from setTimeout callback
     orchestrationUrisRef.current = orchestrationUris
 
-    const pollingTimeout = () => setTimeout(async () => {
+    const pollingTimeout = useTimeout(async () => {
 
-        console.debug("Polling analysis status...")
+        console.debug(`${panelTitle}: Polling analysis status...`)
         const output = await pollStatus(orchestrationUrisRef.current)
 
-        // if there's no output, run another poll
+        // if there's no output, quit and start new timeout
         if (!output) {
-            pollingTimeout()
+            pollingTimeout.start()
             return
         }
 
         setResults(output)
         setRunning(false)
-        
-        console.debug("Analysis complete.")
+
+        console.debug(`${panelTitle}: Analysis complete.`)
         showNotification({
-            message: `${titleFromFileName(panel.fileHandle.name)} has finished running.`,
+            message: `${panelTitle} has finished running.`,
             color: "green"
         })
-        setActiveTab(1)
-    }, 5000)
+    }, 5000, { autoInvoke: running })
 
     const handleAnalysisRun = async () => {
         setRunning(true)
@@ -98,26 +107,32 @@ export default function AnalysisWizard() {
             const response = await submitAnalysis(
                 component,
                 parameterSource ?
-                    { parameters: panel.state.form } :
+                    { parameters: formValues } :
                     { environment }
             )
 
             setOrchestrationUris(response)
-            pollingTimeout()
+            pollingTimeout.start()
 
-            console.debug("Analysis accepted.")
+            console.debug(`${panelTitle}: Analysis accepted.`)
         }
         catch (error) {
-            setRunning(false)
+            handleCancel()
+            console.error(`${panelTitle}: Error occurred running analysis:`, error)
             showNotification({
-                message: "Encountered an error while running analysis.",
+                message: `Encountered an error while running analysis for ${panelTitle}.`,
                 color: "red"
             })
         }
     }
 
+    // stop polling interval on unmount
+    useEffect(() => pollingTimeout.clear, [])
+
     const handleCancel = () => {
         setRunning(false)
+        pollingTimeout.clear()
+        terminateAnalysis(orchestrationUris)
     }
 
 
@@ -145,8 +160,16 @@ export default function AnalysisWizard() {
                     icon={<BiWorld />}
                 >
                     <Space h='xl' />
-                    <Tabs grow position='center' active={parameterSource} onTabChange={setParameterSource} >
-                        <Tabs.Tab label="Select an environment archive">
+                    <Tabs position='center' value={parameterSource} onTabChange={setParameterSource} >
+                        <Tabs.List grow>
+                            <Tabs.Tab value={TabValues.ENVIRONMENT}>
+                                Select an environment archive
+                            </Tabs.Tab>
+                            <Tabs.Tab value={TabValues.PARAMETERS}>
+                                Manually enter parameters
+                            </Tabs.Tab>
+                        </Tabs.List>
+                        <Tabs.Panel value={TabValues.ENVIRONMENT}>
                             <Dropzone
                                 allowedTypes={[ObjectTypes.OMEX.id]}
                                 item={environment?.name}
@@ -154,10 +177,10 @@ export default function AnalysisWizard() {
                             >
                                 Drag & drop an environment from the explorer
                             </Dropzone>
-                        </Tabs.Tab>
-                        <Tabs.Tab label="Manually enter parameters">
-                            <AnalysisForm onValidation={setFormValidated} />
-                        </Tabs.Tab>
+                        </Tabs.Panel>
+                        <Tabs.Panel value={TabValues.PARAMETERS}>
+                            <ParameterForm onValidation={validation => setFormValidated(!validation.hasErrors)} />
+                        </Tabs.Panel>
                     </Tabs>
                 </Stepper.Step>
                 <Stepper.Step

@@ -9,9 +9,11 @@ export async function submitAnalysis(input, { environment, parameters }) {
     // either attach environment file or parameters
     environment ?
         formdata.append("environment", await environment.getFile()) :
-        Object.entries(parameters).forEach(
-            ([key, value]) => formdata.append(key, value)
-        )
+        Object.entries(parameters)
+            .filter(([, value]) => value != null)
+            .forEach(
+                ([key, value]) => formdata.append(key, value)
+            )
 
     // send request
     const response = await fetch(import.meta.env.VITE_IBIOSIM_API, {
@@ -41,6 +43,20 @@ export async function pollStatus(orchestration) {
 
     // parse & return output
     return await parseOutput(status.output)
+}
+
+export async function terminateAnalysis(orchestration) {
+
+    if (!orchestration?.terminatePostUri)
+        return
+
+    // POST to terminate URI
+    return await fetch(orchestration.terminatePostUri, {
+        method: 'POST'
+    })
+
+    // this will respond with 202 if termination was accepted,
+    // or 410 (Gone) if already terminated or complete.
 }
 
 async function parseOutput(outputArray) {

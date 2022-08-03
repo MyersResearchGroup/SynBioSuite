@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Center, Checkbox, ColorPicker, Modal, Popover, SimpleGrid, Stack, Text, Title, useMantineTheme } from '@mantine/core'
+import { Button, Center, Checkbox, ColorPicker, Modal, Popover, SimpleGrid, Stack, Text, Title, useMantineTheme } from '@mantine/core'
 import { XYChart, Axis, LineSeries, Tooltip, Grid, buildChartTheme } from '@visx/xychart'
 import { LegendItem, LegendLabel, LegendOrdinal } from '@visx/legend'
 import { scaleOrdinal } from '@visx/scale'
-import { useListState } from '@mantine/hooks'
+import { randomId, useDebouncedValue, useForceUpdate, useListState, useTimeout } from '@mantine/hooks'
+import { GlyphCircle, GlyphDot } from '@visx/glyph'
+import { useEffect } from 'react'
 
 const accessors = {
-    xAccessor: d => d[0],
-    yAccessor: series => d => d[series],
+    xAccessor: d => d?.[0],
+    yAccessor: series => d => d?.[series],
 }
 
 
@@ -48,9 +50,6 @@ export default function LineChart({ data, labels, showSeries, title }) {
     })))
     const [seriesSelectorOpened, setSeriesSelectorOpened] = useState(false)
 
-    // Color picker states
-    const [colorPickersOpened, colorPickersOpenedHandlers] = useListState()
-
     // Create legend
     const seriesShowing = series.filter(s => s.show)
     const legendScale = scaleOrdinal({
@@ -58,12 +57,27 @@ export default function LineChart({ data, labels, showSeries, title }) {
         range: seriesShowing.map(s => s.stroke),
     })
 
+    // force update to rerender plot after debounced resize
+    const [forcedUpdateKey, setForcedUpdateKey] = useState('chart')
+    const resizeTimeout = useTimeout(() => {
+        setForcedUpdateKey(randomId())
+    }, 200)
+    useEffect(() => {
+        const onResize = () => {
+            resizeTimeout.clear()
+            resizeTimeout.start()
+        }
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+    }, [])
+
 
     return (
         <>
             <Stack align="center" justify="flex-start" >
                 {title && <Title order={3} align='center' sx={titleStyle}>{title}</Title>}
                 <XYChart
+                    key={forcedUpdateKey} // forces rerender in combination with forceUpdate (above)
                     theme={chartTheme}
                     // width={600}
                     height={400}
@@ -122,26 +136,25 @@ export default function LineChart({ data, labels, showSeries, title }) {
                                 {chartLabels.map((chartLabel, i) => (
                                     <Popover
                                         key={`legend-${i}`}
-                                        opened={colorPickersOpened.includes(chartLabel.text)}
-                                        onClose={() => colorPickersOpenedHandlers.remove(colorPickersOpened.indexOf(chartLabel.text))}
-                                        target={
-                                            <LegendItem
-                                                style={legendItemStyle}
-                                                onClick={() => colorPickersOpenedHandlers.append(chartLabel.text)}
-                                            >
-                                                <div style={legendGlyphStyle(chartLabel.value)}></div>
-                                                <LegendLabel align="left" margin="0 0 0 4px">
-                                                    {chartLabel.text}
-                                                </LegendLabel>
-                                            </LegendItem>
-                                        }
                                         width={260}
-                                        position="bottom"
+                                        position="top"
                                     >
-                                        <ColorPicker
-                                            value={chartLabel.value}
-                                            onChange={newColor => seriesHandlers.setItemProp(series.findIndex(s => s.key == chartLabel.text), 'stroke', newColor)}
-                                        />
+                                        <Popover.Target>
+                                            <div style={legendItemWrapperStyle}>
+                                                <LegendItem style={legendItemStyle}>
+                                                    <div style={legendGlyphStyle(chartLabel.value)}></div>
+                                                    <LegendLabel align="left" margin="0 0 0 4px">
+                                                        {chartLabel.text}
+                                                    </LegendLabel>
+                                                </LegendItem>
+                                            </div>
+                                        </Popover.Target>
+                                        <Popover.Dropdown>
+                                            <ColorPicker
+                                                value={chartLabel.value}
+                                                onChange={newColor => seriesHandlers.setItemProp(series.findIndex(s => s.key == chartLabel.text), 'stroke', newColor)}
+                                            />
+                                        </Popover.Dropdown>
                                     </Popover>
                                 ))}
                             </div>
@@ -202,11 +215,15 @@ const legendStyle = theme => ({
     borderRadius: 4
 })
 
-const legendItemStyle = {
-    margin: '0 8px',
+const legendItemWrapperStyle = {
     cursor: 'pointer',
+    margin: '0 10px',
+}
+
+const legendItemStyle = {
     display: 'inline-flex',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 3
 }
 
 const legendGlyphStyle = color => ({
@@ -264,13 +281,12 @@ const renderTooltip = series => ({ tooltipData }) => {
 
 const renderTooltipGlyph = series => point => {
     const currentSeries = series.find(s => s.key == point.key)
-    const size = 10
+    const size = 100
 
-    return <svg width={size} height={size} style={{
-        transform: `translate(-${size / 2}px, -${size / 2}px)`
-    }}>
-        <circle fill={currentSeries.stroke} r={size / 2} cx={size / 2} cy={size / 2} />
-    </svg>
+    return <GlyphCircle
+        size={size / 2}
+        fill={currentSeries.stroke}
+    />
 }
 
 function randomColorsFromSet(set, numColors) {

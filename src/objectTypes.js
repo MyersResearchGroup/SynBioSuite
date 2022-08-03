@@ -47,6 +47,6 @@ export function getObjectType(id) {
 
 export function classifyFile(fileName) {
     return Object.values(ObjectTypes).find(
-        ({ fileMatch }) => !!fileName.match(fileMatch)
+        ({ fileMatch }) => !!fileName?.match(fileMatch)
     )?.id
 }

@@ -12,16 +12,19 @@ export const PanelTypes = {
         objectTypes: [ ObjectTypes.Analysis.id ],
         icon: SimulationIcon,
 
-        onOpen: content => {
+        deserialize: content => {
             try {
-                return { state: JSON.parse(content) }
+                return JSON.parse(content)
             }
             catch {
-                return { state: {} }
+                return {}
             }
         },
 
-        onSave: panel => JSON.stringify(panel.state)
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        }
     },
     SBOLEditor: {
         id: "synbio.panel-type.sbol-editor",
@@ -30,13 +33,11 @@ export const PanelTypes = {
         objectTypes: [ ObjectTypes.SBOL.id ],
         icon: CanvasIcon,
 
-        onOpen: content => ({
-            state: {
-                sbol: content
-            }
+        deserialize: content => ({
+            sbol: content
         }),
 
-        onSave: panel => panel.state.sbol
+        serialize: panel => panel.sbol
     }
 }
 

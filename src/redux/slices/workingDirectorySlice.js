@@ -1,62 +1,54 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createEntityAdapter, createSlice } from "@reduxjs/toolkit"
 import { useSelector, useDispatch } from 'react-redux'
-import { useOpenPanel, useResetPanels } from "./panelSlice"
+import { useOpenPanel, useCloseAllPanels } from "./panelsSlice"
 import { classifyFile } from "../../objectTypes"
 import { v4 as uuidv4 } from 'uuid'
 
+// Create slice and adapter
 
-// create slice
-export const workingDirectorySlice = createSlice({
+const workDirAdapter = createEntityAdapter()
+const initialState = workDirAdapter.getInitialState()
+
+export const workDirSlice = createSlice({
     name: 'workingDirectory',
-    initialState: {
-        handle: undefined,
-        files: [],
-    },
+    initialState,
     reducers: {
+        addFile: workDirAdapter.addOne,
+        addFiles: workDirAdapter.addMany,
         setWorkingDirectory: (state, action) => {
-            const { handle, files } = action.payload
-            state.handle = handle
-            files.forEach(addFileMetaData)
-            state.files = files
-        },
-        addHandle: (state, action) => {
-            addFileMetaData(action.payload)
-            state.files.push(action.payload)
-        },
-        addHandles: (state, action) => {
-            action.payload.forEach(addFileMetaData)
-            state.files.push(...action.payload)
+            state.directoryHandle = action.payload
         },
     }
 })
 
-// export actions & reducer
-const actions = workingDirectorySlice.actions
-export const workingDirectoryActions = actions
-export default workingDirectorySlice.reducer
+const actions = workDirSlice.actions
+const selectors = workDirAdapter.getSelectors(state => state.workingDirectory)
 
 
-// custom hooks for selectors
+// Selector hooks
+
+export const useFiles = () => useSelector(selectors.selectAll)
+export const useFile = id => useSelector(state => selectors.selectById(state, id))
 
 export function useWorkingDirectory() {
     const dispatch = useDispatch()
-    const resetPanels = useResetPanels()
+    const closeAllPanels = useCloseAllPanels()
     return [
-        /* workingDirectory */  useSelector(state => state.workingDirectory.handle),
+        /* workingDirectory */  useSelector(state => state.workingDirectory.directoryHandle),
         /* setWorkingDirectory */ newWorkDir => {
             // read files
             findFilesInDirectory(newWorkDir)
                 .then(foundFiles => {
-                    dispatch(actions.setWorkingDirectory({
-                        handle: newWorkDir,
-                        files: foundFiles
-                    }))
-                    resetPanels()
+                    dispatch(actions.setWorkingDirectory(newWorkDir))
+                    dispatch(actions.addFiles(foundFiles))
+                    closeAllPanels()
                 })
-        },
-        /* fileHandles */  useSelector(state => state.workingDirectory.files)
+        }
     ]
 }
+
+
+// Action hooks
 
 export function useCreateFile() {
     const dispatch = useDispatch()
@@ -70,40 +62,43 @@ export function useCreateFile() {
             }]
         })
             .then(fileHandle => {
-                dispatch(actions.addHandle(fileHandle))
-                openPanel({ fileHandle })
+                addFileMetadata(fileHandle)
+                dispatch(actions.addFile(fileHandle))
+                openPanel(fileHandle)
             })
     }
 }
 
-export function useFile(fileId) {
-    return [
-        /* fileHandle */
-        useSelector(
-            state => state.workingDirectory.files.find(file => file.id == fileId)
-        )
-    ]
-}
-
 
 // Utility
-
-function addFileMetaData(fileHandle) {
-    fileHandle.objectType = classifyFile(fileHandle.name)
-    fileHandle.id = uuidv4()
-}
 
 async function findFilesInDirectory(dirHandle) {
     const files = []
 
     // loop through async iterator of file names (called keys here)
     for await (const handle of dirHandle.values()) {
-        handle.kind == 'file' && files.push(handle)
+        if(handle.kind == 'file') {
+            addFileMetadata(handle)
+            files.push(handle)
+        }
     }
 
     return files
 }
 
+function addFileMetadata(handle) {
+    // handle.id = uuidv4()
+    handle.id = handle.name
+    handle.objectType = classifyFile(handle.name)
+}
+
 export function titleFromFileName(fileName) {
     return fileName?.match(/([\w\W]+)\./)?.[1]
 }
+
+
+// Exports
+
+export default workDirSlice.reducer
+export const workDirActions = actions
+export const workDirSelectors = selectors
