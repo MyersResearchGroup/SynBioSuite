@@ -1,24 +1,19 @@
 
 import { LoadingOverlay } from '@mantine/core'
-import { useSetState } from '@mantine/hooks'
 import { useState, useEffect, useRef, useContext } from 'react'
 import { PanelContext } from './SBOLEditorPanel'
+import { usePanelProperty } from "../../../redux/slices/panelsSlice"
 
 
 export default function CanvasFrame() {
 
-    // error boundary for weird bug
-    const panelContext = useContext(PanelContext)
-    if (!panelContext)
-        return <></>
-
-    const [panel, usePanelState] = panelContext
+    const panelId = useContext(PanelContext)
 
     // state containing full SBOL content
-    const [sbolContent, setSBOLContent] = usePanelState('sbol')
+    const [sbolContent, setSBOLContent] = usePanelProperty(panelId, "sbol", false)
 
     useEffect(() => {
-        console.log(sbolContent.substring(0,200))
+        console.log(sbolContent.substring(0, 200))
     }, [sbolContent])
 
     // iframe reference
@@ -28,29 +23,24 @@ export default function CanvasFrame() {
     const [iframeLoading, setIFrameLoading] = useState(true)
     const [showLoadingIcon, setShowLoadingIcon] = useState(true)
 
-    // Handle incoming messages from iframe
+    // handle incoming messages from iframe
     const messageListener = ({ data }) => {
 
-        // Handle simple string messages
-        if (typeof data === 'string') {
-            switch (data) {
-                case 'graphServiceLoadedSBOL':
-                    setShowLoadingIcon(false)
-                    break
-                default:
-                    break
-            }
+        // handle simple string messages
+        switch (data) {
+            case 'graphServiceLoadedSBOL':
+                setShowLoadingIcon(false)
+                return
         }
-        // handle messages with more data
-        else {
-            if (data?.sbol) {
-                console.debug('Received SBOL from child:', data.sbol.substring(0,100))
-                setSBOLContent(data.sbol)
-            }
+
+        // handle object payloads
+        if (data?.sbol) {
+            console.debug('Received SBOL from child:', data.sbol.substring(0, 100))
+            setSBOLContent(data.sbol)
         }
     }
 
-    // On mount
+    // Add message listener on mount
     useEffect(() => {
         window.addEventListener('message', messageListener)
         return () => window.removeEventListener('message', messageListener)
@@ -78,7 +68,7 @@ export default function CanvasFrame() {
 
     return (
         <div style={containerStyle}>
-            <LoadingOverlay visible={showLoadingIcon} />
+            {/* <LoadingOverlay visible={showLoadingIcon} /> */}
             <iframe
                 src={import.meta.env.VITE_SBOL_CANVAS_URL + '?ignoreHTTPErrors=true'}
                 style={{ overflow: 'hidden' }}

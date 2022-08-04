@@ -1,21 +1,14 @@
 import { Tabs, Center } from '@mantine/core'
 import { createContext } from 'react'
-// import { useMarkPanelUnsavedEffect, usePanel } from '../../../redux/slices/panelsSlice'
+import PanelSaver from '../PanelSaver'
 import CanvasFrame from './CanvasFrame'
 
 export const PanelContext = createContext()
 
 export default function SBOLEditorPanel({ id }) {
 
-    const [panel, usePanelState] = usePanel(id)
-
-    const [activeTab, setActiveTab] = usePanelState('activeTab', 0)
-
-    // handle marking as unsaved
-    useMarkPanelUnsavedEffect(id, [panel.state.sbol])
-
     return (
-        <PanelContext.Provider value={[panel, usePanelState]}>
+        <PanelContext.Provider value={id}>
             {/* <Tabs styles={tabStyles} active={activeTab} onTabChange={setActiveTab}>
                 <Tabs.Tab label="Design" >
                     <DesignView />
@@ -34,6 +27,7 @@ export default function SBOLEditorPanel({ id }) {
                 </Tabs.Tab>
             </Tabs> */}
             <CanvasFrame />
+            <PanelSaver id={id} />
         </PanelContext.Provider>
     )
 }
