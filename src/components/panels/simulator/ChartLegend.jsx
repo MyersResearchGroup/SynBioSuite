@@ -6,12 +6,9 @@ import { useState, useContext, useEffect } from 'react'
 import { usePanelProperty } from '../../../redux/slices/panelsSlice'
 import { PanelContext } from './SimulatorPanel'
 
-export function useChartLegend({ seriesLabels }) {
+export function useChartLegend({ seriesLabels = [] }) {
 
     const panelId = useContext(PanelContext)
-
-    if(!seriesLabels)
-        return
 
     // create set of line colors
     const mantineTheme = useMantineTheme()

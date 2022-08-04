@@ -13,7 +13,7 @@ export default function AnalysisResults() {
     const results = usePanelProperty(panelId, "results")
 
     const chartLegend = useChartLegend({
-        seriesLabels: results && Object.values(results)[0][0]
+        seriesLabels: results ? Object.values(results)[0][0] : []
     })
 
     const chartOptions = {
