@@ -36,13 +36,13 @@ export function useWorkingDirectory() {
     const closeAllPanels = useCloseAllPanels()
     return [
         /* workingDirectory */  useSelector(state => state.workingDirectory.directoryHandle),
-        /* setWorkingDirectory */ newWorkDir => {
+        /* setWorkingDirectory */ (newWorkDir, closePanels = true) => {
             // read files
             findFilesInDirectory(newWorkDir)
                 .then(foundFiles => {
                     dispatch(actions.setWorkingDirectory(newWorkDir))
                     dispatch(actions.setFiles(foundFiles))
-                    closeAllPanels()
+                    closePanels && closeAllPanels()
                 })
         }
     ]

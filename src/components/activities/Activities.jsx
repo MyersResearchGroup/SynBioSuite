@@ -98,7 +98,8 @@ const tabStyles = theme => {
         panel: {
             backgroundColor: dark ? theme.colors.dark[6] : theme.colors.gray[3],
             width: 260,
-            padding: '10px 6px 24px 6px'
+            padding: '10px 6px 24px 6px',
+            position: 'relative',
         },
     }
 }
