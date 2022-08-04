@@ -77,6 +77,7 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
                             xAccessor={accessors.xAccessor}
                             yAccessor={accessors.yAccessor(s.dataIndex)}
                             stroke={s.stroke}
+                            strokeWidth={s.bold ? 3 : 1}
                         />
                     ))
                 }

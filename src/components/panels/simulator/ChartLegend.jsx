@@ -1,4 +1,4 @@
-import { Checkbox, ColorPicker, Modal, Popover, SimpleGrid, Stack, Text, useMantineTheme } from '@mantine/core'
+import { Center, Checkbox, ColorPicker, Modal, Popover, SimpleGrid, Stack, Switch, Text, useMantineTheme } from '@mantine/core'
 import { useDebouncedValue, useListState } from '@mantine/hooks'
 import { LegendItem, LegendLabel, LegendOrdinal } from '@visx/legend'
 import { scaleOrdinal } from '@visx/scale'
@@ -20,7 +20,8 @@ export function useChartLegend({ seriesLabels = [] }) {
         dataIndex: i,
         key: label,
         show: seriesInStore?.[label]?.show ?? i != 0,
-        stroke: seriesInStore?.[label]?.stroke || randomFromSet(lineColors)
+        stroke: seriesInStore?.[label]?.stroke || randomFromSet(lineColors),
+        bold: seriesInStore?.[label]?.bold || false,
     })))
     const seriesShowing = (series || []).filter(s => s.show)
 
@@ -28,9 +29,9 @@ export function useChartLegend({ seriesLabels = [] }) {
     const [debouncedSeries] = useDebouncedValue(series, 300)
     useEffect(() => {
         series && setSeriesInStore(Object.fromEntries(
-            series.map(({ key, show, stroke }) => [
+            series.map(({ key, show, stroke, bold }) => [
                 key,
-                { show, stroke }
+                { show, stroke, bold }
             ])
         ))
     }, [debouncedSeries])
@@ -43,7 +44,7 @@ export function useChartLegend({ seriesLabels = [] }) {
         legend:
             <Legend
                 series={seriesShowing}
-                onColorChange={(seriesKey, newColor) => seriesHandlers.setItemProp(series.findIndex(s => s.key == seriesKey), 'stroke', newColor)}
+                onPropChange={(seriesKey, propKey, newValue) => seriesHandlers.setItemProp(series.findIndex(s => s.key == seriesKey), propKey, newValue)}
                 openSeriesSelector={() => setSeriesSelectorOpened(true)}
             />,
         selectionModal:
@@ -58,7 +59,7 @@ export function useChartLegend({ seriesLabels = [] }) {
 
 
 
-function Legend({ series, onColorChange, openSeriesSelector }) {
+function Legend({ series, onPropChange, openSeriesSelector }) {
 
     const panelId = useContext(PanelContext)
     const mantineTheme = useMantineTheme()
@@ -76,6 +77,9 @@ function Legend({ series, onColorChange, openSeriesSelector }) {
         domain: series.map(s => s.key),
         range: series.map(s => s.stroke),
     })
+
+    const getSeriesProp = (seriesKey, propKey) =>
+        series.find(s => s.key == seriesKey)?.[propKey]
 
     return (
         <Stack align='center'>
@@ -101,10 +105,17 @@ function Legend({ series, onColorChange, openSeriesSelector }) {
                                     </div>
                                 </Popover.Target>
                                 <Popover.Dropdown>
-                                    <ColorPicker
-                                        value={chartLabel.value}
-                                        onChange={newColor => onColorChange(chartLabel.text, newColor)}
-                                    />
+                                    <Stack align="center">
+                                        <ColorPicker
+                                            value={chartLabel.value}
+                                            onChange={newColor => onPropChange(chartLabel.text, "stroke", newColor)}
+                                        />
+                                        <Switch
+                                            label="Emphasize"
+                                            checked={getSeriesProp(chartLabel.text, "bold")}
+                                            onChange={event => onPropChange(chartLabel.text, "bold", event.currentTarget.checked)}
+                                        />
+                                    </Stack>
                                 </Popover.Dropdown>
                             </Popover>
                         ))}
