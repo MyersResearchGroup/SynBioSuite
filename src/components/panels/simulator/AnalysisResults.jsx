@@ -13,7 +13,7 @@ export default function AnalysisResults() {
     const results = usePanelProperty(panelId, "results")
 
     const chartLegend = useChartLegend({
-        seriesLabels: Object.values(results)[0][0]
+        seriesLabels: results && Object.values(results)[0][0]
     })
 
     const chartOptions = {
@@ -25,7 +25,7 @@ export default function AnalysisResults() {
 
     // calculate y-domain from all data so all charts have
     // the same scaling
-    const yDomain = [
+    const yDomain = results && [
         0,
         Math.ceil(
             Math.max(
@@ -51,7 +51,7 @@ export default function AnalysisResults() {
                             <React.Fragment key={i}>
                                 <LineChart
                                     data={resultData.slice(1)}
-                                    series={chartLegend.series}
+                                    series={chartLegend?.series}
                                     title={chartOptions.showTitles && titleFromRunFileName(fileName)}
                                     height={chartOptions.height}
                                     mt={chartOptions.height * chartOptions.gapBetween / 100 - 60}
@@ -62,13 +62,13 @@ export default function AnalysisResults() {
                         )}
                         {!chartOptions.showLegendWithEvery && <>
                             <Space h={20} />
-                            {chartLegend.legend}
+                            {chartLegend?.legend}
                         </>}
                         <Space h={60} />
                     </Container>
                 }
             </ScrollArea>
-            {chartLegend.selectionModal}
+            {chartLegend?.selectionModal}
         </>
     )
 }

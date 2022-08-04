@@ -10,6 +10,9 @@ export function useChartLegend({ seriesLabels }) {
 
     const panelId = useContext(PanelContext)
 
+    if(!seriesLabels)
+        return
+
     // create set of line colors
     const mantineTheme = useMantineTheme()
     const lineColors = Object.values(mantineTheme.colors).map(colorSeries => colorSeries[4])
