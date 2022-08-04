@@ -6,6 +6,7 @@ import PanelSaver from "../PanelSaver"
 import { useSelector } from 'react-redux'
 import { panelsSelectors } from '../../../redux/slices/panelsSlice'
 import { createSelector } from '@reduxjs/toolkit'
+import StatusBadge from './StatusBadge'
 
 
 export const PanelContext = createContext()
@@ -27,6 +28,7 @@ export default function SimulatorPanel({ id }) {
 
     return (
         <PanelContext.Provider value={id}>
+            <StatusBadge />
             <Tabs defaultValue={TabValues.SETUP} styles={tabStyles}>
                 <Tabs.List>
                     <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
