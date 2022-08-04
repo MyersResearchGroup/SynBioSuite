@@ -16,6 +16,8 @@ import { useRef } from 'react'
 import { PanelContext } from './SimulatorPanel'
 import { usePanelProperty } from '../../../redux/slices/panelsSlice'
 import { useTimeout } from '@mantine/hooks'
+import { RuntimeStatus } from '../../../runtimeStatus'
+import SimulationTimeline from './SimulationTimeline'
 
 
 export const TabValues = {
@@ -24,17 +26,19 @@ export const TabValues = {
 }
 
 
-export default function AnalysisWizard() {    
+export default function AnalysisWizard() {
 
     const panelId = useContext(PanelContext)
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
-    
+
     console.log("Weird bug, panel ID:", panelId)
 
-    const [running, setRunning] = usePanelProperty(panelId, 'running', false)
+    const [status, setStatus] = usePanelProperty(panelId, "runtimeStatus", false)
+    const running = RuntimeStatus.running(status)
+    const [, setRequestedAt] = usePanelProperty(panelId, "lastRequestedAt", false)
 
     // stepper states
     const numSteps = 3
@@ -81,26 +85,41 @@ export default function AnalysisWizard() {
     const pollingTimeout = useTimeout(async () => {
 
         console.debug(`${panelTitle}: Polling analysis status...`)
-        const output = await pollStatus(orchestrationUrisRef.current)
+        const pollResult = await pollStatus(orchestrationUrisRef.current)
 
-        // if there's no output, quit and start new timeout
-        if (!output) {
+        setStatus(pollResult.runtimeStatus)
+
+        // if there's no output, analysis is still running
+        // so we should run another poll and return
+        if (!pollResult.output) {
             pollingTimeout.start()
             return
         }
 
-        setResults(output)
-        setRunning(false)
+        // success case
+        if (pollResult.runtimeStatus == RuntimeStatus.COMPLETED) {
+            setResults(pollResult.output)
+            console.debug(`${panelTitle}: Analysis complete.`)
+            showNotification({
+                message: `${panelTitle} has finished running.`,
+                color: "green"
+            })
+            return
+        }
 
-        console.debug(`${panelTitle}: Analysis complete.`)
+        // failing case
+        console.debug(`${panelTitle}: Analysis failed. Logging failed poll.`)
+        console.debug(pollResult)
         showNotification({
-            message: `${panelTitle} has finished running.`,
-            color: "green"
+            message: `${panelTitle} failed.`,
+            color: "red"
         })
+
     }, 5000, { autoInvoke: running })
 
     const handleAnalysisRun = async () => {
-        setRunning(true)
+        setStatus(RuntimeStatus.REQUESTED)
+        setRequestedAt(Date.now())
 
         try {
             // start analysis
@@ -111,13 +130,13 @@ export default function AnalysisWizard() {
                     { environment }
             )
 
+            setStatus(RuntimeStatus.ACCEPTED)
             setOrchestrationUris(response)
             pollingTimeout.start()
-
             console.debug(`${panelTitle}: Analysis accepted.`)
         }
         catch (error) {
-            handleCancel()
+            cancelAnalysis(RuntimeStatus.FAILED)
             console.error(`${panelTitle}: Error occurred running analysis:`, error)
             showNotification({
                 message: `Encountered an error while running analysis for ${panelTitle}.`,
@@ -129,12 +148,11 @@ export default function AnalysisWizard() {
     // stop polling interval on unmount
     useEffect(() => pollingTimeout.clear, [])
 
-    const handleCancel = () => {
-        setRunning(false)
+    const cancelAnalysis = status => {
+        setStatus(status)
         pollingTimeout.clear()
         terminateAnalysis(orchestrationUris)
     }
-
 
     return (
         <Container style={stepperContainerStyle}>
@@ -191,9 +209,10 @@ export default function AnalysisWizard() {
                     loading={running}
                 >
                     <Space h='lg' />
-                    <Center>
+                    <Group grow style={{ alignItems: 'flex-start' }}>
                         <ReviewTable />
-                    </Center>
+                        <SimulationTimeline />
+                    </Group>
                 </Stepper.Step>
                 <Stepper.Completed>
                     <CenteredTitle height={150}>Analysis is in progress...</CenteredTitle>
@@ -202,7 +221,7 @@ export default function AnalysisWizard() {
             </Stepper>
             <Group position="center" mt="xl">
                 {running ?
-                    <Button color='red' onClick={handleCancel}>
+                    <Button color='red' onClick={() => cancelAnalysis(RuntimeStatus.CANCELLED)}>
                         Cancel
                     </Button> :
                     <>

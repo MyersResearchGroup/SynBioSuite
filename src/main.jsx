@@ -7,6 +7,9 @@ import { MantineProvider } from '@mantine/core'
 import store from './redux/store'
 import { Provider } from 'react-redux'
 
+import TimeAgo from "javascript-time-ago"
+import en from "javascript-time-ago/locale/en.json"
+
 const theme = {
     colorScheme: 'dark',
     other: {
@@ -15,6 +18,8 @@ const theme = {
         activeColor: '#dee2e6', // theme.colors.gray[3]
     }
 }
+
+TimeAgo.addDefaultLocale(en)
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

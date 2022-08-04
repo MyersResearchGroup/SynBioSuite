@@ -33,16 +33,16 @@ export async function pollStatus(orchestration) {
 
     // fetch and parse status
     const response = await fetch(orchestration.statusQueryGetUri)
-    const status = await response.json()
+    const { runtimeStatus, output } = await response.json()
 
-    console.debug("Status:", status.runtimeStatus)
+    console.debug("Status:", runtimeStatus)
 
-    // stop if job isn't complete
-    if (status.runtimeStatus != 'Completed')
-        return
-
-    // parse & return output
-    return await parseOutput(status.output)
+    return {
+        runtimeStatus,
+        output: runtimeStatus == "Completed" ?
+            await parseOutput(output) :
+            output
+    }
 }
 
 export async function terminateAnalysis(orchestration) {
