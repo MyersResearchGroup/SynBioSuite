@@ -15,6 +15,7 @@ export const workDirSlice = createSlice({
     reducers: {
         addFile: workDirAdapter.addOne,
         addFiles: workDirAdapter.addMany,
+        setFiles: workDirAdapter.setAll,
         setWorkingDirectory: (state, action) => {
             state.directoryHandle = action.payload
         },
@@ -40,7 +41,7 @@ export function useWorkingDirectory() {
             findFilesInDirectory(newWorkDir)
                 .then(foundFiles => {
                     dispatch(actions.setWorkingDirectory(newWorkDir))
-                    dispatch(actions.addFiles(foundFiles))
+                    dispatch(actions.setFiles(foundFiles))
                     closeAllPanels()
                 })
         }
