@@ -1,5 +1,9 @@
 name: Azure Static Web Apps CI/CD
 
+env:
+  VITE_IBIOSIM_API: https://ibiosim-connector.azurewebsites.net/api/orchestrators/analyze
+  VITE_SBOL_CANVAS_URL: https://sbs-canvas.wittyfield-d51873c4.westus.azurecontainerapps.io
+
 on:
   push:
     branches:
