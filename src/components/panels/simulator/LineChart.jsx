@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { Button, Center, Checkbox, ColorPicker, Modal, Popover, SimpleGrid, Stack, Text, Title, useMantineTheme } from '@mantine/core'
-import { XYChart, Axis, LineSeries, Tooltip, Grid, buildChartTheme } from '@visx/xychart'
-import { LegendItem, LegendLabel, LegendOrdinal } from '@visx/legend'
-import { scaleOrdinal } from '@visx/scale'
-import { randomId, useDebouncedValue, useForceUpdate, useListState, useTimeout } from '@mantine/hooks'
-import { GlyphCircle, GlyphDot } from '@visx/glyph'
+import { Stack, Title, useMantineTheme } from '@mantine/core'
+import { XYChart, Axis, LineSeries, Tooltip, darkTheme, Grid } from '@visx/xychart'
+import { randomId, useTimeout } from '@mantine/hooks'
+import { GlyphCircle } from '@visx/glyph'
 import { useEffect } from 'react'
-import { usePanelProperty } from "../../../redux/slices/panelsSlice"
 import { useContext } from 'react'
 import { PanelContext } from './SimulatorPanel'
+import { truncateSpeciesNames } from './ChartLegend'
+import { usePanelProperty } from '../../../redux/slices/panelsSlice'
 
 const accessors = {
     xAccessor: d => d?.[0],
@@ -16,58 +15,26 @@ const accessors = {
 }
 
 
-export default function LineChart({ data, labels, showSeries, title }) {
+export default function LineChart({ data, title, series, height, mt, yDomain }) {
 
     const panelId = useContext(PanelContext)
 
-    // Stylistic and theme stuff
+    // Create set of colors from Mantine colors
     const mantineTheme = useMantineTheme()
-    const lineColors = Object.values(mantineTheme.colors).map(colorSeries => colorSeries[4])
-    const chartTheme = buildChartTheme({
-        // colors
-        // backgroundColor: string // used by Tooltip, Annotation
-        // colors: Object.values(mantineTheme.colors).map(colorSeries => colorSeries[5]),
 
-        // labels
-        // svgLabelBig?: SVGTextProps
-        // svgLabelSmall?: SVGTextProps
-        // htmlLabel?: HTMLTextStyles
+    // Modify dark theme
+    darkTheme.gridStyles = {
+        stroke: mantineTheme.colors.dark[5],
+        strokeWidth: 1
+    }
 
-        // lines
-        // xAxisLineStyles?: LineStyles
-        // yAxisLineStyles?: LineStyles
-        // xTickLineStyles?: LineStyles
-        // yTickLineStyles?: LineStyles
-        // tickLength: number
-
-        // grid
-        gridColor: mantineTheme.colors.gray[8],
-        // gridColorDark: string // used for axis baseline if x/yxAxisLineStyles not set
-        // gridStyles?: CSSProperties
-    })
-
-    // Series selection states
-    const [seriesInStore, setSeriesInStore] = usePanelProperty(panelId, "chartSeries", false)
-    const [series, seriesHandlers] = useListState(seriesInStore || labels.map((label, i) => ({
-        dataIndex: i,
-        key: label,
-        show: true,
-        stroke: randomFromSet(lineColors)
-    })))
-    const [seriesSelectorOpened, setSeriesSelectorOpened] = useState(false)
-    
-    // debound series and put in global stores
-    const [debouncedSeries] = useDebouncedValue(series, 300)
-    useEffect(() => {
-        setSeriesInStore(series)
-    }, [debouncedSeries])
-
-    // Create legend
-    const seriesShowing = (series || []).filter(s => s.show)
-    const legendScale = scaleOrdinal({
-        domain: seriesShowing.map(s => s.key),
-        range: seriesShowing.map(s => s.stroke),
-    })
+    // grab chart options
+    const chartOptions = {
+        truncateSpeciesNames:
+            usePanelProperty(panelId, "chartOption_trucateSpeciesNames"),
+        showGrid:
+            usePanelProperty(panelId, "chartOption_showGrid")
+    }
 
     // force update to rerender plot after debounced resize
     const [forcedUpdateKey, setForcedUpdateKey] = useState('chart')
@@ -82,192 +49,81 @@ export default function LineChart({ data, labels, showSeries, title }) {
         window.addEventListener('resize', onResize)
         return () => window.removeEventListener('resize', onResize)
     }, [])
-
+    
 
     return (
-        <>
-            <Stack align="center" justify="flex-start" >
-                {title && <Title order={3} align='center' sx={titleStyle}>{title}</Title>}
-                <XYChart
-                    key={forcedUpdateKey} // forces rerender in combination with forceUpdate (above)
-                    theme={chartTheme}
-                    // width={600}
-                    height={400}
-                    xScale={{ type: 'linear' }}
-                    yScale={{ type: 'linear' }}
-                    style={{ width: '100%' }}
-                // !! Might use this for zooming in on graph
-                // captureEvents={!editAnnotationLabelPosition}
-                // onPointerUp={(d) => {
-                //     setAnnotationDataKey(d.key as 'New York' | 'San Francisco' | 'Austin')
-                //     setAnnotationDataIndex(d.index)
-                // }}
-                >
+        <Stack align="center" justify="flex-start" mt={mt} >
+            {title && <Title order={3} align='center' sx={titleStyle}>{title}</Title>}
+            <XYChart
+                key={forcedUpdateKey} // forces rerender in combination with forceUpdate (above)
+                theme={darkTheme}
+                height={height}
+                xScale={{ type: 'linear' }}
+                yScale={{ type: 'linear', ...(yDomain && { domain: yDomain }) }}
+                style={{ width: '100%' }}
+            >
+                {chartOptions.showGrid &&
                     <Grid
                         rows
                         columns
-                        numTicks={10}
-                    />
-                    {
-                        seriesShowing.map(s => (
-                            <LineSeries
-                                key={s.key}
-                                dataKey={s.key}
-                                data={data}
-                                xAccessor={accessors.xAccessor}
-                                yAccessor={accessors.yAccessor(s.dataIndex)}
-                                stroke={s.stroke}
-                            />
-                        ))
-                    }
-
-                    <Axis
-                        orientation='left'
-                        numTicks={5}
-                    // label='Concentration'
-                    />
-                    <Axis
-                        label='Time'
-                        orientation='bottom'
-                        numTicks={10}
-                    />
-                    <Tooltip
-                        showVerticalCrosshair
-                        snapTooltipToDatumX
-                        snapTooltipToDatumY
-                        renderTooltip={renderTooltip(series)}
-                        renderGlyph={renderTooltipGlyph(series)}
-                        showDatumGlyph
-                        showSeriesGlyphs
-                    />
-                </XYChart>
-                <Stack align='center'>
-                    <LegendOrdinal scale={legendScale} >
-                        {chartLabels => (
-                            <div style={legendStyle(mantineTheme)}>
-                                {chartLabels.map((chartLabel, i) => (
-                                    <Popover
-                                        key={`legend-${i}`}
-                                        width={260}
-                                        position="top"
-                                    >
-                                        <Popover.Target>
-                                            <div style={legendItemWrapperStyle}>
-                                                <LegendItem style={legendItemStyle}>
-                                                    <div style={legendGlyphStyle(chartLabel.value)}></div>
-                                                    <LegendLabel align="left" margin="0 0 0 4px">
-                                                        {chartLabel.text}
-                                                    </LegendLabel>
-                                                </LegendItem>
-                                            </div>
-                                        </Popover.Target>
-                                        <Popover.Dropdown>
-                                            <ColorPicker
-                                                value={chartLabel.value}
-                                                onChange={newColor => seriesHandlers.setItemProp(series.findIndex(s => s.key == chartLabel.text), 'stroke', newColor)}
-                                            />
-                                        </Popover.Dropdown>
-                                    </Popover>
-                                ))}
-                            </div>
-                        )}
-                    </LegendOrdinal>
-                    <Text
-                        onClick={() => setSeriesSelectorOpened(true)}
-                        sx={smallLinkStyle}
-                    >
-                        Select different series
-                    </Text>
-                </Stack>
-            </Stack>
-            <Modal
-                size='xl'
-                opened={seriesSelectorOpened}
-                onClose={() => setSeriesSelectorOpened(false)}
-                title="Select series"
-            >
-                <SimpleGrid cols={3}>
-                    {(series || []).map((s, i) => (
-                        <Checkbox
+                        numTicks={Math.floor(height / 200) * 5}
+                    />}
+                {
+                    series.map(s => (
+                        <LineSeries
                             key={s.key}
-                            label={s.key}
-                            checked={s.show}
-                            styles={checkboxStyles(s.stroke)}
-                            onChange={event => seriesHandlers.setItemProp(i, 'show', event.currentTarget.checked)}
+                            dataKey={s.key}
+                            data={data}
+                            xAccessor={accessors.xAccessor}
+                            yAccessor={accessors.yAccessor(s.dataIndex)}
+                            stroke={s.stroke}
                         />
-                    ))}
-                </SimpleGrid>
-            </Modal>
-        </>
+                    ))
+                }
+
+                <Axis
+                    orientation='left'
+                    numTicks={Math.max(Math.floor(height / 200) * 5, 1)}
+                // label='Concentration'
+                />
+                <Axis
+                    label='Time'
+                    orientation='bottom'
+                    numTicks={10}
+                />
+                <Tooltip
+                    showVerticalCrosshair
+                    snapTooltipToDatumX
+                    snapTooltipToDatumY
+                    renderTooltip={renderTooltip(series, chartOptions.truncateSpeciesNames)}
+                    renderGlyph={renderTooltipGlyph(series)}
+                    showDatumGlyph
+                    showSeriesGlyphs
+                />
+            </XYChart>
+        </Stack>
     )
 }
 
 
 const titleStyle = theme => ({
-    marginBottom: -20,
+    marginTop: 60,
+    marginBottom: -60,
     fontSize: 18,
     fontWeight: 600
 })
 
-const smallLinkStyle = theme => ({
-    fontSize: '0.8em',
-    color: theme.colors.gray[6],
-    cursor: 'pointer',
-    '&:hover': {
-        textDecoration: 'underline'
-    }
-})
 
-const legendStyle = theme => ({
-    border: '1px solid ' + theme.colors.gray[3],
-    display: 'inline-flex',
-    flexWrap: 'wrap',
-    maxWidth: '100%',
-    padding: 8,
-    borderRadius: 4
-})
-
-const legendItemWrapperStyle = {
-    cursor: 'pointer',
-    margin: '0 10px',
-}
-
-const legendItemStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 3
-}
-
-const legendGlyphStyle = color => ({
-    width: 16,
-    height: 16,
-    borderRadius: 3,
-    backgroundColor: color
-})
-
-const checkboxStyles = color => theme => ({
-    input: {
-        '&:checked': {
-            /*
-                omitting this for now because not being able to change
-                the color inside the selector may be confusing
-            */
-            // backgroundColor: color,
-            // borderColor: color
-        }
-    }
-})
-
-const renderTooltip = series => ({ tooltipData }) => {
+const renderTooltip = (series, truncate) => ({ tooltipData }) => {
 
     const tooltipRow = (key, val, color, bold) => (
         <div key={key} style={{
             display: 'flex',
             justifyContent: 'space-between',
-            color: color || 'black',
+            color: color || 'white',
             fontWeight: bold ? 'bold' : 'normal'
         }}>
-            <span>{key}</span>
+            <span>{truncate ? truncateSpeciesNames(key) : key}</span>
             <span style={{ marginLeft: 16 }}>{val}</span>
         </div>
     )
@@ -299,17 +155,4 @@ const renderTooltipGlyph = series => point => {
         size={size / 2}
         fill={currentSeries.stroke}
     />
-}
-
-function randomColorsFromSet(set, numColors) {
-    const randoms = []
-    while (randoms.length < numColors) {
-        const rand = Math.floor(Math.random() * set.length)
-        !randoms.includes(rand) && randoms.push(rand)
-    }
-    return randoms.map(i => set[i])
-}
-
-function randomFromSet(set) {
-    return set[Math.floor(Math.random() * set.length)]
 }
