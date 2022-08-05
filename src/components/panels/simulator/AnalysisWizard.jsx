@@ -18,11 +18,13 @@ import { usePanelProperty } from '../../../redux/slices/panelsSlice'
 import { useTimeout } from '@mantine/hooks'
 import { RuntimeStatus } from '../../../runtimeStatus'
 import SimulationTimeline from './SimulationTimeline'
+import { CgCheckO } from "react-icons/cg"
 
 
 export const TabValues = {
     ENVIRONMENT: 'environment',
-    PARAMETERS: 'parameters'
+    PARAMETERS: 'parameters',
+    INPUT: 'input'
 }
 
 
@@ -52,6 +54,7 @@ export default function AnalysisWizard() {
     const handleComponentChange = name => {
         setComponentId(name)
     }
+    const isComponentOMEX = component?.objectType == ObjectTypes.OMEX.id
 
     // Step 2: select parameter source
     const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.ENVIRONMENT)
@@ -70,8 +73,10 @@ export default function AnalysisWizard() {
     switch (activeStep) {
         case 0: showNextButton = !!componentId
             break
-        case 1: showNextButton = (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
-            (parameterSource == TabValues.PARAMETERS && formValidated)
+        case 1: showNextButton =
+            (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
+            (parameterSource == TabValues.PARAMETERS && formValidated) ||
+            parameterSource == TabValues.INPUT
             break
     }
 
@@ -125,9 +130,11 @@ export default function AnalysisWizard() {
             // start analysis
             const response = await submitAnalysis(
                 component,
-                parameterSource ?
+                parameterSource == TabValues.PARAMETERS ?
                     { parameters: formValues } :
-                    { environment }
+                    parameterSource == TabValues.ENVIRONMENT ?
+                        { environment } :
+                        {}
             )
 
             setStatus(RuntimeStatus.ACCEPTED)
@@ -155,7 +162,12 @@ export default function AnalysisWizard() {
         terminateAnalysis(orchestrationUris)
     }
 
-    
+    // handle changing selected parameter source when input changes
+    useEffect(() => {
+        isComponentOMEX ?
+            parameterSource == TabValues.ENVIRONMENT && setParameterSource(TabValues.INPUT) :
+            parameterSource == TabValues.INPUT && setParameterSource(TabValues.ENVIRONMENT)
+    }, [componentId])
 
     return (
         <Container style={stepperContainerStyle}>
@@ -183,9 +195,13 @@ export default function AnalysisWizard() {
                     <Space h='xl' />
                     <Tabs position='center' value={parameterSource} onTabChange={setParameterSource} >
                         <Tabs.List grow>
-                            <Tabs.Tab value={TabValues.ENVIRONMENT}>
-                                Select an environment archive
-                            </Tabs.Tab>
+                            {isComponentOMEX ?
+                                <Tabs.Tab value={TabValues.INPUT}>
+                                    Use parameters from input archive
+                                </Tabs.Tab> :
+                                <Tabs.Tab value={TabValues.ENVIRONMENT}>
+                                    Select an environment archive
+                                </Tabs.Tab>}
                             <Tabs.Tab value={TabValues.PARAMETERS}>
                                 Manually enter parameters
                             </Tabs.Tab>
@@ -201,6 +217,9 @@ export default function AnalysisWizard() {
                         </Tabs.Panel>
                         <Tabs.Panel value={TabValues.PARAMETERS}>
                             <ParameterForm onValidation={validation => setFormValidated(!validation.hasErrors)} />
+                        </Tabs.Panel>
+                        <Tabs.Panel value={TabValues.INPUT}>
+                            <CenteredTitle color="green" leftIcon={<CgCheckO />} height={100}>{component?.name}</CenteredTitle>
                         </Tabs.Panel>
                     </Tabs>
                 </Stepper.Step>
