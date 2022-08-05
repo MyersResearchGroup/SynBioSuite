@@ -40,7 +40,6 @@ export default function AnalysisResults() {
         ) * 10
     ]
 
-
     return (
         <>
             <ChartOptions />

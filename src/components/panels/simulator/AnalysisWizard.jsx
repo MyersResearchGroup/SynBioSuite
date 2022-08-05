@@ -148,11 +148,14 @@ export default function AnalysisWizard() {
     // stop polling interval on unmount
     useEffect(() => pollingTimeout.clear, [])
 
+    // function to cancel / fail analysis
     const cancelAnalysis = status => {
         setStatus(status)
         pollingTimeout.clear()
         terminateAnalysis(orchestrationUris)
     }
+
+    
 
     return (
         <Container style={stepperContainerStyle}>
