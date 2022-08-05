@@ -16,14 +16,21 @@ export function useChartLegend({ seriesLabels = [] }) {
 
     // series selection states
     const [seriesInStore, setSeriesInStore] = usePanelProperty(panelId, "chartSeries", false)
-    const [series, seriesHandlers] = useListState(seriesLabels.map((label, i) => ({
-        dataIndex: i,
-        key: label,
-        show: seriesInStore?.[label]?.show ?? i != 0,
-        stroke: seriesInStore?.[label]?.stroke || randomFromSet(lineColors),
-        bold: seriesInStore?.[label]?.bold || false,
-    })))
+    const [series, seriesHandlers] = useListState([])
     const seriesShowing = (series || []).filter(s => s.show)
+
+    // when series labels changes, create series states
+    useEffect(() => {
+        seriesLabels?.length && seriesHandlers.setState(
+            seriesLabels.map((label, i) => ({
+                dataIndex: i,
+                key: label,
+                show: seriesInStore?.[label]?.show ?? i != 0,
+                stroke: seriesInStore?.[label]?.stroke || randomFromSet(lineColors),
+                bold: seriesInStore?.[label]?.bold || false,
+            }))
+        )
+    }, [seriesLabels])
 
     // debounce series and put in global stores
     const [debouncedSeries] = useDebouncedValue(series, 300)
@@ -134,7 +141,6 @@ function Legend({ series, onPropChange, openSeriesSelector }) {
 
 function SeriesModal({ series, onSeriesChange, modalOpen, setModalOpen }) {
 
-
     return (
         <Modal
             size='xl'
@@ -196,7 +202,7 @@ const legendGlyphStyle = color => ({
 const smallLinkStyle = theme => ({
     fontSize: '0.8em',
     color: theme.colors.gray[6],
-    zIndex: 1000,
+    zIndex: 100,
     cursor: 'pointer',
     '&:hover': {
         textDecoration: 'underline'
