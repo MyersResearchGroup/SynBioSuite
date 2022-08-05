@@ -6,10 +6,11 @@ export async function submitAnalysis(input, { environment, parameters }) {
     // attach input file
     formdata.append("input", await input.getFile())
 
-    // either attach environment file or parameters
-    environment ?
-        formdata.append("environment", await environment.getFile()) :
-        Object.entries(parameters)
+    // attach environment if it exists
+    environment && formdata.append("environment", await environment.getFile())
+
+    // attach parameters if they exist
+    parameters && Object.entries(parameters)
             .filter(([, value]) => value != null)
             .forEach(
                 ([key, value]) => formdata.append(key, value)

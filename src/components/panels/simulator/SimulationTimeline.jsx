@@ -1,4 +1,4 @@
-import { Container, Text, Timeline } from '@mantine/core'
+import { Container, Text, Timeline, Title } from '@mantine/core'
 import React, { useContext } from 'react'
 import { usePanelProperty } from '../../../redux/slices/panelsSlice'
 import { PanelContext } from './SimulatorPanel'
@@ -49,29 +49,31 @@ export default function SimulationTimeline() {
 
     return (
         status && nodesToShow ?
-        <Container pt={15}>
-            <Timeline
-                active={activeNode}
-                bulletSize={24}
-                lineWidth={2}
+            <Container pt={15}>
+                {/* {!running &&
+                    <Title order={5} sx={lastRunTitleStyle}>Last Run</Title>} */}
+                <Timeline
+                    active={activeNode}
+                    bulletSize={24}
+                    lineWidth={2}
                 // color={running ? 'blue' : successful ? 'green' : 'red'}
-            >
-                {nodesToShow}
+                >
+                    {nodesToShow}
 
-                {running &&
-                    <Timeline.Item bullet={<IoEllipsisHorizontalSharp />} key="dot">
-                    </Timeline.Item>}
+                    {running &&
+                        <Timeline.Item bullet={<IoEllipsisHorizontalSharp />} key="dot">
+                        </Timeline.Item>}
 
-                {successful &&
-                    <Timeline.Item title="Completed" color="green" bullet={<IoCheckmarkSharp />} sx={pushTitleDownStyles} key="com">
-                    </Timeline.Item>}
+                    {successful &&
+                        <Timeline.Item title="Completed" color="green" bullet={<IoCheckmarkSharp />} sx={pushTitleDownStyles} key="com">
+                        </Timeline.Item>}
 
-                {unsuccessful &&
-                    <Timeline.Item title="Failed" color="red" bullet={<IoMdClose />} sx={pushTitleDownStyles} key="fai">
-                    </Timeline.Item>}
-            </Timeline>
-        </Container> :
-        <></>
+                    {unsuccessful &&
+                        <Timeline.Item title="Failed" color="red" bullet={<IoMdClose />} sx={pushTitleDownStyles} key="fai">
+                        </Timeline.Item>}
+                </Timeline>
+            </Container> :
+            <></>
     )
 }
 
@@ -89,4 +91,9 @@ const pushTitleDownStyles = theme => ({
     '& .mantine-Timeline-itemTitle': {
         transform: 'translateY(3px)',
     }
+})
+
+const lastRunTitleStyle = theme => ({
+    marginBottom: 10,
+    color: theme.other.inactiveColor
 })
