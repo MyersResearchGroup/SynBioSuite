@@ -1,7 +1,7 @@
 import { Group, Text } from '@mantine/core'
 import React from 'react'
 
-export default function DragObject({ icon, type, title, fileId, onDoubleClick }) {
+export default function DragObject({ icon, type, title, fileId, ...props }) {
 
     const handleDragStart = event => {
         event.dataTransfer.setData("name", title)
@@ -20,7 +20,7 @@ export default function DragObject({ icon, type, title, fileId, onDoubleClick })
             sx={groupStyle}
             draggable={true}
             onDragStart={handleDragStart}
-            onDoubleClick={onDoubleClick}
+            {...props}
         >
             {icon}
             <Text size='sm' sx={textStyle}>{title}</Text>

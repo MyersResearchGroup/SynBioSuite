@@ -1,14 +1,16 @@
+import store from './redux/store'
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 
-import { MantineProvider } from '@mantine/core'
-import store from './redux/store'
 import { Provider } from 'react-redux'
+import { MantineProvider } from '@mantine/core'
 
 import TimeAgo from "javascript-time-ago"
 import en from "javascript-time-ago/locale/en.json"
+
 
 const theme = {
     colorScheme: 'dark',

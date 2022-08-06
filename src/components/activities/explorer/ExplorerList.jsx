@@ -4,18 +4,13 @@ import { titleFromFileName, useCreateFile, useFiles } from '../../../redux/slice
 import CreateNewButton from "./CreateNewButton"
 import { Accordion, Title } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
+import ExplorerListItem from './ExplorerListItem'
 
 
 export default function ExplorerList() {
 
     // grab file handles
     const files = useFiles()
-
-    // handle opening of file
-    const openPanel = useOpenPanel()
-    const handleOpenFile = fileHandle => () => {
-        openPanel(fileHandle)
-    }
 
     // handle creation
     const createFile = useCreateFile()
@@ -24,20 +19,17 @@ export default function ExplorerList() {
     }
 
     // generate DragObjects based on data
-    const createDragObjects = (items, type, Icon) => items.map((item, i) =>
-        <DragObject
-            title={titleFromFileName(item.name)}
-            fileId={item.id}
-            type={type}
+    const createListItems = (files, Icon) => files.map((file, i) =>
+        <ExplorerListItem
+            fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
-            onDoubleClick={handleOpenFile(item)}
         />
     )
 
     return (
         <Accordion
-        mt={10}
+            mt={10}
             multiple
             defaultValue={Object.values(ObjectTypes).map(({ id }) => id)}
             styles={accordionStyles}
@@ -62,7 +54,7 @@ export default function ExplorerList() {
                                         New {objectType.title}
                                     </CreateNewButton>
                                 }
-                                {createDragObjects(filesOfType, objectType.id, objectType.icon)}
+                                {createListItems(filesOfType, objectType.icon)}
                             </Accordion.Panel>
                         </Accordion.Item>
                     )
