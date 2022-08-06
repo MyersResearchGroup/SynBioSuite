@@ -16,6 +16,7 @@ export const workDirSlice = createSlice({
         addFile: workDirAdapter.addOne,
         addFiles: workDirAdapter.addMany,
         setFiles: workDirAdapter.setAll,
+        removeFile: workDirAdapter.removeOne,
         setWorkingDirectory: (state, action) => {
             state.directoryHandle = action.payload
         },
