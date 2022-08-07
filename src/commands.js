@@ -1,3 +1,4 @@
+import { panelsActions } from "./redux/slices/panelsSlice"
 import { workDirActions } from "./redux/slices/workingDirectorySlice"
 import store from "./redux/store"
 
@@ -22,11 +23,14 @@ export default {
                 || Object.values(store.getState().workingDirectory.entities).find(f => f.name == idOrName)
 
             // quit if this file doesn't exist
-            if(!file)
+            if (!file)
                 return "File doesn't exist."
-            
+
             // delete file from disk
             await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
+
+            // close panel if it's open
+            store.dispatch(panelsActions.closePanel(file.id))
 
             // remove file from store
             store.dispatch(workDirActions.removeFile(file.id))
