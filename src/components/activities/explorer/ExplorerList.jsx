@@ -14,8 +14,8 @@ export default function ExplorerList() {
 
     // handle creation
     const createFile = useCreateFile()
-    const handleCreateObject = (extension, suggestedName) => () => {
-        createFile({ extension, suggestedName })
+    const handleCreateObject = extension => fileName => {
+        createFile(fileName + extension)
     }
 
     // generate DragObjects based on data
@@ -49,7 +49,8 @@ export default function ExplorerList() {
                             <Accordion.Panel>
                                 {objectType.createable &&
                                     <CreateNewButton
-                                        onClick={handleCreateObject(objectType.extension, `New ${objectType.title}`)}
+                                        onCreate={handleCreateObject(objectType.extension)}
+                                        suggestedName={`New ${objectType.title}`}
                                     >
                                         New {objectType.title}
                                     </CreateNewButton>

@@ -1,8 +1,7 @@
 import { createEntityAdapter, createSlice } from "@reduxjs/toolkit"
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector, useDispatch, shallowEqual } from 'react-redux'
 import { useOpenPanel, useCloseAllPanels } from "./panelsSlice"
 import { classifyFile } from "../../objectTypes"
-import { v4 as uuidv4 } from 'uuid'
 
 // Create slice and adapter
 
@@ -55,6 +54,20 @@ export function useWorkingDirectory() {
 export function useCreateFile() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
+    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
+    return fileName => {
+        workDir.getFileHandle(fileName, { create: true })
+            .then(fileHandle => {
+                addFileMetadata(fileHandle)
+                dispatch(actions.addFile(fileHandle))
+                openPanel(fileHandle)
+            })
+    }
+}
+
+export function useCreateFileWithFilePicker() {
+    const dispatch = useDispatch()
+    const openPanel = useOpenPanel()
     return ({ extension, suggestedName, typeDescription }) => {
         window.showSaveFilePicker({
             suggestedName,
@@ -71,6 +84,27 @@ export function useCreateFile() {
     }
 }
 
+export function useSafeName(baseName) {
+
+    // using shallow equal selector for derived values
+    const existing = useSelector(state =>
+        selectors.selectAll(state)
+            .map(file => titleFromFileName(file.name)),
+        shallowEqual
+    )
+
+    // recursion to find safe name -- not strictly necessary but fun 😈
+    // and simple to write
+    const findSafeName = (depth = 1) => {
+        const proposedName = depth == 1 ? baseName : `${baseName} ${depth}`
+        return existing.includes(proposedName) ?
+            findSafeName(depth + 1) :
+            proposedName
+    }
+
+    return () => findSafeName()
+}
+
 
 // Utility
 
@@ -79,7 +113,7 @@ async function findFilesInDirectory(dirHandle) {
 
     // loop through async iterator of file names (called keys here)
     for await (const handle of dirHandle.values()) {
-        if(handle.kind == 'file') {
+        if (handle.kind == 'file') {
             addFileMetadata(handle)
             files.push(handle)
         }
