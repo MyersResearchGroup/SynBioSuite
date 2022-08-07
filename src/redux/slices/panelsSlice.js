@@ -1,9 +1,12 @@
 import { useDebouncedValue } from "@mantine/hooks"
 import { showNotification } from "@mantine/notifications"
 import { createEntityAdapter, createSelector, createSlice } from "@reduxjs/toolkit"
-import { useEffect } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { getPanelType, getPanelTypeForObject } from "../../panels"
+import { writeToFileHandle } from "./workingDirectorySlice"
+import store from "../store"
+import commands from "../../commands"
 
 // Create slice and adapter
 
@@ -114,7 +117,10 @@ export function useOpenPanel() {
 
 export function useClosePanel() {
     const dispatch = useDispatch()
-    return panelId => dispatch(actions.closePanel(panelId))
+    return (panelId, save = true) => {
+        save && commands.FileSave.execute(panelId)  // save
+        dispatch(actions.closePanel(panelId))       // close
+    }
 }
 
 export function useCloseAllPanels() {
@@ -130,21 +136,40 @@ export function useActivePanel() {
     ]
 }
 
-export function useMarkPanelUnsavedEffect(id, dependencies) {
-    const dispatch = useDispatch()
+export function useAutoSavePanel(id, debounceTime) {
+    const panel = usePanel(id)
 
+    // memoize serialization of panel
+    const serialized = useMemo(() => serializePanel(id), [panel])
+
+    // create a ref for serialized so we can always access current version
+    // of it
+    const serializedRef = useRef()
+    serializedRef.current = serialized
+
+    // debounce serialized content
+    const [debouncedPanelContent] = useDebouncedValue(serialized, debounceTime)
+
+    // save when debounced serialized content changes
     useEffect(() => {
-        dispatch(actions.updateOne({
-            id,
-            changes: { saved: false }
-        }))
-    }, dependencies)
+        commands.FileSave.execute(id)
+    }, [debouncedPanelContent])
 }
 
 export function useReorderPanels() {
     const dispatch = useDispatch()
     return payload => dispatch(actions.reoder(payload))
 }
+
+
+// Utility
+
+export function serializePanel(id) {
+    const panel = selectors.selectById(store.getState(), id)
+    const panelType = getPanelType(panel.type)
+    return panelType?.serialize?.(panel)
+}
+
 
 // Exports
 

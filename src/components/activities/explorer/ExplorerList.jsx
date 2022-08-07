@@ -1,6 +1,4 @@
-import DragObject from '../../DragObject'
-import { useOpenPanel } from "../../../redux/slices/panelsSlice"
-import { titleFromFileName, useCreateFile, useFiles } from '../../../redux/slices/workingDirectorySlice'
+import { useCreateFile, useFiles } from '../../../redux/slices/workingDirectorySlice'
 import CreateNewButton from "./CreateNewButton"
 import { Accordion, Title } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'

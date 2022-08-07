@@ -1,5 +1,5 @@
-import { panelsActions } from "./redux/slices/panelsSlice"
-import { workDirActions } from "./redux/slices/workingDirectorySlice"
+import { panelsActions, serializePanel } from "./redux/slices/panelsSlice"
+import { workDirActions, writeToFileHandle } from "./redux/slices/workingDirectorySlice"
 import store from "./redux/store"
 
 
@@ -8,19 +8,17 @@ export default {
         id: createId('file-delete'),
         title: "Delete File",
         shortTitle: "Delete",
-        description: "delete a file",
+        description: "Delete a file",
         color: "red",
         arguments: [
             {
-                name: "file",
+                name: "fileNameOrId",
                 prompt: "Enter the file name or ID"
             }
         ],
-        execute: async idOrName => {
+        execute: async fileNameOrId => {
             // try to find file by ID first, then by name
-            const file =
-                store.getState().workingDirectory.entities[idOrName]
-                || Object.values(store.getState().workingDirectory.entities).find(f => f.name == idOrName)
+            const file = findFileByNameOrId(fileNameOrId)
 
             // quit if this file doesn't exist
             if (!file)
@@ -35,9 +33,46 @@ export default {
             // remove file from store
             store.dispatch(workDirActions.removeFile(file.id))
         }
+    },
+
+    FileSave: {
+        id: createId("file-save"),
+        title: "Save File",
+        shortTitle: "Save",
+        description: "Save a file",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            }
+        ],
+        execute: async fileNameOrId => {
+            // try to find file by ID first, then by name
+            const file = findFileByNameOrId(fileNameOrId)
+
+            // quit if this file doesn't exist
+            if (!file)
+                return "File doesn't exist."
+            
+            // serialize panel content and save
+            writeToFileHandle(
+                file,
+                serializePanel(fileNameOrId)
+            )
+        }
     }
 }
 
+
+
+
+// Utility 
+
 function createId(name) {
     return "synbio.command." + name
+}
+
+function findFileByNameOrId(idOrName) {
+    return store.getState().workingDirectory.entities[idOrName]
+        || Object.values(store.getState().workingDirectory.entities).find(f => f.name == idOrName)
 }

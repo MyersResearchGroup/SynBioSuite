@@ -14,7 +14,7 @@ export default function ExplorerActivityView({ }) {
 
     // handle refreshing working directory
     const refreshWorkDir = () => {
-        setWorkingDirectory(workingDirectory)
+        setWorkingDirectory(workingDirectory, false)
     }
 
     return workingDirectory ?

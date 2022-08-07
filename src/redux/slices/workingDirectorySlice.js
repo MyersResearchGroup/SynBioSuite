@@ -1,6 +1,6 @@
 import { createEntityAdapter, createSlice } from "@reduxjs/toolkit"
 import { useSelector, useDispatch, shallowEqual } from 'react-redux'
-import { useOpenPanel, useCloseAllPanels } from "./panelsSlice"
+import { useOpenPanel, useCloseAllPanels, usePanelIds, useClosePanel } from "./panelsSlice"
 import { classifyFile } from "../../objectTypes"
 
 // Create slice and adapter
@@ -32,8 +32,12 @@ export const useFiles = () => useSelector(selectors.selectAll)
 export const useFile = id => useSelector(state => selectors.selectById(state, id))
 
 export function useWorkingDirectory() {
+    
     const dispatch = useDispatch()
+    const panelIds = usePanelIds()
+    const closePanel = useClosePanel()
     const closeAllPanels = useCloseAllPanels()
+
     return [
         /* workingDirectory */  useSelector(state => state.workingDirectory.directoryHandle),
         /* setWorkingDirectory */ (newWorkDir, closePanels = true) => {
@@ -42,7 +46,18 @@ export function useWorkingDirectory() {
                 .then(foundFiles => {
                     dispatch(actions.setWorkingDirectory(newWorkDir))
                     dispatch(actions.setFiles(foundFiles))
-                    closePanels && closeAllPanels()
+
+                    // if closePanels is true, close all panels and return
+                    if (closePanels) {
+                        closeAllPanels()
+                        return
+                    }
+
+                    // otherwise, we'll search for stale panels and close those
+                    panelIds.forEach(panelId => {
+                        !foundFiles.find(file => file.id == panelId) &&
+                            closePanel(panelId, false)
+                    })
                 })
         }
     ]
@@ -130,6 +145,14 @@ function addFileMetadata(handle) {
 
 export function titleFromFileName(fileName) {
     return fileName?.match(/([\w\W]+)\./)?.[1]
+}
+
+export async function writeToFileHandle(fileHandle, content) {
+    console.debug("Saving to file...")
+    const writableStream = await fileHandle.createWritable()  // create write stream
+    await writableStream.write(content)                             // write panel content
+    await writableStream.close()                                    // close stream
+    console.debug("Saved file:", fileHandle.name)
 }
 
 
