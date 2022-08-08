@@ -1,4 +1,4 @@
-import { Button, Container, Group, ScrollArea, Space } from '@mantine/core'
+import { Button, Container, Group, ScrollArea, Space, useMantineTheme } from '@mantine/core'
 import React from 'react'
 import { useRef } from 'react'
 import { useContext } from 'react'
@@ -7,12 +7,13 @@ import { useChartLegend } from './ChartLegend'
 import ChartOptions from './ChartOptions'
 import LineChart from './LineChart'
 import { PanelContext } from './SimulatorPanel'
-import { exportComponentAsJPEG, exportComponentAsPDF, exportComponentAsPNG } from 'react-component-export-image'
+import { exportComponentAsPNG } from 'react-component-export-image'
 
 export default function AnalysisResults() {
 
     const panelId = useContext(PanelContext)
     const results = usePanelProperty(panelId, "results")
+    const mantineTheme = useMantineTheme()
 
     // create chart legend
     const chartLegend = useChartLegend({
@@ -34,7 +35,8 @@ export default function AnalysisResults() {
         exportComponentAsPNG(resultsConainerRef, {
             fileName: panelId + '.png',
             html2CanvasOptions: {
-                backgroundColor: '#111111'
+                backgroundColor: chartOptions.useWhiteBackground ? 
+                    '#ffffff' : mantineTheme.colors.dark[7]
             }
         })
     }
