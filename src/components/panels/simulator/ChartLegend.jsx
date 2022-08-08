@@ -52,7 +52,6 @@ export function useChartLegend({ seriesLabels = [] }) {
             <Legend
                 series={seriesShowing}
                 onPropChange={(seriesKey, propKey, newValue) => seriesHandlers.setItemProp(series.findIndex(s => s.key == seriesKey), propKey, newValue)}
-                openSeriesSelector={() => setSeriesSelectorOpened(true)}
             />,
         selectionModal:
             <SeriesModal
@@ -60,13 +59,14 @@ export function useChartLegend({ seriesLabels = [] }) {
                 onSeriesChange={(index, checked) => seriesHandlers.setItemProp(index, 'show', checked)}
                 modalOpen={seriesSelectorOpened}
                 setModalOpen={setSeriesSelectorOpened}
-            />
+            />,
+        openSeriesSelector: () => setSeriesSelectorOpened(true),
     }
 }
 
 
 
-function Legend({ series, onPropChange, openSeriesSelector }) {
+function Legend({ series, onPropChange }) {
 
     const panelId = useContext(PanelContext)
     const mantineTheme = useMantineTheme()
@@ -77,6 +77,8 @@ function Legend({ series, onPropChange, openSeriesSelector }) {
             usePanelProperty(panelId, "chartOption_trucateSpeciesNames"),
         gapBetween:
             usePanelProperty(panelId, "chartOption_gapBetween"),
+        useWhiteBackground:
+            usePanelProperty(panelId, "chartOption_useWhiteBackground"),
     }
 
     // Create legend
@@ -92,7 +94,7 @@ function Legend({ series, onPropChange, openSeriesSelector }) {
         <Stack align='center'>
             <LegendOrdinal scale={legendScale} >
                 {chartLabels => (
-                    <div style={legendStyle(mantineTheme)}>
+                    <div style={legendStyle(chartOptions.useWhiteBackground, mantineTheme)}>
                         {chartLabels.map((chartLabel, i) => (
                             <Popover
                                 key={`legend-${i}`}
@@ -101,7 +103,7 @@ function Legend({ series, onPropChange, openSeriesSelector }) {
                             >
                                 <Popover.Target>
                                     <div style={legendItemWrapperStyle}>
-                                        <LegendItem style={legendItemStyle}>
+                                        <LegendItem style={legendItemStyle(chartOptions.useWhiteBackground, mantineTheme)}>
                                             <div style={legendGlyphStyle(chartLabel.value)}></div>
                                             <LegendLabel align="left" margin="0 0 0 4px">
                                                 {chartOptions.truncateSpeciesNames ?
@@ -129,12 +131,12 @@ function Legend({ series, onPropChange, openSeriesSelector }) {
                     </div>
                 )}
             </LegendOrdinal>
-            <Text
+            {/* <Text
                 onClick={openSeriesSelector}
                 sx={smallLinkStyle}
             >
                 Select different series
-            </Text>
+            </Text> */}
         </Stack>
     )
 }
@@ -172,8 +174,10 @@ export function truncateSpeciesNames(name) {
 }
 
 
-const legendStyle = theme => ({
-    border: '1px solid ' + theme.colors.gray[3],
+const legendStyle = (whiteBg, theme) => ({
+    border: '1px solid ' + (
+        whiteBg ? theme.colors.dark[4] : theme.colors.gray[3]
+    ),
     display: 'inline-flex',
     flexWrap: 'wrap',
     maxWidth: '100%',
@@ -186,11 +190,12 @@ const legendItemWrapperStyle = {
     margin: '0 10px',
 }
 
-const legendItemStyle = {
+const legendItemStyle = (whiteBg, theme) => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 3
-}
+    gap: 3,
+    ...(whiteBg && { color: theme.colors.dark[5] })
+})
 
 const legendGlyphStyle = color => ({
     width: 16,

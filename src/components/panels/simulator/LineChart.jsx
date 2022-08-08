@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Stack, Title, useMantineTheme } from '@mantine/core'
-import { XYChart, Axis, LineSeries, Tooltip, darkTheme, Grid } from '@visx/xychart'
+import { XYChart, Axis, LineSeries, Tooltip, darkTheme, lightTheme, Grid } from '@visx/xychart'
 import { randomId, useTimeout } from '@mantine/hooks'
 import { GlyphCircle } from '@visx/glyph'
 import { useEffect } from 'react'
@@ -19,23 +19,48 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
 
     const panelId = useContext(PanelContext)
 
-    // Create set of colors from Mantine colors
+    // use Mantine theme
     const mantineTheme = useMantineTheme()
-
-    // Modify dark theme
-    darkTheme.gridStyles = {
-        stroke: mantineTheme.colors.dark[5],
-        strokeWidth: 1
-    }
 
     // grab chart options
     const chartOptions = {
         truncateSpeciesNames:
             usePanelProperty(panelId, "chartOption_trucateSpeciesNames"),
         showGrid:
-            usePanelProperty(panelId, "chartOption_showGrid")
+            usePanelProperty(panelId, "chartOption_showGrid"),
+        useWhiteBackground:
+            usePanelProperty(panelId, "chartOption_useWhiteBackground"),
     }
 
+    // modify dark theme
+    darkTheme.gridStyles = {
+        stroke: mantineTheme.colors.dark[5],
+        strokeWidth: 1
+    }
+
+    // modify light theme
+    lightTheme.gridStyles = {
+        stroke: mantineTheme.colors.gray[2],
+        strokeWidth: 1
+    }
+    lightTheme.axisStyles.x.bottom.axisLine =
+    lightTheme.axisStyles.y.left.axisLine = {
+        stroke: mantineTheme.colors.dark[5],
+        strokeWidth: 1
+    }
+    const tickLabelStyles = {
+        fill: mantineTheme.colors.dark[6],
+        fontWeight: 500,
+    }
+    lightTheme.axisStyles.x.bottom.tickLabel = {
+        ...lightTheme.axisStyles.x.bottom.tickLabel,
+        ...tickLabelStyles
+    }
+    lightTheme.axisStyles.y.left.tickLabel = {
+        ...lightTheme.axisStyles.y.left.tickLabel,
+        ...tickLabelStyles
+    }    
+    
     // force update to rerender plot after debounced resize
     const [forcedUpdateKey, setForcedUpdateKey] = useState('chart')
     const resizeTimeout = useTimeout(() => {
@@ -49,14 +74,14 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
         window.addEventListener('resize', onResize)
         return () => window.removeEventListener('resize', onResize)
     }, [])
-    
+
 
     return (
         <Stack align="center" justify="flex-start" mt={mt} >
-            {title && <Title order={3} align='center' sx={titleStyle}>{title}</Title>}
+            {title && <Title order={3} align='center' sx={titleStyle(chartOptions.useWhiteBackground)}>{title}</Title>}
             <XYChart
                 key={forcedUpdateKey} // forces rerender in combination with forceUpdate (above)
-                theme={darkTheme}
+                theme={chartOptions.useWhiteBackground ? lightTheme : darkTheme}
                 height={height}
                 xScale={{ type: 'linear' }}
                 yScale={{ type: 'linear', ...(yDomain && { domain: yDomain }) }}
@@ -96,7 +121,7 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
                     showVerticalCrosshair
                     snapTooltipToDatumX
                     snapTooltipToDatumY
-                    renderTooltip={renderTooltip(series, chartOptions.truncateSpeciesNames)}
+                    renderTooltip={renderTooltip(series, chartOptions.truncateSpeciesNames, chartOptions.useWhiteBackground)}
                     renderGlyph={renderTooltipGlyph(series)}
                     showDatumGlyph
                     showSeriesGlyphs
@@ -107,21 +132,22 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
 }
 
 
-const titleStyle = theme => ({
+const titleStyle = whiteBg => theme => ({
     marginTop: 60,
     marginBottom: -60,
     fontSize: 18,
-    fontWeight: 600
+    fontWeight: 600,
+    ...(whiteBg && { color: theme.colors.dark[5] })
 })
 
 
-const renderTooltip = (series, truncate) => ({ tooltipData }) => {
+const renderTooltip = (series, truncate, whiteBg) => ({ tooltipData }) => {
 
     const tooltipRow = (key, val, color, bold) => (
         <div key={key} style={{
             display: 'flex',
             justifyContent: 'space-between',
-            color: color || 'white',
+            color: color || (whiteBg ? 'black' : 'white'),
             fontWeight: bold ? 'bold' : 'normal'
         }}>
             <span>{truncate ? truncateSpeciesNames(key) : key}</span>

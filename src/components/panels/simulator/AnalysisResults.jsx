@@ -1,30 +1,47 @@
-import { Container, ScrollArea, Space } from '@mantine/core'
+import { Button, Container, Group, ScrollArea, Space } from '@mantine/core'
 import React from 'react'
+import { useRef } from 'react'
 import { useContext } from 'react'
 import { usePanelProperty } from '../../../redux/slices/panelsSlice'
 import { useChartLegend } from './ChartLegend'
 import ChartOptions from './ChartOptions'
 import LineChart from './LineChart'
 import { PanelContext } from './SimulatorPanel'
+import { exportComponentAsJPEG, exportComponentAsPDF, exportComponentAsPNG } from 'react-component-export-image'
 
 export default function AnalysisResults() {
 
     const panelId = useContext(PanelContext)
     const results = usePanelProperty(panelId, "results")
 
+    // create chart legend
     const chartLegend = useChartLegend({
         seriesLabels: results ? Object.values(results)[0][0] : []
     })
 
+    // grab chart options from store
     const chartOptions = {
         showTitles: usePanelProperty(panelId, "chartOption_showTitles"),
         height: usePanelProperty(panelId, "chartOption_height"),
         gapBetween: usePanelProperty(panelId, "chartOption_gapBetween"),
         showLegendWithEvery: usePanelProperty(panelId, "chartOption_showLegendWithEvery"),
+        useWhiteBackground: usePanelProperty(panelId, "chartOption_useWhiteBackground"),
+    }
+
+    // create ref and handler for exporting
+    const resultsConainerRef = useRef()
+    const handleExport = () => {
+        exportComponentAsPNG(resultsConainerRef, {
+            fileName: panelId + '.png',
+            html2CanvasOptions: {
+                backgroundColor: '#111111'
+            }
+        })
     }
 
     // calculate y-domain from all data so all charts have
     // the same scaling
+    const indecesShowing = chartLegend?.series.map(s => s.dataIndex) || []
     const yDomain = results && [
         0,
         Math.ceil(
@@ -32,7 +49,9 @@ export default function AnalysisResults() {
                 ...Object.values(results).map(
                     dataSet => dataSet
                         .slice(1)
-                        .map(entry => entry.slice(1))
+                        .map(
+                            entry => entry.filter((_, i) => indecesShowing.includes(i))
+                        )
                         .flat()
                 )
                     .flat()
@@ -42,10 +61,18 @@ export default function AnalysisResults() {
 
     return (
         <>
-            <ChartOptions />
+            <Group position='right' spacing={20} p={20}>
+                <Button variant='outline' onClick={chartLegend.openSeriesSelector}>Select Series</Button>
+                <Button variant='outline' onClick={handleExport}>Export Image</Button>
+                <ChartOptions />
+            </Group>
             <ScrollArea style={{ height: `calc(100vh - 170px)` }}>
                 {results &&
-                    <Container pt={20}>
+                    <Container
+                        pt={20}
+                        sx={resultsContainerStyle(chartOptions.useWhiteBackground)}
+                        ref={resultsConainerRef}
+                    >
                         {Object.entries(results).map(([fileName, resultData], i) =>
                             <React.Fragment key={i}>
                                 <LineChart
@@ -63,9 +90,10 @@ export default function AnalysisResults() {
                             <Space h={20} />
                             {chartLegend?.legend}
                         </>}
-                        <Space h={60} />
+                        <Space h={20} />
                     </Container>
                 }
+                <Space h={60} />
             </ScrollArea>
             {chartLegend?.selectionModal}
         </>
@@ -83,3 +111,7 @@ function titleFromRunFileName(fileName) {
 
     return title
 }
+
+const resultsContainerStyle = whiteBg => theme => ({
+    ...(whiteBg && { backgroundColor: 'white' })
+})
