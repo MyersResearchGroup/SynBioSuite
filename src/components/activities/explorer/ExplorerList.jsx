@@ -1,6 +1,6 @@
 import { useCreateFile, useFiles } from '../../../redux/slices/workingDirectorySlice'
 import CreateNewButton from "./CreateNewButton"
-import { Accordion, Title } from '@mantine/core'
+import { Accordion, ScrollArea, Title } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 
@@ -26,40 +26,42 @@ export default function ExplorerList() {
     )
 
     return (
-        <Accordion
-            mt={10}
-            multiple
-            defaultValue={Object.values(ObjectTypes).map(({ id }) => id)}
-            styles={accordionStyles}
-            key={Math.random()}     // this forces re-render and fixes accordion heights
-        >
-            {
-                // create AccordionItems by object type
-                Object.values(ObjectTypes).map((objectType, i) => {
-                    // grab files of current type
-                    const filesOfType = files.filter(file => file.objectType == objectType.id)
+        <ScrollArea style={{ height: 'calc(100vh - 30px)' }}>
+            <Accordion
+                mt={10}
+                multiple
+                defaultValue={Object.values(ObjectTypes).map(({ id }) => id)}
+                styles={accordionStyles}
+                key={Math.random()}     // this forces re-render and fixes accordion heights
+            >
+                {
+                    // create AccordionItems by object type
+                    Object.values(ObjectTypes).map((objectType, i) => {
+                        // grab files of current type
+                        const filesOfType = files.filter(file => file.objectType == objectType.id)
 
-                    return (
-                        <Accordion.Item value={objectType.id} key={i}>
-                            <Accordion.Control>
-                                <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
-                            </Accordion.Control>
-                            <Accordion.Panel>
-                                {objectType.createable &&
-                                    <CreateNewButton
-                                        onCreate={handleCreateObject(objectType.extension)}
-                                        suggestedName={`New ${objectType.title}`}
-                                    >
-                                        New {objectType.title}
-                                    </CreateNewButton>
-                                }
-                                {createListItems(filesOfType, objectType.icon)}
-                            </Accordion.Panel>
-                        </Accordion.Item>
-                    )
-                })
-            }
-        </Accordion>
+                        return (
+                            <Accordion.Item value={objectType.id} key={i}>
+                                <Accordion.Control>
+                                    <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
+                                </Accordion.Control>
+                                <Accordion.Panel>
+                                    {objectType.createable &&
+                                        <CreateNewButton
+                                            onCreate={handleCreateObject(objectType.extension)}
+                                            suggestedName={`New ${objectType.title}`}
+                                        >
+                                            New {objectType.title}
+                                        </CreateNewButton>
+                                    }
+                                    {createListItems(filesOfType, objectType.icon)}
+                                </Accordion.Panel>
+                            </Accordion.Item>
+                        )
+                    })
+                }
+            </Accordion>
+        </ScrollArea>
     )
 }
 
