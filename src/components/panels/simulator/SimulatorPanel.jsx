@@ -1,4 +1,4 @@
-import { Badge, Tabs } from '@mantine/core'
+import { Badge, ScrollArea, Space, Tabs } from '@mantine/core'
 import AnalysisWizard from './AnalysisWizard'
 import { createContext } from 'react'
 import AnalysisResults from './AnalysisResults'
@@ -32,13 +32,16 @@ export default function SimulatorPanel({ id }) {
             <Tabs defaultValue={TabValues.SETUP} styles={tabStyles}>
                 <Tabs.List>
                     <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
-                    <Tabs.Tab value={TabValues.RESULTS}>
+                    {resultLength && <Tabs.Tab value={TabValues.RESULTS}>
                         Results
-                        {resultLength && <Badge ml={10}>{resultLength}</Badge>}
-                    </Tabs.Tab>
+                        <Badge ml={10}>{resultLength}</Badge>
+                    </Tabs.Tab>}
                 </Tabs.List>
                 <Tabs.Panel value={TabValues.SETUP}>
-                    <AnalysisWizard />
+                    <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
+                        <AnalysisWizard />
+                        <Space h={20} />
+                    </ScrollArea>
                 </Tabs.Panel>
                 <Tabs.Panel value={TabValues.RESULTS}>
                     <AnalysisResults />
