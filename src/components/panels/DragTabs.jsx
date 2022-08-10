@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect } from "react"
 import { Tabs } from '@mantine/core'
-import TabLabel from "./TabLabel"
-import CenteredTitle from "../CenteredTitle"
 
 
 export default function DragTabs({
@@ -117,7 +115,7 @@ export default function DragTabs({
     }, [tabIds.length])
 
     return (
-        tabIds.length ?
+        !!tabIds.length &&
             <div
                 style={containerStyle}
                 onMouseUp={handleMouseUp}
@@ -138,8 +136,7 @@ export default function DragTabs({
                         <ContentComponent id={id} key={id} />
                     )}
                 </Tabs>
-            </div> :
-            <CenteredTitle>Open a file to start</CenteredTitle>
+            </div>
     )
 }
 

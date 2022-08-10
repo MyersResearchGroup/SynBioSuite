@@ -1,6 +1,9 @@
 import DragTabs from "./DragTabs"
 import { useActivePanel, usePanelIds, useReorderPanels } from '../../redux/slices/panelsSlice'
 import Panel from "./Panel"
+import CenteredTitle from "../CenteredTitle"
+import { useLocalStorage } from "@mantine/hooks"
+import WelcomeScreen from "../WelcomeScreen"
 
 export default function Panels() {
 
@@ -9,16 +12,23 @@ export default function Panels() {
     const [activePanel, setActivePanel] = useActivePanel()
     const reorderPanels = useReorderPanels()
 
+    // first time visitor
+    const [firstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
+
     return (
         <div style={{ flexGrow: 1 }}>
-            <DragTabs
-                tabComponent={Panel.Tab}
-                contentComponent={Panel.Content}
-                tabIds={panelIds}
-                active={activePanel}
-                onSelect={setActivePanel}
-                onReorder={reorderPanels}
-            />
+            {panelIds.length ?
+                <DragTabs
+                    tabComponent={Panel.Tab}
+                    contentComponent={Panel.Content}
+                    tabIds={panelIds}
+                    active={activePanel}
+                    onSelect={setActivePanel}
+                    onReorder={reorderPanels}
+                /> :
+                firstTime ?
+                    <WelcomeScreen /> :
+                    <CenteredTitle>Open a file to start</CenteredTitle>}
         </div>
     )
 }
