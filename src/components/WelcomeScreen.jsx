@@ -14,7 +14,7 @@ export default function WelcomeScreen() {
                 <Title order={1}>
                     Welcome to
                 </Title>
-                <img src="/assets/logo.svg" style={{ width: 520 }} />
+                <img src="/assets/text-logo.svg" style={{ width: 520 }} />
                 <Space h='xs' />
                 <Title order={5} sx={{
                     fontWeight: '500',
