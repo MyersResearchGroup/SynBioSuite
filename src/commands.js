@@ -1,5 +1,5 @@
 import store from "./redux/store"
-import { panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
+import { isPanelOpen, panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
 import { workDirActions, writeToFileHandle } from "./redux/hooks/workingDirectoryHooks"
 
 
@@ -53,12 +53,13 @@ export default {
             // quit if this file doesn't exist
             if (!file)
                 return "File doesn't exist."
-            
-            // serialize panel content and save
-            writeToFileHandle(
-                file,
-                serializePanel(fileNameOrId)
-            )
+
+            // make sure panel is open
+            if(!isPanelOpen(file.id))
+                return "Panel isn't open."
+
+            // save
+            await writeToFileHandle(file, serializePanel(file.id))
         }
     }
 }
