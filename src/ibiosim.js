@@ -1,7 +1,11 @@
+import commands from "./commands"
 
 export async function submitAnalysis(input, { environment, parameters }) {
 
     var formdata = new FormData()
+
+    // ensure that file is serialized and saved
+    await commands.FileSave.execute(input.id)
 
     // attach input file
     formdata.append("input", await input.getFile())

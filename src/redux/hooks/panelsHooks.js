@@ -130,11 +130,15 @@ export function useReorderPanels() {
 
 // Utility
 
+export function isPanelOpen(id) {
+    return !!selectors.selectById(store.getState(), id)
+}
+
 export function serializePanel(id) {
     const panel = selectors.selectById(store.getState(), id)
 
     return panel ?
-        getPanelType(panel.type)?.serialize?.(panel) :
+        (getPanelType(panel.type)?.serialize?.(panel) ?? '') :
         ''
 }
 
