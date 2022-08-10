@@ -5,7 +5,7 @@ import { ImImage } from 'react-icons/im'
 
 export default function AdditionalButtons({ randomizeColors, handleExport }) {
     return (
-        <HoverCard shadow="md" position='bottom-end' transition="scale">
+        <HoverCard position='bottom-end' transition="scale">
             <HoverCard.Target>
                 <Button px={10} variant='outline'><FiMoreHorizontal /></Button>
             </HoverCard.Target>
