@@ -32,35 +32,9 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
             usePanelProperty(panelId, "chartOption_useWhiteBackground"),
     }
 
-    // modify dark theme
-    darkTheme.gridStyles = {
-        stroke: mantineTheme.colors.dark[5],
-        strokeWidth: 1
-    }
+    // adjust themes
+    modifyThemes(mantineTheme)
 
-    // modify light theme
-    lightTheme.gridStyles = {
-        stroke: mantineTheme.colors.gray[2],
-        strokeWidth: 1
-    }
-    lightTheme.axisStyles.x.bottom.axisLine =
-    lightTheme.axisStyles.y.left.axisLine = {
-        stroke: mantineTheme.colors.dark[5],
-        strokeWidth: 1
-    }
-    const tickLabelStyles = {
-        fill: mantineTheme.colors.dark[6],
-        fontWeight: 500,
-    }
-    lightTheme.axisStyles.x.bottom.tickLabel = {
-        ...lightTheme.axisStyles.x.bottom.tickLabel,
-        ...tickLabelStyles
-    }
-    lightTheme.axisStyles.y.left.tickLabel = {
-        ...lightTheme.axisStyles.y.left.tickLabel,
-        ...tickLabelStyles
-    }    
-    
     // force update to rerender plot after debounced resize
     const [forcedUpdateKey, setForcedUpdateKey] = useState('chart')
     const resizeTimeout = useTimeout(() => {
@@ -182,4 +156,45 @@ const renderTooltipGlyph = series => point => {
         size={size / 2}
         fill={currentSeries.stroke}
     />
+}
+
+function modifyThemes(mantineTheme) {
+
+    // modify dark theme
+    darkTheme.gridStyles = {
+        stroke: mantineTheme.colors.dark[5],
+        strokeWidth: 1
+    }
+
+    // modify light theme
+
+    // grid
+    lightTheme.gridStyles = {
+        stroke: mantineTheme.colors.gray[1],
+        strokeWidth: 1
+    }
+    
+    // axis lines and ticks
+    lightTheme.axisStyles.x.bottom.axisLine =
+        lightTheme.axisStyles.x.bottom.tickLine =
+        lightTheme.axisStyles.y.left.axisLine =
+        lightTheme.axisStyles.y.left.tickLine =
+        {
+            stroke: mantineTheme.colors.dark[4],
+            strokeWidth: 1
+        }
+
+    // tick labels
+    const tickLabelStyles = {
+        fill: mantineTheme.colors.dark[6],
+        fontWeight: 500,
+    }
+    lightTheme.axisStyles.x.bottom.tickLabel = {
+        ...lightTheme.axisStyles.x.bottom.tickLabel,
+        ...tickLabelStyles
+    }
+    lightTheme.axisStyles.y.left.tickLabel = {
+        ...lightTheme.axisStyles.y.left.tickLabel,
+        ...tickLabelStyles
+    }
 }
