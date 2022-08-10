@@ -5,6 +5,8 @@ import { scaleOrdinal } from '@visx/scale'
 import { useState, useContext, useEffect } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
+import * as colorScheme from "../../../modules/colorScheme"
+
 
 export function useChartLegend({ seriesLabels = [] }) {
 
@@ -46,6 +48,19 @@ export function useChartLegend({ seriesLabels = [] }) {
     // series selector modal
     const [seriesSelectorOpened, setSeriesSelectorOpened] = useState(false)
 
+    // function for randomizing colors
+    const randomizeColors = () => {
+        const newColors = colorScheme.randomize(
+            Object.values(mantineTheme.colors).slice(2),
+            seriesShowing.length
+        )
+        seriesShowing.forEach(series => seriesHandlers.setItemProp(
+            series.dataIndex,
+            'stroke',
+            newColors.next().value
+        ))
+    }
+
     return {
         series: seriesShowing,
         legend:
@@ -61,6 +76,7 @@ export function useChartLegend({ seriesLabels = [] }) {
                 setModalOpen={setSeriesSelectorOpened}
             />,
         openSeriesSelector: () => setSeriesSelectorOpened(true),
+        randomizeColors,
     }
 }
 

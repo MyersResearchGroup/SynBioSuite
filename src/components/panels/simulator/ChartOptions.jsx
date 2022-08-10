@@ -1,6 +1,6 @@
-import { Button, Group, Popover, Slider, Switch, Text } from '@mantine/core'
-import React from 'react'
+import { Button, Popover, Slider, Switch, Text } from '@mantine/core'
 import { useContext } from 'react'
+import { GoSettings } from 'react-icons/go'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 
@@ -23,6 +23,9 @@ export default function ChartOptions() {
     const [showLegendWithEvery, setShowLegendWithEvery] =
         usePanelProperty(panelId, "chartOption_showLegendWithEvery", false, false)
 
+    const [chartWidth, setChartWidth] =
+        usePanelProperty(panelId, "chartOption_width", false, 100)
+
     const [chartHeight, setChartHeight] =
         usePanelProperty(panelId, "chartOption_height", false, 400)
 
@@ -33,7 +36,7 @@ export default function ChartOptions() {
 
         <Popover position='bottom-end'>
             <Popover.Target>
-                <Button variant='outline' >Chart Options</Button>
+                <Button variant='outline' leftIcon={<GoSettings />} >Chart Options</Button>
             </Popover.Target>
             <Popover.Dropdown>
                 <Switch
@@ -69,6 +72,24 @@ export default function ChartOptions() {
                     checked={showLegendWithEvery}
                     onChange={event => setShowLegendWithEvery(event.currentTarget.checked)}
                     mb={10}
+                />
+
+                <Text size='sm' mb={6}>Chart width</Text>
+                <Slider
+                    value={chartWidth}
+                    onChange={setChartWidth}
+                    marks={[
+                        { value: 25, label: '' },
+                        { value: 50, label: '' },
+                        { value: 75, label: '' },
+                    ]}
+                    label={label => label + '%'}
+                    labelAlwaysOn={true}
+                    min={0}
+                    max={100}
+                    step={5}
+                    styles={sliderStyles}
+                    mb={40}
                 />
 
                 <Text size='sm' mb={6}>Chart height</Text>

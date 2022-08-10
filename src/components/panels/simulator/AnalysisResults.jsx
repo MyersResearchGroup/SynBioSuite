@@ -8,6 +8,9 @@ import ChartOptions from './ChartOptions'
 import LineChart from './LineChart'
 import { PanelContext } from './SimulatorPanel'
 import { exportComponentAsPNG } from 'react-component-export-image'
+import { VscGraphLine } from "react-icons/vsc"
+import AdditionalButtons from './AdditionalButtons'
+
 
 export default function AnalysisResults() {
 
@@ -23,6 +26,7 @@ export default function AnalysisResults() {
     // grab chart options from store
     const chartOptions = {
         showTitles: usePanelProperty(panelId, "chartOption_showTitles"),
+        width: usePanelProperty(panelId, "chartOption_width"),
         height: usePanelProperty(panelId, "chartOption_height"),
         gapBetween: usePanelProperty(panelId, "chartOption_gapBetween"),
         showLegendWithEvery: usePanelProperty(panelId, "chartOption_showLegendWithEvery"),
@@ -35,7 +39,7 @@ export default function AnalysisResults() {
         exportComponentAsPNG(resultsConainerRef, {
             fileName: panelId + '.png',
             html2CanvasOptions: {
-                backgroundColor: chartOptions.useWhiteBackground ? 
+                backgroundColor: chartOptions.useWhiteBackground ?
                     '#ffffff' : mantineTheme.colors.dark[7]
             }
         })
@@ -64,15 +68,18 @@ export default function AnalysisResults() {
     return (
         <>
             <Group position='right' spacing={20} p={20}>
-                <Button variant='outline' onClick={chartLegend.openSeriesSelector}>Select Series</Button>
-                <Button variant='outline' onClick={handleExport}>Export Image</Button>
+                <Button variant='outline' leftIcon={<VscGraphLine />} onClick={chartLegend.openSeriesSelector}>Select Series</Button>
                 <ChartOptions />
+                <AdditionalButtons
+                    handleExport={handleExport}
+                    randomizeColors={chartLegend.randomizeColors}
+                />
             </Group>
             <ScrollArea style={{ height: `calc(100vh - 170px)` }}>
                 {results &&
                     <Container
                         pt={20}
-                        sx={resultsContainerStyle(chartOptions.useWhiteBackground)}
+                        sx={resultsContainerStyle(chartOptions.useWhiteBackground, chartOptions.width)}
                         ref={resultsConainerRef}
                     >
                         {Object.entries(results).map(([fileName, resultData], i) =>
@@ -114,6 +121,7 @@ function titleFromRunFileName(fileName) {
     return title
 }
 
-const resultsContainerStyle = whiteBg => theme => ({
-    ...(whiteBg && { backgroundColor: 'white' })
+const resultsContainerStyle = (whiteBg, width) => theme => ({
+    ...(whiteBg && { backgroundColor: 'white' }),
+    width: width + '%'
 })
