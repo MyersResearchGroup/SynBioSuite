@@ -3,12 +3,17 @@ import { ActionIcon, Center, Text, Tooltip } from '@mantine/core'
 import ExplorerList from './ExplorerList'
 import { useWorkingDirectory } from '../../../redux/slices/workingDirectorySlice'
 import { IoRefreshOutline } from "react-icons/io5"
+import { useLocalStorage } from '@mantine/hooks'
 
 export default function ExplorerActivityView({ }) {
+
+    // handle first time visiting
+    const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
 
     // handle directory selection
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
     const handleDirectorySelection = dirHandle => {
+        firstTime && setFirstTime(false)
         setWorkingDirectory(dirHandle)
     }
 
