@@ -1,6 +1,6 @@
 import { Badge } from '@mantine/core'
 import React, { useContext } from 'react'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { RuntimeStatus } from '../../../runtimeStatus'
 import { PanelContext } from './SimulatorPanel'
 

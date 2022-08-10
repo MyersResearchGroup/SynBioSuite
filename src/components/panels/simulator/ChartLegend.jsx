@@ -3,7 +3,7 @@ import { useDebouncedValue, useListState } from '@mantine/hooks'
 import { LegendItem, LegendLabel, LegendOrdinal } from '@visx/legend'
 import { scaleOrdinal } from '@visx/scale'
 import { useState, useContext, useEffect } from 'react'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 
 export function useChartLegend({ seriesLabels = [] }) {

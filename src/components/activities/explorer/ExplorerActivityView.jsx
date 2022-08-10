@@ -1,7 +1,7 @@
 import FolderSelect from './FolderSelect'
 import { ActionIcon, Center, Text, Tooltip } from '@mantine/core'
 import ExplorerList from './ExplorerList'
-import { useWorkingDirectory } from '../../../redux/slices/workingDirectorySlice'
+import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 

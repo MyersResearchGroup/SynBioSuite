@@ -1,5 +1,5 @@
 import DragTabs from "./DragTabs"
-import { useActivePanel, usePanelIds, useReorderPanels } from '../../redux/slices/panelsSlice'
+import { useActivePanel, usePanelIds, useReorderPanels } from '../../redux/hooks/panelsHooks'
 import Panel from "./Panel"
 import CenteredTitle from "../CenteredTitle"
 import { useLocalStorage } from "@mantine/hooks"

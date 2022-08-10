@@ -1,5 +1,5 @@
 import { Box, Tabs, Title, Tooltip } from '@mantine/core'
-import { useActiveActivity, useActivities } from '../../redux/slices/activitySlice'
+import { useActiveActivity, useActivities } from '../../redux/hooks/activityHooks'
 import { getActivity } from '../../activities'
 import { SVGIcon } from '../../icons'
 

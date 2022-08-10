@@ -2,7 +2,7 @@ import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, B
 import { useForm } from '@mantine/form'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import InputWrapper from "./InputWrapper"
 import RandomNumberInput from './RandomNumberInput'
 import { PanelContext } from './SimulatorPanel'

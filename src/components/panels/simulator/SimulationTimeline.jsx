@@ -1,6 +1,6 @@
 import { Container, Text, Timeline, Title } from '@mantine/core'
 import React, { useContext } from 'react'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 import ReactTimeAgo from 'react-time-ago'
 import { RuntimeStatus } from '../../../runtimeStatus'
