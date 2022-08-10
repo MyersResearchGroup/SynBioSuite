@@ -1,9 +1,9 @@
-import { Menu, Text } from '@mantine/core'
-import React, { useState } from 'react'
-import { useOpenPanel } from '../../../redux/slices/panelsSlice'
-import { titleFromFileName, useFile } from '../../../redux/slices/workingDirectorySlice'
-import DragObject from '../../DragObject'
 import commands from "../../../commands"
+import { Menu } from '@mantine/core'
+import { useState } from 'react'
+import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
+import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
+import DragObject from '../../DragObject'
 
 
 export default function ExplorerListItem({ fileId, icon }) {

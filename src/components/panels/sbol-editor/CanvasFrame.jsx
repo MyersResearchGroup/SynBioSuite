@@ -2,7 +2,7 @@
 import { LoadingOverlay } from '@mantine/core'
 import { useState, useEffect, useRef, useContext } from 'react'
 import { PanelContext } from './SBOLEditorPanel'
-import { usePanelProperty } from "../../../redux/slices/panelsSlice"
+import { usePanelProperty } from "../../../redux/hooks/panelsHooks"
 
 
 export default function CanvasFrame() {

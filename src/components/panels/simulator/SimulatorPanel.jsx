@@ -4,7 +4,7 @@ import { createContext } from 'react'
 import AnalysisResults from './AnalysisResults'
 import PanelSaver from "../PanelSaver"
 import { useSelector } from 'react-redux'
-import { panelsSelectors } from '../../../redux/slices/panelsSlice'
+import { panelsSelectors } from '../../../redux/hooks/panelsHooks'
 import { createSelector } from '@reduxjs/toolkit'
 import StatusBadge from './StatusBadge'
 

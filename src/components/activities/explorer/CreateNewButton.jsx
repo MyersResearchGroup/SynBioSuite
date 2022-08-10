@@ -2,7 +2,7 @@ import { Group, Text, TextInput } from '@mantine/core'
 import { useClickOutside } from '@mantine/hooks'
 import { useState } from 'react'
 import { AiOutlinePlus } from "react-icons/ai"
-import { useSafeName } from '../../../redux/slices/workingDirectorySlice'
+import { useSafeName } from '../../../redux/hooks/workingDirectoryHooks'
 
 export default function CreateNewButton({ onCreate, children, suggestedName }) {
 

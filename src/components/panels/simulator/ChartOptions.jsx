@@ -1,7 +1,7 @@
 import { Button, Group, Popover, Slider, Switch, Text } from '@mantine/core'
 import React from 'react'
 import { useContext } from 'react'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 
 export default function ChartOptions() {

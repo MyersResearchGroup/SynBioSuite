@@ -1,8 +1,8 @@
 import React, { forwardRef } from 'react'
 import { Tabs as MantineTabs } from "@mantine/core"
 import TabLabel from './TabLabel'
-import { useClosePanel, usePanelProperty, usePanelType } from '../../redux/slices/panelsSlice'
-import { titleFromFileName } from '../../redux/slices/workingDirectorySlice'
+import { useClosePanel, usePanelProperty, usePanelType } from '../../redux/hooks/panelsHooks'
+import { titleFromFileName } from '../../redux/hooks/workingDirectoryHooks'
 
 const Tab = forwardRef(({ id, ...props }, ref) => {
 

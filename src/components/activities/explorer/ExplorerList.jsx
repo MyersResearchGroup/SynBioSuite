@@ -1,4 +1,4 @@
-import { useCreateFile, useFiles } from '../../../redux/slices/workingDirectorySlice'
+import { useCreateFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'

@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit"
-import { useSelector, useDispatch } from 'react-redux'
 import { Activities } from "../../activities"
 
 
@@ -7,7 +6,6 @@ const initialActivities = Object.fromEntries(
     Object.values(Activities).map(act => ([ act.id, act.initialState || {} ]))
 )
 
-// create slice
 export const activitiesSlice = createSlice({
     name: 'activities',
     initialState: {
@@ -21,23 +19,8 @@ export const activitiesSlice = createSlice({
     }
 })
 
-// export actions & reducer
-export const activityActions = activitiesSlice.actions
-export default activitiesSlice.reducer
 
-
-// custom hooks for selectors
-
-export function useActivities() {
-    return /* activities */ useSelector(state => state.activities.states)
-}
-
-export function useActiveActivity() {
-
-    const dispatch = useDispatch()
-
-    return [
-        /* activeActivity */ useSelector(state => state.activities.active),
-        /* setActiveActivity */ newActive => dispatch(activityActions.setActive(newActive))
-    ]
+export default {
+    reducer: activitiesSlice.reducer,
+    actions: activitiesSlice.actions,
 }

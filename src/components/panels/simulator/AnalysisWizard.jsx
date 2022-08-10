@@ -9,12 +9,12 @@ import { BiWorld } from "react-icons/bi"
 import ParameterForm from './ParameterForm'
 import ReviewTable from './ReviewTable'
 import { ObjectTypes } from '../../../objectTypes'
-import { titleFromFileName, useFile } from '../../../redux/slices/workingDirectorySlice'
+import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { pollStatus, submitAnalysis, terminateAnalysis } from '../../../ibiosim'
 import { useRef } from 'react'
 import { PanelContext } from './SimulatorPanel'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useTimeout } from '@mantine/hooks'
 import { RuntimeStatus } from '../../../runtimeStatus'
 import SimulationTimeline from './SimulationTimeline'
@@ -35,8 +35,6 @@ export default function AnalysisWizard() {
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
-
-    console.log("Weird bug, panel ID:", panelId)
 
     const [status, setStatus] = usePanelProperty(panelId, "runtimeStatus", false)
     const running = RuntimeStatus.running(status)

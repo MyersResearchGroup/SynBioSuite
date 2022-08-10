@@ -1,6 +1,6 @@
-import { panelsActions, serializePanel } from "./redux/slices/panelsSlice"
-import { workDirActions, writeToFileHandle } from "./redux/slices/workingDirectorySlice"
 import store from "./redux/store"
+import { panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
+import { workDirActions, writeToFileHandle } from "./redux/hooks/workingDirectoryHooks"
 
 
 export default {

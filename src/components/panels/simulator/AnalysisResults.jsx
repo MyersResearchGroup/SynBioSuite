@@ -2,7 +2,7 @@ import { Button, Container, Group, ScrollArea, Space, useMantineTheme } from '@m
 import React from 'react'
 import { useRef } from 'react'
 import { useContext } from 'react'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useChartLegend } from './ChartLegend'
 import ChartOptions from './ChartOptions'
 import LineChart from './LineChart'

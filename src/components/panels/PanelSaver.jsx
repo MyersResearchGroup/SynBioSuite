@@ -1,4 +1,4 @@
-import { useAutoSavePanel } from '../../redux/slices/panelsSlice'
+import { useAutoSavePanel } from '../../redux/hooks/panelsHooks'
 
 /*
     Extracted this to its own component to prevent unnecessary

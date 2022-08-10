@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { useContext } from 'react'
 import { PanelContext } from './SimulatorPanel'
 import { truncateSpeciesNames } from './ChartLegend'
-import { usePanelProperty } from '../../../redux/slices/panelsSlice'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 
 const accessors = {
     xAccessor: d => d?.[0],
