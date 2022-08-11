@@ -10,6 +10,7 @@ import { PanelContext } from './SimulatorPanel'
 import { exportComponentAsPNG } from 'react-component-export-image'
 import { VscGraphLine } from "react-icons/vsc"
 import AdditionalButtons from './AdditionalButtons'
+import { titleFromRunFileName } from "../../../modules/util"
 
 
 export default function AnalysisResults() {
@@ -33,9 +34,9 @@ export default function AnalysisResults() {
         useWhiteBackground: usePanelProperty(panelId, "chartOption_useWhiteBackground"),
     }
 
-    // create ref and handler for exporting
+    // create ref and handler for exporting images
     const resultsConainerRef = useRef()
-    const handleExport = () => {
+    const handleImageExport = () => {
         exportComponentAsPNG(resultsConainerRef, {
             fileName: panelId + '.png',
             html2CanvasOptions: {
@@ -71,7 +72,8 @@ export default function AnalysisResults() {
                 <Button variant='outline' leftIcon={<VscGraphLine />} onClick={chartLegend.openSeriesSelector}>Select Series</Button>
                 <ChartOptions />
                 <AdditionalButtons
-                    handleExport={handleExport}
+                    results={results}
+                    handleImageExport={handleImageExport}
                     randomizeColors={chartLegend.randomizeColors}
                 />
             </Group>
@@ -107,18 +109,6 @@ export default function AnalysisResults() {
             {chartLegend?.selectionModal}
         </>
     )
-}
-
-
-function titleFromRunFileName(fileName) {
-    let title = fileName
-        .replace(".tsd", "")
-        .replace("-", " ")
-
-    title = title.slice(0, 1).toUpperCase() +
-        title.slice(1)
-
-    return title
 }
 
 const resultsContainerStyle = (whiteBg, width) => theme => ({
