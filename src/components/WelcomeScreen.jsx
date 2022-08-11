@@ -14,7 +14,7 @@ export default function WelcomeScreen() {
                 <Title order={1}>
                     Welcome to
                 </Title>
-                <img src="/assets/text-logo.svg" style={{ width: 520 }} />
+                <img src="/text-logo.svg" style={{ width: 520 }} />
                 <Space h='xs' />
                 <Title order={5} sx={{
                     fontWeight: '500',
@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
                     To get started, choose a folder to open.
                     </Text>
 
-                <img src="/assets/left-arrow-sketch.svg" style={{
+                <img src="/left-arrow-sketch.svg" style={{
                     width: 200,
                     position: 'absolute',
                     top: 200,
@@ -46,7 +46,7 @@ export default function WelcomeScreen() {
                     transform: 'scaleY(-1) rotate(-70deg)',
                     ...svgStyles
                 }} />
-                <img src="/assets/circle.svg" style={{
+                <img src="/circle.svg" style={{
                     width: 150,
                     position: 'absolute',
                     top: 35,
