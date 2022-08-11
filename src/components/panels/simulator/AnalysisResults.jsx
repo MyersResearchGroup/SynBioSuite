@@ -76,6 +76,7 @@ export default function AnalysisResults() {
                     results={results}
                     handleImageExport={handleImageExport}
                     randomizeColors={chartLegend.randomizeColors}
+                    whiteBg={chartOptions.useWhiteBackground}
                 />
             </Group>
             <ScrollArea style={{ height: `calc(100vh - 170px)` }}>
