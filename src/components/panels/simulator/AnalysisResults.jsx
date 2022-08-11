@@ -7,10 +7,11 @@ import { useChartLegend } from './ChartLegend'
 import ChartOptions from './ChartOptions'
 import LineChart from './LineChart'
 import { PanelContext } from './SimulatorPanel'
-import { exportComponentAsPNG } from 'react-component-export-image'
 import { VscGraphLine } from "react-icons/vsc"
 import AdditionalButtons from './AdditionalButtons'
 import { titleFromRunFileName } from "../../../modules/util"
+import { exportToPNG } from '../../../modules/export'
+import { titleFromFileName } from '../../../redux/hooks/workingDirectoryHooks'
 
 
 export default function AnalysisResults() {
@@ -37,13 +38,12 @@ export default function AnalysisResults() {
     // create ref and handler for exporting images
     const resultsConainerRef = useRef()
     const handleImageExport = () => {
-        exportComponentAsPNG(resultsConainerRef, {
-            fileName: panelId + '.png',
-            html2CanvasOptions: {
-                backgroundColor: chartOptions.useWhiteBackground ?
-                    '#ffffff' : mantineTheme.colors.dark[7]
-            }
-        })
+        exportToPNG(
+            resultsConainerRef,
+            titleFromFileName(panelId),
+            chartOptions.useWhiteBackground ?
+                '#ffffff' : mantineTheme.colors.dark[7]
+        )
     }
 
     // calculate y-domain from all data so all charts have
@@ -72,6 +72,7 @@ export default function AnalysisResults() {
                 <Button variant='outline' leftIcon={<VscGraphLine />} onClick={chartLegend.openSeriesSelector}>Select Series</Button>
                 <ChartOptions />
                 <AdditionalButtons
+                    panelId={panelId}
                     results={results}
                     handleImageExport={handleImageExport}
                     randomizeColors={chartLegend.randomizeColors}
