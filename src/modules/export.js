@@ -1,5 +1,6 @@
 import excel from "exceljs"
-import download from "browser-downloads"
+import browserDownload from "browser-downloads"
+import { exportComponentAsPNG } from 'react-component-export-image'
 import { titleFromRunFileName } from "./util"
 
 /*
@@ -15,7 +16,7 @@ import { titleFromRunFileName } from "./util"
         ]
     }
 */
-export async function exportToExcel(data) {
+export async function exportToExcel(data, fileBaseName = 'results') {
     // create workbook
     const workbook = new excel.Workbook()
 
@@ -47,10 +48,38 @@ export async function exportToExcel(data) {
         })
     })
 
-    console.debug("download.js will  throw an error here. It can be ignored.")
-
     download(
         new Blob([await workbook.xlsx.writeBuffer()]),
-        `results.xlsx`
+        `${fileBaseName}.xlsx`
     )
+}
+
+
+export function exportToPNG(componentRef, fileBaseName = 'results', backgroundColor) {
+    exportComponentAsPNG(componentRef, {
+        fileName: fileBaseName + '.png',
+        html2CanvasOptions: { backgroundColor }
+    })
+}
+
+
+export function exportToCSV(data, fileBaseName = 'results') {
+    Object.entries(data).forEach(([runFileName, runData]) => {
+
+        const runTitle = titleFromRunFileName(runFileName)
+
+        download(
+            runData.reduce(
+                (accum, current) => accum + current.join(",") + "\r\n",
+                "data:text/csv;charset=utf-8,"
+            ),
+            `${fileBaseName} - ${runTitle}.csv`
+        )
+    })
+}
+
+
+function download(...args) {
+    console.debug("download.js will  throw an error here. It can be ignored.")
+    browserDownload(...args)
 }
