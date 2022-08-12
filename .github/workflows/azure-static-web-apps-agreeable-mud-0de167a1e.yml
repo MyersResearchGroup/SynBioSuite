@@ -2,7 +2,7 @@ name: Azure Static Web Apps CI/CD
 
 env:
   VITE_IBIOSIM_API: https://ibiosim-connector.azurewebsites.net/api/orchestrators/analyze
-  VITE_SBOL_CANVAS_URL: https://happy-plant-0a5ba711e.1.azurestaticapps.net
+  VITE_SBOL_CANVAS_URL: https://canvas.synbiosuite.org
 
 on:
   push:
