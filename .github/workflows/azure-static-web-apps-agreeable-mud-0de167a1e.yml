@@ -1,8 +1,8 @@
 name: Azure Static Web Apps CI/CD
 
 env:
-  VITE_IBIOSIM_API: https://ibiosim-connector.azurewebsites.net/api/orchestrators/analyze
-  VITE_SBOL_CANVAS_URL: https://canvas.synbiosuite.org
+  VITE_IBIOSIM_API: ${{ secrets.IBIOSIM_API }}
+  VITE_SBOL_CANVAS_URL: ${{ secrets.CANVAS_URL }}
 
 on:
   push:
