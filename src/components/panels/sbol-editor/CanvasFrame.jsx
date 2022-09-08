@@ -46,7 +46,7 @@ export default function CanvasFrame() {
     // handle iframe load
     const handleIFrameLoad = () => {
         setIFrameLoaded(true)
-        setSbolContentLoaded(false)
+        setSbolContentLoaded(!sbolContent) // skip loading SBOL if there's no SBOL
 
         // post message
         iframeRef.current.contentWindow.postMessage(
