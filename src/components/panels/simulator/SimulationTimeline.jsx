@@ -61,7 +61,7 @@ export default function SimulationTimeline() {
                     {nodesToShow}
 
                     {running &&
-                        <Timeline.Item bullet={<IoEllipsisHorizontalSharp />} key="dot">
+                        <Timeline.Item bullet={<IoEllipsisHorizontalSharp />} key="dot" mb={40}>
                         </Timeline.Item>}
 
                     {successful &&
