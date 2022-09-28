@@ -1,3 +1,4 @@
+![sparkline](https://user-images.githubusercontent.com/11147616/192870513-b6a049a1-5bb3-4454-bb5f-154285d9a557.png)
 
 # SynBioSuite
 
