@@ -7,17 +7,17 @@ export const ObjectTypes = {
         id: "synbio.object-type.sbol",
         title: "SBOL Component",
         listTitle: "SBOL Components",
-        fileMatch: /\.sbol$|\.component\.xml$/,
+        fileMatch: /<sbol:/,
         icon: TbComponents,
         createable: true,
-        extension: '.sbol',
+        extension: '.xml',
         badgeLabel: "SBOL",
     },
     SBML: {
         id: "synbio.object-type.sbml",
         title: "SBML File",
         listTitle: "SBML Files",
-        fileMatch: /\.xml$/,
+        fileMatch: /<sbml/,
         createable: false,
         badgeLabel: "SBML",
     },
@@ -25,7 +25,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.omex-archive",
         title: "OMEX Archive",
         listTitle: "OMEX Archives",
-        fileMatch: /\.omex$/,
+        fileNameMatch: /\.omex$/,
         icon: BiWorld,
         createable: false,
         badgeLabel: "OMEX",
@@ -34,7 +34,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.analysis",
         title: "Analysis",
         listTitle: "Analyses",
-        fileMatch: /\.analysis$/,
+        fileNameMatch: /\.analysis$/,
         icon: IoAnalyticsSharp,
         createable: true,
         extension: '.analysis',
@@ -45,8 +45,17 @@ export function getObjectType(id) {
     return Object.values(ObjectTypes).find(ot => ot.id == id)
 }
 
-export function classifyFile(fileName) {
+export async function classifyFile(file) {
+    // try to match by file name
+    const matchFromFileName = Object.values(ObjectTypes).find(
+        ot => ot.fileNameMatch?.test(file.name)
+    )?.id
+    if(matchFromFileName)
+        return matchFromFileName
+
+    // otherwise, read file content
+    const fileContent = await (await file.getFile()).text()
     return Object.values(ObjectTypes).find(
-        ({ fileMatch }) => !!fileName?.match(fileMatch)
+        ot => ot.fileMatch?.test(fileContent)
     )?.id
 }

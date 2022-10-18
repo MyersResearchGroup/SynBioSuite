@@ -50,10 +50,10 @@ export function useCreateFile() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-    return fileName => {
+    return (fileName, objectType) => {
         workDir.getFileHandle(fileName, { create: true })
             .then(fileHandle => {
-                addFileMetadata(fileHandle)
+                addFileMetadata(fileHandle, { objectType })
                 dispatch(actions.addFile(fileHandle))
                 openPanel(fileHandle)
             })
@@ -109,7 +109,7 @@ async function findFilesInDirectory(dirHandle) {
     // loop through async iterator of file names (called keys here)
     for await (const handle of dirHandle.values()) {
         if (handle.kind == 'file') {
-            addFileMetadata(handle)
+            await addFileMetadata(handle)
             files.push(handle)
         }
     }
@@ -117,10 +117,10 @@ async function findFilesInDirectory(dirHandle) {
     return files
 }
 
-function addFileMetadata(handle) {
+async function addFileMetadata(handle, { objectType } = {}) {
     // handle.id = uuidv4()
     handle.id = handle.name
-    handle.objectType = classifyFile(handle.name)
+    handle.objectType = objectType || await classifyFile(handle)
 }
 
 export function titleFromFileName(fileName) {
