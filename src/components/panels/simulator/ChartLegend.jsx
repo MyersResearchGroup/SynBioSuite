@@ -27,7 +27,7 @@ export function useChartLegend({ seriesLabels = [] }) {
             seriesLabels.map((label, i) => ({
                 dataIndex: i,
                 key: label,
-                show: seriesInStore?.[label]?.show ?? i != 0,
+                show: seriesInStore?.[label]?.show ?? (i > 0 && i <= 10),
                 stroke: seriesInStore?.[label]?.stroke || randomFromSet(lineColors),
                 bold: seriesInStore?.[label]?.bold || false,
             }))
