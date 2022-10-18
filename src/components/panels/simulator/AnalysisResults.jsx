@@ -1,7 +1,5 @@
+import React, { useContext, useMemo, useRef } from 'react'
 import { Button, Container, Group, ScrollArea, Space, useMantineTheme } from '@mantine/core'
-import React from 'react'
-import { useRef } from 'react'
-import { useContext } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useChartLegend } from './ChartLegend'
 import ChartOptions from './ChartOptions'
@@ -9,7 +7,7 @@ import LineChart from './LineChart'
 import { PanelContext } from './SimulatorPanel'
 import { VscGraphLine } from "react-icons/vsc"
 import AdditionalButtons from './AdditionalButtons'
-import { titleFromRunFileName } from "../../../modules/util"
+import { betterMax, titleFromRunFileName } from "../../../modules/util"
 import { exportToPNG } from '../../../modules/export'
 import { titleFromFileName } from '../../../redux/hooks/workingDirectoryHooks'
 
@@ -48,23 +46,21 @@ export default function AnalysisResults() {
 
     // calculate y-domain from all data so all charts have
     // the same scaling
-    const indecesShowing = chartLegend?.series.map(s => s.dataIndex) || []
-    const yDomain = results && [
-        0,
-        Math.ceil(
-            Math.max(
-                ...Object.values(results).map(
-                    dataSet => dataSet
-                        .slice(1)
-                        .map(
+    const yDomain = useMemo(() => {
+        const indecesShowing = chartLegend?.series.map(s => s.dataIndex) || []
+        return results && [
+            0,
+            Math.ceil(
+                betterMax(
+                    Object.values(results).map(
+                        dataSet => dataSet.slice(1).map(
                             entry => entry.filter((_, i) => indecesShowing.includes(i))
-                        )
-                        .flat()
-                )
-                    .flat()
-            ) / 10
-        ) * 10
-    ]
+                        ).flat()
+                    ).flat()
+                ) / 10
+            ) * 10
+        ]
+    }, [results, chartLegend?.series])
 
     return (
         <>

@@ -10,3 +10,8 @@ export function titleFromRunFileName(fileName) {
 
     return title
 }
+
+export function betterMax(arr) {
+    if (arr.length)
+        return arr.reduce((accum, current) => current > accum ? current : accum, arr[0])
+}
