@@ -8,6 +8,9 @@ import { useContext } from 'react'
 import { PanelContext } from './SimulatorPanel'
 import { truncateSpeciesNames } from './ChartLegend'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { useMemo } from 'react'
+
+const MAX_POINTS = 500
 
 const accessors = {
     xAccessor: d => d?.[0],
@@ -49,6 +52,10 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
         return () => window.removeEventListener('resize', onResize)
     }, [])
 
+    // only show max of 1000 points
+    const truncatedData = useMemo(() => data.filter((_, i) =>
+        Math.floor(i % (data.length / MAX_POINTS)) == 0
+    ), [data])
 
     return (
         <Stack align="center" justify="flex-start" mt={mt} >
@@ -72,7 +79,8 @@ export default function LineChart({ data, title, series, height, mt, yDomain }) 
                         <LineSeries
                             key={s.key}
                             dataKey={s.key}
-                            data={data}
+                            // data={data}
+                            data={truncatedData}
                             xAccessor={accessors.xAccessor}
                             yAccessor={accessors.yAccessor(s.dataIndex)}
                             stroke={s.stroke}
@@ -173,7 +181,7 @@ function modifyThemes(mantineTheme) {
         stroke: mantineTheme.colors.gray[1],
         strokeWidth: 1
     }
-    
+
     // axis lines and ticks
     lightTheme.axisStyles.x.bottom.axisLine =
         lightTheme.axisStyles.x.bottom.tickLine =
