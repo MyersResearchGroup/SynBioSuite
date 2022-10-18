@@ -1,4 +1,5 @@
-![sparkline](https://user-images.githubusercontent.com/11147616/192870513-b6a049a1-5bb3-4454-bb5f-154285d9a557.png)
+![readme-pic](https://user-images.githubusercontent.com/11147616/196558743-5a5e2c03-0731-4f56-aca4-5430a56c7e8a.png)
+
 
 # SynBioSuite
 
