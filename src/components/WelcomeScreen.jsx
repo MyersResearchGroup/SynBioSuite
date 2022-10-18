@@ -1,5 +1,5 @@
-import { Center, Overlay, Space, Stack, Text, Title, useMantineTheme } from '@mantine/core'
-import React from 'react'
+import { Center, Space, Stack, Text, Title, useMantineTheme } from '@mantine/core'
+
 
 export default function WelcomeScreen() {
 
@@ -14,7 +14,7 @@ export default function WelcomeScreen() {
                 <Title order={1}>
                     Welcome to
                 </Title>
-                <img src="/text-logo.svg" style={{ width: 520 }} />
+                <img src="/logo-dark.png" style={{ width: 520 }} />
                 <Space h='xs' />
                 <Title order={5} sx={{
                     fontWeight: '500',

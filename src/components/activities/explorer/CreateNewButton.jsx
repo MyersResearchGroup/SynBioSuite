@@ -2,6 +2,7 @@ import { Group, Text, TextInput } from '@mantine/core'
 import { useClickOutside } from '@mantine/hooks'
 import { useState } from 'react'
 import { AiOutlinePlus } from "react-icons/ai"
+import { getPrimaryColor } from '../../../modules/colorScheme'
 import { useSafeName } from '../../../redux/hooks/workingDirectoryHooks'
 
 export default function CreateNewButton({ onCreate, children, suggestedName }) {
@@ -57,7 +58,7 @@ const groupStyle = theme => ({
     padding: '3px 0 3px 8px',
     borderRadius: 3,
     cursor: 'pointer',
-    color: theme.colors.blue[5],
+    color: getPrimaryColor(theme, 5),
     '&:hover': {
         backgroundColor: theme.colors.dark[5]
     }
@@ -68,6 +69,6 @@ const textStyle = theme => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     userSelect: 'none',
-    color: theme.colors.blue[5],
+    color: getPrimaryColor(theme, 5),
     fontWeight: 500,
 })

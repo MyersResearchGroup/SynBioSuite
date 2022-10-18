@@ -1,4 +1,4 @@
-import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, Box } from '@mantine/core'
+import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, Box, useMantineTheme } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
@@ -65,6 +65,8 @@ export const parameterMap = {
 
 export default function ParameterForm({ onValidation }) {
 
+    const theme = useMantineTheme()
+
     const panelId = useContext(PanelContext)
 
     // set up state in global store and add default values
@@ -104,7 +106,7 @@ export default function ParameterForm({ onValidation }) {
                     data={Object.entries(parameterMap.simulationType.options).map(
                         ([value, label]) => ({ label, value })
                     )}
-                    color="blue"
+                    color={theme.primaryColor}
                     {...form.getInputProps('simulationType')}
                 />
             </InputWrapper>
