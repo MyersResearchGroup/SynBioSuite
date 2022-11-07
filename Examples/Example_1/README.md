@@ -10,6 +10,6 @@ When opening the Analysis with a double click you can click the __Run Analysis__
 
 ![Figure2](../Figures/Oscillation.png)
 
-You can also run your own analysis by clicking the __+ New Analysis__ button and following the steps shown.
+You can also run your own analysis by clicking the __+ New Analysis__ button and following the steps shown. The given example does not have associated sequences. However, they are not needed to use SynBioSuite's simulation and analysis capabilities
 
 1. Elowitz, M. B.; Leibler, S. A Synthetic Oscillatory Network of Transcriptional Regulators. Nature 2000, 403 (6767), 335–338. https://doi.org/10.1038/35002125.

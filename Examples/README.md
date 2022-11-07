@@ -1,6 +1,6 @@
 ### Examples
 
-This directory includes four examples for each possible use case of [SynBioSuite](https://synbiosuite.org/).
+This directory includes four examples for each possible use case of [SynBioSuite](https://synbiosuite.org/). To go through the examples download the examples and open them in SynBioSuite. When moving from one example to another, refresh the browser and SynBioSuite allows you to open a new project.
 
 1. The first use case is the simulation of a SBOL file shown in example 1 using the _repressilator_ as an example
 
