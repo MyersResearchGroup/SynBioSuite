@@ -172,10 +172,14 @@
     <sbol:persistentIdentity rdf:resource="https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/pCONST"/>
     <sbol:displayId>pCONST</sbol:displayId>
     <sbol:version>1</sbol:version>
+    <prov:wasGeneratedBy rdf:resource="https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/CelloUCF2sbol_Activity/1"/>
+    <dcterms:title>pCONST</dcterms:title>
     <dcterms:created>2019-11-14T20:50:42.872Z</dcterms:created>
     <sbh:ownedBy rdf:resource="https://synbiohub.programmingbiology.org/user/myers"/>
     <sbh:topLevel rdf:resource="https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/pCONST/1"/>
     <sbol:type rdf:resource="http://www.biopax.org/release/biopax-level3.owl#DnaRegion"/>
+    <sbol:role rdf:resource="http://identifiers.org/so/SO:0000167"/>
+    <sbol:sequence rdf:resource="https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/pCONST_sequence/1"/>
   </sbol:ComponentDefinition>
   <sbol:ComponentDefinition rdf:about="https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LacI/1">
     <sbol:persistentIdentity rdf:resource="https://synbiohub.programmingbiology.org/public/Eco1C1G1T1/LacI"/>
