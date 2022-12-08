@@ -8,10 +8,12 @@ on:
   push:
     branches:
       - master
+      - dev
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - master
+      - dev
 
 jobs:
   build_and_deploy_job:
@@ -34,6 +36,7 @@ jobs:
           app_location: "/" # App source code path
           api_location: "" # Api source code path - optional
           output_location: "dist" # Built app content directory - optional
+          production_branch: "master" # Branch that puts code on production environment 
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
