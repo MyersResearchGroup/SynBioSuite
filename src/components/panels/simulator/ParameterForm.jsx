@@ -24,37 +24,37 @@ export const parameterMap = {
     },
     runs: {
         label: "Number of Runs",
-        validation: nonNegativeInteger,
+        validation: positiveInteger,
         default: 1,
     },
     initialTime: {
         label: "Initial Time",
-        validation: nonNegativeInteger,
+        validation: nonNegativeNumber,
         default: 0,
     },
     stopTime: {
         label: "Stop Time",
-        validation: nonNegativeInteger,
+        validation: nonNegativeNumber,
         default: 100,
     },
     outputTime: {
         label: "Output Time",
-        validation: nonNegativeInteger,
+        validation: nonNegativeNumber,
         default: 0,
     },
     printInterval: {
         label: "Print Interval",
-        validation: nonNegativeInteger,
-        default: 10,
+        validation: positiveNumber,
+        default: 1,
     },
     minTimeStep: {
         label: "Minimum Time Step",
-        validation: nonNegativeInteger,
+        validation: nonNegativeNumber,
         default: 0,
     },
     maxTimeStep: {
         label: "Maximum Time Step",
-        validation: nonNegativeInteger,
+        validation: nonNegativeNumber,
         default: 100000,
     },
     seed: {
@@ -118,7 +118,7 @@ export default function ParameterForm({ onValidation }) {
             </Group>
             <Space h="lg" />
             <Group grow sx={groupStyle}>
-                <NumberInput required label={parameterMap.minTimeStep.label} placeholder="" {...form.getInputProps('minTimeStep')} />
+                <NumberInput required step={0.01} precision={2} label={parameterMap.minTimeStep.label} placeholder="" {...form.getInputProps('minTimeStep')} />
                 <NumberInput required label={parameterMap.maxTimeStep.label} placeholder="" {...form.getInputProps('maxTimeStep')} />
             </Group>
             <Space h="lg" />
@@ -129,7 +129,7 @@ export default function ParameterForm({ onValidation }) {
             <Space h="lg" /> */}
             <Group grow mb={40} sx={groupStyle}>
                 <NumberInput required label={parameterMap.runs.label} placeholder="" {...form.getInputProps('runs')} />
-                <NumberInput required label={parameterMap.printInterval.label} placeholder="" {...form.getInputProps('printInterval')} />
+                <NumberInput required step={0.01} precision={2} label={parameterMap.printInterval.label} placeholder="" {...form.getInputProps('printInterval')} />
                 <NumberInput label={parameterMap.seed.label} placeholder="Leave blank for random" {...form.getInputProps('seed')} />
             </Group>
         </form>
@@ -142,4 +142,16 @@ const groupStyle = theme => ({
 
 function nonNegativeInteger(value) {
     return !(Number.isInteger(value) && value >= 0) && "Must be a non-negative integer"
+}
+
+function nonNegativeNumber(value) {
+    return !(typeof value === "number" && value >= 0) && "Must be a non-negative number"
+}
+
+function positiveInteger(value) {
+    return !(Number.isInteger(value) && value > 0) && "Must be a positive integer"
+}
+
+function positiveNumber(value) {
+    return !(typeof value === "number" && value > 0) && "Must be a positive number"
 }
