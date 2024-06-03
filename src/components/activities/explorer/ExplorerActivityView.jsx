@@ -24,7 +24,7 @@ export default function ExplorerActivityView({ }) {
 
     return workingDirectory ?
         <>
-            <ExplorerList />
+            <ExplorerList currentDirectory = {workingDirectory.name} />
             <Center mt={20}>
                 <FolderSelect onSelect={handleDirectorySelection}>
                     Switch Folder
