@@ -66,19 +66,21 @@ export default function AnalysisWizard() {
     const formValues = usePanelProperty(panelId, "formValues")
     const [formValidated, setFormValidated] = useState()
 
+    
     // determine if we can move to next step or not
     let showNextButton = false
     switch (activeStep) {
         case 0: showNextButton = !!componentId
-            break
+        break
         case 1: showNextButton =
-            (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
-            (parameterSource == TabValues.PARAMETERS && formValidated) ||
-            parameterSource == TabValues.INPUT
-            break
+        (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
+        (parameterSource == TabValues.PARAMETERS && formValidated) ||
+        parameterSource == TabValues.INPUT
+        break
     }
-
+    
     // submission & response tracking
+    const [viewResults, setViewResults] = useState("") // used to display 'View Results' button once analysis is done
     const [results, setResults] = usePanelProperty(panelId, 'results', false)
     const [orchestrationUris, setOrchestrationUris] = usePanelProperty(panelId, 'orchestrationUris', false)
 
@@ -102,6 +104,7 @@ export default function AnalysisWizard() {
         // success case
         if (pollResult.runtimeStatus == RuntimeStatus.COMPLETED) {
             setResults(pollResult.output)
+            setViewResults("View Results")
             console.debug(`${panelTitle}: Analysis complete.`)
             showNotification({
                 message: `${panelTitle} has finished running.`,
@@ -268,7 +271,14 @@ export default function AnalysisWizard() {
                                 onClick={handleAnalysisRun}
                             >
                                 Run Analysis
-                            </Button>}
+                            </Button>}  
+                        {viewResults && <Button
+                            gradient={{ from: "green", to: "green" }}
+                            variant="gradient"
+                            radius="xl"
+                        
+                        >   {viewResults}
+                        </Button>}                  
                     </>}
             </Group>
         </Container>
