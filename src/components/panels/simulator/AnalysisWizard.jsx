@@ -28,7 +28,7 @@ export const TabValues = {
 }
 
 
-export default function AnalysisWizard() {
+export default function AnalysisWizard({handleViewResult, isResults}) {
 
     const panelId = useContext(PanelContext)
 
@@ -80,7 +80,6 @@ export default function AnalysisWizard() {
     }
     
     // submission & response tracking
-    const [viewResults, setViewResults] = useState("") // used to display 'View Results' button once analysis is done
     const [results, setResults] = usePanelProperty(panelId, 'results', false)
     const [orchestrationUris, setOrchestrationUris] = usePanelProperty(panelId, 'orchestrationUris', false)
 
@@ -104,7 +103,6 @@ export default function AnalysisWizard() {
         // success case
         if (pollResult.runtimeStatus == RuntimeStatus.COMPLETED) {
             setResults(pollResult.output)
-            setViewResults("View Results")
             console.debug(`${panelTitle}: Analysis complete.`)
             showNotification({
                 message: `${panelTitle} has finished running.`,
@@ -251,14 +249,14 @@ export default function AnalysisWizard() {
                         <Button
                             variant="default"
                             onClick={prevStep}
-                            sx={{ visibility: activeStep == 0 || activeStep == 3 ? 'hidden' : 'visible' }}
+                            sx={{ display: activeStep == 0 || activeStep == 3 ? 'none' : 'block' }}
                         >
                             Back
                         </Button>
                         {activeStep < 2 ?
                             <Button
                                 onClick={nextStep}
-                                sx={{ visibility: showNextButton ? 'visible' : 'hidden' }}
+                                sx={{ display: showNextButton ? 'block' : 'none' }}
                             >
                                 Next step
                             </Button> :
@@ -272,12 +270,12 @@ export default function AnalysisWizard() {
                             >
                                 Run Analysis
                             </Button>}  
-                        {viewResults && <Button
+                        {isResults && activeStep === 2 && <Button
                             gradient={{ from: "green", to: "green" }}
                             variant="gradient"
                             radius="xl"
-                        
-                        >   {viewResults}
+                            onClick={handleViewResult}
+                        >   View Results
                         </Button>}                  
                     </>}
             </Group>
