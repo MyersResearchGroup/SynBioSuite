@@ -29,7 +29,7 @@ export default function SimulatorPanel({ id }) {
     
     const [activeTab, setActiveTab] = useState(TabValues.SETUP);
 
-    function viewResultsTab(){
+    const viewResultsTab = () => {
         setActiveTab(TabValues.RESULTS)
     }
 
