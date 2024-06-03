@@ -5,7 +5,7 @@ import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 
 
-export default function ExplorerList() {
+export default function ExplorerList({currentDirectory}) {
 
     // grab file handles
     const files = useFiles()
@@ -18,7 +18,7 @@ export default function ExplorerList() {
 
     // generate DragObjects based on data
     const createListItems = (files, Icon) => files.map((file, i) =>
-        <ExplorerListItem
+        <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
@@ -27,6 +27,7 @@ export default function ExplorerList() {
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 30px)' }}>
+            <Title mt={10} order={6}>Current Folder: {currentDirectory}</Title>
             <Accordion
                 mt={10}
                 multiple
@@ -40,7 +41,7 @@ export default function ExplorerList() {
                         // grab files of current type
                         const filesOfType = files.filter(file => file.objectType == objectType.id)
 
-                        return (
+                        return (    
                             <Accordion.Item value={objectType.id} key={i}>
                                 <Accordion.Control>
                                     <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
