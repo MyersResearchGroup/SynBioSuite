@@ -1,6 +1,6 @@
 import { Button, Popover, Slider, Switch, Text } from '@mantine/core'
 import { useContext } from 'react'
-import { GoSettings } from 'react-icons/go'
+import { GoGear } from 'react-icons/go'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 
@@ -36,7 +36,7 @@ export default function ChartOptions() {
 
         <Popover position='bottom-end'>
             <Popover.Target>
-                <Button variant='outline' leftIcon={<GoSettings />} >Chart Options</Button>
+                <Button variant='outline' leftIcon={<GoGear />} >Chart Options</Button>
             </Popover.Target>
             <Popover.Dropdown>
                 <Switch
