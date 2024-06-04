@@ -67,7 +67,7 @@ const tabStyles = theme => {
     return {
         tabsList: {
             backgroundColor: dark ? theme.colors.dark[5] : theme.colors.gray[4],
-            minHeight: '100vh'
+            maxHeight: '100vh'
         },
         tabActive: {
 
