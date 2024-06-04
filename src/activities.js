@@ -1,5 +1,6 @@
 import ExplorerActivityView from "./components/activities/explorer/ExplorerActivityView"
-import { FileIcon, RemoteControlIcon } from "./icons"
+import BugReportView from "./components/activities/explorer/BugReportView"
+import { FileIcon, RemoteControlIcon, BugReport } from "./icons"
 
 export const Activities = {
     LocalFileExplorer: {
@@ -14,6 +15,13 @@ export const Activities = {
     //     component: ExplorerActivityView,
     //     icon: RemoteControlIcon
     // },
+    BugReport: {
+        id: "synbio.activity.bug-report",
+        title: "Report Bug",
+        component: BugReportView,
+        icon: BugReport,
+        mt:'auto'
+    },
 }
 
 export function getActivity(id) {
