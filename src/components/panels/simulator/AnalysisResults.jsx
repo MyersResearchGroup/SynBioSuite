@@ -1,5 +1,5 @@
 import React, { useContext, useMemo, useRef } from 'react'
-import { Button, Container, Group, ScrollArea, Space, useMantineTheme } from '@mantine/core'
+import { Button, Container, Group, ScrollArea, Space, Center, Stack, Title, useMantineTheme } from '@mantine/core'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useChartLegend } from './ChartLegend'
 import ChartOptions from './ChartOptions'
@@ -76,7 +76,7 @@ export default function AnalysisResults() {
                 />
             </Group>
             <ScrollArea style={{ height: `calc(100vh - 170px)` }}>
-                {results &&
+                {results && chartLegend.legend.props.series.length ?
                     <Container
                         pt={20}
                         sx={resultsContainerStyle(chartOptions.useWhiteBackground, chartOptions.width)}
@@ -101,6 +101,13 @@ export default function AnalysisResults() {
                         </>}
                         <Space h={20} />
                     </Container>
+                    :
+                    <Center pt={20}>
+                        <Stack>
+                            <Title>No Series Selected.</Title>
+                            <Title> Select at Least One!</Title>
+                        </Stack>
+                    </Center>
                 }
                 <Space h={60} />
             </ScrollArea>
