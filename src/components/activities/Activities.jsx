@@ -18,7 +18,7 @@ export default function Activities() {
                 key={activityId}
                 value={activityId}
             >
-                <Tooltip label={activityDef.title} position="right" withArrow>
+                <Tooltip label={activityDef.title} color='gray' position="right" withArrow>
                     <Box py={15} px={14}>
                         <SVGIcon
                             icon={activityDef.icon}
