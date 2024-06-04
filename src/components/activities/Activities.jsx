@@ -17,6 +17,7 @@ export default function Activities() {
             <Tabs.Tab
                 key={activityId}
                 value={activityId}
+                mt={activityDef.mt}
             >
                 <Tooltip label={activityDef.title} position="right" withArrow>
                     <Box py={15} px={14}>
@@ -52,20 +53,7 @@ export default function Activities() {
         >
             <Tabs.List>
                 {tabs}
-
-                <Tooltip label="Report Bug" position='right' withArrow>
-
-                    <Tabs.Tab value='report-bug' mt='auto'>
-                        <Box py={15} px={14}>
-                            <FaBug size={30}/>
-                        </Box>
-                    </Tabs.Tab>
-                </Tooltip>
             </Tabs.List>
-
-            <Tabs.Panel value='report-bug'>
-                hello
-            </Tabs.Panel>
             {tabPanels}
         </Tabs>
     )
