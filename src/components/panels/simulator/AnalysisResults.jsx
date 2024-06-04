@@ -103,11 +103,11 @@ export default function AnalysisResults() {
                     </Container>
                     :
                     <Center pt={20}>
-                    <Stack>
-                        <Title>No Series Selected.</Title>
-                        <Title> Select at Least One!</Title>
-                    </Stack>
-                </Center>
+                        <Stack>
+                            <Title>No Series Selected.</Title>
+                            <Title> Select at Least One!</Title>
+                        </Stack>
+                    </Center>
                 }
                 <Space h={60} />
             </ScrollArea>
