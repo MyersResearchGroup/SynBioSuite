@@ -17,6 +17,7 @@ export default function Activities() {
             <Tabs.Tab
                 key={activityId}
                 value={activityId}
+                mt={activityDef.mt}
             >
                 <Tooltip label={activityDef.title} color='gray' position="right" withArrow>
                     <Box py={15} px={14}>
