@@ -20,7 +20,7 @@ export const Activities = {
         title: "Report Bug",
         component: BugReportView,
         icon: BugReport,
-        mt:'auto'
+       
     },
 }
 
