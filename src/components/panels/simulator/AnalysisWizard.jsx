@@ -28,7 +28,7 @@ export const TabValues = {
 }
 
 
-export default function AnalysisWizard() {
+export default function AnalysisWizard({handleViewResult, isResults}) {
 
     const panelId = useContext(PanelContext)
 
@@ -66,18 +66,19 @@ export default function AnalysisWizard() {
     const formValues = usePanelProperty(panelId, "formValues")
     const [formValidated, setFormValidated] = useState()
 
+    
     // determine if we can move to next step or not
     let showNextButton = false
     switch (activeStep) {
         case 0: showNextButton = !!componentId
-            break
+        break
         case 1: showNextButton =
-            (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
-            (parameterSource == TabValues.PARAMETERS && formValidated) ||
-            parameterSource == TabValues.INPUT
-            break
+        (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
+        (parameterSource == TabValues.PARAMETERS && formValidated) ||
+        parameterSource == TabValues.INPUT
+        break
     }
-
+    
     // submission & response tracking
     const [results, setResults] = usePanelProperty(panelId, 'results', false)
     const [orchestrationUris, setOrchestrationUris] = usePanelProperty(panelId, 'orchestrationUris', false)
@@ -248,14 +249,14 @@ export default function AnalysisWizard() {
                         <Button
                             variant="default"
                             onClick={prevStep}
-                            sx={{ visibility: activeStep == 0 || activeStep == 3 ? 'hidden' : 'visible' }}
+                            sx={{ display: activeStep == 0 || activeStep == 3 ? 'none' : 'block' }}
                         >
                             Back
                         </Button>
                         {activeStep < 2 ?
                             <Button
                                 onClick={nextStep}
-                                sx={{ visibility: showNextButton ? 'visible' : 'hidden' }}
+                                sx={{ display: showNextButton ? 'block' : 'none' }}
                             >
                                 Next step
                             </Button> :
@@ -268,7 +269,14 @@ export default function AnalysisWizard() {
                                 onClick={handleAnalysisRun}
                             >
                                 Run Analysis
-                            </Button>}
+                            </Button>}  
+                        {isResults && activeStep === 2 && <Button
+                            gradient={{ from: "green", to: "green" }}
+                            variant="gradient"
+                            radius="xl"
+                            onClick={handleViewResult}
+                        >   View Results
+                        </Button>}                  
                     </>}
             </Group>
         </Container>

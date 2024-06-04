@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux'
 import { panelsSelectors } from '../../../redux/hooks/panelsHooks'
 import { createSelector } from '@reduxjs/toolkit'
 import StatusBadge from './StatusBadge'
+import { useState } from 'react'
 
 
 export const PanelContext = createContext()
@@ -25,11 +26,17 @@ export default function SimulatorPanel({ id }) {
             results => results && Object.keys(results).length
         )
     )
+    
+    const [activeTab, setActiveTab] = useState(TabValues.SETUP);
+
+    const viewResultsTab = () => {
+        setActiveTab(TabValues.RESULTS)
+    }
 
     return (
         <PanelContext.Provider value={id}>
             <StatusBadge />
-            <Tabs defaultValue={TabValues.SETUP} styles={tabStyles}>
+            <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles}>
                 <Tabs.List>
                     <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
                     {resultLength && <Tabs.Tab value={TabValues.RESULTS}>
@@ -39,7 +46,7 @@ export default function SimulatorPanel({ id }) {
                 </Tabs.List>
                 <Tabs.Panel value={TabValues.SETUP}>
                     <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
-                        <AnalysisWizard />
+                        <AnalysisWizard handleViewResult = {viewResultsTab} isResults = {resultLength} />
                         <Space h={20} />
                     </ScrollArea>
                 </Tabs.Panel>
