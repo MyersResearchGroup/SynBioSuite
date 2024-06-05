@@ -8,15 +8,14 @@ export default function BugReportView() {
                 </Text>
 
                 <Center>
-
-                <Button
-                    component="a"
-                    align="center"
-                    href="https://github.com/MyersResearchGroup/SynBioSuite/issues"
-                    target="_blank"
-                >
-                    GitHub Issues
-                </Button>
+                    <Button
+                        component="a"
+                        align="center"
+                        href="https://github.com/MyersResearchGroup/SynBioSuite/issues"
+                        target="_blank"
+                    >
+                        GitHub Issues
+                    </Button>
                 </Center>
             </Stack>
         </>
