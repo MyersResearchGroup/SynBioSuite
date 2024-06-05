@@ -26,7 +26,7 @@ export default function ExplorerList({currentDirectory}) {
     )
 
     return (
-        <ScrollArea style={{ height: 'calc(100vh - 30px)' }}>
+        <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
             <Title mt={10} order={6}>Current Folder: {currentDirectory}</Title>
             <Accordion
                 mt={10}

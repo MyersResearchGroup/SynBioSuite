@@ -6,6 +6,7 @@ import FileIcon from './file.svg?component'
 import CanvasIcon from './canvas.svg?component'
 import SimulationIcon from './simulation.svg?component'
 import RemoteControlIcon from './remote-control.svg?component'
+import BugReport from './bug-report.svg?component'
 
 
 export {
@@ -13,7 +14,8 @@ export {
     FileIcon,
     CanvasIcon,
     SimulationIcon,
-    RemoteControlIcon
+    RemoteControlIcon,
+    BugReport
 }
 
 
