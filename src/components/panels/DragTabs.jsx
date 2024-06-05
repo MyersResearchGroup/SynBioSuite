@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react"
-import { Tabs } from '@mantine/core'
+import { Text, Tabs } from '@mantine/core'
+import { useSelector } from 'react-redux'
+import Expire from "../Expire"
 
 
 export default function DragTabs({
@@ -114,6 +116,9 @@ export default function DragTabs({
         !tabIds.length && setDragState(null)
     }, [tabIds.length])
 
+    // handle rendering of save indicator/text
+    const isSaving = useSelector(state => state.saveIndicator.isSaving)
+    
     return (
         !!tabIds.length &&
             <div
@@ -131,6 +136,12 @@ export default function DragTabs({
                                 ref={el => tabRefs.current[i] = el}
                             />
                         )}
+                        {isSaving ? 
+                        <Text ml ={100} sx={{display: "inline"}}>Saving...</Text> 
+                        : 
+                        <Expire delay={3000}>
+                            <Text ml ={100} sx={{display: "inline"}}>Saved</Text>
+                        </Expire>}
                     </Tabs.List>
                     {tabIds.map(id =>
                         <ContentComponent id={id} key={id} />
