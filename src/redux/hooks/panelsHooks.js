@@ -6,7 +6,7 @@ import { createSelector } from "@reduxjs/toolkit"
 import { useEffect, useMemo, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { getPanelType, getPanelTypeForObject } from "../../panels"
-import { setIsSaving } from "../slices/saveSlice"
+import { setIsSaving } from "../slices/saveIndicatorSlice"
 const { actions, selectors } = panelsSlice
 
 
@@ -104,7 +104,7 @@ export function useActivePanel() {
 
 export function useAutoSavePanel(id, debounceTime) {
     const panel = usePanel(id)
-    useSelector(state => state.save.isSaving)
+    useSelector(state => state.saveIndicator)
     const dispatch = useDispatch()
 
     // memoize serialization of panel
