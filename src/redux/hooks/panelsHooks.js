@@ -6,7 +6,7 @@ import { createSelector } from "@reduxjs/toolkit"
 import { useEffect, useMemo, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { getPanelType, getPanelTypeForObject } from "../../panels"
-
+import { setIsSaving } from "../slices/saveSlice"
 const { actions, selectors } = panelsSlice
 
 
@@ -104,6 +104,8 @@ export function useActivePanel() {
 
 export function useAutoSavePanel(id, debounceTime) {
     const panel = usePanel(id)
+    useSelector(state => state.save.isSaving)
+    const dispatch = useDispatch()
 
     // memoize serialization of panel
     const serialized = useMemo(() => serializePanel(id), [panel])
@@ -118,7 +120,13 @@ export function useAutoSavePanel(id, debounceTime) {
 
     // save when debounced serialized content changes
     useEffect(() => {
-        commands.FileSave.execute(id)
+        const save = async() =>{
+            dispatch(setIsSaving(true))
+            await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. Maybe artificially add delay?
+            dispatch(setIsSaving(false))
+        }
+        save()
+        
     }, [debouncedPanelContent])
 }
 
