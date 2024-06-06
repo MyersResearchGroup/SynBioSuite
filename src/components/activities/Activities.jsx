@@ -2,7 +2,7 @@ import { Box, Tabs, Title, Tooltip } from '@mantine/core'
 import { useActiveActivity, useActivities } from '../../redux/hooks/activityHooks'
 import { getActivity } from '../../activities'
 import { SVGIcon } from '../../icons'
-
+import { FaBug } from "react-icons/fa";
 
 export default function Activities() {
 
@@ -17,8 +17,9 @@ export default function Activities() {
             <Tabs.Tab
                 key={activityId}
                 value={activityId}
+                mt={activityDef.mt}
             >
-                <Tooltip label={activityDef.title} position="right" withArrow>
+                <Tooltip label={activityDef.title} color='gray' position="right" withArrow>
                     <Box py={15} px={14}>
                         <SVGIcon
                             icon={activityDef.icon}
@@ -66,7 +67,7 @@ const tabStyles = theme => {
     return {
         tabsList: {
             backgroundColor: dark ? theme.colors.dark[5] : theme.colors.gray[4],
-            minHeight: '100vh'
+            maxHeight: '100vh'
         },
         tabActive: {
 
