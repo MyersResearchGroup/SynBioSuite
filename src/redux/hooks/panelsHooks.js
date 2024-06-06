@@ -122,7 +122,7 @@ export function useAutoSavePanel(id, debounceTime) {
     useEffect(() => {
         const save = async() =>{
             dispatch(setIsSaving(true))
-            await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. Maybe artificially add delay?
+            await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. 
             dispatch(setIsSaving(false))
         }
         save()
