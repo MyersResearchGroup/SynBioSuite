@@ -1,4 +1,4 @@
-import { Text } from "@mantine/core";
+import { CgCheckO } from "react-icons/cg";
 import Expire from "./Expire";
 import { useSelector } from "react-redux";
 export default function SaveIndicatorDisplay() {
@@ -6,14 +6,11 @@ export default function SaveIndicatorDisplay() {
     return (
         <>
             {isSaving ? 
-                <Text ml={100} sx={{ display: "inline" }}>
-                    Saving...
-                </Text>
+                "Saving..."
                 : 
                 <Expire delay={3000}>
-                    <Text ml={100} sx={{ display: "inline" }}>
-                        Saved
-                    </Text>
+                    Saved
+                    <CgCheckO style={{marginLeft: "5px"}} color='green'/>
                 </Expire>
             }
         </>
