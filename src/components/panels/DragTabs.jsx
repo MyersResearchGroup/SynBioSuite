@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Text, Tabs } from '@mantine/core'
 import { useSelector } from 'react-redux'
-import SaveIndicatorDisplay from "../saveIndicatorDisplay"
 
 
 export default function DragTabs({
@@ -134,7 +133,6 @@ export default function DragTabs({
                                 ref={el => tabRefs.current[i] = el}
                             />
                         )}
-                        <SaveIndicatorDisplay/>
                     </Tabs.List>
                     {tabIds.map(id =>
                         <ContentComponent id={id} key={id} />
