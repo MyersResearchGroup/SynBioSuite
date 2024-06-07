@@ -9,7 +9,7 @@ export default function SaveIndicatorDisplay() {
         <>
             {isSaving ? 
                 <span>
-                    Saving
+                    Saving...
                     <MdDataSaverOff color="#FFFF00" style={{marginLeft: "5px"}}/>
                 </span>
                 : 
