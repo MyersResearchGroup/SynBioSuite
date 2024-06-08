@@ -15,8 +15,8 @@ export default function Panels() {
     // first time visitor
     const [firstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
    
-    return ( // width: 0 prevents content from overflowing when too many tabs are open
-        <div style={{flexGrow: 1, width: 0}}> 
+    return ( // overflow: hidden to prevent content from moving offscreen when too many tabs are open
+        <div style={{flexGrow: 1, overflow: "hidden"}}> 
             {panelIds.length ?
                 <DragTabs
                     tabComponent={Panel.Tab}
