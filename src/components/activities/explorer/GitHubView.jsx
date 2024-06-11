@@ -6,44 +6,32 @@ export default function GitHubView(){
         
         <Stack>
             <Text align="center" size={15} mt={20}>
-                GitHub links to our various Projects!
+                SynBioSuite GitHub and our Research Group's Website
             </Text>
 
-            <Center>
+            <Center style={{justifyContent: "space-evenly"}}>
                 <Button
                     component="a"
                     align="center"
                     href="https://github.com/MyersResearchGroup/SynBioSuite"
                     target="_blank"
-                    style={{width: "115.5px"}}
-
+                    size = 'xs'
+                    
                 >
                     SynBioSuite
                 </Button>
+                <Button
+                    component="a"
+                    align="center"
+                    href="https://geneticlogiclab.org/"
+                    target="_blank"
+                    size = 'xs'
+                >
+                    Genetic Logic Lab
+                </Button>
                 
             </Center>
-            <Center>
-                <Button
-                    component="a"
-                    align="center"
-                    href="https://github.com/SynBioDex/SBOLCanvas"
-                    target="_blank"
-                    style={{width: "115.5px"}}
-                >
-                    SBOLCanvas
-                </Button>
-            </Center>
-            <Center>
-                <Button
-                    component="a"
-                    align="center"
-                    href="https://github.com/SynBioHub/synbiohub"
-                    target="_blank"
-                    style={{width: "115.5px"}}
-                >
-                    SynBioHub
-                </Button>
-            </Center>
+            
         </Stack>
     </>
     )

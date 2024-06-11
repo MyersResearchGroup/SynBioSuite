@@ -23,7 +23,7 @@ export const Activities = {
     // Any activities below will be pushed to the bottom of the toolbar
     GitHub: {
         id: "synbio.activity.GitHub",
-        title: "GitHub ",
+        title: "GitHub and Website ",
         component: GitHubView,
         icon: RiGithubFill,
         mt: 'auto'
