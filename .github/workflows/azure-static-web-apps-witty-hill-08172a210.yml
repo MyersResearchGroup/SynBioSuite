@@ -1,5 +1,9 @@
 name: Azure Static Web Apps CI/CD
 
+env:
+  VITE_IBIOSIM_API: https://ibiosim-api.greensky-6cc75ee4.westus.azurecontainerapps.io
+  VITE_SBOL_CANVAS_URL: https://sbolcanvas.org
+  
 on:
   push:
     branches:
