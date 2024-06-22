@@ -1,8 +1,9 @@
 import { useCreateFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import CreateNewButton from "./CreateNewButton"
-import { Accordion, ScrollArea, Title } from '@mantine/core'
+import { Accordion, ScrollArea, Title, Text, Flex } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
+import SaveIndicatorDisplay from '../../saveIndicatorDisplay'
 
 
 export default function ExplorerList({currentDirectory}) {
@@ -27,7 +28,10 @@ export default function ExplorerList({currentDirectory}) {
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
-            <Title mt={10} order={6}>Current Folder: {currentDirectory}</Title>
+            <Title mt={10} order={6}>
+                Current Folder: {currentDirectory}            
+            </Title>
+
             <Accordion
                 mt={10}
                 multiple

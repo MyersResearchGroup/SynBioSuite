@@ -1,8 +1,8 @@
-import { Box, Tabs, Title, Tooltip } from '@mantine/core'
+import { Box, Tabs, Title, Tooltip, Text } from '@mantine/core'
 import { useActiveActivity, useActivities } from '../../redux/hooks/activityHooks'
 import { getActivity } from '../../activities'
 import { SVGIcon } from '../../icons'
-import { FaBug } from "react-icons/fa";
+import SaveIndicatorDisplay from '../saveIndicatorDisplay'
 
 export default function Activities() {
 
@@ -36,7 +36,10 @@ export default function Activities() {
         const activityDef = getActivity(activityId)
         return (
             <Tabs.Panel value={activityId} key={activityId}>
-                <Title order={6}>{activityDef.title}</Title>
+                <Title style={{display:"inline"}} order={6}>{activityDef.title}</Title>
+                <Text style={{display:"inline"}} size={'xs'} ml={10}>
+                    <SaveIndicatorDisplay/>
+                </Text>
                 <activityDef.component {...activityState} />
             </Tabs.Panel>
         )
