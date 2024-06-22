@@ -11,12 +11,12 @@ export default function Panels() {
     const panelIds = usePanelIds()
     const [activePanel, setActivePanel] = useActivePanel()
     const reorderPanels = useReorderPanels()
-
+    
     // first time visitor
     const [firstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
-
-    return (
-        <div style={{ flexGrow: 1 }}>
+   
+    return ( // overflow: hidden to prevent content from moving offscreen when too many tabs are open
+        <div style={{flexGrow: 1, overflow: "hidden"}}> 
             {panelIds.length ?
                 <DragTabs
                     tabComponent={Panel.Tab}
