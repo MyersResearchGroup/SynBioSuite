@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react"
-import { Tabs } from '@mantine/core'
+import { Text, Tabs } from '@mantine/core'
+import { useSelector } from 'react-redux'
 
 
 export default function DragTabs({
@@ -114,6 +115,7 @@ export default function DragTabs({
         !tabIds.length && setDragState(null)
     }, [tabIds.length])
 
+    
     return (
         !!tabIds.length &&
             <div
