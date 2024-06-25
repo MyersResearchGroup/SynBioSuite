@@ -4,6 +4,7 @@ import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 import ReactTimeAgo from 'react-time-ago'
 import { RuntimeStatus } from '../../../runtimeStatus'
+import { useSelector } from 'react-redux'
 
 import { BsDisplay, BsQuestion } from "react-icons/bs"
 import { IoEllipsisHorizontalSharp, IoCheckmarkSharp } from "react-icons/io5"
@@ -18,6 +19,8 @@ export default function SimulationTimeline() {
     const panelId = useContext(PanelContext)
     const status = usePanelProperty(panelId, "runtimeStatus")
     const requestedAt = usePanelProperty(panelId, "lastRequestedAt")
+    
+    const failureMessage = useSelector(state => state.failureMessage.message)
 
     const running = RuntimeStatus.running(status)
     const successful = RuntimeStatus.successful(status)
@@ -73,7 +76,9 @@ export default function SimulationTimeline() {
                             <Accordion styles={accordionStyles} transitionDuration={0}>
                                 <Accordion.Item value="customization">
                                     <Accordion.Control><b style={{fontWeight: 500}}>Failed</b></Accordion.Control>
-                                    <Accordion.Panel style={{paddingLeft: "0px"}}></Accordion.Panel>
+                                    <Accordion.Panel style={{paddingLeft: "0px"}}>
+                                        {failureMessage}
+                                    </Accordion.Panel>
                                 </Accordion.Item>
                             </Accordion>} 
 
