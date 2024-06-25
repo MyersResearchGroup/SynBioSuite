@@ -97,7 +97,7 @@ const statusToNodesMap = {
 
 const pushTitleDownStyles = theme => ({
     '& .mantine-Timeline-itemTitle': {
-        transform: 'translateY(-13px)', 
+        transform: 'translateY(3px)', 
     
     }
 })
@@ -105,7 +105,10 @@ const pushTitleDownStyles = theme => ({
 const accordionStyles = theme => ({
     control: {
         paddingLeft: '0px',
-        borderRadius: 4
+        borderRadius: 4,
+    },
+    item: {
+        transform: 'translateY(-17px)',
     },
     panel: {
         padding: '0px'
