@@ -1,11 +1,11 @@
-import { Container, Text, Timeline, Title } from '@mantine/core'
+import { Accordion, Container, Text, Timeline, Title } from '@mantine/core'
 import React, { useContext } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 import ReactTimeAgo from 'react-time-ago'
 import { RuntimeStatus } from '../../../runtimeStatus'
 
-import { BsQuestion } from "react-icons/bs"
+import { BsDisplay, BsQuestion } from "react-icons/bs"
 import { IoEllipsisHorizontalSharp, IoCheckmarkSharp } from "react-icons/io5"
 import { IoMdClose } from "react-icons/io"
 import { TiInputChecked } from "react-icons/ti"
@@ -69,8 +69,16 @@ export default function SimulationTimeline() {
                         </Timeline.Item>}
 
                     {unsuccessful &&
-                        <Timeline.Item title="Failed" color="red" bullet={<IoMdClose />} sx={pushTitleDownStyles} key="fai">
-                        </Timeline.Item>}
+                        <Timeline.Item title= {
+                            <Accordion styles={accordionStyles} transitionDuration={0}>
+                                <Accordion.Item value="customization">
+                                    <Accordion.Control><b style={{fontWeight: 500}}>Failed</b></Accordion.Control>
+                                    <Accordion.Panel style={{paddingLeft: "0px"}}></Accordion.Panel>
+                                </Accordion.Item>
+                            </Accordion>} 
+
+                            color="red" bullet={<IoMdClose />} sx={pushTitleDownStyles} key="fai">
+                            </Timeline.Item>}
                 </Timeline>
             </Container> :
             <></>
@@ -89,10 +97,20 @@ const statusToNodesMap = {
 
 const pushTitleDownStyles = theme => ({
     '& .mantine-Timeline-itemTitle': {
-        transform: 'translateY(3px)',
+        transform: 'translateY(-13px)', 
+    
     }
 })
 
+const accordionStyles = theme => ({
+    control: {
+        paddingLeft: '0px',
+        borderRadius: 4
+    },
+    panel: {
+        padding: '0px'
+    }
+})
 const lastRunTitleStyle = theme => ({
     marginBottom: 10,
     color: theme.other.inactiveColor

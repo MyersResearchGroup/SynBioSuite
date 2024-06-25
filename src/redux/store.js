@@ -14,9 +14,9 @@ export default configureStore({
 
     // Uncomment this out to get rid of the annoying "A non-serializable value" warnings in the devtools.
     
-    // middleware: (getDefaultMiddleware) => getDefaultMiddleware({
-    //     serializableCheck: false
-    // })
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({
+        serializableCheck: false
+    })
 })
 
 export { panelsSlice, workingDirectorySlice, activitySlice, saveIndicatorReducer }
