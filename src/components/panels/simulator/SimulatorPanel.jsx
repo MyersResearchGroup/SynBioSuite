@@ -36,7 +36,7 @@ export default function SimulatorPanel({ id }) {
     return (
         <PanelContext.Provider value={id}>
             <StatusBadge />
-            <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles}>
+            <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted = {false}>
                 <Tabs.List>
                     <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
                     {resultLength && <Tabs.Tab value={TabValues.RESULTS}>
