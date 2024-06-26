@@ -104,7 +104,6 @@ export function useActivePanel() {
 
 export function useAutoSavePanel(id, debounceTime) {
     const panel = usePanel(id)
-    useSelector(state => state.saveIndicator)
     const dispatch = useDispatch()
 
     // memoize serialization of panel

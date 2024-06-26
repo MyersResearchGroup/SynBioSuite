@@ -2,13 +2,14 @@ import { Tabs, Center } from '@mantine/core'
 import { createContext } from 'react'
 import PanelSaver from '../PanelSaver'
 import CanvasFrame from './CanvasFrame'
+import { useSelector } from 'react-redux'
 
 export const PanelContext = createContext()
 
-export default function SBOLEditorPanel({ id }) {
-
+export default function SBOLEditorPanel({id}) {
+    const activePanel = useSelector(state => state.panels.active)
     return (
-        <PanelContext.Provider value={id}>
+        <PanelContext.Provider value={activePanel}>
             {/* <Tabs styles={tabStyles} active={activeTab} onTabChange={setActiveTab}>
                 <Tabs.Tab label="Design" >
                     <DesignView />
@@ -27,7 +28,7 @@ export default function SBOLEditorPanel({ id }) {
                 </Tabs.Tab>
             </Tabs> */}
             <CanvasFrame />
-            <PanelSaver id={id} />
+            <PanelSaver id={activePanel} />
         </PanelContext.Provider>
     )
 }

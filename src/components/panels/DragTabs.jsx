@@ -123,7 +123,7 @@ export default function DragTabs({
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}>
-                <Tabs variant="outline" styles={tabsStyles} value={active} >
+                <Tabs variant="outline" styles={tabsStyles} value={active} keepMounted = {false} >
                     <Tabs.List>
                         {tabIds.map((id, i) =>
                             <TabComponent

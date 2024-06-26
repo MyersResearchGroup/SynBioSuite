@@ -14,8 +14,10 @@ export default configureStore({
         failureMessage: failureMessageReducer,
     },
 
-    // Uncomment this out to get rid of the annoying "A non-serializable value" warnings in the devtools.
-    
+    /*  
+        Middleware to get rid of the annoying "A non-serializable value" warnings in the devtools.
+        Comment it out to check the warnings but don't think it's important
+    */
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: false
     })
