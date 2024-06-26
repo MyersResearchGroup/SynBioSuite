@@ -75,8 +75,8 @@ export default function SimulationTimeline() {
                         <Timeline.Item title= {
                             <Accordion styles={accordionStyles} transitionDuration={0}>
                                 <Accordion.Item value="customization">
-                                    <Accordion.Control><b style={{fontWeight: 500}}>Failed</b></Accordion.Control>
-                                    <Accordion.Panel style={{paddingLeft: "0px"}}>
+                                    <Accordion.Control><b style = {textStyle}>Failed</b></Accordion.Control>
+                                    <Accordion.Panel>
                                         {failureMessage}
                                     </Accordion.Panel>
                                 </Accordion.Item>
@@ -113,12 +113,17 @@ const accordionStyles = theme => ({
         borderRadius: 4,
     },
     item: {
-        transform: 'translateY(-17px)',
+        transform: 'translateY(-17px) translateX(-8px)',
     },
     panel: {
         padding: '0px'
     }
 })
+
+const textStyle = {
+    fontWeight: 500,
+    marginLeft: "9px"
+}
 const lastRunTitleStyle = theme => ({
     marginBottom: 10,
     color: theme.other.inactiveColor
