@@ -146,7 +146,6 @@ export default function AnalysisWizard({handleViewResult, isResults}) {
         }
         catch (error) {
             cancelAnalysis(RuntimeStatus.FAILED)
-            console.log(error)
             dispatch(setfailureMessage(error.stack))
             console.error(`${panelTitle}: Error occurred running analysis:`, error)
             showNotification({
