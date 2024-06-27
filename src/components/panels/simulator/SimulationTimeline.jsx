@@ -80,8 +80,9 @@ export default function SimulationTimeline() {
                                         <Accordion.Panel>
                                             <CopyButton value={failureMessage} timeout={2000}>
                                             {({ copied, copy }) => (
-                                            <Tooltip label={copied ? 'Copied' : 'Copy'} withArrow position="right">
-                                                    <ActionIcon 
+                                            <Tooltip label={copied ? 'Copied' : 'Copy Message'} withArrow position="right">
+                                                    <ActionIcon
+                                                    mb = {5}  
                                                     style={!copied ? actionIconOpacity : null} 
                                                     variant='outline' color={copied ? 'teal' : 'gray'} 
                                                     onClick={copy}>
