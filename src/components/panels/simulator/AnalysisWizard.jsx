@@ -19,7 +19,8 @@ import { useTimeout } from '@mantine/hooks'
 import { RuntimeStatus } from '../../../runtimeStatus'
 import SimulationTimeline from './SimulationTimeline'
 import { CgCheckO } from "react-icons/cg"
-
+import { useDispatch } from 'react-redux'
+import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
 
 export const TabValues = {
     ENVIRONMENT: 'environment',
@@ -31,6 +32,7 @@ export const TabValues = {
 export default function AnalysisWizard({handleViewResult, isResults}) {
 
     const panelId = useContext(PanelContext)
+    const dispatch = useDispatch()
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
@@ -114,6 +116,7 @@ export default function AnalysisWizard({handleViewResult, isResults}) {
         // failing case
         console.debug(`${panelTitle}: Analysis failed. Logging failed poll.`)
         console.debug(pollResult)
+        dispatch(setfailureMessage(pollResult.output))
         showNotification({
             message: `${panelTitle} failed.`,
             color: "red"
@@ -143,6 +146,7 @@ export default function AnalysisWizard({handleViewResult, isResults}) {
         }
         catch (error) {
             cancelAnalysis(RuntimeStatus.FAILED)
+            dispatch(setfailureMessage(error.stack))
             console.error(`${panelTitle}: Error occurred running analysis:`, error)
             showNotification({
                 message: `Encountered an error while running analysis for ${panelTitle}.`,

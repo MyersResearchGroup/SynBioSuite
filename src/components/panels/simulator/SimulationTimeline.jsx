@@ -1,11 +1,13 @@
-import { Container, Text, Timeline, Title } from '@mantine/core'
+import { Accordion, Container, Text, Timeline, CopyButton, ActionIcon, Tooltip} from '@mantine/core'
 import React, { useContext } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './SimulatorPanel'
 import ReactTimeAgo from 'react-time-ago'
 import { RuntimeStatus } from '../../../runtimeStatus'
+import { useSelector } from 'react-redux'
 
-import { BsQuestion } from "react-icons/bs"
+import { FaRegClipboard, FaClipboardCheck } from "react-icons/fa";
+import { BsDisplay, BsQuestion } from "react-icons/bs"
 import { IoEllipsisHorizontalSharp, IoCheckmarkSharp } from "react-icons/io5"
 import { IoMdClose } from "react-icons/io"
 import { TiInputChecked } from "react-icons/ti"
@@ -18,6 +20,8 @@ export default function SimulationTimeline() {
     const panelId = useContext(PanelContext)
     const status = usePanelProperty(panelId, "runtimeStatus")
     const requestedAt = usePanelProperty(panelId, "lastRequestedAt")
+    
+    const failureMessage = useSelector(state => state.failureMessage.message)
 
     const running = RuntimeStatus.running(status)
     const successful = RuntimeStatus.successful(status)
@@ -69,8 +73,32 @@ export default function SimulationTimeline() {
                         </Timeline.Item>}
 
                     {unsuccessful &&
-                        <Timeline.Item title="Failed" color="red" bullet={<IoMdClose />} sx={pushTitleDownStyles} key="fai">
-                        </Timeline.Item>}
+                        <Timeline.Item title= {
+                            <Accordion styles={accordionStyles} transitionDuration={0}>
+                                <Accordion.Item value="customization">
+                                    <Accordion.Control><b style = {textStyle}>Failed</b></Accordion.Control>
+                                        <Accordion.Panel>
+                                            <CopyButton value={failureMessage} timeout={2000}>
+                                            {({ copied, copy }) => (
+                                            <Tooltip label={copied ? 'Copied' : 'Copy Message'} withArrow position="right">
+                                                    <ActionIcon
+                                                    mb = {5}  
+                                                    style={!copied ? actionIconOpacity : null} 
+                                                    variant='outline' color={copied ? 'teal' : 'gray'} 
+                                                    onClick={copy}>
+                                                        {copied ? <FaClipboardCheck size="1rem" /> : <FaRegClipboard size="1rem" />}
+                                                    </ActionIcon>
+                                            </Tooltip>
+                                            )}
+                                            </CopyButton>
+                                            {failureMessage}
+                                        </Accordion.Panel>
+                                </Accordion.Item>
+                            </Accordion>} 
+
+                            color="red" bullet={<IoMdClose />} sx={pushTitleDownStyles} key="fai">
+                        </Timeline.Item>
+                    }        
                 </Timeline>
             </Container> :
             <></>
@@ -89,10 +117,32 @@ const statusToNodesMap = {
 
 const pushTitleDownStyles = theme => ({
     '& .mantine-Timeline-itemTitle': {
-        transform: 'translateY(3px)',
+        transform: 'translateY(3px)', 
+    
     }
 })
 
+const accordionStyles = theme => ({
+    control: {
+        paddingLeft: '0px',
+        borderRadius: 4,
+    },
+    item: {
+        transform: 'translateY(-17px) translateX(-8px)',
+    },
+    panel: {
+        paddingTop: '0px'
+    }
+})
+
+const actionIconOpacity = {
+    borderColor: "rgba(255, 255, 255, .3)" 
+}
+
+const textStyle = {
+    fontWeight: 500,
+    marginLeft: "9px"
+}
 const lastRunTitleStyle = theme => ({
     marginBottom: 10,
     color: theme.other.inactiveColor
