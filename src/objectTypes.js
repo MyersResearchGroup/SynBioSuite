@@ -1,6 +1,8 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
+import { GrTestDesktop } from "react-icons/gr";
+
 
 export const ObjectTypes = {
     SBOL: {
@@ -38,6 +40,15 @@ export const ObjectTypes = {
         icon: IoAnalyticsSharp,
         createable: true,
         extension: '.analysis',
+    },
+    XDC: {
+        id: "synbio.object-type.experimental-data",
+        title: "Experimental Data",
+        listTitle: "Experimental Data",
+        fileNameMatch: /\.experimental/,
+        icon: GrTestDesktop,
+        createable: true,
+        extension: '.experimental'
     }
 }
 
