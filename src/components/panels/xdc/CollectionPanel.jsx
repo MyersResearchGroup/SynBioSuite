@@ -1,13 +1,12 @@
 import { Badge, ScrollArea, Space, Tabs } from '@mantine/core'
-//import AnalysisWizard from './AnalysisWizard'
+//
 import { createContext } from 'react'
-//import AnalysisResults from './AnalysisResults'
 import PanelSaver from "../PanelSaver"
 import { useSelector } from 'react-redux'
 import { panelsSelectors } from '../../../redux/hooks/panelsHooks'
 import { createSelector } from '@reduxjs/toolkit'
-//import StatusBadge from './StatusBadge'
 import { useState } from 'react'
+import CollectionWizard from './CollectionWizard'
 
 
 export const PanelContext = createContext()
@@ -41,8 +40,8 @@ export default function CollectionPanel({ id }) {
                 </Tabs.List>
 
                 <Tabs.Panel value={TabValues.SETUP}>
+                    <CollectionWizard />
                     <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
-                        <h1>Import</h1>
                         <Space h={20} />
                     </ScrollArea>
                 </Tabs.Panel>
