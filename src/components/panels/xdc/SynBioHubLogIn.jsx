@@ -33,6 +33,7 @@ export default function LoginForm({ onValidation }) {
 
     // set up state in global store and add default values
     const [formValues, setFormValues] = usePanelProperty(panelId, 'formValues', false)
+    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
 
     // set up form using Mantine hook
     const form = useForm({

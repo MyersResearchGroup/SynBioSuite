@@ -13,8 +13,6 @@ export const PanelContext = createContext()
 
 const TabValues = {
     SETUP: "import",
-    REVIEW: "results",
-    UPLOAD: "upload"
 }
 
 
@@ -22,21 +20,11 @@ export default function CollectionPanel({ id }) {
  
     const [activeTab, setActiveTab] = useState(TabValues.SETUP);
 
-    const reviewTab = () => {
-        setActiveTab(TabValues.RESULTS)
-    }
-
-    const uploadTab = () => {
-        setActiveTab(TabValues.UPLOAD)
-    }
-
    return (
        <PanelContext.Provider value={id}>
             <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted={false}>
                 <Tabs.List>
                     <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
-                    <Tabs.Tab value={TabValues.REVIEW}>Review</Tabs.Tab>
-                    <Tabs.Tab value={TabValues.UPLOAD}>Upload</Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value={TabValues.SETUP}>
@@ -45,8 +33,6 @@ export default function CollectionPanel({ id }) {
                         <Space h={20} />
                     </ScrollArea>
                 </Tabs.Panel>
-                <Tabs.Panel value={TabValues.REVIEW}>Second panel</Tabs.Panel>
-                <Tabs.Panel value={TabValues.UPLOAD}>Third panel</Tabs.Panel>
             </Tabs>
             <PanelSaver id={id} />
        </PanelContext.Provider>
