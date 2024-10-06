@@ -43,12 +43,21 @@ export const ObjectTypes = {
     },
     XDC: {
         id: "synbio.object-type.experimental-data",
-        title: "Experimental Data",
-        listTitle: "Experimental Data",
+        title: "Experimental Metadata",
+        listTitle: "Experimental Metadata",
         fileNameMatch: /\.experimental/,
         icon: GrTestDesktop,
-        createable: true,
+        createable: false,
         extension: '.experimental'
+    },
+    Output: {
+        id: "synbio.object-type.output-data",
+        title: "Plate Reader Output Data",
+        listTitle: "Plate Reader Output Data",
+        fileNameMatch: /\.output/,
+        icon: GrTestDesktop,
+        createable: false,
+        extension: '.output'
     }
 }
 
