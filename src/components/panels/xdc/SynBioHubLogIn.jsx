@@ -1,16 +1,17 @@
-import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, Box, useMantineTheme, TextInput } from '@mantine/core'
+import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, Box, useMantineTheme, TextInput, PasswordInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './CollectionPanel'
+import { validate } from 'uuid'
 
 
 export const parameterMap = {
     instance: {
         label: "SynBioHub Instance",
-        validation: nonEmpty,
-        default: ""
+        validation: isALink,
+        default: "https://"
     },
     username: {
         label: "SynBioHub Username",
@@ -64,7 +65,7 @@ export default function LoginForm({ onValidation }) {
         <form>
             <TextInput required label={parameterMap.instance.label} placeholder='Insert the URL of SynBioHub instance' {...form.getInputProps('instance')} />
             <TextInput required label={parameterMap.username.label} placeholder='Insert the URL of SynBioHub username' {...form.getInputProps('username')} />
-            <TextInput required label={parameterMap.password.label} placeholder='Insert the URL of SynBioHub password' {...form.getInputProps('password')} />
+            <PasswordInput required label={parameterMap.password.label} placeholder='Insert the URL of SynBioHub password' {...form.getInputProps('password')} />
         </form>
     )
 }
@@ -72,6 +73,10 @@ export default function LoginForm({ onValidation }) {
 const groupStyle = theme => ({
     alignItems: 'flex-start'
 })
+
+function isALink(value) {
+    return !(/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(value)) && "Must be a valid URL"
+}
 
 function nonEmpty(value) {
     return !(value != "") && "Required Field"
