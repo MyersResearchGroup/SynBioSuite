@@ -22,6 +22,8 @@ import { activitiesSlice } from '../../../redux/slices/activitySlice'
 import LoginForm from './SynBioHubLogIn'
 import { parameterMap } from './SynBioHubLogIn'
 import handleLogin from './XDC_API'
+import ExperimentalTable from './ExperimentalTable'
+import XDCTimeline from './XDCTimeline'
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -46,6 +48,13 @@ export default function CollectionWizard() {
     const experimentalFile = useFile(experimentalId)
     const handleExperimentalChange = name => {
         setExperimentalId(name)
+    }
+
+    // Step 2: select experimental file
+    const [XDdataID, setXDDataID] = usePanelProperty(panelId, 'XDdataID', false)
+    const xDdataFile = useFile(XDdataID)
+    const handleExperimentalDataChange = name => {
+        setXDDataID(name)
     }
 
     //Modify for second file
@@ -76,7 +85,8 @@ export default function CollectionWizard() {
     const [formValidated, setFormValidated] = useState()
 
     //XDC API states
-    const loginSuccess = usePanelProperty(panelId, "status", false, false);
+    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
+    setStatus(RuntimeStatus.COMPLETED)
 
     return (
         <Container style={stepperContainerStyle}>
@@ -94,6 +104,20 @@ export default function CollectionWizard() {
                 </Stepper.Step>
                 <Stepper.Step
                     allowStepSelect={activeStep > 1}
+                    label="Upload Plate Reader Output"
+                    description="Use a plate reader outpuut file"
+                    icon={<BiWorld />}
+                >
+                    <Space h='lg' />
+                    <Dropzone
+                        allowedTypes={[ObjectTypes.Output.id]}
+                        item={xDdataFile?.name}
+                        onItemChange={handleExperimentalDataChange}>
+                        Note: Change variables for files before continuing<br />Drag & drop a data file from the explorer
+                    </Dropzone>
+                </Stepper.Step>
+                <Stepper.Step
+                    allowStepSelect={activeStep > 2}
                     label="Log-In: SynBio Hub"
                     description="Choose your SynBio Hub Instance"
                     icon={<BiWorld />}
@@ -104,18 +128,16 @@ export default function CollectionWizard() {
                     </Group>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2}
-                    label="Upload Plate Reader Output"
-                    description="Use a _____ file"
+                    allowStepSelect={activeStep > 3}
+                    label="Upload Status"
+                    description="See your experiment uploaded"
                     icon={<BiWorld />}
                 >
                     <Space h='lg' />
-                    <Dropzone
-                        allowedTypes={[ObjectTypes.XDC.id]}
-                        item={experimentalFile?.name}
-                        onItemChange={handleExperimentalChange}>
-                        Note: Change variables for files before continuing<br />Drag & drop an experiment from the explorer
-                    </Dropzone>
+                    <Group grow style={{ alignItems: 'flex-start' }}>
+                        <ExperimentalTable />
+                        <XDCTimeline />
+                    </Group>
                 </Stepper.Step>
                 <Stepper.Completed>
                     <CenteredTitle height={150}>Uploading is in progress... </CenteredTitle>
@@ -131,22 +153,22 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {formValidated && activeStep == 1 && (
+                {formValidated && activeStep == 2 && (
                             <Button
-                                onClick={() => handleLogin(formValues.instance,formValues.username,formValues.password)}
+                                onClick={nextStep}//handleLogin(formValues.instance,formValues.username,formValues.password)}
                                 variant="gradient"
                                 gradient={{ from: "green", to: "green" }}
                             >
-                                Sign In
+                                Attempt Login
                             </Button>
                         )}
-                {activeStep < 5 ?
+                {activeStep < 5 && activeStep != 2?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
                     >
                         Next step
-                    </Button> :
+                    </Button> : activeStep != 2?
                     <Button
                         type="submit"
                         // gradient={{ from: "canvasBlue", to: "indigo" }}
@@ -156,9 +178,11 @@ export default function CollectionWizard() {
                         onClick={null}
                     >
                         Cancel
-                    </Button>}               
+                    </Button> :
+                    <></>
+                    }               
                 </>
-                }
+            }
             </Group>
         </Container>
     )

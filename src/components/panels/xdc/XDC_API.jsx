@@ -1,7 +1,13 @@
 import axios from 'axios';
+import { useDebouncedValue } from '@mantine/hooks'
+import { useContext, useEffect } from 'react'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { PanelContext } from './CollectionPanel'
 
 export default function handleLogin(instance, email, password) {
-  const attemptLogin = async () => {
+  const panelId = useContext(PanelContext)
+  const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
+  /*const attemptLogin = async () => {
     console.log("TRYING TO LOGIN");
     try {
       const response = await axios.post(`https://synbiohub.colorado.edu/login`, {
@@ -35,5 +41,6 @@ export default function handleLogin(instance, email, password) {
     }
   }
 
-  attemptLogin();
+  attemptLogin();*/
+  console.log("TRYING TO LOGIN");
 }
