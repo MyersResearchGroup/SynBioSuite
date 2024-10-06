@@ -24,6 +24,12 @@ import { parameterMap } from './SynBioHubLogIn'
 import handleLogin from './XDC_API'
 import ExperimentalTable from './ExperimentalTable'
 import XDCTimeline from './XDCTimeline'
+import { IoIosCloudUpload } from "react-icons/io";
+import { FaGear } from "react-icons/fa6";
+import { TbStatusChange } from "react-icons/tb";
+
+
+
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -94,7 +100,7 @@ export default function CollectionWizard() {
                 <Stepper.Step allowStepSelect={activeStep > 0 && !running}
                     label="Upload Files"
                     description="Upload experimental data"
-                    icon={<TbComponents />}>
+                    icon={<IoIosCloudUpload />}>
                     <Dropzone
                         allowedTypes={[ObjectTypes.XDC.id]}
                         item={experimentalFile?.name}
@@ -113,7 +119,7 @@ export default function CollectionWizard() {
                     allowStepSelect={activeStep > 2}
                     label="Log-In: SynBioHub"
                     description="Choose your SynBioHub Instance"
-                    icon={<BiWorld />}
+                    icon={<FaGear />}
                 >
                     <Space h='lg' />
                     <Group grow style={{ alignItems: 'flex-start' }}>
@@ -124,7 +130,7 @@ export default function CollectionWizard() {
                     allowStepSelect={activeStep > 3}
                     label="Upload Status"
                     description="See your experiment uploaded"
-                    icon={<BiWorld />}
+                    icon={<TbStatusChange />}
                 >
                     <Space h='lg' />
                     <Group grow style={{ alignItems: 'flex-start' }}>
@@ -133,7 +139,11 @@ export default function CollectionWizard() {
                     </Group>
                 </Stepper.Step>
                 <Stepper.Completed>
-                    <CenteredTitle height={150}>Uploading is in progress... </CenteredTitle>
+                    <CenteredTitle height={150}>The link to your experiment can be found at:
+                        <br/><a href="#">{formValues?.instance}/aUniqueValue</a>
+                    </CenteredTitle>
+                    <hr/>
+                    <Text size="xs" ta="center" fs="italic">* The metadata file has been updated to include the link. If you upload this file to another SynBioHub instance, the link in the file will be updated accordingly. The link above will remain functional and accessible on your SynBioHub instance.</Text>
                 </Stepper.Completed>
             </Stepper>
             <Group position="center" mt="xl">
@@ -155,13 +165,13 @@ export default function CollectionWizard() {
                                 Attempt Login
                             </Button>
                         )}
-                {activeStep < 5 && activeStep != 1 && (experimentalId) && (XDdataID)?
+                {activeStep < 3 && activeStep != 1 && (experimentalId) && (XDdataID)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
                     >
                         Next step
-                    </Button> : activeStep != 1 && (experimentalId) && (XDdataID)?
+                    </Button> : activeStep != 1 && activeStep < 3 && (experimentalId) && (XDdataID)?
                     <Button
                         type="submit"
                         // gradient={{ from: "canvasBlue", to: "indigo" }}

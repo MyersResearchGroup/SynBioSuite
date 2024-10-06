@@ -2,6 +2,9 @@ import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
 import { GrTestDesktop } from "react-icons/gr";
+import { MdAlignVerticalTop } from "react-icons/md";
+import { VscOutput } from "react-icons/vsc";
+
 
 
 export const ObjectTypes = {
@@ -46,7 +49,7 @@ export const ObjectTypes = {
         title: "Experimental Metadata",
         listTitle: "Experimental Metadata",
         fileNameMatch: /\.experimental/,
-        icon: GrTestDesktop,
+        icon: MdAlignVerticalTop,
         createable: false,
         extension: '.experimental'
     },
@@ -55,7 +58,7 @@ export const ObjectTypes = {
         title: "Plate Reader Output Data",
         listTitle: "Plate Reader Output Data",
         fileNameMatch: /\.output/,
-        icon: GrTestDesktop,
+        icon: VscOutput,
         createable: false,
         extension: '.output'
     }
