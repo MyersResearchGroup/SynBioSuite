@@ -19,6 +19,7 @@ export default function XDCTimeline() {
 
     const panelId = useContext(PanelContext)
     const status = usePanelProperty(panelId, "runtimeStatus")
+    const formValues = usePanelProperty(panelId, "formValues")
     
     const failureMessage = useSelector(state => state.failureMessage.message)
 
@@ -27,20 +28,20 @@ export default function XDCTimeline() {
     const unsuccessful = RuntimeStatus.unsuccessful(status)
 
     const timelineNodes = [
-        <Timeline.Item title="Analysis requested" bullet={<BsQuestion />} key="req">
-            <Text color="dimmed" size="sm">Your request has been sent to the iBioSim server.</Text>
+        <Timeline.Item title="Login Attempted" bullet={<BsQuestion />} key="req">
+            <Text color="dimmed" size="sm">Your request has been sent to<br /><Text fw={500}>{formValues.instance}.</Text></Text>
         </Timeline.Item>,
 
-        <Timeline.Item title="Accepted" bullet={<TiInputChecked />} key="acc">
-            <Text color="dimmed" size="sm">Your analysis has been accepted by the server.</Text>
+        <Timeline.Item title="Login Succesful" bullet={<TiInputChecked />} key="acc">
+            <Text color="dimmed" size="sm">Your credentials have been accepted<br />by the server.</Text>
         </Timeline.Item>,
 
-        <Timeline.Item title="Pending" bullet={<AiOutlineDoubleRight />} key="pen">
-            <Text color="dimmed" size="sm">Your analysis has been queued.</Text>
+        <Timeline.Item title="Processing" bullet={<AiOutlineDoubleRight />} key="pen">
+            <Text color="dimmed" size="sm">Your files are being processed.</Text>
         </Timeline.Item>,
 
-        <Timeline.Item title="Running" bullet={<BiRun />} key="run">
-            <Text color="dimmed" size="sm">Your analysis is running.</Text>
+        <Timeline.Item title="Uploading" bullet={<BiRun />} key="run">
+            <Text color="dimmed" size="sm">Your upload has been started.</Text>
         </Timeline.Item>,
     ]
 

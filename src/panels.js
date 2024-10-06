@@ -1,4 +1,4 @@
-import { GrTestDesktop } from "react-icons/gr";
+import { FcAddDatabase } from "react-icons/fc";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
@@ -46,7 +46,7 @@ export const PanelTypes = {
         title: "Data Collector",
         component: CollectionPanel,
         objectTypes: [ ObjectTypes.XDC.id ],
-        icon: GrTestDesktop,
+        icon: FcAddDatabase,
 
         /*deserialize: content => {
             try {
