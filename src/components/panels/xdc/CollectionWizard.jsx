@@ -146,7 +146,7 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {formValidated  && activeStep == 2 && (
+                {formValidated  && activeStep == 1 && (
                             <Button
                                 onClick={nextStep}//handleLogin(formValues.instance,formValues.username,formValues.password)}
                                 variant="gradient"
@@ -155,13 +155,13 @@ export default function CollectionWizard() {
                                 Attempt Login
                             </Button>
                         )}
-                {activeStep < 5 && activeStep != 2 && (experimentalId) && (XDdataID)?
+                {activeStep < 5 && activeStep != 1 && (experimentalId) && (XDdataID)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
                     >
                         Next step
-                    </Button> : activeStep != 2 && (experimentalId) && (XDdataID)?
+                    </Button> : activeStep != 1 && (experimentalId) && (XDdataID)?
                     <Button
                         type="submit"
                         // gradient={{ from: "canvasBlue", to: "indigo" }}
