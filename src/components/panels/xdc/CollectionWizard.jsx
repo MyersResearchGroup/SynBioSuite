@@ -92,34 +92,27 @@ export default function CollectionWizard() {
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step allowStepSelect={activeStep > 0 && !running}
-                    label="Select input file"
-                    description="List of Experiments File"
+                    label="Upload Files"
+                    description="Upload experimental data"
                     icon={<TbComponents />}>
                     <Dropzone
                         allowedTypes={[ObjectTypes.XDC.id]}
                         item={experimentalFile?.name}
                         onItemChange={handleExperimentalChange}>
-                        Drag & drop an experiment from the explorer
+                        Drag & drop Experimental Metadata from the explorer
                     </Dropzone>
-                </Stepper.Step>
-                <Stepper.Step
-                    allowStepSelect={activeStep > 1}
-                    label="Upload Plate Reader Output"
-                    description="Use a plate reader outpuut file"
-                    icon={<BiWorld />}
-                >
                     <Space h='lg' />
                     <Dropzone
                         allowedTypes={[ObjectTypes.Output.id]}
                         item={xDdataFile?.name}
                         onItemChange={handleExperimentalDataChange}>
-                        Note: Change variables for files before continuing<br />Drag & drop a data file from the explorer
+                        Drag & drop Plate Reader Output from the explorer
                     </Dropzone>
                 </Stepper.Step>
                 <Stepper.Step
                     allowStepSelect={activeStep > 2}
-                    label="Log-In: SynBio Hub"
-                    description="Choose your SynBio Hub Instance"
+                    label="Log-In: SynBioHub"
+                    description="Choose your SynBioHub Instance"
                     icon={<BiWorld />}
                 >
                     <Space h='lg' />
@@ -153,7 +146,7 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {formValidated && activeStep == 2 && (
+                {formValidated  && activeStep == 2 && (
                             <Button
                                 onClick={nextStep}//handleLogin(formValues.instance,formValues.username,formValues.password)}
                                 variant="gradient"
@@ -162,13 +155,13 @@ export default function CollectionWizard() {
                                 Attempt Login
                             </Button>
                         )}
-                {activeStep < 5 && activeStep != 2?
+                {activeStep < 5 && activeStep != 2 && (experimentalId) && (XDdataID)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
                     >
                         Next step
-                    </Button> : activeStep != 2?
+                    </Button> : activeStep != 2 && (experimentalId) && (XDdataID)?
                     <Button
                         type="submit"
                         // gradient={{ from: "canvasBlue", to: "indigo" }}

@@ -24,7 +24,7 @@ export default function CollectionPanel({ id }) {
        <PanelContext.Provider value={id}>
             <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted={false}>
                 <Tabs.List>
-                    <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
+                    <Tabs.Tab value={TabValues.SETUP}>UPLOAD</Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value={TabValues.SETUP}>
