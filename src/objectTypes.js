@@ -15,6 +15,7 @@ export const ObjectTypes = {
         fileMatch: /<sbol:/,
         icon: TbComponents,
         createable: true,
+        uploadable: false,
         extension: '.xml',
         badgeLabel: "SBOL",
     },
@@ -24,6 +25,7 @@ export const ObjectTypes = {
         listTitle: "SBML Files",
         fileMatch: /<sbml/,
         createable: false,
+        uploadable: false,
         badgeLabel: "SBML",
     },
     OMEX: {
@@ -33,6 +35,7 @@ export const ObjectTypes = {
         fileNameMatch: /\.omex$/,
         icon: BiWorld,
         createable: false,
+        uploadable: false,
         badgeLabel: "OMEX",
     },
     Analysis: {
@@ -42,7 +45,18 @@ export const ObjectTypes = {
         fileNameMatch: /\.analysis$/,
         icon: IoAnalyticsSharp,
         createable: true,
+        uploadable: false,
         extension: '.analysis',
+    },
+    Experiment: {
+        id: "synbio.object-type.experiment",
+        title: "Experiment File",
+        listTitle: "Experiment Files",
+        fileNameMatch: /\.xlsx/,
+        icon: GrTestDesktop,
+        createable: true,
+        uploadable: false,
+        badgeLabel: ".xlsx",
     },
     XDC: {
         id: "synbio.object-type.experimental-data",
@@ -51,17 +65,19 @@ export const ObjectTypes = {
         fileNameMatch: /\.experimental/,
         icon: MdAlignVerticalTop,
         createable: false,
+        uploadable: true,
         extension: '.experimental'
     },
     Output: {
         id: "synbio.object-type.output-data",
-        title: "Plate Reader Output Data",
-        listTitle: "Plate Reader Output Data",
+        title: "Plate Reader Outputs",
+        listTitle: "Plate Reader Outputs",
         fileNameMatch: /\.output/,
         icon: VscOutput,
         createable: false,
+        uploadable: true,
         extension: '.output'
-    }
+    },
 }
 
 export function getObjectType(id) {

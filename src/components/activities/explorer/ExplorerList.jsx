@@ -59,6 +59,14 @@ export default function ExplorerList({currentDirectory}) {
                                             New {objectType.title}
                                         </CreateNewButton>
                                     }
+                                    {objectType.uploadable &&
+                                        <CreateNewButton
+                                            /*onCreate={handleCreateObject(objectType)}*/
+                                            suggestedName={`Upload ${objectType.title}`}
+                                        >
+                                            Upload {objectType.title}
+                                        </CreateNewButton>
+                                    }
                                     {createListItems(filesOfType, objectType.icon)}
                                 </Accordion.Panel>
                             </Accordion.Item>
