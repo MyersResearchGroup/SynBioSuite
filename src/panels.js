@@ -41,11 +41,11 @@ export const PanelTypes = {
 
         serialize: panel => panel.sbol
     },
-    XDC: {
+    Experiment: {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",
         component: CollectionPanel,
-        objectTypes: [ ObjectTypes.XDC.id ],
+        objectTypes: [ ObjectTypes.Experiment.id ],
         icon: FcAddDatabase,
 
         /*deserialize: content => {

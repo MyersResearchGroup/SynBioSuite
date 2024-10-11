@@ -117,8 +117,8 @@ export default function CollectionWizard() {
                 </Stepper.Step>
                 <Stepper.Step
                     allowStepSelect={activeStep > 2}
-                    label="Log-In: SynBioHub"
-                    description="Choose your SynBioHub Instance"
+                    label="Log-In"
+                    description="For both SynBioHub and Flapjack"
                     icon={<FaGear />}
                 >
                     <Space h='lg' />
