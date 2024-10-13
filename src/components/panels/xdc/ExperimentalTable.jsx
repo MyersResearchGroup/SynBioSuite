@@ -10,11 +10,11 @@ export default function ExperimentalTable() {
 
     const panelId = useContext(PanelContext)
 
-    const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
+    const experimentalId = usePanelProperty(panelId, 'experimental', false)
     const experimentalFile = useFile(experimentalId)
     const experimentalFileObjectType = getObjectType(experimentalFile?.objectType)
 
-    const [XDdataID, setXDDataID] = usePanelProperty(panelId, 'XDdataID', false)
+    const XDdataID = usePanelProperty(panelId, 'XDdataID', false)
     const xDdataFile = useFile(XDdataID)
 
     return (
@@ -22,20 +22,22 @@ export default function ExperimentalTable() {
             <Table horizontalSpacing={20}>
                 <thead>
                     <tr>
-                        <th></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><Text weight={600}>Input</Text></td>
-                        <td>
+                        <th>
+                            <Text weight={600}>Input</Text>
+                        </th>
+                        <th>
                             <Group position='right'>
                                 <Text weight={600}>{titleFromFileName(xDdataFile?.name)}</Text>
                                 {experimentalFileObjectType?.badgeLabel &&
                                     <Badge>{experimentalFileObjectType.badgeLabel}</Badge>}
                             </Group>
-                        </td>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td></td>
+                        <td></td>
                     </tr>
                 </tbody>
             </Table>

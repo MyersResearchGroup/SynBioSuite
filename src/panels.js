@@ -48,19 +48,16 @@ export const PanelTypes = {
         objectTypes: [ ObjectTypes.Experiment.id ],
         icon: FcAddDatabase,
 
-        /*deserialize: content => {
+        //To be implemented
+        //Reads contents of file and returns object
+        deserialize: content => {
             try {
                 return JSON.parse(content)
             }
             catch {
                 return {}
             }
-        },
-
-        serialize: panel => {
-            const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
-        }*/
+        }
     }
 }
 
