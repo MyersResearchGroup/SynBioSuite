@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Container, Stepper, Group, Button, Space, Text } from "@mantine/core"
 import Dropzone from '../../Dropzone'
 import CenteredTitle from '../../CenteredTitle'
@@ -26,18 +25,16 @@ export default function CollectionWizard() {
     const panelTitle = titleFromFileName(fileHandle.name)
 
     // Log-in status and XDC API states
-    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
-    setLoginSuucces(true)
-    console.log(loginSuccess)
+    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, true);
 
     // form state
     const formValues = usePanelProperty(panelId, "formValues")
-    const [formValidated, setFormValidated] = useState()
+    const [formValidated, setFormValidated] = usePanelProperty(panelId, "formValidated", false, false)
 
     // stepper states
     const numSteps = 4 
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
-    const nextStep = () => {setActiveStep((current) => (current < numSteps ? current + 1 : current))}
+    const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
     
     //Example Cookie Handler -- Placeholder for code required to handle login
