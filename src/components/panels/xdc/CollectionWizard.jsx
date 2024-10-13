@@ -27,6 +27,7 @@ import XDCTimeline from './XDCTimeline'
 import { IoIosCloudUpload } from "react-icons/io";
 import { FaGear } from "react-icons/fa6";
 import { TbStatusChange } from "react-icons/tb";
+import Cookies from 'js-cookie';
 
 
 
@@ -43,11 +44,48 @@ export default function CollectionWizard() {
     const running = RuntimeStatus.running(status)
     const [, setRequestedAt] = usePanelProperty(panelId, "lastRequestedAt", false)
 
+    // Log-in status and XDC API states
+    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
+    setLoginSuucces(true)
+    console.log(loginSuccess)
+    setStatus(RuntimeStatus.COMPLETED)
+
+    // form state
+    const formValues = usePanelProperty(panelId, "formValues")
+    const [formValidated, setFormValidated] = useState()
+
     // stepper states
     const numSteps = 4 
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => {setActiveStep((current) => (current < numSteps ? current + 1 : current))}
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
+    /*
+    const attemptLogin = () => {
+        if(Cookies.get('SBH_Login')) {
+            setLoginSuucces(true)
+            showNotification({
+                title: 'Login Successful',
+                message: `You have successfully logged in to ${JSON.parse(Cookies.get('SBH_Login'))[0].instance}`,
+                color: 'green',
+                icon: CgCheckO
+            })
+            // Create a cookie with default values if it doesn't exist
+            const AuthToken = "NOT IMPLEMENTED YET";
+            const login = [{instance:formValues?.instance,username:formValues?.username,loginStatus:false}];
+            Cookies.set('AuthToken', AuthToken);
+            Cookies.set('SBH_Login', JSON.stringify(login));
+            console.log('Created new SBH_Login cookie with default values');
+            nextStep()
+        } else {
+            setLoginSuucces(false)
+            showNotification({
+                title: 'Login Failed',
+                message: 'Please check your credentials and try again',
+                color: 'red',
+                icon: CgCheckO
+            })
+        }
+    }*/
     
     // Step 1: select experimental file
     const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
@@ -85,14 +123,6 @@ export default function CollectionWizard() {
         parameterSource == TabValues.INPUT
         break
     }*/
-
-    // form state
-    const formValues = usePanelProperty(panelId, "formValues")
-    const [formValidated, setFormValidated] = useState()
-
-    //XDC API states
-    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
-    setStatus(RuntimeStatus.COMPLETED)
 
     return (
         <Container style={stepperContainerStyle}>
@@ -158,7 +188,7 @@ export default function CollectionWizard() {
                 </Button>
                 {formValidated  && activeStep == 1 && (
                             <Button
-                                onClick={nextStep}//handleLogin(formValues.instance,formValues.username,formValues.password)}
+                                onClick={attemptLogin}//handleLogin(formValues.instance,formValues.username,formValues.password)}
                                 variant="gradient"
                                 gradient={{ from: "green", to: "green" }}
                             >

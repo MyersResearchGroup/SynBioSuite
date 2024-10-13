@@ -5,7 +5,7 @@ import { useContext, useEffect } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './CollectionPanel'
 import { validate } from 'uuid'
-
+import Cookies from 'js-cookie';
 
 export const parameterMap = {
     instance: {
@@ -28,6 +28,25 @@ export const parameterMap = {
 
 export default function LoginForm({ onValidation }) {
 
+    /*
+    // Read a cookie value
+    let login = Cookies.get('SBH_Login');
+
+    // Check if a cookie exists
+    if (!login) {
+        // Create a cookie with default values if it doesn't exist
+        //login = [{instance:"SBH_Instance",username: "Username",password: "Password",loginStatus: false}];
+        //Cookies.set('SBH_Login', JSON.stringify(login));
+        console.log('Created new SBH_Login cookie with default values');
+    } else {
+        console.log('User is authenticated');
+    }
+
+
+    // Get all cookies
+    const allCookies = Cookies.get();
+    console.log(allCookies);
+    */
     const theme = useMantineTheme()
 
     const panelId = useContext(PanelContext)
