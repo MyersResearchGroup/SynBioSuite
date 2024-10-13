@@ -1,27 +1,13 @@
-import { useEffect, useState } from 'react'
-import { Container, Stepper, Group, Button, Tabs, Space, Title, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
+import { useState } from 'react'
+import { Container, Stepper, Group, Button, Space, Text } from "@mantine/core"
 import Dropzone from '../../Dropzone'
 import CenteredTitle from '../../CenteredTitle'
-import { showNotification } from '@mantine/notifications'
-import { TbComponents } from 'react-icons/tb'
-import { IoAnalyticsSharp } from 'react-icons/io5'
-import { BiWorld } from "react-icons/bi"
 import { ObjectTypes } from '../../../objectTypes'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
-import { pollStatus, submitAnalysis, terminateAnalysis } from '../../../ibiosim'
-import { useRef } from 'react'
 import { PanelContext } from './CollectionPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import { useTimeout } from '@mantine/hooks'
-import { RuntimeStatus } from '../../../runtimeStatus'
-import { CgCheckO } from "react-icons/cg"
-import { useDispatch } from 'react-redux'
-import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
-import { activitiesSlice } from '../../../redux/slices/activitySlice'
 import LoginForm from './SynBioHubLogIn'
-import { parameterMap } from './SynBioHubLogIn'
-import handleLogin from './XDC_API'
 import ExperimentalTable from './ExperimentalTable'
 import XDCTimeline from './XDCTimeline'
 import { IoIosCloudUpload } from "react-icons/io";
@@ -34,21 +20,15 @@ import Cookies from 'js-cookie';
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
-    const dispatch = useDispatch()
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
 
-    const [status, setStatus] = usePanelProperty(panelId, "runtimeStatus", false)
-    const running = RuntimeStatus.running(status)
-    const [, setRequestedAt] = usePanelProperty(panelId, "lastRequestedAt", false)
-
     // Log-in status and XDC API states
     const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
     setLoginSuucces(true)
     console.log(loginSuccess)
-    setStatus(RuntimeStatus.COMPLETED)
 
     // form state
     const formValues = usePanelProperty(panelId, "formValues")
@@ -59,6 +39,8 @@ export default function CollectionWizard() {
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => {setActiveStep((current) => (current < numSteps ? current + 1 : current))}
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
+    
+    //Example Cookie Handler -- Placeholder for code required to handle login
     /*
     const attemptLogin = () => {
         if(Cookies.get('SBH_Login')) {
@@ -87,47 +69,28 @@ export default function CollectionWizard() {
         }
     }*/
     
-    // Step 1: select experimental file
+    // Step 1: Experimental Metadata file
     const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
     const experimentalFile = useFile(experimentalId)
     const handleExperimentalChange = name => {
         setExperimentalId(name)
     }
 
-    // Step 2: select experimental file
+    // Step 2: Plate Reader Output experimental file
     const [XDdataID, setXDDataID] = usePanelProperty(panelId, 'XDdataID', false)
     const xDdataFile = useFile(XDdataID)
     const handleExperimentalDataChange = name => {
         setXDDataID(name)
     }
-
-    //Modify for second file
     
-    // Step 2: select parameter source
-    //const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.ENVIRONMENT)
-    //const [environmentId, setEnvironmentId] = usePanelProperty(panelId, 'environment', false)
-    //const environment = useFile(environmentId)
-    //const handleEnvironmentChange = name => {
-    //    setEnvironmentId(name)
-    //}
-
-    // determine if we can move to next step or not
-    //Commented out for rushing GUI purposes
+    //To be implemented
+    //Will be replaced with a switch case to handle proper movement between steps
     let showNextButton = true
-    /*switch (activeStep) {
-        case 0: showNextButton = !!componentId
-        break
-        case 1: showNextButton =
-        (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
-        (parameterSource == TabValues.PARAMETERS && formValidated) ||
-        parameterSource == TabValues.INPUT
-        break
-    }*/
 
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
-                <Stepper.Step allowStepSelect={activeStep > 0 && !running}
+                <Stepper.Step allowStepSelect={activeStep > 0}
                     label="Upload Files"
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
@@ -145,6 +108,9 @@ export default function CollectionWizard() {
                         Drag & drop Plate Reader Output from the explorer
                     </Dropzone>
                 </Stepper.Step>
+
+
+
                 <Stepper.Step
                     allowStepSelect={activeStep > 2}
                     label="Log-In"
@@ -156,6 +122,8 @@ export default function CollectionWizard() {
                         <LoginForm onValidation={validation => setFormValidated(!validation.hasErrors)}/>
                     </Group>
                 </Stepper.Step>
+
+
                 <Stepper.Step
                     allowStepSelect={activeStep > 3}
                     label="Upload Status"
@@ -177,8 +145,6 @@ export default function CollectionWizard() {
                 </Stepper.Completed>
             </Stepper>
             <Group position="center" mt="xl">
-                {running ?<></>:
-                <>
                 <Button
                     variant="default"
                     onClick={prevStep}
@@ -186,22 +152,17 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {formValidated  && activeStep == 1 && (
-                            <Button
-                                onClick={attemptLogin}//handleLogin(formValues.instance,formValues.username,formValues.password)}
-                                variant="gradient"
-                                gradient={{ from: "green", to: "green" }}
-                            >
-                                Attempt Login
-                            </Button>
-                        )}
-                {activeStep < 3 && activeStep != 1 && (experimentalId) && (XDdataID)?
+                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || formValidated)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
                     >
                         Next step
-                    </Button> : activeStep != 1 && activeStep < 3 && (experimentalId) && (XDdataID)?
+                    </Button>
+
+                    //Cancel button placeholder -- to be implemented with timeline
+
+                    /*: false?
                     <Button
                         type="submit"
                         // gradient={{ from: "canvasBlue", to: "indigo" }}
@@ -211,11 +172,9 @@ export default function CollectionWizard() {
                         onClick={null}
                     >
                         Cancel
-                    </Button> :
+                    </Button> */:
                     <></>
-                    }               
-                </>
-            }
+                    }
             </Group>
         </Container>
     )

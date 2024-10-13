@@ -7,6 +7,8 @@ import { PanelContext } from './CollectionPanel'
 export default function handleLogin(instance, email, password) {
   const panelId = useContext(PanelContext)
   const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, false);
+
+  //TODO: Implement XDC API controls
   /*const attemptLogin = async () => {
     console.log("TRYING TO LOGIN");
     try {
@@ -42,5 +44,4 @@ export default function handleLogin(instance, email, password) {
   }
 
   attemptLogin();*/
-  console.log("TRYING TO LOGIN");
 }

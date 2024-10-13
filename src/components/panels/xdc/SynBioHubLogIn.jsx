@@ -1,10 +1,9 @@
-import { Button, NumberInput, SegmentedControl, Tooltip, Group, Space, Center, Box, useMantineTheme, TextInput, PasswordInput } from '@mantine/core'
+import { useMantineTheme, TextInput, PasswordInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './CollectionPanel'
-import { validate } from 'uuid'
 import Cookies from 'js-cookie';
 
 export const parameterMap = {
@@ -28,6 +27,7 @@ export const parameterMap = {
 
 export default function LoginForm({ onValidation }) {
 
+    // Example Cookie Handler -- Placeholder for code required to handle login
     /*
     // Read a cookie value
     let login = Cookies.get('SBH_Login');
@@ -47,7 +47,6 @@ export default function LoginForm({ onValidation }) {
     const allCookies = Cookies.get();
     console.log(allCookies);
     */
-    const theme = useMantineTheme()
 
     const panelId = useContext(PanelContext)
 
@@ -89,30 +88,10 @@ export default function LoginForm({ onValidation }) {
     )
 }
 
-const groupStyle = theme => ({
-    alignItems: 'flex-start'
-})
-
 function isALink(value) {
     return !(/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(value)) && "Must be a valid URL"
 }
 
 function nonEmpty(value) {
     return !(value != "") && "Required Field"
-}
-
-function nonNegativeInteger(value) {
-    return !(Number.isInteger(value) && value >= 0) && "Must be a non-negative integer"
-}
-
-function nonNegativeNumber(value) {
-    return !(typeof value === "number" && value >= 0) && "Must be a non-negative number"
-}
-
-function positiveInteger(value) {
-    return !(Number.isInteger(value) && value > 0) && "Must be a positive integer"
-}
-
-function positiveNumber(value) {
-    return !(typeof value === "number" && value > 0) && "Must be a positive number"
 }

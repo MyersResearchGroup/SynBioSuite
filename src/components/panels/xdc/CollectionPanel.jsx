@@ -1,10 +1,6 @@
-import { Badge, ScrollArea, Space, Tabs } from '@mantine/core'
-//
+import { ScrollArea, Space, Tabs } from '@mantine/core'
 import { createContext } from 'react'
 import PanelSaver from "../PanelSaver"
-import { useSelector } from 'react-redux'
-import { panelsSelectors } from '../../../redux/hooks/panelsHooks'
-import { createSelector } from '@reduxjs/toolkit'
 import { useState } from 'react'
 import CollectionWizard from './CollectionWizard'
 
@@ -37,19 +33,6 @@ export default function CollectionPanel({ id }) {
             <PanelSaver id={id} />
        </PanelContext.Provider>
     )
-    /*
-        <PanelContext.Provider value={id}>
-            <StatusBadge />
-            <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted = {false}>
-                <Tabs.List>
-                    <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
-                </Tabs.List>
-
-            </Tabs>
-            <PanelSaver id={id} />
-        </PanelContext.Provider>
-    
-    */
 }
 
 const tabStyles = theme => ({
@@ -57,8 +40,5 @@ const tabStyles = theme => ({
         width: 120,
         textTransform: 'uppercase',
         fontWeight: 600
-    },
-    tabsList: {
-        // backgroundColor: theme.colors.dark[6]
     }
 })
