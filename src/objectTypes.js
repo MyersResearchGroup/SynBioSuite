@@ -52,11 +52,11 @@ export const ObjectTypes = {
         id: "synbio.object-type.experiment",
         title: "Experiment File",
         listTitle: "Experiment Files",
-        fileNameMatch: /\.xlsx/,
+        fileNameMatch: /\.xlsx$/,
         icon: GrTestDesktop,
         createable: true,
         uploadable: false,
-        badgeLabel: ".xlsx",
+        extension: ".xlsx",
     },
     XDC: {
         id: "synbio.object-type.experimental-data",
