@@ -4,12 +4,14 @@ const REQUESTED = "Requested"
 const ACCEPTED = "Accepted"
 const PENDING = "Pending"
 const RUNNING = "Running"
+const PROCESSING = "Processing"
+const UPLOADING = "Uploading"
 const COMPLETED = "Completed"
 const FAILED = "Failed"
 const CANCELLED = "Cancelled"
 
 const statusGroups = {
-    running: [REQUESTED, ACCEPTED, PENDING, RUNNING],
+    running: [REQUESTED, ACCEPTED, PENDING, RUNNING, UPLOADING, PROCESSING],
     successful: [COMPLETED],
     unsuccessful: [FAILED, CANCELLED],
 }
