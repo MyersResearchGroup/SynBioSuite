@@ -28,14 +28,6 @@ export default function XDCTimeline() {
     const unsuccessful = RuntimeStatus.unsuccessful(status)
 
     const timelineNodes = [
-        <Timeline.Item title="Login Attempted" bullet={<BsQuestion />} key="req">
-            <Text color="dimmed" size="sm">Your request has been sent to<br /><Text fw={500}>{formValues.instance}.</Text></Text>
-        </Timeline.Item>,
-
-        <Timeline.Item title="Login Succesful" bullet={<TiInputChecked />} key="acc">
-            <Text color="dimmed" size="sm">Your credentials have been accepted<br />by the server.</Text>
-        </Timeline.Item>,
-
         <Timeline.Item title="Processing" bullet={<AiOutlineDoubleRight />} key="pen">
             <Text color="dimmed" size="sm">Your files are being processed.</Text>
         </Timeline.Item>,
@@ -103,13 +95,11 @@ export default function XDCTimeline() {
 }
 
 const statusToNodesMap = {
-    [RuntimeStatus.REQUESTED]: [0],
-    [RuntimeStatus.ACCEPTED]: [0, 1],
-    [RuntimeStatus.PENDING]: [0, 1, 2],
-    [RuntimeStatus.RUNNING]: [0, 1, 2, 3],
+    [RuntimeStatus.PENDING]: [0],
+    [RuntimeStatus.RUNNING]: [0, 1],
     [RuntimeStatus.CANCELLED]: null,
-    [RuntimeStatus.FAILED]: [0, 1, 2, 3],
-    [RuntimeStatus.COMPLETED]: [0, 1, 2, 3],
+    [RuntimeStatus.FAILED]: [0, 1],
+    [RuntimeStatus.COMPLETED]: [0, 1],
 }
 
 const pushTitleDownStyles = theme => ({
