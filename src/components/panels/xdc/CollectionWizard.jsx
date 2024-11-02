@@ -13,6 +13,7 @@ import { IoIosCloudUpload } from "react-icons/io";
 import { FaGear } from "react-icons/fa6";
 import { TbStatusChange } from "react-icons/tb";
 import Cookies from 'js-cookie';
+import SBHandFJLogIn from "./SBHandFJLogIn"
 
 
 
@@ -25,7 +26,7 @@ export default function CollectionWizard() {
     const panelTitle = titleFromFileName(fileHandle.name)
 
     // Log-in status and XDC API states
-    const [loginSuccess, setLoginSuucces] = usePanelProperty(panelId, "loginStatus", false, true);
+    const [SBHloginSuccess, setSBHLoginSuuccess] = usePanelProperty(panelId, "SBHloginStatus", false, false, false);
 
     // form state
     const formValues = usePanelProperty(panelId, "formValues")
@@ -116,7 +117,7 @@ export default function CollectionWizard() {
                 >
                     <Space h='lg' />
                     <Group grow style={{ alignItems: 'flex-start' }}>
-                        <LoginForm onValidation={validation => setFormValidated(!validation.hasErrors)}/>
+                        <SBHandFJLogIn onValidation={validation => setFormValidated(!validation.hasErrors)}/>
                     </Group>
                 </Stepper.Step>
 
@@ -149,7 +150,7 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || formValidated)?
+                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || SBHloginSuccess)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
