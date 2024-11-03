@@ -30,7 +30,6 @@ export default function CollectionWizard() {
 
     // form state
     const formValues = usePanelProperty(panelId, "formValues")
-    const [formValidated, setFormValidated] = usePanelProperty(panelId, "formValidated", false, false)
 
     // stepper states
     const numSteps = 4 
@@ -117,7 +116,7 @@ export default function CollectionWizard() {
                 >
                     <Space h='lg' />
                     <Group grow style={{ alignItems: 'flex-start' }}>
-                        <SBHandFJLogIn onValidation={validation => setFormValidated(!validation.hasErrors)}/>
+                        <SBHandFJLogIn/>
                     </Group>
                 </Stepper.Step>
 
