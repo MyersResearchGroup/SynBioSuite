@@ -9,6 +9,15 @@ import { useSelector } from 'react-redux'
 import { FaRegClipboard, FaClipboardCheck } from "react-icons/fa";
 import { BsDisplay, BsQuestion } from "react-icons/bs"
 import { IoEllipsisHorizontalSharp, IoCheckmarkSharp } from "react-icons/io5"
+import { TbCloudDataConnection } from "react-icons/tb";
+import { BsFileEarmarkCheckFill } from "react-icons/bs";
+import { SiMicrogenetics } from "react-icons/si";
+import { IoCloudUpload } from "react-icons/io5";
+import { FaHourglassStart } from "react-icons/fa6";
+
+
+
+
 import { IoMdClose } from "react-icons/io"
 import { TiInputChecked } from "react-icons/ti"
 import { AiOutlineDoubleRight } from "react-icons/ai"
@@ -20,7 +29,7 @@ export default function XDCTimeline() {
     const panelId = useContext(PanelContext)
     const [ status, setStatus ] = usePanelProperty(panelId, "runtimeStatus", false, RuntimeStatus.COMPLETED)
     const formValues = usePanelProperty(panelId, "formValues")
-    
+
     const failureMessage = useSelector(state => state.failureMessage.message)
 
     const running = RuntimeStatus.running(status)
@@ -28,13 +37,29 @@ export default function XDCTimeline() {
     const unsuccessful = RuntimeStatus.unsuccessful(status)
 
     const timelineNodes = [
-        <Timeline.Item title="Processing" bullet={<AiOutlineDoubleRight />} key="pen">
-            <Text color="dimmed" size="sm">Your files are being processed.</Text>
+        <Timeline.Item title="Pinging XDC" bullet={<TbCloudDataConnection />} key="pen">
+            <Text color="dimmed" size="sm">Connecting to the Experimental Data Connector Server</Text>
         </Timeline.Item>,
 
-        <Timeline.Item title="Uploading" bullet={<BiRun />} key="run">
-            <Text color="dimmed" size="sm">Your upload has been started.</Text>
+        <Timeline.Item title="Validating Files" bullet={<BsFileEarmarkCheckFill />} key="pen">
+            <Text color="dimmed" size="sm">Your files are being processed by the server</Text>
         </Timeline.Item>,
+
+        <Timeline.Item title="Converting to SBOL" bullet={<SiMicrogenetics />} key="run">
+            <Text color="dimmed" size="sm">Converting file content into SBOL</Text>
+        </Timeline.Item>,
+
+        <Timeline.Item title="Uploading to SynBioHub" bullet={<IoCloudUpload />} key="run">
+        <Text color="dimmed" size="sm">Uploading experimental date to SynBioHub</Text>
+        </Timeline.Item>,
+
+        <Timeline.Item title="Uploading to Flapjack" bullet={<IoCloudUpload />} key="run">
+        <Text color="dimmed" size="sm">Uploading experimental date to Flapjack</Text>
+        </Timeline.Item>,
+
+        <Timeline.Item title="Not Started" bullet={<FaHourglassStart />} key="not">
+            <Text color="dimmed" size="sm">The process has not started yet</Text>
+        </Timeline.Item>
     ]
 
     const nodesToShow = statusToNodesMap[status]?.map(nodeIndex => timelineNodes[nodeIndex])
@@ -95,11 +120,13 @@ export default function XDCTimeline() {
 }
 
 const statusToNodesMap = {
-    [RuntimeStatus.PENDING]: [0],
-    [RuntimeStatus.RUNNING]: [0, 1],
+    [RuntimeStatus.CONNECTED]: [0],
+    [RuntimeStatus.VALIDATED]: [0, 1],
+    [RuntimeStatus.CONVERSION]: [0, 1, 2],
+    [RuntimeStatus.SBH_UPLOAD]: [0, 1, 2, 3],
     [RuntimeStatus.CANCELLED]: null,
-    [RuntimeStatus.FAILED]: [0, 1],
-    [RuntimeStatus.COMPLETED]: [0, 1],
+    [RuntimeStatus.FAILED]: [0, 1, 2, 3],
+    [RuntimeStatus.COMPLETED]: [0, 1, 2, 3],
 }
 
 const pushTitleDownStyles = theme => ({

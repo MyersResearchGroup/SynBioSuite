@@ -14,6 +14,7 @@ import { FaGear } from "react-icons/fa6";
 import { TbStatusChange } from "react-icons/tb";
 import Cookies from 'js-cookie';
 import SBHandFJLogIn from "./SBHandFJLogIn"
+import { RuntimeStatus } from "../../../runtimeStatus"
 
 
 
@@ -27,6 +28,7 @@ export default function CollectionWizard() {
 
     // Log-in status and XDC API states
     const [SBHloginSuccess, setSBHLoginSuuccess] = usePanelProperty(panelId, "SBHloginStatus", false, false, false);
+    const [timelineStatus, setTimelineStatus] = usePanelProperty(panelId, "runtimeStatus", false, false, RuntimeStatus.COMPLETED);
 
     // form state
     const formValues = usePanelProperty(panelId, "formValues")
@@ -149,7 +151,7 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || SBHloginSuccess)?
+                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || SBHloginSuccess) && (activeStep != 2 || timelineStatus == RuntimeStatus.COMPLETED)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
