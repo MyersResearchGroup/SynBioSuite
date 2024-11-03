@@ -85,6 +85,9 @@ export default function CollectionWizard() {
     //To be implemented
     //Will be replaced with a switch case to handle proper movement between steps
     let showNextButton = true
+    
+    //To hide items that are not yet implemented
+    let TBI = false
 
     return (
         <Container style={stepperContainerStyle}>
@@ -131,7 +134,7 @@ export default function CollectionWizard() {
                 >
                     <Space h='lg' />
                     <Group grow style={{ alignItems: 'flex-start' }}>
-                        <ExperimentalTable />
+                        {TBI ? <ExperimentalTable /> : <></>}
                         <XDCTimeline />
                     </Group>
                 </Stepper.Step>
