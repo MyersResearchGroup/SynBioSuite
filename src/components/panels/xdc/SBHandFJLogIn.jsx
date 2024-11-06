@@ -40,17 +40,29 @@ export default function SBHandFJLogIn() {
     const [SBHloginSuccess, setSBHLoginSuuccess] = usePanelProperty(panelId, "SBHloginStatus", false, false);
     const [formValidated, setFormValidated] = usePanelProperty(panelId, "formValidated", false, false)
     const [removeInstanceSelected, setRemoveInstanceSelected] = useState(false)
+    const [removeInstance, setRemoveInstance] = usePanelProperty(panelId, "removeInstance", false, false)
     
-    const [SBH_Instances, setSBH_Instances] = useState([
-        'https://synbiohub1.colorado.edu','https://synbiohub2.colorado.edu','https://synbiohub3.colorado.edu','https://synbiohub4.colorado.edu'
-    ])
+    const [SBH_Instances, setSBH_Instances] = useState(() => {
+        const cookieInstances = Cookies.get('SBH_Instances');
+        return cookieInstances ? JSON.parse(cookieInstances) : null;
+    });
+
+    useEffect(() => {
+        Cookies.set('SBH_Instances', JSON.stringify(SBH_Instances));
+        if (SBH_Instance && !SBH_Instances.includes(SBH_Instance)) {
+            setSBH_Instance(null);
+        }
+    }, [SBH_Instances]);
 
     console.log(SBH_Instance)
     return (
         <>
             <Modal opened={addingInstance} onClose={addingInstanceHandler.close} title="Log Into SynBioHub Instance">
                 <LoginForm onValidation={validation => setFormValidated(!validation.hasErrors)}/>
-                {formValidated ? <><Button style={{ margin: '1rem', float: 'right', marginRight: '0rem' }} onClick={() => addingInstanceHandler.close()}>Add Instance</Button></> : <></>}
+                {formValidated ? <><Button style={{ margin: '1rem', float: 'right', marginRight: '0rem' }} onClick={() => {
+                    setSBH_Instances([...(SBH_Instances || []), formValues.instance]);
+                    addingInstanceHandler.close();
+                }}>Add Instance</Button></> : <></>}
             </Modal>
             
             <Modal opened={removingInstance} onClose={removingInstanceHandler.close} title="Remove SynBioHub Instance">
@@ -58,9 +70,16 @@ export default function SBHandFJLogIn() {
                     label="SynBioHub Instance"
                     placeholder={"Choose SynBioHub Instance to Remove"}
                     data={SBH_Instances}
-                    onChange={() => setRemoveInstanceSelected(true)}
+                    onChange={(_value, option) => {
+                        setSBHButton(true);
+                        setRemoveInstance(_value);
+                        setRemoveInstanceSelected(true);}}
                 />
-                {removeInstanceSelected && <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} onClick={() => {setRemoveInstanceSelected(false); removingInstanceHandler.close()}}>Confirm Instance to Remove</Button>}
+                {removeInstanceSelected && <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} onClick={() => {
+                    setSBH_Instances(SBH_Instances.filter(instance => instance !== removeInstance));
+                    setRemoveInstanceSelected(false);
+                    removingInstanceHandler.close();
+                }}>Confirm Instance to Remove</Button>}
             </Modal>
 
             <Grid grow gutter="xs">
@@ -72,13 +91,13 @@ export default function SBHandFJLogIn() {
                             setSBHButton(true);
                             setSBH_Instance(_value);
                         }}
-                        placeholder={SBH_Instances.length > 0 ? "Choose a SynBioHub Instance from the list or add a new instance" : "No SynBioHub instances available, add your own"}
-                        data={SBH_Instances}
-                        disabled={SBHloginSuccess || SBH_Instances.length == 0}
+                        placeholder={SBH_Instances && SBH_Instances.length > 0 ? "Choose a SynBioHub Instance from the list or add a new instance" : "No SynBioHub instances available, add your own"}
+                        data={SBH_Instances || []}
+                        disabled={SBHloginSuccess || (SBH_Instances && SBH_Instances.length === 0)}
                     />
-                    <Button style={{ margin: '1rem', marginLeft: '0rem'}} onClick={addingInstanceHandler.open}>Add SynBioHub Instance</Button>
-                    <Button style={{ margin: '1rem' }} onClick={removingInstanceHandler.open}>Remove SynBioHub Instance</Button>
-                    {SBHButton ? (!SBHloginSuccess ? <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green'}} disabled={!SBHButton} onClick={() => setSBHLoginSuuccess(true)}>Login</Button> : <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} disabled={!SBHButton} onClick={() => setSBHLoginSuuccess(false)}>Log Out</Button>) : <></>}
+                    <Button style={{ margin: '1rem', marginLeft: '0rem'}} onClick={addingInstanceHandler.open} disabled={SBHloginSuccess}>Add SynBioHub Instance</Button>
+                    <Button style={{ margin: '1rem' }} onClick={removingInstanceHandler.open} disabled={SBH_Instances.length == 0 || SBHloginSuccess}>Remove SynBioHub Instance</Button>
+                    {SBHButton ? (!SBHloginSuccess ? <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green'}} disabled={!SBH_Instance} onClick={() => setSBHLoginSuuccess(true)}>Login</Button> : <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} disabled={!SBHButton} onClick={() => setSBHLoginSuuccess(false)}>Log Out</Button>) : <></>}
                 </Grid.Col>
             </Grid>
         </>
