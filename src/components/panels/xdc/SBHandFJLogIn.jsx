@@ -40,7 +40,7 @@ export default function SBHandFJLogIn() {
     const [SBH_Token, setSBH_Token] = usePanelProperty(panelId, "SBH_Token", false, false)
     const [formValues, setFormValues] = usePanelProperty(panelId, 'formValues', false)
     const [verifiedToken, setVerifiedToken] = usePanelProperty(panelId, 'verifiedToken', false)
-    cosnt [uploadingInfo, setUploadingInfo] = usePanelProperty(panelId, "uploadingInfo", false)
+    const [uploadingInfo, setUploadingInfo] = usePanelProperty(panelId, "uploadingInfo", false)
 
     // set up local variables to store states
     const [SBHButton, setSBHButton] = useState(false);
@@ -153,6 +153,13 @@ export default function SBHandFJLogIn() {
                                     title: 'Token Verified',
                                     message: 'The token is valid.',
                                     color: 'green',
+                                });
+                                setUploadingInfo({
+                                    name: response.data.name,
+                                    user: response.data.username,
+                                    affiliation: response.data.affiliation,
+                                    email: response.data.email,
+                                    instance: SBH_Instance.url
                                 });
                             } else {
                                 throw new Error('Invalid token response');
