@@ -52,31 +52,29 @@ export const ObjectTypes = {
         id: "synbio.object-type.experiment",
         title: "Experiment File",
         listTitle: "Experiment Files",
-        fileNameMatch: /\.xlsx$/,
+        fileNameMatch: /\.xdc/,
         icon: GrTestDesktop,
         createable: true,
         uploadable: false,
-        extension: ".xlsx",
+        extension: ".xdc",
     },
-    XDC: {
+    Metadata: {
         id: "synbio.object-type.experimental-data",
         title: "Experimental Metadata",
         listTitle: "Experimental Metadata",
-        fileNameMatch: /\.experimental/,
+        fileNameMatch: /\.(xslm|xslx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
         uploadable: true,
-        extension: '.experimental'
     },
     Output: {
         id: "synbio.object-type.output-data",
         title: "Plate Reader Outputs",
         listTitle: "Plate Reader Outputs",
-        fileNameMatch: /\.output/,
+        fileNameMatch: /\.(xslm|xslx)$/,
         icon: VscOutput,
         createable: false,
         uploadable: true,
-        extension: '.output'
     },
 }
 
@@ -84,13 +82,19 @@ export function getObjectType(id) {
     return Object.values(ObjectTypes).find(ot => ot.id == id)
 }
 
-export async function classifyFile(file) {
+export async function classifyFile(file, subDirectoryName) {
     // try to match by file name
     const matchFromFileName = Object.values(ObjectTypes).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if(matchFromFileName)
-        return matchFromFileName
+    if (matchFromFileName && matchFromFileName !== ObjectTypes.Metadata.id && matchFromFileName !== ObjectTypes.Output.id) {
+        return matchFromFileName;
+    } else if 
+    (subDirectoryName && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Output.id;
+    } else if (subDirectoryName && subDirectoryName.toLowerCase() === "metadata" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Metadata.id;
+    }
 
     // otherwise, read file content
     const fileContent = await (await file.getFile()).text()
