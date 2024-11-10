@@ -109,18 +109,29 @@ async function findFilesInDirectory(dirHandle) {
     // loop through async iterator of file names (called keys here)
     for await (const handle of dirHandle.values()) {
         if (handle.kind == 'file') {
-            await addFileMetadata(handle)
+            await addFileMetadata(handle, null)
             files.push(handle)
+        }
+    }
+    // Check for subfolders "output" and "metadata"
+    for await (const [name, subHandle] of dirHandle.entries()) {
+        if (subHandle.kind === 'directory' && (name.toLowerCase() === 'output' || name.toLowerCase() === 'metadata')) {
+            for await (const handle of subHandle.values()) {
+            if (handle.kind === 'file') {
+                await addFileMetadata(handle, name)
+                files.push(handle)
+            }
+            }
         }
     }
 
     return files
 }
 
-async function addFileMetadata(handle, { objectType } = {}) {
+async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
     // handle.id = uuidv4()
-    handle.id = handle.name
-    handle.objectType = objectType || await classifyFile(handle)
+    handle.id = (handle.name + subDirectoryName)
+    handle.objectType = objectType || await classifyFile(handle, subDirectoryName)
 }
 
 export function titleFromFileName(fileName) {

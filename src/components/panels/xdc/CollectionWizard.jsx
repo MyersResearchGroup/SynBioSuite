@@ -97,7 +97,7 @@ export default function CollectionWizard() {
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.XDC.id]}
+                        allowedTypes={[ObjectTypes.Metadata.id]}
                         item={experimentalFile?.name}
                         onItemChange={handleExperimentalChange}>
                         Drag & drop Experimental Metadata from the explorer
