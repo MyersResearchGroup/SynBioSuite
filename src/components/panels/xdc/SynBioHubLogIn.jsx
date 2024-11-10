@@ -12,8 +12,8 @@ export const parameterMap = {
         validation: isALink,
         default: "https://"
     },
-    username: {
-        label: "SynBioHub Username",
+    email: {
+        label: "SynBioHub Email",
         validation: nonEmpty,
         default: ""
     },
@@ -26,27 +26,6 @@ export const parameterMap = {
 
 
 export default function LoginForm({ onValidation }) {
-
-    // Example Cookie Handler -- Placeholder for code required to handle login
-    /*
-    // Read a cookie value
-    let login = Cookies.get('SBH_Login');
-
-    // Check if a cookie exists
-    if (!login) {
-        // Create a cookie with default values if it doesn't exist
-        //login = [{instance:"SBH_Instance",username: "Username",password: "Password",loginStatus: false}];
-        //Cookies.set('SBH_Login', JSON.stringify(login));
-        console.log('Created new SBH_Login cookie with default values');
-    } else {
-        console.log('User is authenticated');
-    }
-
-
-    // Get all cookies
-    const allCookies = Cookies.get();
-    console.log(allCookies);
-    */
 
     const panelId = useContext(PanelContext)
 
@@ -66,7 +45,12 @@ export default function LoginForm({ onValidation }) {
             )
         ),
     })
-
+    // Remove the username field from form values if it exists
+    useEffect(() => {
+        if (form.values.username) {
+            form.pop('username');
+        }
+    }, []);
     // debounce form values
     const [debouncedFormValues] = useDebouncedValue(form.values, 150)
 
@@ -81,7 +65,7 @@ export default function LoginForm({ onValidation }) {
     return (
         <form>
             <TextInput required label={parameterMap.instance.label} placeholder='Insert the URL of SynBioHub instance' {...form.getInputProps('instance')} />
-            <TextInput required label={parameterMap.username.label} placeholder='Insert the URL of SynBioHub username' {...form.getInputProps('username')} />
+            <TextInput required label={parameterMap.email.label} placeholder='Insert the URL of SynBioHub email' {...form.getInputProps('email')} />
             <PasswordInput required label={parameterMap.password.label} placeholder='Insert the URL of SynBioHub password' {...form.getInputProps('password')} />
         </form>
     )

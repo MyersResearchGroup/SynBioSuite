@@ -6,6 +6,8 @@ import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { PanelContext } from './CollectionPanel'
 import Cookies from 'js-cookie';
 import LoginForm from './SynBioHubLogIn'
+import axios from 'axios';
+import { showNotification } from '@mantine/notifications';
 
 export const parameterMap = {
     instance: {
@@ -34,34 +36,73 @@ export default function SBHandFJLogIn() {
     const [ removingInstance, removingInstanceHandler] = useDisclosure(false);
 
     // set up state in global store and add default values
-    const [SBHButton, setSBHButton] = usePanelProperty(panelId, 'SBHButton', false, false)
     const [SBH_Instance, setSBH_Instance] = usePanelProperty(panelId, 'SBH_Instance', false)
+    const [SBH_Token, setSBH_Token] = usePanelProperty(panelId, "SBH_Token", false, false)
     const [formValues, setFormValues] = usePanelProperty(panelId, 'formValues', false)
-    const [SBHloginSuccess, setSBHLoginSuuccess] = usePanelProperty(panelId, "SBHloginStatus", false, false);
-    const [formValidated, setFormValidated] = usePanelProperty(panelId, "formValidated", false, false)
+    const [verifiedToken, setVerifiedToken] = usePanelProperty(panelId, 'verifiedToken', false)
+
+    // set up local variables to store states
+    const [SBHButton, setSBHButton] = useState(false);
+    const [formValidated, setFormValidated] = useState(false);
     const [removeInstanceSelected, setRemoveInstanceSelected] = useState(false)
-    const [removeInstance, setRemoveInstance] = usePanelProperty(panelId, "removeInstance", false, false)
+    const [removeInstance, setRemoveInstance] = useState();
     
     const [SBH_Instances, setSBH_Instances] = useState(() => {
         const cookieInstances = Cookies.get('SBH_Instances');
-        return cookieInstances ? JSON.parse(cookieInstances) : null;
+        return cookieInstances ? JSON.parse(cookieInstances) : [];
     });
 
     useEffect(() => {
-        Cookies.set('SBH_Instances', JSON.stringify(SBH_Instances));
-        if (SBH_Instance && !SBH_Instances.includes(SBH_Instance)) {
+        Cookies.set('SBH_Instances', JSON.stringify(SBH_Instances), { secure: true, sameSite: 'strict' });
+        if (SBH_Instance && !SBH_Instances.some(instance => instance.url === SBH_Instance.url)) {
             setSBH_Instance(null);
         }
     }, [SBH_Instances]);
 
-    console.log(SBH_Instance)
+    useEffect(() => {
+        setSBHButton(false);
+    }, [SBH_Instance]);
+
+    const handleLogin = async (instance, email, password) => {
+        try {
+            const response = await axios.post(`${instance}/login`, {
+                email: email,
+                password: password
+            }, {
+                headers: {
+                    'Accept': 'text/plain',
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.data) {
+                addingInstanceHandler.close()
+                setSBH_Token(response.data);
+                setSBH_Instances([...(SBH_Instances || []), { url: formValues.instance, token: response.data }]);
+                showNotification({
+                    title: 'Login Successful',
+                    message: 'You have successfully logged in.',
+                    color: 'green',
+                });
+            } else {
+                throw new Error('Invalid login response');
+            }
+        } catch (error) {
+            addingInstanceHandler.close()
+            showNotification({
+                title: 'Login Failed',
+                message: 'Invalid credentials or server error.',
+                color: 'red',
+            });
+        }
+    };
+
+
     return (
         <>
             <Modal opened={addingInstance} onClose={addingInstanceHandler.close} title="Log Into SynBioHub Instance">
                 <LoginForm onValidation={validation => setFormValidated(!validation.hasErrors)}/>
                 {formValidated ? <><Button style={{ margin: '1rem', float: 'right', marginRight: '0rem' }} onClick={() => {
-                    setSBH_Instances([...(SBH_Instances || []), formValues.instance]);
-                    addingInstanceHandler.close();
+                    handleLogin(formValues.instance, formValues.email, formValues.password);
                 }}>Add Instance</Button></> : <></>}
             </Modal>
             
@@ -69,14 +110,14 @@ export default function SBHandFJLogIn() {
                 <Select
                     label="SynBioHub Instance"
                     placeholder={"Choose SynBioHub Instance to Remove"}
-                    data={SBH_Instances}
-                    onChange={(_value, option) => {
+                    data={SBH_Instances.map(instance => ({ value: instance.token, label: instance.url }))}
+                    onChange={(_value) => {
                         setSBHButton(true);
                         setRemoveInstance(_value);
                         setRemoveInstanceSelected(true);}}
                 />
                 {removeInstanceSelected && <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} onClick={() => {
-                    setSBH_Instances(SBH_Instances.filter(instance => instance !== removeInstance));
+                    setSBH_Instances(SBH_Instances.filter(instance => instance.token !== removeInstance));
                     setRemoveInstanceSelected(false);
                     removingInstanceHandler.close();
                 }}>Confirm Instance to Remove</Button>}
@@ -86,18 +127,48 @@ export default function SBHandFJLogIn() {
                 <Grid.Col span={10}>
                     <Select
                         label="SynBioHub Instance"
-                        value={SBH_Instance ? SBH_Instance : null}
-                        onChange={(_value, option) => {
+                        value={SBH_Instance ? SBH_Instance.token : null}
+                        onChange={(_value) => {
                             setSBHButton(true);
-                            setSBH_Instance(_value);
+                            setSBH_Instance(SBH_Instances.find(instance => instance.token === _value));
                         }}
                         placeholder={SBH_Instances && SBH_Instances.length > 0 ? "Choose a SynBioHub Instance from the list or add a new instance" : "No SynBioHub instances available, add your own"}
-                        data={SBH_Instances || []}
-                        disabled={SBHloginSuccess || (SBH_Instances && SBH_Instances.length === 0)}
+                        data={SBH_Instances.map(instance => ({ value: instance.token, label: instance.url })) || []}
+                        disabled={verifiedToken || (SBH_Instances && SBH_Instances.length === 0)}
                     />
-                    <Button style={{ margin: '1rem', marginLeft: '0rem'}} onClick={addingInstanceHandler.open} disabled={SBHloginSuccess}>Add SynBioHub Instance</Button>
-                    <Button style={{ margin: '1rem' }} onClick={removingInstanceHandler.open} disabled={SBH_Instances && SBH_Instances.length == 0 || SBHloginSuccess}>Remove SynBioHub Instance</Button>
-                    {SBHButton ? (!SBHloginSuccess ? <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green'}} disabled={!SBH_Instance} onClick={() => setSBHLoginSuuccess(true)}>Login</Button> : <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} disabled={!SBHButton} onClick={() => setSBHLoginSuuccess(false)}>Log Out</Button>) : <></>}
+                    <Button style={{ margin: '1rem', marginLeft: '0rem'}} onClick={addingInstanceHandler.open} disabled={verifiedToken}>Add SynBioHub Instance</Button>
+                    <Button style={{ margin: '1rem' }} onClick={removingInstanceHandler.open} disabled={SBH_Instances && SBH_Instances.length == 0 || verifiedToken}>Remove SynBioHub Instance</Button>
+                    {!SBHButton && SBH_Instance && !verifiedToken? <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green' }} onClick={async () => {
+                        try {
+                            const response = await axios.get(`${SBH_Instance.url}/profile`, {
+                                headers: {
+                                    'Accept': 'text/plain',
+                                    'X-authorization': `${SBH_Instance.token}`
+                                }
+                            });
+                            if (response.status === 200) {
+                                setSBHButton(true)
+                                showNotification({
+                                    title: 'Token Verified',
+                                    message: 'The token is valid.',
+                                    color: 'green',
+                                });
+                            } else {
+                                throw new Error('Invalid token response');
+                            }
+                        } catch (error) {
+                            showNotification({
+                                title: 'Token Verification Failed',
+                                message: 'Invalid token or server error. Please remove the instance and try logging in again.',
+                                color: 'red',
+                            });
+                        }
+                    }} disabled={!SBH_Instance}>Verify Token</Button>:<></>}
+                    {SBHButton || verifiedToken ? (!verifiedToken ? 
+                    <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green'}} onClick={() => setVerifiedToken(true)}>Confirm Instance</Button>
+                    :
+                    <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} onClick={() => setVerifiedToken(false)}>Uncofirm Instance</Button>
+                    ) : <></>}
                 </Grid.Col>
             </Grid>
         </>
