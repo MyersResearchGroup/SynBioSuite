@@ -57,6 +57,11 @@ export const PanelTypes = {
             catch {
                 return {}
             }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
         }
     }
 }

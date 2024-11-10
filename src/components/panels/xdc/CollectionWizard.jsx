@@ -26,27 +26,23 @@ export default function CollectionWizard() {
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
 
-    // form state
-    const formValues = usePanelProperty(panelId, "formValues")
-
     // stepper states
     const numSteps = 4 
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
     
-    // Step 0: Experimental Metadata file
+    // Step 1: Experimental Metadata file
     const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
     const experimentalFile = useFile(experimentalId)
     const handleExperimentalChange = name => {
         setExperimentalId(name)
     }
 
-    // Step 1: Plate Reader Output experimental file
-    const [XDdataID, setXDDataID] = usePanelProperty(panelId, 'XDdataID', false)
-    const xDdataFile = useFile(XDdataID)
+    const [XDCdataID, setXDCDataID] = usePanelProperty(panelId, 'XDCdataID', false)
+    const xDCdataFile = useFile(XDCdataID)
     const handleExperimentalDataChange = name => {
-        setXDDataID(name)
+        setXDCDataID(name)
     }
     
     // Step 2: Checks to see if a verified token has been selected
@@ -81,7 +77,7 @@ export default function CollectionWizard() {
                     <Space h='lg' />
                     <Dropzone
                         allowedTypes={[ObjectTypes.Output.id]}
-                        item={xDdataFile?.name}
+                        item={xDCdataFile?.name}
                         onItemChange={handleExperimentalDataChange}>
                         Drag & drop Plate Reader Output from the explorer
                     </Dropzone>
@@ -115,23 +111,30 @@ export default function CollectionWizard() {
                 </Stepper.Step>
 
                 <Stepper.Completed>
-                    <Title order={3}>
+                    <Text size="xl">
                         The link to your experiment can be found at:
                         <br />
-                        <a href="#">{formValues?.instance}/aUniqueValue</a>
+                        <a href={uploaderInfo?.instance}>{uploaderInfo?.instance}/aUniqueValue</a>
+                    </Text>
+                    <Text size="md">
+                        This experiment was uploaded by, {uploaderInfo?.name} (Also known by their username as {uploaderInfo?.user})
+                        The email on file is <a href={`mailto:${uploaderInfo?.email}`}>{uploaderInfo?.email}</a>
+                    </Text>
+                    <hr />
+                    <Text size="md">
+                        Files uploaded:
                         <br />
-                        Uploaded by, {uploaderInfo?.name}
+                        Metadata: {experimentalFile?.name}
                         <br />
-                        <Title order={6}>(Also known by their username as {uploaderInfo?.user})</Title>
-                        The email on file is ({uploaderInfo?.email})
-                    </Title>
+                        Plate Reader Output: {xDCdataFile?.name}
+                    </Text>
                     <hr />
                     <Text size="xs" ta="center" fs="italic">
-                        * The metadata file has been updated to include the link. If you upload this file to another SynBioHub instance, the link in the file will be updated accordingly. The link above will remain functional and accessible on your SynBioHub instance.
+                        * The "Experiments" file has been updated to include the link as well as relevant information as a reciept of your actions. To prevent losing this information further modifying this experiments file through SynBioSuite has been disabled and strongly discouraged.
                     </Text>
                 </Stepper.Completed>
             </Stepper>
-            
+
             <Group position="center" mt="xl">
                 <Button
                     variant="default"
@@ -140,7 +143,7 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {activeStep < 3 && experimentalId && XDdataID && (activeStep !== 1 || verifiedToken) && (activeStep !== 2 || timelineStatus === RuntimeStatus.COMPLETED) ? (
+                {activeStep < 3 && experimentalId && XDCdataID && (activeStep !== 1 || verifiedToken) && (activeStep !== 2 || timelineStatus === RuntimeStatus.COMPLETED) ? (
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}

@@ -14,8 +14,8 @@ export default function ExperimentalTable() {
     const experimentalFile = useFile(experimentalId)
     const experimentalFileObjectType = getObjectType(experimentalFile?.objectType)
 
-    const XDdataID = usePanelProperty(panelId, 'XDdataID', false)
-    const xDdataFile = useFile(XDdataID)
+    const XDCdataID = usePanelProperty(panelId, 'XDCdataID', false)
+    const XDCdataFile = useFile(XDCdataID)
 
     return (
         <Container>
@@ -27,7 +27,7 @@ export default function ExperimentalTable() {
                         </th>
                         <th>
                             <Group position='right'>
-                                <Text weight={600}>{titleFromFileName(xDdataFile?.name)}</Text>
+                                <Text weight={600}>{titleFromFileName(XDCdataFile?.name)}</Text>
                                 {experimentalFileObjectType?.badgeLabel &&
                                     <Badge>{experimentalFileObjectType.badgeLabel}</Badge>}
                             </Group>
