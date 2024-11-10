@@ -40,6 +40,7 @@ export default function SBHandFJLogIn() {
     const [SBH_Token, setSBH_Token] = usePanelProperty(panelId, "SBH_Token", false, false)
     const [formValues, setFormValues] = usePanelProperty(panelId, 'formValues', false)
     const [verifiedToken, setVerifiedToken] = usePanelProperty(panelId, 'verifiedToken', false)
+    cosnt [uploadingInfo, setUploadingInfo] = usePanelProperty(panelId, "uploadingInfo", false)
 
     // set up local variables to store states
     const [SBHButton, setSBHButton] = useState(false);
@@ -165,6 +166,58 @@ export default function SBHandFJLogIn() {
                         }
                     }} disabled={!SBH_Instance}>Verify Token</Button>:<></>}
                     {SBHButton || verifiedToken ? (!verifiedToken ? 
+                    <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green'}} onClick={() => setVerifiedToken(true)}>Confirm Instance</Button>
+                    :
+                    <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} onClick={() => setVerifiedToken(false)}>Uncofirm Instance</Button>
+                    ) : <></>}
+                </Grid.Col>
+
+
+
+
+                {/*GUI Representation for Flapjack*/}
+                <Grid.Col span={10}>
+                    <p style={{ color: 'red', fontSize: '0.8rem' }}>This feature is currently disabled as the flapjack servers are down.</p>
+                    <Select
+                        label="Flapjack Instance"
+                        value={ null}
+                        onChange={(_value) => {
+                            setSBHButton(true);
+                            setSBH_Instance(SBH_Instances.find(instance => instance.token === _value));
+                        }}
+                        placeholder={SBH_Instances && SBH_Instances.length > 0 ? "Choose a Flapjack Instance from the list or add a new instance" : "No Flapjack instances available, add your own"}
+                        data={SBH_Instances.map(instance => ({ value: instance.token, label: instance.url })) || []}
+                        disabled={true || verifiedToken || (SBH_Instances && SBH_Instances.length === 0)}
+                    />
+                    <Button style={{ margin: '1rem', marginLeft: '0rem'}} onClick={addingInstanceHandler.open} disabled={true || verifiedToken}>Add SynBioHub Instance</Button>
+                    <Button style={{ margin: '1rem' }} onClick={removingInstanceHandler.open} disabled={true || SBH_Instances && SBH_Instances.length == 0 || verifiedToken}>Remove SynBioHub Instance</Button>
+                    {true || (!SBHButton && SBH_Instance && !verifiedToken)? <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem' }} onClick={async () => {
+                        try {
+                            const response = await axios.get(`${SBH_Instance.url}/profile`, {
+                                headers: {
+                                    'Accept': 'text/plain',
+                                    'X-authorization': `${SBH_Instance.token}`
+                                }
+                            });
+                            if (response.status === 200) {
+                                setSBHButton(true)
+                                showNotification({
+                                    title: 'Token Verified',
+                                    message: 'The token is valid.',
+                                    color: 'green',
+                                });
+                            } else {
+                                throw new Error('Invalid token response');
+                            }
+                        } catch (error) {
+                            showNotification({
+                                title: 'Token Verification Failed',
+                                message: 'Invalid token or server error. Please remove the instance and try logging in again.',
+                                color: 'red',
+                            });
+                        }
+                    }} disabled={true || !SBH_Instance}>Verify Token</Button>:<></>}
+                    {false && (SBHButton || verifiedToken) ? (!verifiedToken ? 
                     <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'green'}} onClick={() => setVerifiedToken(true)}>Confirm Instance</Button>
                     :
                     <Button style={{ margin: '1rem', float: 'right', marginRight: '0rem', background: 'red' }} onClick={() => setVerifiedToken(false)}>Uncofirm Instance</Button>
