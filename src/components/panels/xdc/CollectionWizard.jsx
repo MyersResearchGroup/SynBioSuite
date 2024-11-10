@@ -67,7 +67,7 @@ export default function CollectionWizard() {
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
-                <Stepper.Step allowStepSelect={activeStep > 0}
+                <Stepper.Step allowStepSelect={activeStep > 0 && activeStep != 3}
                     label="Upload Files"
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
@@ -87,9 +87,8 @@ export default function CollectionWizard() {
                 </Stepper.Step>
 
 
-
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2}
+                    allowStepSelect={activeStep > 1 && activeStep != 3}
                     label="Log-In"
                     description="For both SynBioHub and Flapjack"
                     icon={<FaGear />}
@@ -102,7 +101,7 @@ export default function CollectionWizard() {
 
 
                 <Stepper.Step
-                    allowStepSelect={activeStep > 3}
+                    allowStepSelect={activeStep > 2 && activeStep != 3}
                     label="Upload Status"
                     description="See your experiment uploaded"
                     icon={<TbStatusChange />}
@@ -113,6 +112,8 @@ export default function CollectionWizard() {
                         <XDCTimeline />
                     </Group>
                 </Stepper.Step>
+
+
                 <Stepper.Completed>
                     <CenteredTitle height={150}>The link to your experiment can be found at:
                         <br/><a href="#">{formValues?.instance}/aUniqueValue</a>
@@ -125,7 +126,7 @@ export default function CollectionWizard() {
                 <Button
                     variant="default"
                     onClick={prevStep}
-                    sx={{ display: activeStep == 0 ? 'none' : 'block' }}
+                    sx={{ display: activeStep == 0 || activeStep == 3 ? 'none' : 'block' }}
                 >
                     Back
                 </Button>
