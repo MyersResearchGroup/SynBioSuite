@@ -39,35 +39,6 @@ export default function CollectionWizard() {
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
     
-    //Example Cookie Handler -- Placeholder for code required to handle login
-    /*
-    const attemptLogin = () => {
-        if(Cookies.get('SBH_Login')) {
-            setLoginSuucces(true)
-            showNotification({
-                title: 'Login Successful',
-                message: `You have successfully logged in to ${JSON.parse(Cookies.get('SBH_Login'))[0].instance}`,
-                color: 'green',
-                icon: CgCheckO
-            })
-            // Create a cookie with default values if it doesn't exist
-            const AuthToken = "NOT IMPLEMENTED YET";
-            const login = [{instance:formValues?.instance,username:formValues?.username,loginStatus:false}];
-            Cookies.set('AuthToken', AuthToken);
-            Cookies.set('SBH_Login', JSON.stringify(login));
-            console.log('Created new SBH_Login cookie with default values');
-            nextStep()
-        } else {
-            setLoginSuucces(false)
-            showNotification({
-                title: 'Login Failed',
-                message: 'Please check your credentials and try again',
-                color: 'red',
-                icon: CgCheckO
-            })
-        }
-    }*/
-    
     // Step 1: Experimental Metadata file
     const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
     const experimentalFile = useFile(experimentalId)
@@ -82,6 +53,10 @@ export default function CollectionWizard() {
         setXDDataID(name)
     }
     
+    // Step 3: Checks to see if a verified token has been selected
+    const [verifiedToken, setVerifiedToken] = usePanelProperty(panelId, 'verifiedToken', false)
+
+
     //To be implemented
     //Will be replaced with a switch case to handle proper movement between steps
     let showNextButton = true
@@ -154,7 +129,7 @@ export default function CollectionWizard() {
                 >
                     Back
                 </Button>
-                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || SBHloginSuccess) && (activeStep != 2 || timelineStatus == RuntimeStatus.COMPLETED)?
+                {activeStep < 3 && (experimentalId) && (XDdataID) && (activeStep !=1 || verifiedToken) && (activeStep != 2 || timelineStatus == RuntimeStatus.COMPLETED)?
                     <Button
                         onClick={nextStep}
                         sx={{ display: showNextButton ? 'block' : 'none' }}
