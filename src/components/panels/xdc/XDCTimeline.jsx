@@ -27,24 +27,24 @@ export default function XDCTimeline() {
     const unsuccessful = RuntimeStatus.unsuccessful(status)
 
     const timelineNodes = [
-        <Timeline.Item title="Pinging XDC" bullet={<TbCloudDataConnection />} key="ping">
-            <Text color="dimmed" size="sm">Connecting to the Experimental Data Connector Server</Text>
+        <Timeline.Item title="Connecting to XDC" bullet={<TbCloudDataConnection />} key="connecting">
+            <Text color="dimmed" size="sm">Sending files to XDC server</Text>
         </Timeline.Item>,
 
-        <Timeline.Item title="Validating Files" bullet={<BsFileEarmarkCheckFill />} key="validate">
+        <Timeline.Item title="Processing Experimental Data" bullet={<BsFileEarmarkCheckFill />} key="validate">
             <Text color="dimmed" size="sm">Your files are being processed by the server</Text>
         </Timeline.Item>,
 
-        <Timeline.Item title="Converting to SBOL" bullet={<SiMicrogenetics />} key="convert">
-            <Text color="dimmed" size="sm">Converting file content into SBOL</Text>
+        <Timeline.Item title="Processing Metadata" bullet={<SiMicrogenetics />} key="convert">
+            <Text color="dimmed" size="sm">Your files are being interpreted by the server</Text>
         </Timeline.Item>,
 
         <Timeline.Item title="Uploading to SynBioHub" bullet={<IoCloudUpload />} key="SBH_Upload">
-        <Text color="dimmed" size="sm">Uploading experimental date to SynBioHub</Text>
+        <Text color="dimmed" size="sm">Uploading experimental data to SynBioHub</Text>
         </Timeline.Item>,
 
         <Timeline.Item title="Uploading to Flapjack" bullet={<IoCloudUpload />} key="FJ_Upload">
-        <Text color="dimmed" size="sm">Uploading experimental date to Flapjack</Text>
+        <Text color="dimmed" size="sm">Uploading experimental data to Flapjack</Text>
         </Timeline.Item>,
 
         <Timeline.Item title="Not Started" bullet={<FaHourglassStart />} key="not">
@@ -111,8 +111,8 @@ export default function XDCTimeline() {
 
 const statusToNodesMap = {
     [RuntimeStatus.CONNECTED]: [0],
-    [RuntimeStatus.VALIDATED]: [0, 1],
-    [RuntimeStatus.CONVERSION]: [0, 1, 2],
+    [RuntimeStatus.PROCESSING_OUTPUT]: [0, 1],
+    [RuntimeStatus.PROCESSING_METADATA]: [0, 1, 2],
     [RuntimeStatus.SBH_UPLOAD]: [0, 1, 2, 3],
     [RuntimeStatus.CANCELLED]: null,
     [RuntimeStatus.FAILED]: [0, 1, 2, 3],
