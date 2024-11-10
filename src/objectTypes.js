@@ -50,8 +50,8 @@ export const ObjectTypes = {
     },
     Experiment: {
         id: "synbio.object-type.experiment",
-        title: "Experiment File",
-        listTitle: "Experiment Files",
+        title: "Experiments",
+        listTitle: "Experiments",
         fileNameMatch: /\.xdc/,
         icon: GrTestDesktop,
         createable: true,
