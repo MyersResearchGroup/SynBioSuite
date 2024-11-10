@@ -18,7 +18,6 @@ export default function XDCTimeline() {
 
     const panelId = useContext(PanelContext)
     const [ status, setStatus ] = usePanelProperty(panelId, "runtimeStatus", false, false, RuntimeStatus.COMPLETED)
-    const formValues = usePanelProperty(panelId, "formValues")
 
     const failureMessage = useSelector(state => state.failureMessage.message)
 
