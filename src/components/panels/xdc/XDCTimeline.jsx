@@ -113,9 +113,10 @@ const statusToNodesMap = {
     [RuntimeStatus.PROCESSING_OUTPUT]: [0, 1],
     [RuntimeStatus.PROCESSING_METADATA]: [0, 1, 2],
     [RuntimeStatus.SBH_UPLOAD]: [0, 1, 2, 3],
+    [RuntimeStatus.FJ_UPLOAD]: [0, 1, 2, 3, 4],
     [RuntimeStatus.CANCELLED]: null,
     [RuntimeStatus.FAILED]: [0, 1, 2, 3],
-    [RuntimeStatus.COMPLETED]: [0, 1, 2, 3],
+    [RuntimeStatus.COMPLETED]: [0, 1, 2, 3, 4],
 }
 
 const pushTitleDownStyles = theme => ({
