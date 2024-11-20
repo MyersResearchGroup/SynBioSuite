@@ -87,7 +87,7 @@ export async function classifyFile(file, subDirectoryName) {
     const matchFromFileName = Object.values(ObjectTypes).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if (matchFromFileName && matchFromFileName !== ObjectTypes.Metadata.id && matchFromFileName !== ObjectTypes.Output.id) {
+    if (matchFromFileName && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Output.id) {
         return matchFromFileName;
     } else if 
     (subDirectoryName && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
