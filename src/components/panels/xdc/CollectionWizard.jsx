@@ -61,6 +61,8 @@ export default function CollectionWizard() {
     //To hide items that are not yet implemented
     let TBI = false
 
+    const getFileNameWithoutExtension = (fileName) => fileName.replace(/\.[^/.]+$/, "");
+
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
@@ -112,13 +114,27 @@ export default function CollectionWizard() {
 
                 <Stepper.Completed>
                     <Text size="xl">
-                        The link to your experiment can be found at:
+                        The link to your SynBioHub collection can be found at:
                         <br />
-                        <a href={uploaderInfo?.instance}>{uploaderInfo?.instance}/aUniqueValue</a>
+                        <a href={`${uploaderInfo?.instance}/user/${uploaderInfo?.user}/${getFileNameWithoutExtension(fileHandle.name)}/${getFileNameWithoutExtension(fileHandle.name)}_collection/1`} style={{ textDecoration: 'none' }}>
+                            {`${uploaderInfo?.instance}/user/${uploaderInfo?.user}/${getFileNameWithoutExtension(fileHandle.name)}/${getFileNameWithoutExtension(fileHandle.name)}_collection/1`}
+                        </a>
                     </Text>
                     <Text size="md">
-                        This experiment was uploaded by, {uploaderInfo?.name} (Also known by their username as {uploaderInfo?.user})
-                        The email on file is <a href={`mailto:${uploaderInfo?.email}`}>{uploaderInfo?.email}</a>
+                        This experiment was uploaded to SynBioHub by the user, {uploaderInfo?.name} (Also known by their username as {uploaderInfo?.user})
+                        The known email is <a href={`mailto:${uploaderInfo?.email}`} style={{ textDecoration: 'none' }}>{uploaderInfo?.email}</a>
+                    </Text>
+                    <hr />
+                    <Text size="xl">
+                        The link to your Flapjack collection can be found at:
+                        <br />
+                        <a href={`https://flapjack.insert-your-domain-here.org/${getFileNameWithoutExtension(fileHandle.name)}/1`} style={{ textDecoration: 'none' }}>
+                        {`https://flapjack.insert-your-domain-here.org/${getFileNameWithoutExtension(fileHandle.name)}/1`}
+                        </a>
+                    </Text>
+                    <Text size="md">
+                        This experiment was uploaded to Flapjack by the user, {uploaderInfo?.name} (Also known by their username as {uploaderInfo?.user})
+                        The known email is <a href={`mailto:${uploaderInfo?.email}`} style={{ textDecoration: 'none' }}>{uploaderInfo?.email}</a>
                     </Text>
                     <hr />
                     <Text size="md">
