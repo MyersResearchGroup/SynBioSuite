@@ -23,17 +23,21 @@ export default {
             if (!file)
                 return "File doesn't exist."
 
-            if(file.id.split('/')[0].toLowerCase() == "output" || file.id.split('/')[0].toLowerCase() == "metadata"){
+            if (file.id.includes('/')) {
                 const subDirName = file.id.split('/')[0];
                 const fileName = file.id.split('/')[1];
-                const originalDirHandle = await store.getState().workingDirectory.directoryHandle
-                const subDirHandle = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(subDirName);
+                const originalDirHandle = await store.getState().workingDirectory.directoryHandle;
+                const subDirHandle = await originalDirHandle.getDirectoryHandle(subDirName);
 
                 store.dispatch(workDirActions.setWorkingDirectory(subDirHandle));
-                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name);
+                try {
+                    await store.getState().workingDirectory.directoryHandle?.removeEntry(fileName);
+                } catch (error) {
+                    console.error("Error deleting file: ", error);
+                }
                 store.dispatch(workDirActions.setWorkingDirectory(originalDirHandle));
             } else {
-                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
+                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name);
             }
 
             // close panel if it's open
