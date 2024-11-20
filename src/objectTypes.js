@@ -87,18 +87,20 @@ export async function classifyFile(file, subDirectoryName) {
     const matchFromFileName = Object.values(ObjectTypes).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if (matchFromFileName && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Output.id) {
+    if (!subDirectoryName && matchFromFileName && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Output.id) {
         return matchFromFileName;
     } else if 
-    (subDirectoryName && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
+    (subDirectoryName != null && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Output.id;
-    } else if (subDirectoryName && subDirectoryName.toLowerCase() === "metadata" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
+    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "metadata" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Metadata.id;
     }
 
     // otherwise, read file content
-    const fileContent = await (await file.getFile()).text()
-    return Object.values(ObjectTypes).find(
-        ot => ot.fileMatch?.test(fileContent)
-    )?.id
+    if(subDirectoryName != null){
+        const fileContent = await (await file.getFile()).text()
+        return Object.values(ObjectTypes).find(
+            ot => ot.fileMatch?.test(fileContent)
+        )?.id
+    }
 }

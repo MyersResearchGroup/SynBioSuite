@@ -130,7 +130,11 @@ async function findFilesInDirectory(dirHandle) {
 
 async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
     // handle.id = uuidv4()
-    handle.id = (subDirectoryName + '/' + handle.name)
+    if (subDirectoryName === null) {
+        handle.id = handle.name;
+    } else {
+        handle.id = (subDirectoryName + '/' + handle.name);
+    }
     handle.objectType = objectType || await classifyFile(handle, subDirectoryName)
 }
 
