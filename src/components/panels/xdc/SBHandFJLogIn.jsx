@@ -16,6 +16,12 @@ export default function SBHandFJLogIn() {
 
     const [verifiedTokens, setVerifiedTokens] = usePanelProperty(panelId, 'verifiedToken', false);
 
+    const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
+    const experimentalFile = useFile(experimentalId)
+
+    const [XDCdataID, setXDCDataID] = usePanelProperty(panelId, 'XDCdataID', false)
+    const xDCdataFile = useFile(XDCdataID)
+
     // modal handlers
     const [ addingSBHInstance, addingSBHInstanceHandler] = useDisclosure(false);
     const [ removingSBHInstance, removingSBHInstanceHandler] = useDisclosure(false);
@@ -69,7 +75,19 @@ export default function SBHandFJLogIn() {
                     message: 'You have successfully logged in.',
                     color: 'green',
                 });
+                const uploadResponse = await axios.post('http://127.0.0.1:5000/upload_sbs', {
+                    Metadata: xDCdataFile,
+                    AuthToken: SBH_Token,
+                    Params: {"fj_url": "localhost:8000", "fj_user": "Gonza10V", "fj_pass": "010101", "sbh_url": "https://synbiohub.colorado.edu", "sbh_user": "Gonza10V", "sbh_pass": "010101", "sbh_collec": "xdc_sbs_test_uploader_file", "fj_overwrite": false, "sbh_overwrite": false}
+                }
+                , {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                console.log(uploadResponse);
             } else {
+                console.log(error);
                 throw new Error('Invalid login response');
             }
         } catch (error) {
