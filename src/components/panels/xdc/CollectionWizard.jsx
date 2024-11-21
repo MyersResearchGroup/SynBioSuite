@@ -52,7 +52,8 @@ export default function CollectionWizard() {
     const [timelineStatus, setTimelineStatus] = usePanelProperty(panelId, "runtimeStatus", false, false, RuntimeStatus.COMPLETED);
 
     //Step 4:
-    const [uploaderInfo, setUploadingInfo] = usePanelProperty(panelId, "uploadingInfo", false);
+    const [SBHUploaderInfo, setSBHUploadingInfo] = usePanelProperty(panelId, "SBHUploadingInfo", false);
+    const [FJUploaderInfo, setFJUploadingInfo] = usePanelProperty(panelId, "FJUploadingInfo", false);
 
     //To be implemented
     //Will be replaced with a switch case to handle proper movement between steps
@@ -116,13 +117,13 @@ export default function CollectionWizard() {
                     <Text size="xl">
                         The link to your SynBioHub collection can be found at:
                         <br />
-                        <a href={`${uploaderInfo?.instance}/user/${uploaderInfo?.user}/${getFileNameWithoutExtension(fileHandle.name)}/${getFileNameWithoutExtension(fileHandle.name)}_collection/1`} style={{ textDecoration: 'none' }}>
-                            {`${uploaderInfo?.instance}/user/${uploaderInfo?.user}/${getFileNameWithoutExtension(fileHandle.name)}/${getFileNameWithoutExtension(fileHandle.name)}_collection/1`}
+                        <a href={`${SBHUploaderInfo?.instance}/user/${SBHUploaderInfo?.user}/${getFileNameWithoutExtension(fileHandle.name)}/${getFileNameWithoutExtension(fileHandle.name)}_collection/1`} style={{ textDecoration: 'none' }}>
+                            {`${SBHUploaderInfo?.instance}/user/${SBHUploaderInfo?.user}/${getFileNameWithoutExtension(fileHandle.name)}/${getFileNameWithoutExtension(fileHandle.name)}_collection/1`}
                         </a>
                     </Text>
                     <Text size="md">
-                        This experiment was uploaded to SynBioHub by the user, {uploaderInfo?.name} (Also known by their username as {uploaderInfo?.user})
-                        The known email is <a href={`mailto:${uploaderInfo?.email}`} style={{ textDecoration: 'none' }}>{uploaderInfo?.email}</a>
+                        This experiment was uploaded to SynBioHub by the user, {SBHUploaderInfo?.name} (Also known by their username as {SBHUploaderInfo?.user})
+                        The known email is <a href={`mailto:${SBHUploaderInfo?.email}`} style={{ textDecoration: 'none' }}>{SBHUploaderInfo?.email}</a>
                     </Text>
                     <hr />
                     <Text size="xl">
@@ -133,8 +134,8 @@ export default function CollectionWizard() {
                         </a>
                     </Text>
                     <Text size="md">
-                        This experiment was uploaded to Flapjack by the user, {uploaderInfo?.name} (Also known by their username as {uploaderInfo?.user})
-                        The known email is <a href={`mailto:${uploaderInfo?.email}`} style={{ textDecoration: 'none' }}>{uploaderInfo?.email}</a>
+                        This experiment was uploaded to Flapjack by the user, {FJUploaderInfo?.name} (Also known by their username as {FJUploaderInfo?.user})
+                        The known email is <a href={`mailto:${FJUploaderInfo?.email}`} style={{ textDecoration: 'none' }}>{FJUploaderInfo?.email}</a>
                     </Text>
                     <hr />
                     <Text size="md">
