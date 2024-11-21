@@ -8,29 +8,29 @@ import Cookies from 'js-cookie';
 
 export const parameterMap = {
     instance: {
-        label: "SynBioHub Instance",
+        label: "Flapjack Instance",
         validation: isALink,
         default: "https://"
     },
     email: {
-        label: "SynBioHub Email",
+        label: "Flapjack Email",
         validation: nonEmpty,
         default: ""
     },
     password: {
-        label: "SynBioHub Password",
+        label: "Flapjack Password",
         validation: nonEmpty,
         default: ""
     }
 }
 
 
-export default function SBHLoginForm({ onValidation }) {
+export default function FJLoginForm({ onValidation }) {
 
     const panelId = useContext(PanelContext)
 
     // set up state in global store and add default values
-    const [formValues, setFormValues] = usePanelProperty(panelId, 'SBHFormValues', false)
+    const [formValues, setFormValues] = usePanelProperty(panelId, 'FJFormValues', false)
 
     // set up form using Mantine hook
     const form = useForm({
@@ -64,9 +64,9 @@ export default function SBHLoginForm({ onValidation }) {
 
     return (
         <form>
-            <TextInput required label={parameterMap.instance.label} placeholder='Insert the URL of SynBioHub instance' {...form.getInputProps('instance')} />
-            <TextInput required label={parameterMap.email.label} placeholder='Insert the URL of SynBioHub email' {...form.getInputProps('email')} />
-            <PasswordInput required label={parameterMap.password.label} placeholder='Insert the URL of SynBioHub password' {...form.getInputProps('password')} />
+            <TextInput required label={parameterMap.instance.label} placeholder='Insert the URL of Flapjack instance' {...form.getInputProps('instance')} />
+            <TextInput required label={parameterMap.email.label} placeholder='Insert the URL of Flapjack email' {...form.getInputProps('email')} />
+            <PasswordInput required label={parameterMap.password.label} placeholder='Insert the URL of Flapjack password' {...form.getInputProps('password')} />
         </form>
     )
 }
