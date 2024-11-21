@@ -53,7 +53,7 @@ export function useCreateFile() {
     return (fileName, objectType) => {
         workDir.getFileHandle(fileName, { create: true })
             .then(fileHandle => {
-                addFileMetadata(fileHandle, { objectType })
+                addFileMetadata(fileHandle, null, { objectType })
                 dispatch(actions.addFile(fileHandle))
                 openPanel(fileHandle)
             })

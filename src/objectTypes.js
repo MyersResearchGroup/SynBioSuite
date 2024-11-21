@@ -97,7 +97,7 @@ export async function classifyFile(file, subDirectoryName) {
     }
 
     // otherwise, read file content
-    if(subDirectoryName != null){
+    if(subDirectoryName == null){
         const fileContent = await (await file.getFile()).text()
         return Object.values(ObjectTypes).find(
             ot => ot.fileMatch?.test(fileContent)
