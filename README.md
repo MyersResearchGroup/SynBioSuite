@@ -22,6 +22,6 @@ pip install flask-cors
 ## Usage
 
 In your command line, you can start up the server using the following command
-```python
+```bash
 flask --app views.py run
 ```
