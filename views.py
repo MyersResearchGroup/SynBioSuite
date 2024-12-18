@@ -20,7 +20,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 class XDC:
 
@@ -125,13 +125,15 @@ class XDC:
     def log_in_sbh(self):
         # SBH Login
         if self.sbh_token is None:
+            url = f'{self.sbh_url}/login'
+            print(f'Logging in to SBH with URL: {url}')  # Debug statement
             response = requests.post(
-                f'{self.sbh_url}/login',
+                url,
                 headers={'Accept': 'text/plain'},
                 data={
                     'email': self.sbh_user,
-                    'password' : self.sbh_pass,
-                    }
+                    'password': self.sbh_pass,
+                }
             )
             self.sbh_token = response.text
         #self.status = "Logged into SynBioHub"
