@@ -1,6 +1,7 @@
 import { Accordion, Container, Text, Timeline, CopyButton, ActionIcon, Tooltip} from '@mantine/core'
 import React, { useContext } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { PanelContext } from './CollectionPanel'
 import ReactTimeAgo from 'react-time-ago'
 import { RuntimeStatus } from '../../../runtimeStatus'
@@ -13,6 +14,7 @@ import { BsFileEarmarkCheckFill } from "react-icons/bs";
 import { SiMicrogenetics } from "react-icons/si";
 import { FaHourglassStart } from "react-icons/fa6";
 import { IoMdClose } from "react-icons/io"
+import axios from 'axios';
 
 export default function XDCTimeline() {
 
@@ -24,6 +26,17 @@ export default function XDCTimeline() {
     const running = RuntimeStatus.running(status)
     const successful = RuntimeStatus.successful(status)
     const unsuccessful = RuntimeStatus.unsuccessful(status)
+
+    const [SBH_Instance, setSBH_Instance] = usePanelProperty(panelId, 'SBH_Instance', false)
+    const [SBH_Token, setSBH_Token] = usePanelProperty(panelId, "SBH_Token", false, false)
+
+    const [FJ_Instance, setFJ_Instance] = usePanelProperty(panelId, 'FJ_Instance', false)
+    const [FJ_Token, setFJ_Token] = usePanelProperty(panelId, "FJ_Token", false, false)
+
+    const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
+    const experimentalFile = useFile(experimentalId)
+    const [XDCdataID, setXDCDataID] = usePanelProperty(panelId, 'XDCdataID', false)
+    const xDCdataFile = useFile(XDCdataID)
 
     const timelineNodes = [
         <Timeline.Item title="Connecting to XDC" bullet={<TbCloudDataConnection />} key="connecting">
@@ -50,12 +63,13 @@ export default function XDCTimeline() {
             <Text color="dimmed" size="sm">The process has not started yet</Text>
         </Timeline.Item>
     ]
-    setStatus(RuntimeStatus.COMPLETED)
+    setStatus(RuntimeStatus.CONNECTED)
     const nodesToShow = statusToNodesMap[status]?.map(nodeIndex => timelineNodes[nodeIndex])
     const activeNode = nodesToShow?.length - (running ? 1 : 0)
 
     return (
         status && nodesToShow ?
+            <>
             <Container pt={15} style={{ display: 'flex', justifyContent: 'center' }}>
                 {/* {!running &&
                     <Title order={5} sx={lastRunTitleStyle}>Last Run</Title>} */}
@@ -103,9 +117,43 @@ export default function XDCTimeline() {
                         </Timeline.Item>
                     }        
                 </Timeline>
-            </Container> :
+            </Container>
+            <button onClick={() => {setStatus(RuntimeStatus.RUNNING); uploadToServer(xDCdataFile, SBH_Token, SBH_Instance)}}>Convert</button>
+            <button onClick={() => setStatus(RuntimeStatus.CANCELLED)}>Cancel</button></>
+ :
             <></>
     )
+}
+
+
+async function uploadToServer(xDCdataFile, SBH_Token, SBH_Instance) {
+    console.log("SBH URL: ", SBH_Instance);
+    try {
+        const uploadResponse = await axios.post('http://127.0.0.1:5000/upload_sbs', {
+            Metadata: await xDCdataFile.getFile(),
+            AuthToken: SBH_Token,
+            Params: await new Blob([JSON.stringify({
+                fj_url: "",//FJ_Instance,
+                fj_token: "",//FJ_Token,
+                fj_user: "kerem",
+                fj_pass: "testing",
+                sbh_url: SBH_Instance.url,
+                sbh_token: SBH_Token,
+                sbh_user: "kerem",
+                sbh_pass: "testing",
+                sbh_collec: "test",
+                fj_overwrite: true,
+                sbh_overwrite: true
+            })], { type: 'application/json' })
+        }, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        console.log(uploadResponse);
+    } catch (error) {
+        console.error('Error uploading to server:', error);
+    }
 }
 
 const statusToNodesMap = {

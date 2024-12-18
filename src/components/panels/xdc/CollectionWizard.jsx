@@ -35,6 +35,7 @@ export default function CollectionWizard() {
     // Step 1: Experimental Metadata file
     const [experimentalId, setExperimentalId] = usePanelProperty(panelId, 'experimental', false)
     const experimentalFile = useFile(experimentalId)
+    
     const handleExperimentalChange = name => {
         setExperimentalId(name)
     }
