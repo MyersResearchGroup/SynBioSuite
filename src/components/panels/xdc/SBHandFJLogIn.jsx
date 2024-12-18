@@ -9,6 +9,7 @@ import axios from 'axios';
 import { showNotification } from '@mantine/notifications';
 import SBHLoginForm from './SynBioHubLogIn'
 import FJLoginForm from './FlapjackLogIn'
+import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 
 export default function SBHandFJLogIn() {
 
@@ -75,22 +76,12 @@ export default function SBHandFJLogIn() {
                     message: 'You have successfully logged in.',
                     color: 'green',
                 });
-                const uploadResponse = await axios.post('http://127.0.0.1:5000/upload_sbs', {
-                    Metadata: xDCdataFile,
-                    AuthToken: SBH_Token,
-                    Params: {"fj_url": "localhost:8000", "fj_user": "Gonza10V", "fj_pass": "010101", "sbh_url": "https://synbiohub.colorado.edu", "sbh_user": "Gonza10V", "sbh_pass": "010101", "sbh_collec": "xdc_sbs_test_uploader_file", "fj_overwrite": false, "sbh_overwrite": false}
-                }
-                , {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                });
-                console.log(uploadResponse);
             } else {
                 console.log(error);
                 throw new Error('Invalid login response');
             }
         } catch (error) {
+            console.log(error);
             addingSBHInstanceHandler.close()
             showNotification({
                 title: 'Login Failed',
