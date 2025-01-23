@@ -1,5 +1,6 @@
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
+import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
 import { CanvasIcon, SimulationIcon } from "./icons";
 import { ObjectTypes } from "./objectTypes";
 
@@ -38,6 +39,13 @@ export const PanelTypes = {
         }),
 
         serialize: panel => panel.sbol
+    },
+    AssemblyPlanCreator: {
+        id: "synbio.panel-type.assembly-plan-creator",
+        title: "Assembly Plan Creator",
+        component: AssemblyPanel,
+        objectTypes: [ ObjectTypes.Assembly.id ],
+        icon: SimulationIcon,
     }
 }
 
