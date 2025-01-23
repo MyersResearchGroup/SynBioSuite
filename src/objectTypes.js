@@ -18,7 +18,7 @@ export const ObjectTypes = {
         title: "SBML File",
         listTitle: "SBML Files",
         fileMatch: /<sbml/,
-        createable: false,
+        createable: true,
         badgeLabel: "SBML",
     },
     OMEX: {
@@ -27,7 +27,7 @@ export const ObjectTypes = {
         listTitle: "OMEX Archives",
         fileNameMatch: /\.omex$/,
         icon: BiWorld,
-        createable: false,
+        createable: true,
         badgeLabel: "OMEX",
     },
     Analysis: {
