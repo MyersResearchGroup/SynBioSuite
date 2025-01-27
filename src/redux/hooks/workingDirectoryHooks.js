@@ -46,12 +46,13 @@ export function useWorkingDirectory() {
 
 // Action hooks
 
+
 export function useCreateFile() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-    return (fileName, objectType) => {
-        workDir.getFileHandle(fileName, { create: true })
+    return (fileName, objectType, directory = workDir) => { // Optional arg directory in which the file will be created 
+        directory.getFileHandle(fileName, { create: true })
             .then(fileHandle => {
                 addFileMetadata(fileHandle, { objectType })
                 dispatch(actions.addFile(fileHandle))
@@ -103,8 +104,9 @@ export function useSafeName(baseName) {
 
 // Utility
 
-async function findFilesInDirectory(dirHandle) {
+export async function findFilesInDirectory(dirHandle) {
     const files = []
+
 
     // loop through async iterator of file names (called keys here)
     for await (const handle of dirHandle.values()) {
@@ -112,11 +114,12 @@ async function findFilesInDirectory(dirHandle) {
             await addFileMetadata(handle)
             files.push(handle)
         }
+
     }
 
     return files
 }
-
+ //TODO: Assings object types when opening a folder, check extension or contents, might be better to just go into sub dirs themselves and use that as a way to list
 async function addFileMetadata(handle, { objectType } = {}) {
     // handle.id = uuidv4()
     handle.id = handle.name

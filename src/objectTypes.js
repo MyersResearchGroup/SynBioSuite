@@ -12,6 +12,7 @@ export const ObjectTypes = {
         createable: true,
         extension: '.xml',
         badgeLabel: "SBOL",
+        directory: "main"
     },
     SBML: {
         id: "synbio.object-type.sbml",
@@ -20,6 +21,7 @@ export const ObjectTypes = {
         fileMatch: /<sbml/,
         createable: false,
         badgeLabel: "SBML",
+        directory: "main"
     },
     OMEX: {
         id: "synbio.object-type.omex-archive",
@@ -29,6 +31,7 @@ export const ObjectTypes = {
         icon: BiWorld,
         createable: false,
         badgeLabel: "OMEX",
+        directory: "main"
     },
     Analysis: {
         id: "synbio.object-type.analysis",
@@ -38,6 +41,16 @@ export const ObjectTypes = {
         icon: IoAnalyticsSharp,
         createable: true,
         extension: '.analysis',
+        directory: "main"
+    },
+    Plasmids:{
+        id: "synbio.object-type.plasmid",
+        title: "Plasmid",
+        listTitle: "Plasmids",
+        createable: true,
+        extension: '.xml',
+        icon: TbComponents,
+        directory: 'Plasmid'
     }
 }
 
