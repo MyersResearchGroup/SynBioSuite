@@ -25,12 +25,12 @@ export const PanelTypes = {
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify(restOfPanel)
         }
-    },
+    }, 
     SBOLEditor: {
         id: "synbio.panel-type.sbol-editor",
         title: "SBOL Canvas",
         component: SBOLEditorPanel,
-        objectTypes: [ ObjectTypes.SBOL.id ],
+        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id ],
         icon: CanvasIcon,
 
         deserialize: content => ({
