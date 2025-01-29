@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, jsonify
 
 import excel2sbol.converter as conv
 import sbol2
-#import tempfile
 import requests
 import os
 from excel2flapjack.main import X2F
