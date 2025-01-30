@@ -3,7 +3,10 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title, Text, Flex } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import SaveIndicatorDisplay from '../../saveIndicatorDisplay'
+import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
+import ImportFile from './ImportFile'
+
+
 
 
 export default function ExplorerList({currentDirectory}) {
@@ -25,6 +28,12 @@ export default function ExplorerList({currentDirectory}) {
             key={i}
         />
     )
+
+    const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
+    const handleDirectorySelection = dirHandle => {
+        setWorkingDirectory(dirHandle)
+    }
+
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
@@ -51,8 +60,15 @@ export default function ExplorerList({currentDirectory}) {
                                     <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                 </Accordion.Control>
                                 <Accordion.Panel>
+                                    {objectType.importable &&
+                                    <ImportFile
+                                        onSelect={handleDirectorySelection} 
+                                        text = {"Import " + objectType.title}>
+                                    </ImportFile>
+                                    }
                                     {objectType.createable &&
                                         <CreateNewButton
+                                            
                                             onCreate={handleCreateObject(objectType)}
                                             suggestedName={`New ${objectType.title}`}
                                         >
@@ -86,3 +102,4 @@ const titleStyle = theme => ({
     fontSize: 12,
     textTransform: 'uppercase',
 })
+
