@@ -1,7 +1,9 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
-
+import { GrTestDesktop } from "react-icons/gr";
+import { MdAlignVerticalTop } from "react-icons/md";
+import { VscOutput } from "react-icons/vsc";
 export const ObjectTypes = {
     SBOL: {
         id: "synbio.object-type.sbol",
@@ -43,6 +45,34 @@ export const ObjectTypes = {
         extension: '.analysis',
         directory: "main"
     },
+    Experiment: {
+        id: "synbio.object-type.experiment",
+        title: "Experiments",
+        listTitle: "Experiments",
+        fileNameMatch: /\.xdc/,
+        icon: GrTestDesktop,
+        createable: true,
+        uploadable: false,
+        extension: ".xdc",
+    },
+    Metadata: {
+        id: "synbio.object-type.experimental-data",
+        title: "Experimental Metadata",
+        listTitle: "Experimental Metadata",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        uploadable: true,
+    },
+    Output: {
+        id: "synbio.object-type.output-data",
+        title: "Plate Reader Outputs",
+        listTitle: "Plate Reader Outputs",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: VscOutput,
+        createable: false,
+        uploadable: true,
+    },
     Plasmids:{
         id: "synbio.object-type.plasmid",
         title: "Plasmid",
@@ -50,7 +80,8 @@ export const ObjectTypes = {
         createable: true,
         extension: '.xml',
         icon: TbComponents,
-        directory: 'Plasmid'
+        directory: 'Plasmid',
+        fileNameMatch: /\.xml$/
     }
 }
 
@@ -58,17 +89,26 @@ export function getObjectType(id) {
     return Object.values(ObjectTypes).find(ot => ot.id == id)
 }
 
-export async function classifyFile(file) {
+export async function classifyFile(file, subDirectoryName) {
     // try to match by file name
     const matchFromFileName = Object.values(ObjectTypes).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if(matchFromFileName)
-        return matchFromFileName
-
+    if (!subDirectoryName && matchFromFileName && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Output.id && matchFromFileName != ObjectTypes.Plasmids.id) {
+        return matchFromFileName;
+    } else if 
+    (subDirectoryName != null && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Output.id;
+    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "metadata" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Metadata.id;
+    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmid" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Plasmids.id;
+    }
     // otherwise, read file content
-    const fileContent = await (await file.getFile()).text()
-    return Object.values(ObjectTypes).find(
-        ot => ot.fileMatch?.test(fileContent)
-    )?.id
+    if(subDirectoryName == null){
+        const fileContent = await (await file.getFile()).text()
+        return Object.values(ObjectTypes).find(
+            ot => ot.fileMatch?.test(fileContent)
+        )?.id
+    }
 }
