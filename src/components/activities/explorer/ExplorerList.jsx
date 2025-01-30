@@ -10,12 +10,13 @@ export default function ExplorerList({workDir}) {
 
     // grab file handles
     const files = useFiles()
+    let tempDirectory;
 
     // handle creation
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
         if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("Plasmid", { create: true });
+            tempDirectory = await workDir.getDirectoryHandle("plasmid", { create: true });
              
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
