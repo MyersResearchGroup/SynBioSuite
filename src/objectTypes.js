@@ -5,8 +5,8 @@ import { TbComponents } from "react-icons/tb"
 export const ObjectTypes = {
     SBOL: {
         id: "synbio.object-type.sbol",
-        title: "SBOL Component",
-        listTitle: "SBOL Components",
+        title: "Design",
+        listTitle: "Designs",
         fileMatch: /<sbol:/,
         icon: TbComponents,
         createable: true,
@@ -16,15 +16,15 @@ export const ObjectTypes = {
     SBML: {
         id: "synbio.object-type.sbml",
         title: "SBML File",
-        listTitle: "SBML Files",
+        listTitle: "Models",
         fileMatch: /<sbml/,
         createable: false,
         badgeLabel: "SBML",
     },
     OMEX: {
         id: "synbio.object-type.omex-archive",
-        title: "OMEX Archive",
-        listTitle: "OMEX Archives",
+        title: "Archive",
+        listTitle: "Archives",
         fileNameMatch: /\.omex$/,
         icon: BiWorld,
         createable: false,
@@ -32,8 +32,8 @@ export const ObjectTypes = {
     },
     Analysis: {
         id: "synbio.object-type.analysis",
-        title: "Analysis",
-        listTitle: "Analyses",
+        title: "Analyses",
+        listTitle: "Analysis",
         fileNameMatch: /\.analysis$/,
         icon: IoAnalyticsSharp,
         createable: true,
