@@ -7,6 +7,9 @@ import CanvasIcon from './canvas.svg?component'
 import SimulationIcon from './simulation.svg?component'
 import RemoteControlIcon from './remote-control.svg?component'
 import BugReport from './bug-report.svg?component'
+import ProfileGreen from './profile-green.svg?component'
+import ProfileOrange from './profile-orange.svg?component'
+import ProfileRed from './profile-red.svg?component'
 
 
 export {
@@ -15,7 +18,10 @@ export {
     CanvasIcon,
     SimulationIcon,
     RemoteControlIcon,
-    BugReport
+    BugReport,
+    ProfileGreen,
+    ProfileOrange,
+    ProfileRed
 }
 
 
