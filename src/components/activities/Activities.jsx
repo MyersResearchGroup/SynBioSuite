@@ -57,7 +57,7 @@ export default function Activities() {
             <Tabs.List>
                 {tabs}
             </Tabs.List>
-            {tabPanels}
+            {activeActivity != "synbio.activity.login-status-panel" ? tabPanels : null}
         </Tabs>
     )
 }

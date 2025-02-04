@@ -1,7 +1,7 @@
 import ExplorerActivityView from "./components/activities/explorer/ExplorerActivityView"
 import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
-import { FileIcon, RemoteControlIcon, BugReport } from "./icons"
+import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
 
 
@@ -12,6 +12,12 @@ export const Activities = {
         title: "Local Explorer",
         component: ExplorerActivityView,
         icon: FileIcon
+    },
+    LoginStatusPanel: {
+        id: "synbio.activity.login-status-panel",
+        title: "Check Login Status",
+        component: ExplorerActivityView,
+        icon: ProfileGreen
     },
     // RemoteFileExplorer: {
     //     id: "synbio.activity.remote-file-explorer",
