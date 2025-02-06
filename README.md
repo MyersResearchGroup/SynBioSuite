@@ -21,7 +21,7 @@ docker build -t xdc_server .
 
 Run the image:
 ```bash
-docker run xdc_server
+docker run -p 5003:5000 xdc_server
 ```
 
 The server will be running on localhost:5003
