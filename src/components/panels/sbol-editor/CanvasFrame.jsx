@@ -52,7 +52,7 @@ export default function CanvasFrame({fileTypeObjectId}) {
             
             sbolContent ?
                 { sbol: sbolContent, panelType: fileTypeObjectId} : // either send SBOL content
-                'hello canvas',         // or send dummy message
+                {panelType: fileTypeObjectId},         // if no sbolContent, just send in panel type
             import.meta.env.VITE_SBOL_CANVAS_URL
         )
     }
