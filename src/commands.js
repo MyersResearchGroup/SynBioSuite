@@ -19,13 +19,18 @@ export default {
         execute: async fileNameOrId => {
             // try to find file by ID first, then by name
             const file = findFileByNameOrId(fileNameOrId)
-
             // quit if this file doesn't exist
             if (!file)
                 return "File doesn't exist."
-
-            // delete file from disk
-            await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
+            
+            // delete file from disk,
+            if(file.id.split("/")[0] === "plasmid"){
+                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle("plasmid")
+                await tempDirectory.removeEntry(file.name)
+            }
+            else{
+                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
+            }
 
             // close panel if it's open
             store.dispatch(panelsActions.closePanel(file.id))
