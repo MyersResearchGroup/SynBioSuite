@@ -23,12 +23,13 @@ export default {
             if (!file)
                 return "File doesn't exist."
             
-            // delete file from disk,
-            if(file.id.split("/")[0] === "plasmid"){
-                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle("plasmid")
+            // delete file from disk, try to see if in subdirectory first else delete from root
+            const directory = file.id.split("/")[0]
+            try{
+                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory)
                 await tempDirectory.removeEntry(file.name)
             }
-            else{
+            catch{
                 await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
             }
 
