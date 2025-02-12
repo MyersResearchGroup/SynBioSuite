@@ -1,5 +1,30 @@
-# XDC_Server
+# SBS_Server
 A Python Flask server that converts Excel files into SBOL and uploads it into SBH and FJ
+
+# Current Usage (2/5/25)
+
+### WARNING: 
+
+May have to edit dockerfile line 2 to clarify the platform on which you are running. (--platform=...)
+
+Currently in a template-based design. 
+
+Go to main directory:
+```bash
+cd SynBioSuite_Server
+``` 
+
+Build the image:
+```bash
+docker build -t sbs_server .
+```
+
+Run the image:
+```bash
+docker run -p 5003:5000 sbs_server
+```
+
+The server will be running on localhost:5003
 
 ## Installation
 
