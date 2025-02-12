@@ -6,15 +6,20 @@ import ExplorerListItem from './ExplorerListItem'
 import SaveIndicatorDisplay from '../../saveIndicatorDisplay'
 
 
-export default function ExplorerList({currentDirectory}) {
+export default function ExplorerList({workDir}) {
 
     // grab file handles
     const files = useFiles()
+    let tempDirectory;
 
     // handle creation
     const createFile = useCreateFile()
-    const handleCreateObject = objectType => fileName => {
-        createFile(fileName + objectType.extension, objectType.id)
+    const handleCreateObject = objectType => async fileName => {
+        if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("plasmid", { create: true });
+             
+        }
+        createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }
 
     // generate DragObjects based on data
@@ -29,7 +34,7 @@ export default function ExplorerList({currentDirectory}) {
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
             <Title mt={10} order={6}>
-                Current Folder: {currentDirectory}            
+                Current Folder: {workDir.name}            
             </Title>
 
             <Accordion
