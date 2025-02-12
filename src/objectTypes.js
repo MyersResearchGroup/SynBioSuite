@@ -45,34 +45,6 @@ export const ObjectTypes = {
         extension: '.analysis',
         directory: "main"
     },
-    Experiment: {
-        id: "synbio.object-type.experiment",
-        title: "Experiments",
-        listTitle: "Experiments",
-        fileNameMatch: /\.xdc/,
-        icon: GrTestDesktop,
-        createable: true,
-        uploadable: false,
-        extension: ".xdc",
-    },
-    Metadata: {
-        id: "synbio.object-type.experimental-data",
-        title: "Experimental Metadata",
-        listTitle: "Experimental Metadata",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: MdAlignVerticalTop,
-        createable: false,
-        uploadable: true,
-    },
-    Output: {
-        id: "synbio.object-type.output-data",
-        title: "Plate Reader Outputs",
-        listTitle: "Plate Reader Outputs",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: VscOutput,
-        createable: false,
-        uploadable: true,
-    },
     Plasmids:{
         id: "synbio.object-type.plasmid",
         title: "Plasmid",
@@ -96,12 +68,8 @@ export async function classifyFile(file, subDirectoryName) {
     )?.id
     if (!subDirectoryName && matchFromFileName && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Output.id && matchFromFileName != ObjectTypes.Plasmids.id) {
         return matchFromFileName;
-    } else if 
-    (subDirectoryName != null && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Output.id;
-    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "metadata" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Metadata.id;
-    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmid" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
+    } 
+    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmid" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Plasmids.id;
     }
     // otherwise, read file content
