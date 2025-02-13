@@ -1,5 +1,5 @@
 # Pull a pre-built alpine docker image with nginx and python3 installed
-FROM --platform=arm64 tiangolo/uwsgi-nginx:python3.8-alpine-2020-12-19
+FROM --platform=arm64 tiangolo/uwsgi-nginx-flask:python3.9
 
 # Set the port on which the app runs; make both values the same.
 #
@@ -12,6 +12,7 @@ EXPOSE 5003
 
 # Indicate where uwsgi.ini lives
 ENV UWSGI_INI uwsgi.ini
+ENV NGINX_CONF /etc/nginx/conf.d/nginx.conf
 
 # Tell nginx where static files live. Typically, developers place static files for
 # multiple apps in a shared folder, but for the purposes here we can use the one
@@ -25,6 +26,13 @@ WORKDIR /hello_app
 
 # Copy the app contents to the image
 COPY . /hello_app
+
+RUN /usr/local/bin/python -m pip install --upgrade pip
+
+# Create uploads directory and set permissions
+RUN mkdir -p /hello_app/uploads && \
+    chown -R www-data:www-data /hello_app/uploads && \
+    chmod 755 /hello_app/uploads
 
 # Install the app's dependencies
 RUN pip install --no-cache-dir -r requirements.txt
