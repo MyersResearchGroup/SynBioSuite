@@ -3,15 +3,55 @@ import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
 import { FileIcon, RemoteControlIcon, BugReport } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
-
-
+import { GiThorHammer} from "react-icons/gi";
+import { ObjectTypes } from "./objectTypes";
+import { FaGraduationCap } from "react-icons/fa";
+import { BsGraphUpArrow } from "react-icons/bs";
+import { BiSolidFlask } from "react-icons/bi";
 
 export const Activities = {
     LocalFileExplorer: {
         id: "synbio.activity.local-file-explorer",
         title: "Local Explorer",
         component: ExplorerActivityView,
-        icon: FileIcon
+        icon: FileIcon,
+        objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
+    },
+    Model: {
+        id: "synbio.activity.model",
+        title: "Model",
+        component: ExplorerActivityView,
+        icon: BsGraphUpArrow,
+        objectTypesToList: [
+
+        ]
+    },
+    Build: {
+        id: "synbio.activity.build",
+        title: "Build",
+        component: ExplorerActivityView,
+        icon: GiThorHammer,
+        objectTypesToList: [
+            ObjectTypes.Plasmids.id
+        ]
+    },
+    Test: {
+        id: "synbio.activity.test",
+        title: "Test",
+        component: ExplorerActivityView,
+        icon: BiSolidFlask,
+        objectTypesToList: [
+
+        ]
+    },
+    Learn: {
+        id: "synbio.activity.learn",
+        title: "Learn",
+        component: ExplorerActivityView,
+        icon: FaGraduationCap,
+        objectTypesToList: [
+            
+        ]
     },
     // RemoteFileExplorer: {
     //     id: "synbio.activity.remote-file-explorer",
@@ -38,3 +78,4 @@ export const Activities = {
 export function getActivity(id) {
     return Object.values(Activities).find(act => act.id == id)
 }
+
