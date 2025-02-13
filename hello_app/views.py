@@ -1,3 +1,4 @@
+from __future__ import annotations 
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 
@@ -727,3 +728,7 @@ def process_files():
 
 
     return modified_file_data
+
+@app.route('/test')
+def test():
+    return jsonify({"status": "working"}), 200

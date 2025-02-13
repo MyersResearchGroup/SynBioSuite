@@ -1,1 +1,8 @@
+excel2flapjack
 Flask
+flask_cors
+numpy==1.24.0
+excel2sbol
+sbol2
+requests
+pandas
