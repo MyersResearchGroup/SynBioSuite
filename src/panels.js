@@ -38,6 +38,12 @@ export const PanelTypes = {
         }),
 
         serialize: panel => panel.sbol
+    },
+    SynBioHub: {
+        id: "synbio.panel-type.synbiohub",
+        title: "SynBioHub",
+        component: SBOLEditorPanel,
+        icon: CanvasIcon,
     }
 }
 

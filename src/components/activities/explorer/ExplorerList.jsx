@@ -3,7 +3,8 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title, Text, Flex } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import SaveIndicatorDisplay from '../../saveIndicatorDisplay'
+import { Select } from '@mantine/core'
+import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 
 
 export default function ExplorerList({workDir}) {
@@ -31,11 +32,24 @@ export default function ExplorerList({workDir}) {
         />
     )
 
+    const openPanel = useOpenPanel()
+    const handleOnChange = (value) =>{
+        openPanel()
+    }
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
             <Title mt={10} order={6}>
                 Current Folder: {workDir.name}            
             </Title>
+
+            <Select
+                label="Select a SynBioHub Instance"
+                placeholder="Pick value"
+                data={[{label: 'React', value: "https://mantine.dev/core/select/"}, 'Angular', 'Vue', 'Svelte']}
+                onChange={handleOnChange}
+                searchable
+            >
+            </Select>
 
             <Accordion
                 mt={10}
