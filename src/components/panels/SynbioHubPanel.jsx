@@ -1,12 +1,11 @@
-import { Tabs, Center } from '@mantine/core'
 import { createContext } from 'react'
-import PanelSaver from '../PanelSaver'
-import CanvasFrame from './CanvasFrame'
+import PanelSaver from './PanelSaver'
+import SynbioHubFrame from './SynbioHubFrame'
 import { useSelector } from 'react-redux'
 
 export const PanelContext = createContext()
 
-export default function SBOLEditorPanel({id = null, fileObjectTypeId}) {
+export default function SynbioHubPanel({id = null, fileObjectTypeId}) {
     const activePanel = useSelector(state => state.panels.active)
     return (
         <PanelContext.Provider value={activePanel}>
@@ -27,7 +26,7 @@ export default function SBOLEditorPanel({id = null, fileObjectTypeId}) {
                     </Center>
                 </Tabs.Tab>
             </Tabs> */}
-            <CanvasFrame fileTypeObjectId={fileObjectTypeId}/>
+            <SynbioHubFrame fileTypeObjectId={fileObjectTypeId}/>
             <PanelSaver id={activePanel} />
         </PanelContext.Provider>
     )

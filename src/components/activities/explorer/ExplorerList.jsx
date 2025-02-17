@@ -5,6 +5,7 @@ import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import { Select } from '@mantine/core'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
+import { useActivePanel } from '../../../redux/hooks/panelsHooks'
 
 
 export default function ExplorerList({workDir}) {
@@ -12,6 +13,7 @@ export default function ExplorerList({workDir}) {
     // grab file handles
     const files = useFiles()
     let tempDirectory;
+    const [activePanel, setActivePanel] = useActivePanel()
 
     // handle creation
     const createFile = useCreateFile()
@@ -34,7 +36,8 @@ export default function ExplorerList({workDir}) {
 
     const openPanel = useOpenPanel()
     const handleOnChange = (value) =>{
-        openPanel()
+        console.log('hhs')
+        setActivePanel("test.xml")
     }
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
