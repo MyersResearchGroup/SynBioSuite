@@ -36,8 +36,7 @@ export default function ExplorerList({workDir}) {
 
     const openPanel = useOpenPanel()
     const handleOnChange = (value) =>{
-        console.log('hhs')
-        setActivePanel("test.xml")
+        setActivePanel("SynBioHub")
     }
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
