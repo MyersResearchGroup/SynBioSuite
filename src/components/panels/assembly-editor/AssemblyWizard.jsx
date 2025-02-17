@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Container, Stepper, Group, Button, Tabs, Space, Title, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
-import Dropzone from '../../Dropzone'
+import Dropzone, { MultiDropzone } from '../../Dropzone'
 import CenteredTitle from '../../CenteredTitle'
 import { showNotification } from '@mantine/notifications'
 import { TbComponents } from 'react-icons/tb'
@@ -11,7 +11,6 @@ import AssemblyForm from './AssemblyForm'
 import { ObjectTypes } from '../../../objectTypes'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
-import { pollStatus, submitAnalysis, terminateAnalysis } from '../../../ibiosim'
 import { useRef } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
@@ -22,7 +21,7 @@ import { useDispatch } from 'react-redux'
 import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
 
 export const TabValues = {
-    ENVIRONMENT: 'environment',
+    INSERTS: 'inserts',
     PARAMETERS: 'parameters',
     INPUT: 'input'
 }
@@ -49,8 +48,8 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
 
-    // Step 1: select plasmids
-    const [plasmidId, setplasmidId] = usePanelProperty(panelId, 'components', false, [])
+    // Step 1: select plasmid
+    const [plasmidId, setplasmidId] = usePanelProperty(panelId, 'backbone', false)
     const component = useFile(plasmidId)
     const handleComponentChange = fileNames => {
         setplasmidId(fileNames)
@@ -58,11 +57,15 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const isComponentOMEX = component?.objectType == ObjectTypes.OMEX.id
 
     // Step 2: select part inserts
-    const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.ENVIRONMENT)
-    const [environmentId, setEnvironmentId] = usePanelProperty(panelId, 'environment', false)
-    const environment = useFile(environmentId)
-    const handleEnvironmentChange = name => {
-        setEnvironmentId(name)
+    const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.INSERTS)
+    const [insertIDs, setInsertIDs] = usePanelProperty(panelId, 'inserts', false, []) || []
+    const handleInsertChange = name => {
+        setInsertIDs([...insertIDs, name])
+    }
+
+    const handleRemoveInsert = id => {
+        const newIDs = insertIDs.filter(item => item !== id)
+        setInsertIDs(newIDs)
     }
 
     // form state
@@ -76,8 +79,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
         case 0: showNextButton = !!plasmidId
         break
         case 1: showNextButton =
-        (parameterSource == TabValues.ENVIRONMENT && !!environmentId) ||
-        // (parameterSource == TabValues.PARAMETERS && formValidated) ||
+        (parameterSource == TabValues.INSERTS && !!insertIDs) ||
         (parameterSource == TabValues.PARAMETERS && true) ||
         parameterSource == TabValues.INPUT
         break
@@ -96,11 +98,11 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                 <Stepper.Step
                     allowStepSelect={activeStep > 0}
                     label="Select Plasmid Backbone"
-                    description="SBOL, SBML, or OMEX"
+                    description="SBOL Only"
                     icon={<TbComponents />}
                 >
                     <Dropzone
-                        allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.SBML.id, ObjectTypes.OMEX.id]}
+                        allowedTypes={[ObjectTypes.SBOL.id]}
                         item={component?.name}
                         onItemChange={handleComponentChange}
                         multiple={true}
@@ -121,24 +123,25 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                                 <Tabs.Tab value={TabValues.INPUT}>
                                     Use parameters from input archive
                                 </Tabs.Tab> :
-                                <Tabs.Tab value={TabValues.ENVIRONMENT}>
+                                <Tabs.Tab value={TabValues.INSERTS}>
                                     Upload Part Inserts
                                 </Tabs.Tab>}
                             <Tabs.Tab value={TabValues.PARAMETERS}>
                                 Manually enter parameters
                             </Tabs.Tab>
                         </Tabs.List>
-                        <Tabs.Panel value={TabValues.ENVIRONMENT}>
-                            <Dropzone
-                                allowedTypes={[ObjectTypes.OMEX.id]}
-                                item={environment?.name}
-                                onItemChange={handleEnvironmentChange}
+                        <Tabs.Panel value={TabValues.INSERTS}>
+                            <MultiDropzone
+                                allowedTypes={[ObjectTypes.SBOL.id]} 
+                                items={insertIDs}
+                                onItemsChange={handleInsertChange}
+                                onRemoveItem={handleRemoveInsert}
+                                multiple={true}
                             >
-                                Drag & drop an environment from the explorer
-                            </Dropzone>
+                                Drag & drop an inserts from the explorer 
+                            </MultiDropzone>
                         </Tabs.Panel>
                         <Tabs.Panel value={TabValues.PARAMETERS}>
-                            {/* replace with assembly relevant parameterform */}
                             <AssemblyForm/>
                         </Tabs.Panel>
                         <Tabs.Panel value={TabValues.INPUT}>
