@@ -3,6 +3,7 @@ import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
 import { CanvasIcon, SimulationIcon } from "./icons";
 import { ObjectTypes } from "./objectTypes";
+import { GiSewingMachine } from "react-icons/gi";
 
 
 export const PanelTypes = {
@@ -45,7 +46,21 @@ export const PanelTypes = {
         title: "Assembly Plan Creator",
         component: AssemblyPanel,
         objectTypes: [ ObjectTypes.Assembly.id ],
-        icon: SimulationIcon,
+        icon: GiSewingMachine,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        }
     }
 }
 

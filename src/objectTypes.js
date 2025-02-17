@@ -1,7 +1,7 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
-import { GiSewingMachine } from "react-icons/gi";
+import { GiSewingMachine } from "react-icons/gi"
 
 export const ObjectTypes = {
     SBOL: {
@@ -44,6 +44,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.assembly-plan",
         title: "Assembly Plan",
         listTitle: "Assembly Plans",
+        fileNameMatch: /\.json$/,
         icon: GiSewingMachine,
         createable: true,
         extension: '.json',

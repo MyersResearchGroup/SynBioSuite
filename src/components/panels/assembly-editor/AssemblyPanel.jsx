@@ -32,7 +32,6 @@ export default function AssemblyPanel({ id }) {
 
     return (
         <>
-        <h1>Assembly Plan Creator {id} </h1>
          <PanelContext.Provider value={id}>
                 {/* <StatusBadge /> */}
                 <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted = {false}>
