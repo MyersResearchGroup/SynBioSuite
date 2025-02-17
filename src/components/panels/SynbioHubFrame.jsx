@@ -14,7 +14,7 @@ export default function SynbioHubFrame({fileTypeObjectId}) {
     return (
         <div style={containerStyle}>
             <iframe
-                src={import.meta.env.VITE_SBOL_CANVAS_URL + '?ignoreHTTPErrors=true'}
+                src={"https://synbiohub.org/"}
                 style={iframeStyle}
                 scrolling='no'
                 width="100%"
