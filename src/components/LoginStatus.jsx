@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { Button, Center, Stack, Title, Text, Avatar, Group, useMantineTheme, Grid, Container } from '@mantine/core';
+import LoginModal from '../modules/modular_login/loginModal';
 
 export default function LoginStatus() {
-    const theme = useMantineTheme()
+    const theme = useMantineTheme();
+    const [modalOpened, setModalOpened] = useState(false);
+    const [repoName, setRepoName] = useState('');
+
     return (
         <Center style={{
             height: '100vh', background: `radial-gradient(${theme.colors.dark[6]}, ${theme.colors.dark[7]})`
@@ -34,6 +39,9 @@ export default function LoginStatus() {
                                     +00 (123) 456 78 90
                                 </Text>
                             </Group>
+                            <Button mt="md" onClick={() => {setModalOpened(true); setRepoName('SynbioHub')}}>
+                                Open Instance Selector
+                            </Button>
                         </div>
                     </Grid.Col>
                     <Grid.Col span={6}>
@@ -62,10 +70,14 @@ export default function LoginStatus() {
                                     +00 (123) 456 78 90
                                 </Text>
                             </Group>
+                            <Button mt="md" onClick={() => {setModalOpened(true); setRepoName('Flapjack')}}>
+                                Open Instance Selector
+                            </Button>
                         </div>
                     </Grid.Col>
                 </Grid>
+                <LoginModal opened={modalOpened} repoName={repoName} onClose={() => setModalOpened(false)} />
             </Container>
         </Center>
     );
-    }
+}
