@@ -13,12 +13,6 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: FileIcon
     },
-    LoginStatusPanel: {
-        id: "synbio.activity.login-status-panel",
-        title: "Check Login Status",
-        component: ExplorerActivityView,
-        icon: ProfileGreen
-    },
     // RemoteFileExplorer: {
     //     id: "synbio.activity.remote-file-explorer",
     //     title: "Remote Explorer",
@@ -27,12 +21,18 @@ export const Activities = {
     // },
 
     // Any activities below will be pushed to the bottom of the toolbar
+    LoginStatusPanel: {
+        id: "synbio.activity.login-status-panel",
+        title: "Check Login Status",
+        component: ExplorerActivityView,
+        icon: ProfileGreen,
+        mt: 'auto'
+    },
     GitHub: {
         id: "synbio.activity.GitHub",
         title: "GitHub and Website ",
         component: GitHubView,
         icon: RiGithubFill,
-        mt: 'auto'
     },
     BugReport: {
         id: "synbio.activity.bug-report",
