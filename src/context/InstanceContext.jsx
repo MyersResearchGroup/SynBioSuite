@@ -11,8 +11,10 @@ export const InstanceProvider = ({ children }) => {
 
     const [instanceData, setInstanceData] = useState(initialData);
 
+    const [repoName, setRepoName] = useState('');
+
     return (
-        <InstanceContext.Provider value={{ instanceData, setInstanceData }}>
+        <InstanceContext.Provider value={{ instanceData, setInstanceData, repoName, setRepoName }}>
             {children}
         </InstanceContext.Provider>
     );

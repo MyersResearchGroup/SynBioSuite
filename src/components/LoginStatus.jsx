@@ -13,7 +13,7 @@ export default function LoginStatus() {
         }}>
             <Container>
                 <Grid>
-                    <Grid.Col span={6}>
+                    <Grid.Col span={5}>
                         <Avatar
                             src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                             size={94}
@@ -21,22 +21,22 @@ export default function LoginStatus() {
                         />
                         <div>
                             <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-                                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                User's Name
                             </Text>
 
                             <Text fz="lg" fw={500}>
-                                Lorem Ipsum
+                                User's Username
                             </Text>
 
                             <Group noWrap spacing={10} mt={3}>
                                 <Text fz="xs" c="dimmed">
-                                    lorem@ipsum.com
+                                    email@example.com
                                 </Text>
                             </Group>
 
                             <Group noWrap spacing={10} mt={5}>
                                 <Text fz="xs" c="dimmed">
-                                    +00 (123) 456 78 90
+                                    Affiliation
                                 </Text>
                             </Group>
                             <Button mt="md" onClick={() => {setModalOpened(true); setRepoName('SynbioHub')}}>
@@ -44,7 +44,8 @@ export default function LoginStatus() {
                             </Button>
                         </div>
                     </Grid.Col>
-                    <Grid.Col span={6}>
+                    <Grid.Col span={2}></Grid.Col>
+                    <Grid.Col span={5}>
                         <Avatar
                             src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                             size={94}
@@ -52,22 +53,22 @@ export default function LoginStatus() {
                         />
                         <div>
                             <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-                                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                User's Name
                             </Text>
 
                             <Text fz="lg" fw={500}>
-                                Lorem Ipsum
+                                User's Username
                             </Text>
 
                             <Group noWrap spacing={10} mt={3}>
                                 <Text fz="xs" c="dimmed">
-                                    lorem@ipsum.com
+                                    email@example.com
                                 </Text>
                             </Group>
 
                             <Group noWrap spacing={10} mt={5}>
                                 <Text fz="xs" c="dimmed">
-                                    +00 (123) 456 78 90
+                                    Affiliation
                                 </Text>
                             </Group>
                             <Button mt="md" onClick={() => {setModalOpened(true); setRepoName('Flapjack')}}>

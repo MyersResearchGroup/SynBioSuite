@@ -4,7 +4,7 @@ import InstanceLogin from './instanceLogin';
 import { InstanceContext } from '../../context/InstanceContext';
 import Cookies from 'js-cookie'
 
-const InstanceSelector = ({onClose }) => {
+const InstanceSelector = ({onClose, repoName }) => {
     const [showLogin, setShowLogin] = useState(false);
     const { instanceData, setInstanceData } = useContext(InstanceContext);
     
@@ -17,22 +17,29 @@ const InstanceSelector = ({onClose }) => {
         setSelectedInstanceValue(null); // Reset the select component
     };
 
+    const [nullInstanceSelected, setNullInstanceSelected] = useState(false);
+
     return (
         <>
             {showLogin ? (
-                <InstanceLogin onClose={onClose} />
+                <InstanceLogin onClose={onClose} repoName={repoName} goBack={setShowLogin}/>
             ) : (
                 <>
                     <Select
-                        label="Select an instance"
+                        label={`Select an instance of ${repoName}`}
                         placeholder="Pick one"
                         data={instanceData}
-                        onChange={(value) => setSelectedInstanceValue(value)}
+                        onChange={(value) => {setNullInstanceSelected(false); setSelectedInstanceValue(value)}}
                         value={selectedInstanceValue}
                     />
+                    {nullInstanceSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected instance. Please select an instance</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
-                        <Button mr="md" onClick={() => {setShowLogin(true); console.log(showLogin)}}>Add Instance</Button>
-                        <Button onClick={() => {handleRemoveInstance(); onClose();}}>Remove Instance</Button>
+                        <Button mr="md" onClick={() => {setShowLogin(true)}}>Add Instance</Button>
+                        <Button onClick={() => 
+                        {if (selectedInstanceValue != null)
+                            {handleRemoveInstance(); onClose()}
+                            else setNullInstanceSelected(true)}}>
+                        Remove Instance</Button>
                         <Button ml="auto" onClick={onClose}>Confirm Instance</Button>
                     </div>
                 </>

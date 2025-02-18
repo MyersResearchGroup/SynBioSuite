@@ -2,9 +2,9 @@ import React, { useContext } from 'react';
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { InstanceContext } from '../../context/InstanceContext';
-import Cookies from 'js-cookie'
+import Cookies from 'js-cookie';
 
-const InstanceLogin = ({ onClose }) => {
+const InstanceLogin = ({ onClose, repoName, goBack }) => {
     const { instanceData, setInstanceData } = useContext(InstanceContext);
 
     const form = useForm({
@@ -15,14 +15,13 @@ const InstanceLogin = ({ onClose }) => {
         },
 
         validate: {
-            instance: (value) => (value ? null : 'Instance is required'),
+            instance: (value) => (value ? null : `${repoName} instance is required`),
             email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
             password: (value) => (value.length >= 6 ? null : 'Password must be at least 6 characters'),
         },
     });
 
     const handleSubmit = (values) => {
-        console.log('Form values:', values);
         const newInstance = { value: values.instance, label: values.instance };
         setInstanceData([...instanceData, newInstance]);
     };
@@ -38,7 +37,7 @@ const InstanceLogin = ({ onClose }) => {
                 })}
             >
                 <TextInput
-                    label="Instance"
+                    label={`${repoName} instance`}
                     placeholder="Enter instance"
                     {...form.getInputProps('instance')}
                 />
@@ -56,6 +55,9 @@ const InstanceLogin = ({ onClose }) => {
                 />
                 <Button type="submit" mt="md">
                     Login
+                </Button>
+                <Button variant="outline" mt="md" ml="sm" onClick={() => goBack(false)}>
+                    Back
                 </Button>
             </form>
         </Box>
