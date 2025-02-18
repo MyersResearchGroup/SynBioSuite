@@ -10,6 +10,7 @@ import BugReport from './bug-report.svg?component'
 import ProfileGreen from './profile-green.svg?component'
 import ProfileOrange from './profile-orange.svg?component'
 import ProfileRed from './profile-red.svg?component'
+import ProfileWhite from './profile-white.svg?component'
 
 
 export {
@@ -21,7 +22,8 @@ export {
     BugReport,
     ProfileGreen,
     ProfileOrange,
-    ProfileRed
+    ProfileRed,
+    ProfileWhite
 }
 
 
