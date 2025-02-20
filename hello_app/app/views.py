@@ -1,5 +1,7 @@
+from __future__ import annotations 
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
+from .main import app
 
 import excel2sbol.converter as conv
 import sbol2
@@ -14,9 +16,7 @@ import pandas as pd
 import numpy as np
 import re
 
-app = Flask(__name__)
 
-CORS(app, resources={r"/*": {"origins": "*"}})
 
 class XDC:
 
@@ -728,6 +728,6 @@ def process_files():
 
     return modified_file_data
 
-if __name__ == "__main__":
-    app.run(debug=True)
-    
+@app.route('/test')
+def test():
+    return jsonify({"status": "working"}), 200
