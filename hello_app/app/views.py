@@ -132,7 +132,8 @@ class XDC:
                 }
             )
             self.sbh_token = response.text
-        #self.status = "Logged into SynBioHub"
+
+        else: print("Logged into SynBioHub")
 
     def convert_to_sbol(self):
         #temp_dir = tempfile.TemporaryDirectory() #TODO:check if I need to create the temporary object in a different context
@@ -309,7 +310,25 @@ def test_upload_file():
     sbh_url = xdc.upload_to_sbh()
     return sbh_url
 
+@app.route('/login_sbh', methods = ['POST'])
+def login_sbh():
+    sbh_url = request.form['sbh_url']
+    sbh_user = request.form['sbh_user']
+    sbh_pass = request.form['sbh_pass']
 
+    # SBH Login 
+    url = f'{sbh_url}/login'
+    print(f'Logging in to SBH with URL: {url}')  # Debug statement
+    response = requests.post(
+        url,
+        headers={'Accept': 'text/plain'},
+        data={
+            'email': sbh_user,
+            'password': sbh_pass,
+        }
+    )
+    return jsonify(response.text)
+    
 
 @app.route('/upload_sbs', methods = ['POST'])
 def upload_file_from_sbs_post():
@@ -340,17 +359,17 @@ def upload_file_from_sbs_post():
     print(request.files['Metadata'])
     xdc = XDC(input_excel_path = request.files['Metadata'],
             fj_url = params_from_request['fj_url'],
-            fj_user = params_from_request['fj_user'], 
-            fj_pass = params_from_request['fj_pass'], 
+            fj_user = None, 
+            fj_pass = None, 
             sbh_url = params_from_request['sbh_url'], 
-            sbh_user = params_from_request['sbh_user'], 
-            sbh_pass = params_from_request['sbh_pass'], 
+            sbh_user = None, 
+            sbh_pass = None, 
             sbh_collection = params_from_request['sbh_collec'], 
             sbh_collection_description = 'Default Collection description of SBOL files uploaded from XDC',
             sbh_overwrite = params_from_request['sbh_overwrite'], 
             fj_overwrite = params_from_request['fj_overwrite'], 
-            fj_token = None, 
-            sbh_token = None)
+            fj_token = params_from_request['fj_token'], 
+            sbh_token = params_from_request['sbh_token'])
 
     xdc.initialize()
     xdc.log_in_sbh()
