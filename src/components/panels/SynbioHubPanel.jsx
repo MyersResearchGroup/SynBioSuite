@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux'
 
 export const PanelContext = createContext()
 
-export default function SynbioHubPanel({id = null, fileObjectTypeId}) {
+export default function SynBioHubPanel({fileObjectTypeId}) {
     const activePanel = useSelector(state => state.panels.active)
     return (
         <PanelContext.Provider value={activePanel}>
@@ -26,7 +26,7 @@ export default function SynbioHubPanel({id = null, fileObjectTypeId}) {
                     </Center>
                 </Tabs.Tab>
             </Tabs> */}
-            <SynbioHubFrame fileTypeObjectId={fileObjectTypeId}/>
+            <SynbioHubFrame/>
             <PanelSaver id={activePanel} />
         </PanelContext.Provider>
     )
