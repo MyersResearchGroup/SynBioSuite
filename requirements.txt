@@ -2,7 +2,8 @@ excel2flapjack
 Flask
 flask_cors
 numpy==1.24.0
-excel2sbol
+excel2sbol==1.0.26
+excel_sbol_utils==1.0.43
 sbol2
 requests
 pandas
