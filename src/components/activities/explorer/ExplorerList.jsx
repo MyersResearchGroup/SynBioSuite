@@ -1,58 +1,101 @@
 import { useCreateFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import CreateNewButton from "./CreateNewButton"
-import { Accordion, ScrollArea, Title, Text, Flex } from '@mantine/core'
+import { Accordion, ScrollArea, Title, Text, Flex, Button, ActionIcon, Tooltip, TextInput } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import { Select } from '@mantine/core'
-import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
-import { useActivePanel } from '../../../redux/hooks/panelsHooks'
+import {panelsSlice} from "../../../redux/store.js"
+const { actions } = panelsSlice
+import {useDispatch} from "react-redux";
+import { useState } from 'react'
+import { AiOutlinePlus } from "react-icons/ai"
+import { useClickOutside } from '@mantine/hooks'
 
 
 export default function ExplorerList({workDir}) {
+    const dispatch = useDispatch()
+    const [synBioHubData, setSynBioHubData] = useState([{label: 'SynBioHub', value: "https://synbiohub.org/"}])
+    const [creating, setCreating] = useState(false)
+    const [value, setValue] = useState('');
 
+    
+    // handle key presses, namely Escape and Enter
+    const keyDownHandler = event => {
+        switch (event.code) {
+            case "Escape": setCreating(false)
+                break
+            case "Enter":
+                setSynBioHubData([...synBioHubData, value])
+                setCreating(false)
+                break
+        }
+    }
+
+    //TODO: add the plus button to add more data, should append a json
     // grab file handles
     const files = useFiles()
-    let tempDirectory;
-    const [activePanel, setActivePanel] = useActivePanel()
-
     // handle creation
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
+        let tempDirectory;
         if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
             tempDirectory = await workDir.getDirectoryHandle("plasmid", { create: true });
-             
+            
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }
-
+    
     // generate DragObjects based on data
     const createListItems = (files, Icon) => files.map((file, i) =>
         <ExplorerListItem 
-            fileId={file.id}
-            icon={Icon && <Icon />}
-            key={i}
-        />
-    )
+    fileId={file.id}
+    icon={Icon && <Icon />}
+    key={i}
+    />
+)
 
-    const openPanel = useOpenPanel()
-    const handleOnChange = (value) =>{
-        setActivePanel("SynBioHub")
+    const handleOnSynBioChange = (value) => {
+        dispatch(actions.openPanel({
+            id: value,
+            type: "synbio.panel-type.synbiohub",
+        }));
     }
+    
+    const onAddRegistryClick = () =>{
+        // setSynBioHubData([...synBioHubData, {label: "test", value: "clak"}])
+        setCreating(true)
+    }
+
+    const clickOutsideRef = useClickOutside(() => setCreating(false))
+    
+    
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
-            <Title mt={10} order={6}>
+            <Title mt={10} order={6} mb={10}>
                 Current Folder: {workDir.name}            
             </Title>
 
+            {creating ?
+            <TextInput label="Add a Registry" placeholder='URL' onChange={(event) => setValue(event.currentTarget.value)} onKeyDownCapture={keyDownHandler} ref={clickOutsideRef} />
+            :
             <Select
                 label="Select a SynBioHub Instance"
                 placeholder="Pick value"
-                data={[{label: 'React', value: "https://mantine.dev/core/select/"}, 'Angular', 'Vue', 'Svelte']}
-                onChange={handleOnChange}
+                data={synBioHubData}
+                onChange={handleOnSynBioChange}
                 searchable
+                spellCheck="false"
+                rightSection={
+                    <Tooltip label="Add New Registry" position='bottom'>
+                        <ActionIcon onClick={onAddRegistryClick}>
+                            <AiOutlinePlus/>    
+                        </ActionIcon>
+                    </Tooltip>
+                }
             >
             </Select>
-
+            
+            }
             <Accordion
                 mt={10}
                 multiple

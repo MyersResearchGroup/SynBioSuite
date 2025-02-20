@@ -1,6 +1,7 @@
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
-import { CanvasIcon, SimulationIcon } from "./icons";
+import SynBioHubPanel from "./components/panels/SynBioHubPanel";
+import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import { ObjectTypes } from "./objectTypes";
 
 
@@ -42,8 +43,8 @@ export const PanelTypes = {
     SynBioHub: {
         id: "synbio.panel-type.synbiohub",
         title: "SynBioHub",
-        component: SBOLEditorPanel,
-        icon: CanvasIcon,
+        component: SynBioHubPanel,
+        icon: SynBioHub,
     }
 }
 
