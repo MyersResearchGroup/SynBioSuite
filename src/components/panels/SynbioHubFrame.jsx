@@ -6,17 +6,12 @@ import { useRef } from "react"
 export default function SynbioHubFrame({}) {
 
     const panelId = useContext(PanelContext)
-    const expression = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
-    const regex = new RegExp(expression)
-    const isURL = panelId.match(regex)
     // iframe reference
     const iframeRef = useRef()
 
     // loading states
     return (
         <>
-            {isURL
-                ?
                 <div style={containerStyle}>
                     <iframe
                         src={panelId +'?ignoreHTTPErrors=true'}
@@ -27,10 +22,6 @@ export default function SynbioHubFrame({}) {
                         ref={iframeRef}
                     />
                 </div>
-                :
-                <p>sad</p>
-
-            }
         </>
     )
 }
