@@ -1,37 +1,12 @@
 import { useCreateFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import CreateNewButton from "./CreateNewButton"
-import { Accordion, ScrollArea, Title, Text, Flex, Button, ActionIcon, Tooltip, TextInput } from '@mantine/core'
+import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import { Select } from '@mantine/core'
-import {panelsSlice} from "../../../redux/store.js"
-const { actions } = panelsSlice
-import {useDispatch} from "react-redux";
-import { useState } from 'react'
-import { AiOutlinePlus } from "react-icons/ai"
-import { useClickOutside } from '@mantine/hooks'
+import AddRegistry from './AddRegistry.jsx'
 
 
 export default function ExplorerList({workDir}) {
-    const dispatch = useDispatch()
-    const [synBioHubData, setSynBioHubData] = useState([{label: 'SynBioHub', value: "https://synbiohub.org/"}])
-    const [creating, setCreating] = useState(false)
-    const [value, setValue] = useState('');
-
-    
-    // handle key presses, namely Escape and Enter
-    const keyDownHandler = event => {
-        switch (event.code) {
-            case "Escape": setCreating(false)
-                break
-            case "Enter":
-                setSynBioHubData([...synBioHubData, value])
-                setCreating(false)
-                break
-        }
-    }
-
-    //TODO: add the plus button to add more data, should append a json
     // grab file handles
     const files = useFiles()
     // handle creation
@@ -54,48 +29,14 @@ export default function ExplorerList({workDir}) {
     />
 )
 
-    const handleOnSynBioChange = (value) => {
-        dispatch(actions.openPanel({
-            id: value,
-            type: "synbio.panel-type.synbiohub",
-        }));
-    }
-    
-    const onAddRegistryClick = () =>{
-        // setSynBioHubData([...synBioHubData, {label: "test", value: "clak"}])
-        setCreating(true)
-    }
-
-    const clickOutsideRef = useClickOutside(() => setCreating(false))
-    
-    
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
             <Title mt={10} order={6} mb={10}>
                 Current Folder: {workDir.name}            
             </Title>
-
-            {creating ?
-            <TextInput label="Add a Registry" placeholder='URL' onChange={(event) => setValue(event.currentTarget.value)} onKeyDownCapture={keyDownHandler} ref={clickOutsideRef} />
-            :
-            <Select
-                label="Select a SynBioHub Instance"
-                placeholder="Pick value"
-                data={synBioHubData}
-                onChange={handleOnSynBioChange}
-                searchable
-                spellCheck="false"
-                rightSection={
-                    <Tooltip label="Add New Registry" position='bottom'>
-                        <ActionIcon onClick={onAddRegistryClick}>
-                            <AiOutlinePlus/>    
-                        </ActionIcon>
-                    </Tooltip>
-                }
-            >
-            </Select>
             
-            }
+            <AddRegistry/>
+
             <Accordion
                 mt={10}
                 multiple
