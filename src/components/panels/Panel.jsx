@@ -11,7 +11,7 @@ const Tab = forwardRef(({ id, ...props }, ref) => {
     const closePanel = useClosePanel()
 
     return (
-        <Tooltip label={id}>
+        <Tooltip label={id} openDelay={800}>
 
             <MantineTabs.Tab value={id} ref={ref} {...props}>
                 <TabLabel
