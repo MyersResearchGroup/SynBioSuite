@@ -33,7 +33,10 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: BsGraphUpArrow,
         objectTypesToList: [
-
+            ObjectTypes.SBOL.id,
+            ObjectTypes.SBML.id,
+            ObjectTypes.OMEX.id,
+            ObjectTypes.Analysis.id
         ]
     },
     Build: {
