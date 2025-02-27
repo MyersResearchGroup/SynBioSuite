@@ -3,21 +3,23 @@ import { Select, Button } from '@mantine/core';
 import InstanceLogin from './instanceLogin';
 import { useLocalStorage } from '@mantine/hooks';
 
-const InstanceSelector = ({onClose, repoName }) => {
+const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
     const [nullInstanceSelected, setNullInstanceSelected] = useState(false);
     const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
     
     const handleRemoveInstance = () => {
-        setInstanceData([instanceData.find(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` != selectedInstanceValue)]);
+        console.log(instanceData.filter(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` === selectedInstanceValue));
+        console.log(selectedInstanceValue);
+        setInstanceData(instanceData.filter(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` === selectedInstanceValue));
         setSelectedInstanceValue(null);
     };
 
     return (
         <>
             {showLogin ? (
-                <InstanceLogin onClose={onClose} repoName={repoName} goBack={setShowLogin}/>
+                <InstanceLogin onClose={onClose} repoName={repoName} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
             ) : (
                 <>
                     <Select
@@ -32,11 +34,10 @@ const InstanceSelector = ({onClose, repoName }) => {
                         <Button mr="md" onClick={() => {setShowLogin(true)}}>Add Instance</Button>
                         <Button onClick={() => 
                         {if (selectedInstanceValue != null)
-                            {handleRemoveInstance(); onClose()}
+                            {handleRemoveInstance(); setRepoSelection("")}
                             else setNullInstanceSelected(true)}}>
                         Remove Instance</Button>
-                        <Button ml="auto" onClick={onClose}>Confirm Instance</Button>
-                        <Button ml="md" onClick={() => console.log(selectedInstanceValue)}>Cancel</Button>
+                        <Button ml="auto" onClick={() => setRepoSelection("")}>Confirm Instance</Button>
                     </div>
                 </>
             )}
