@@ -8,18 +8,28 @@ import { ObjectTypes } from "./objectTypes";
 import { FaGraduationCap } from "react-icons/fa";
 import { BsGraphUpArrow } from "react-icons/bs";
 import { BiSolidFlask } from "react-icons/bi";
+import { HiOutlinePuzzlePiece } from "react-icons/hi2";
 
 export const Activities = {
     LocalFileExplorer: {
-        id: "synbio.activity.local-file-explorer",
-        title: "Local Explorer",
+        id: "synbio.activity.entire-workflow",
+        title: "Entire Workflow",
         component: ExplorerActivityView,
         icon: FileIcon,
         objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
     },
-    Model: {
-        id: "synbio.activity.model",
-        title: "Model",
+    PartsSelection: {
+        id: "synbio.activity.parts-selection",
+        title: "Parts Selection",
+        component: ExplorerActivityView,
+        icon: HiOutlinePuzzlePiece,
+        objectTypesToList: [
+
+        ] 
+    },
+    Design: {
+        id: "synbio.activity.design",
+        title: "Design",
         component: ExplorerActivityView,
         icon: BsGraphUpArrow,
         objectTypesToList: [
