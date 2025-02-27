@@ -6,7 +6,7 @@ import ExplorerListItem from './ExplorerListItem'
 import SaveIndicatorDisplay from '../../saveIndicatorDisplay'
 
 
-export default function ExplorerList({workDir}) {
+export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
@@ -48,26 +48,28 @@ export default function ExplorerList({workDir}) {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
-                        const filesOfType = files.filter(file => file.objectType == objectType.id)
+                        if(objectTypesToList.includes(objectType.id)){
+                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                            return (    
+                                <Accordion.Item value={objectType.id} key={i}>
+                                    <Accordion.Control>
+                                        <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
+                                    </Accordion.Control>
+                                    <Accordion.Panel>
+                                        {objectType.createable &&
+                                            <CreateNewButton
+                                                onCreate={handleCreateObject(objectType)}
+                                                suggestedName={`New ${objectType.title}`}
+                                            >
+                                                New {objectType.title}
+                                            </CreateNewButton>
+                                        }
+                                        {createListItems(filesOfType, objectType.icon)}
+                                    </Accordion.Panel>
+                                </Accordion.Item>
+                            )
+                        }
 
-                        return (    
-                            <Accordion.Item value={objectType.id} key={i}>
-                                <Accordion.Control>
-                                    <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
-                                </Accordion.Control>
-                                <Accordion.Panel>
-                                    {objectType.createable &&
-                                        <CreateNewButton
-                                            onCreate={handleCreateObject(objectType)}
-                                            suggestedName={`New ${objectType.title}`}
-                                        >
-                                            New {objectType.title}
-                                        </CreateNewButton>
-                                    }
-                                    {createListItems(filesOfType, objectType.icon)}
-                                </Accordion.Panel>
-                            </Accordion.Item>
-                        )
                     })
                 }
             </Accordion>

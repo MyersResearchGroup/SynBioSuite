@@ -1,39 +1,34 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
-import { GrTestDesktop } from "react-icons/gr";
-import { MdAlignVerticalTop } from "react-icons/md";
-import { VscOutput } from "react-icons/vsc";
+
 export const ObjectTypes = {
     SBOL: {
         id: "synbio.object-type.sbol",
-        title: "SBOL Component",
-        listTitle: "SBOL Components",
+        title: "Design",
+        listTitle: "Designs",
         fileMatch: /<sbol:/,
         icon: TbComponents,
         createable: true,
         extension: '.xml',
         badgeLabel: "SBOL",
-        directory: "main"
     },
     SBML: {
         id: "synbio.object-type.sbml",
-        title: "SBML File",
-        listTitle: "SBML Files",
+        title: "Model",
+        listTitle: "Models",
         fileMatch: /<sbml/,
         createable: false,
         badgeLabel: "SBML",
-        directory: "main"
     },
     OMEX: {
         id: "synbio.object-type.omex-archive",
-        title: "OMEX Archive",
-        listTitle: "OMEX Archives",
+        title: "Archive",
+        listTitle: "Archives",
         fileNameMatch: /\.omex$/,
         icon: BiWorld,
         createable: false,
         badgeLabel: "OMEX",
-        directory: "main"
     },
     Analysis: {
         id: "synbio.object-type.analysis",
@@ -43,7 +38,6 @@ export const ObjectTypes = {
         icon: IoAnalyticsSharp,
         createable: true,
         extension: '.analysis',
-        directory: "main"
     },
     Plasmids:{
         id: "synbio.object-type.plasmid",
@@ -52,7 +46,6 @@ export const ObjectTypes = {
         createable: true,
         extension: '.xml',
         icon: TbComponents,
-        directory: 'Plasmid',
         fileNameMatch: /\.xml$/
     }
 }
