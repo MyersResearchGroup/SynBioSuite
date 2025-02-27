@@ -6,20 +6,13 @@ import { useLocalStorage } from '@mantine/hooks';
 const InstanceSelector = ({onClose, repoName }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
-
-    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
-    const handleRemoveInstance = () => {
-        // Assuming instanceData is an array of instances
-        const selectedInstance = instanceData.find(instance => instance.value === selectedInstanceValue);
-        const updatedInstanceData = instanceData.filter(instance => instance !== selectedInstance);
-        setInstanceData(updatedInstanceData);
-        setSelectedInstanceValue(null); // Reset the select component
-    };
-
-    const handleAddInstance = (newInstance) => {
-        setInstanceData([...instanceData, newInstance]);
-    };
     const [nullInstanceSelected, setNullInstanceSelected] = useState(false);
+    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
+    
+    const handleRemoveInstance = () => {
+        setInstanceData([instanceData.find(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` != selectedInstanceValue)]);
+        setSelectedInstanceValue(null);
+    };
 
     return (
         <>
@@ -43,6 +36,7 @@ const InstanceSelector = ({onClose, repoName }) => {
                             else setNullInstanceSelected(true)}}>
                         Remove Instance</Button>
                         <Button ml="auto" onClick={onClose}>Confirm Instance</Button>
+                        <Button ml="md" onClick={() => console.log(selectedInstanceValue)}>Cancel</Button>
                     </div>
                 </>
             )}
