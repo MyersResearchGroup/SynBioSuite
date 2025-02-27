@@ -54,7 +54,7 @@ const login = async (instance, emailOrUsername, password, repoName) => {
     }
 };
 
-const InstanceLogin = ({ onClose, repoName, goBack }) => {
+const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
     const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
 
@@ -84,24 +84,28 @@ const InstanceLogin = ({ onClose, repoName, goBack }) => {
                     label: `${repoName == "SynbioHub" ? values.email : values.username},  ${values.instance}`,
                     instance: values.instance, 
                     email: values.email, 
-                    ...(repoName === "SynbioHub" ? { authToken: info } : { access: info.access, refresh: info.refresh }) 
+                    ...(repoName === "SynbioHub" ? { authtoken: info } : { access: info.access, refresh: info.refresh }) 
                 };
-                /*const existingIndex = instanceData.findIndex(
-                    (instance) => instance.value === newInstance.value
-                );
+                const existingIndex = instanceData.findIndex((instance) => instance.value === newInstance.value);
                 if (existingIndex !== -1) {
-                    instanceData[existingIndex] = newInstance;
+                    const updatedInstanceData = [...instanceData];
+                    updatedInstanceData[existingIndex] = newInstance;
+                    setInstanceData(updatedInstanceData);
+                    showNotification({
+                        title: 'Login exists',
+                        message: 'This repository has already been added.',
+                        color: 'yellow',
+                    });
                 } else {
-                    instanceData.push(newInstance);
-                }*/
-                setInstanceData([...instanceData, newInstance]);
+                    setInstanceData([...instanceData, newInstance]);
+                    showNotification({
+                        title: 'Login successful',
+                        message: 'You have successfully logged in.',
+                        color: 'green',
+                    });
+                }
                 setSelectedInstanceValue(newInstance.value);
-                showNotification({
-                    title: 'Login successful',
-                    message: 'You have successfully logged in.',
-                    color: 'green',
-                });
-                onClose();
+                setRepoSelection("");
             } catch (error) {
                 console.error('Login failed:', error);
                 if(error.status === 401){

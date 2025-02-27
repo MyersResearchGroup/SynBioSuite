@@ -6,7 +6,6 @@ import CenteredTitle from "../CenteredTitle"
 import { useLocalStorage } from "@mantine/hooks"
 import WelcomeScreen from "../WelcomeScreen"
 import LoginStatus from "../LoginStatus"
-import { InstanceProvider } from "../../context/InstanceContext"
 
 export default function Panels() {
 
@@ -33,7 +32,7 @@ export default function Panels() {
                 firstTime ?
                     <WelcomeScreen /> :
                     <CenteredTitle>Open a file to start</CenteredTitle>:
-                    <InstanceProvider><LoginStatus>Open a file to start</LoginStatus></InstanceProvider>}
+                    <LoginStatus>Open a file to start</LoginStatus>}
         </div>
     )
 }
