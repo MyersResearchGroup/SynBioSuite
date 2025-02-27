@@ -1,14 +1,13 @@
 import { useState, useContext } from 'react';
 import { Select, Button } from '@mantine/core';
 import InstanceLogin from './instanceLogin';
-import { InstanceContext } from '../../context/InstanceContext';
-import Cookies from 'js-cookie'
+import { useLocalStorage } from '@mantine/hooks';
 
 const InstanceSelector = ({onClose, repoName }) => {
     const [showLogin, setShowLogin] = useState(false);
-    const { instanceData, setInstanceData } = useContext(InstanceContext);
-    
-    const [selectedInstanceValue, setSelectedInstanceValue] = useState(null);
+    const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
+
+    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
     const handleRemoveInstance = () => {
         // Assuming instanceData is an array of instances
         const selectedInstance = instanceData.find(instance => instance.value === selectedInstanceValue);
@@ -17,6 +16,9 @@ const InstanceSelector = ({onClose, repoName }) => {
         setSelectedInstanceValue(null); // Reset the select component
     };
 
+    const handleAddInstance = (newInstance) => {
+        setInstanceData([...instanceData, newInstance]);
+    };
     const [nullInstanceSelected, setNullInstanceSelected] = useState(false);
 
     return (
