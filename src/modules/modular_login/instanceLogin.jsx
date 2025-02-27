@@ -41,7 +41,11 @@ const login = async (instance, emailOrUsername, password, repoName) => {
             if(response.data){
                 console.log(`Values for login: instance=${instance}, username=${emailOrUsername}, password=${password}`);
                 console.log('Response data:', response.data);
-                return response.data;
+                return {
+                    username: response.data.username,
+                    access: response.data.access,
+                    refresh: response.data.refresh
+                }
             }
         } catch (error) {
             console.error('Error:', error);
@@ -52,6 +56,7 @@ const login = async (instance, emailOrUsername, password, repoName) => {
 
 const InstanceLogin = ({ onClose, repoName, goBack }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
+    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
 
     const form = useForm({
         initialValues: {
@@ -73,9 +78,24 @@ const InstanceLogin = ({ onClose, repoName, goBack }) => {
         if (form.isValid()){
             console.log(`Submitting login for instance=${values.instance}, email=${values.email}`);
             try {
-                const info = await login(values.instance, values.email, values.password, repoName);
-                const newInstance = { value: values.instance, label: values.instance, instance: values.instance, email: values.email, authToken: info };
+                const info = await login(values.instance, repoName === "SynbioHub" ? values.email : values.username, values.password, repoName);
+                const newInstance = { 
+                    value: `${repoName == "SynbioHub" ? values.email : values.username},  ${values.instance}`, 
+                    label: `${repoName == "SynbioHub" ? values.email : values.username},  ${values.instance}`,
+                    instance: values.instance, 
+                    email: values.email, 
+                    ...(repoName === "SynbioHub" ? { authToken: info } : { access: info.access, refresh: info.refresh }) 
+                };
+                /*const existingIndex = instanceData.findIndex(
+                    (instance) => instance.value === newInstance.value
+                );
+                if (existingIndex !== -1) {
+                    instanceData[existingIndex] = newInstance;
+                } else {
+                    instanceData.push(newInstance);
+                }*/
                 setInstanceData([...instanceData, newInstance]);
+                setSelectedInstanceValue(newInstance.value);
                 showNotification({
                     title: 'Login successful',
                     message: 'You have successfully logged in.',

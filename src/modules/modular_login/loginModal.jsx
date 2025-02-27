@@ -1,6 +1,6 @@
 import { useContext, useEffect } from 'react';
 import { Modal, Button } from '@mantine/core';
-import InstanceSelector from './instanceSelector';
+import InstanceSelector from './InstanceSelector';
 import { InstanceContext } from '../../context/InstanceContext';
 
 
