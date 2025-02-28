@@ -31,13 +31,13 @@ const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
                     />
                     {nullInstanceSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected instance. Please select an instance</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
-                        <Button mr="md" onClick={() => {setShowLogin(true)}}>Add Instance</Button>
+                        <Button mr="md" onClick={() => {setShowLogin(true)}}>Add Repository</Button>
                         <Button onClick={() => 
                         {if (selectedInstanceValue != null)
                             {handleRemoveInstance(); setRepoSelection("")}
                             else setNullInstanceSelected(true)}}>
-                        Remove Instance</Button>
-                        <Button ml="auto" onClick={() => setRepoSelection("")}>Confirm Instance</Button>
+                        Remove Repository</Button>
+                        <Button ml="auto" onClick={() => setRepoSelection("")}>Confirm Repository Selection</Button>
                     </div>
                 </>
             )}
