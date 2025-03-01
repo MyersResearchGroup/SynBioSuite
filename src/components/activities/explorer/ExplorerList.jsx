@@ -3,8 +3,7 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import AddRegistry from './AddRegistry.jsx'
-
+import SynBioHubRegistries from './SynBioHubRegistries.jsx'
 
 export default function ExplorerList({workDir}) {
     // grab file handles
@@ -23,10 +22,10 @@ export default function ExplorerList({workDir}) {
     // generate DragObjects based on data
     const createListItems = (files, Icon) => files.map((file, i) =>
         <ExplorerListItem 
-    fileId={file.id}
-    icon={Icon && <Icon />}
-    key={i}
-    />
+            fileId={file.id}
+            icon={Icon && <Icon />}
+            key={i}
+        />
 )
 
     return (
@@ -35,15 +34,15 @@ export default function ExplorerList({workDir}) {
                 Current Folder: {workDir.name}            
             </Title>
             
-            <AddRegistry/>
 
             <Accordion
                 mt={10}
                 multiple
-                defaultValue={Object.values(ObjectTypes).map(({ id }) => id)}
+                defaultValue={[...Object.values(ObjectTypes).map(({ id }) => id), "SynBioHub"]}
                 styles={accordionStyles}
                 key={Math.random()}     // this forces re-render and fixes accordion heights
-            >
+                >
+                <SynBioHubRegistries/>
                 {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
