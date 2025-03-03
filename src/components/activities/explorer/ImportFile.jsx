@@ -1,23 +1,36 @@
 import { Group } from "@mantine/core";
 import { AiOutlinePlus } from "react-icons/ai";
 import { getPrimaryColor } from "../../../modules/colorScheme";
+import { createContext, useState } from "react";
+import { classifyFile } from "../../../objectTypes";
 import { Text } from "@mantine/core";
-import { useState } from "react";
-import DragObject from "../../DragObject";
-import { titleFromFileName } from "../../../redux/hooks/workingDirectoryHooks";
 
-export default function ImportFile({ onSelect, text }) {
-        const [selectedFile, setSelectedFile] = useState(null);
+export const importedFile = createContext()
 
+export default function ImportFile({ onSelect, text, ...props }) {
+        const [selectedFile, setSelectedFile] = useState(null)
+        
         async function addFileMetadata(fileHandle) {
-            const file = await fileHandle.getFile(); 
+            const file = await fileHandle.getFile() 
             return {
-                id: file.id, 
+                fileobj: file,
                 name: file.name,
+                fileHandle: fileHandle,
                 objectType: await classifyFile(fileHandle) 
-            };
+            }
         }
 
+        const handleOpenFile = () => {
+            openPanel(file)
+        }
+
+        // right click handler
+        const handleRightClick = event => {
+        event.preventDefault()
+        setContextMenuOpen(true)
+    }
+
+        
         const handleClick = async () => {
             try {
                 const [fileHandle] = await window.showOpenFilePicker({
@@ -35,33 +48,27 @@ export default function ImportFile({ onSelect, text }) {
                     ],
                     multiple: false,
                     startIn: 'desktop'
-                });
+                })
 
-                const fileMetadata = await addFileMetadata(fileHandle); 
-                setSelectedFile(fileMetadata);
+                const fileMetadata = await addFileMetadata(fileHandle)
+                setSelectedFile(fileMetadata)
+                
 
-                onSelect?.(fileMetadata);
+                onSelect?.(fileMetadata)
             } catch (err) {
-                console.error("File selection canceled or failed", err);
+                console.error("File selection canceled or failed", err)
             }
-        };
+        }
+            
 
         return (
             <Group sx={groupStyle} onClick={handleClick}>
-                {selectedFile && (
-                    <DragObject
-                        title={titleFromFileName(selectedFile.name)}
-                        fileId={selectedFile.id}
-                        type={selectedFile.objectType}
-                        icon={icon}
-                        onDoubleClick={handleOpenFile}
-                        onContextMenu={handleRightClick}
-                    />
-                )}
+                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
                 <AiOutlinePlus />
-                <Text size="sm" sx={textStyle}>
-                    {selectedFile?.name || text}
-                </Text>
+                <Text size="sm" sx={textStyle} >
+                     {}
+                 </Text> 
+                </importedFile.Provider>
             </Group>
         );
     }
@@ -84,3 +91,4 @@ export default function ImportFile({ onSelect, text }) {
         color: getPrimaryColor(theme, 5),
         fontWeight: 500
     });
+

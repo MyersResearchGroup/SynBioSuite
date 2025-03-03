@@ -5,8 +5,9 @@ import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import ImportFile from './ImportFile'
-
-
+import { useState, useCallback, useSelector } from 'react'
+import { useDispatch } from 'react-redux'
+import { current } from '@reduxjs/toolkit'
 
 
 export default function ExplorerList({currentDirectory}) {
@@ -14,6 +15,31 @@ export default function ExplorerList({currentDirectory}) {
     // grab file handles
     const files = useFiles()
 
+    const [importedFile, setImportedFile] = useState(null)
+    console.log(importedFile)
+
+    const finalImport = (file) => {
+        setImportedFile(file)
+        console.log("File type:", typeof file.fileHandle);
+        copySelectedFile(file)
+    }
+
+    async function copySelectedFile(file) {
+        if (!file) return null
+        try {
+            const arrayBuffer = await file.fileobj.arrayBuffer()
+            console.log("File type:", typeof file);
+            console.log("File properties:", file);
+
+            const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
+            console.log("Copied File:", copied)
+            return copied
+        } catch (err) {
+            console.error("Error copying file:", err)
+            return null
+        }
+    }
+    
     // handle creation
     const createFile = useCreateFile()
     const handleCreateObject = objectType => fileName => {
@@ -28,12 +54,6 @@ export default function ExplorerList({currentDirectory}) {
             key={i}
         />
     )
-
-    const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
-    const handleDirectorySelection = dirHandle => {
-        setWorkingDirectory(dirHandle)
-    }
-
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
@@ -62,10 +82,11 @@ export default function ExplorerList({currentDirectory}) {
                                 <Accordion.Panel>
                                     {objectType.importable &&
                                     <ImportFile
-                                        onSelect={handleDirectorySelection} 
-                                        text = {"Import " + objectType.title}>
+                                    onSelect={finalImport}
+                                    text={`Import ${objectType.title}`} >
+                                        
                                     </ImportFile>
-                                    }
+                            }
                                     {objectType.createable &&
                                         <CreateNewButton
                                             
