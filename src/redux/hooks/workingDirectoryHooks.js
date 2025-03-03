@@ -46,6 +46,27 @@ export function useWorkingDirectory() {
 
 // Action hooks
 
+// export function useCopySelectedFile(file) {
+//     const dispatch = useDispatch()
+//     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
+
+//     if (!file) return null
+//     try {
+//         workDir.getFileHandle(fileName, { create: true })
+//             .then(async fileHandle => {
+//                 addFileMetadata(fileHandle, { objectType })
+//                 dispatch(actions.addFile(fileHandle))
+//                 const arrayBuffer = await file.arrayBuffer()
+//                 writeToFileHandle(fileHandle, arrayBuffer)
+//             })
+
+//         console.log("Copied File:")
+//     } catch (err) {
+//         console.error("Error copying file:", err)
+//     }
+// }
+
+
 export function useCreateFile() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
