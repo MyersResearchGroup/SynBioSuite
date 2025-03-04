@@ -1,10 +1,25 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
-import { GrTestDesktop } from "react-icons/gr";
-import { MdAlignVerticalTop } from "react-icons/md";
-import { VscOutput } from "react-icons/vsc";
+import { RiGitRepositoryLine } from "react-icons/ri";
+
 export const ObjectTypes = {
+    SYNBIOHUB: {
+        id: "synbio.object-type.synbiohub",
+        title: "SynBioHub Registry",
+        listTitle: "SynBioHub Registries",
+        icon: RiGitRepositoryLine,
+        isRepository: true,
+        defaultRegistry: "https://synbiohub.org"
+    },
+    Flapjack: {
+        id: "synbio.object-type.flapjack",
+        title: "Flapjack Registry",
+        listTitle: "Flapjack Registries",
+        icon: RiGitRepositoryLine,
+        isRepository: true,
+        defaultRegistry: "https://ebugsfj.synbiohub.org"
+    },
     SBOL: {
         id: "synbio.object-type.sbol",
         title: "SBOL Component",
@@ -14,7 +29,6 @@ export const ObjectTypes = {
         createable: true,
         extension: '.xml',
         badgeLabel: "SBOL",
-        directory: "main"
     },
     SBML: {
         id: "synbio.object-type.sbml",
@@ -23,7 +37,6 @@ export const ObjectTypes = {
         fileMatch: /<sbml/,
         createable: false,
         badgeLabel: "SBML",
-        directory: "main"
     },
     OMEX: {
         id: "synbio.object-type.omex-archive",
@@ -33,7 +46,6 @@ export const ObjectTypes = {
         icon: BiWorld,
         createable: false,
         badgeLabel: "OMEX",
-        directory: "main"
     },
     Analysis: {
         id: "synbio.object-type.analysis",
@@ -43,7 +55,6 @@ export const ObjectTypes = {
         icon: IoAnalyticsSharp,
         createable: true,
         extension: '.analysis',
-        directory: "main"
     },
     Plasmids:{
         id: "synbio.object-type.plasmid",
