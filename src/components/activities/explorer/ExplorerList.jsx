@@ -3,7 +3,7 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import SynBioHubRegistries from './SynBioHubRegistries.jsx'
+import Registries from './Registries.jsx'
 
 export default function ExplorerList({workDir}) {
     // grab file handles
@@ -29,7 +29,7 @@ export default function ExplorerList({workDir}) {
 )
 
     return (
-        <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
+        <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
             <Title mt={10} order={6} mb={10}>
                 Current Folder: {workDir.name}            
             </Title>
@@ -38,17 +38,16 @@ export default function ExplorerList({workDir}) {
             <Accordion
                 mt={10}
                 multiple
-                defaultValue={[...Object.values(ObjectTypes).map(({ id }) => id), "SynBioHub"]}
+                defaultValue={[...Object.values(ObjectTypes).map(({ id }) => id)]}
                 styles={accordionStyles}
                 key={Math.random()}     // this forces re-render and fixes accordion heights
                 >
-                <SynBioHubRegistries/>
                 {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
                         const filesOfType = files.filter(file => file.objectType == objectType.id)
-
+                        
                         return (    
                             <Accordion.Item value={objectType.id} key={i}>
                                 <Accordion.Control>
@@ -57,13 +56,20 @@ export default function ExplorerList({workDir}) {
                                 <Accordion.Panel>
                                     {objectType.createable &&
                                         <CreateNewButton
-                                            onCreate={handleCreateObject(objectType)}
-                                            suggestedName={`New ${objectType.title}`}
+                                        onCreate={handleCreateObject(objectType)}
+                                        suggestedName={`New ${objectType.title}`}
                                         >
                                             New {objectType.title}
                                         </CreateNewButton>
                                     }
                                     {createListItems(filesOfType, objectType.icon)}
+
+                                    {objectType.isRepository && 
+                                        <Registries 
+                                        defaultRegistry={objectType.defaultRegistry} 
+                                        typeOfRegistry={objectType.listTitle}
+                                        title={objectType.title}/>
+                                    }
                                 </Accordion.Panel>
                             </Accordion.Item>
                         )
