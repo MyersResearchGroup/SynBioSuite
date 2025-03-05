@@ -15,11 +15,9 @@ export default function ExplorerList({currentDirectory}) {
     const files = useFiles()
 
     const [importedFile, setImportedFile] = useState(null)
-    console.log(importedFile)
 
     const finalImport = (file) => {
         setImportedFile(file)
-        console.log("File type:", typeof file.fileHandle);
         copySelectedFile(file)
     }
 
@@ -27,15 +25,10 @@ export default function ExplorerList({currentDirectory}) {
         if (!file) return null
         try {
             const arrayBuffer = await file.fileobj.arrayBuffer()
-            console.log("File type:", typeof file);
-            console.log("File properties:", file);
-
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
-            console.log("Copied File:", copied)
             const draftHandle = await currentDirectory.getFileHandle(file.name, { create: true })
-            console.log(draftHandle)  
             const copiedText = await copied.text()
-            console.log(copiedText)
+
             writeToFileHandle(draftHandle, copiedText)
 
             return copied
