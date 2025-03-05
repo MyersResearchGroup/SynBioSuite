@@ -3,11 +3,10 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title, Text, Flex } from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
+import {writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import ImportFile from './ImportFile'
-import { useState, useCallback, useSelector } from 'react'
-import { useDispatch } from 'react-redux'
-import { current } from '@reduxjs/toolkit'
+import { useState} from 'react'
+
 
 
 export default function ExplorerList({currentDirectory}) {
@@ -33,6 +32,12 @@ export default function ExplorerList({currentDirectory}) {
 
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
             console.log("Copied File:", copied)
+            const draftHandle = await currentDirectory.getFileHandle(file.name, { create: true })
+            console.log(draftHandle)  
+            const copiedText = await copied.text()
+            console.log(copiedText)
+            writeToFileHandle(draftHandle, copiedText)
+
             return copied
         } catch (err) {
             console.error("Error copying file:", err)
@@ -58,7 +63,7 @@ export default function ExplorerList({currentDirectory}) {
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
             <Title mt={10} order={6}>
-                Current Folder: {currentDirectory}            
+                Current Folder: {currentDirectory.name}            
             </Title>
 
             <Accordion
