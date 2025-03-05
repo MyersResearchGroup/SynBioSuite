@@ -3,15 +3,68 @@ import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
 import { FileIcon, RemoteControlIcon, BugReport } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
-
-
+import { GiThorHammer} from "react-icons/gi";
+import { ObjectTypes } from "./objectTypes";
+import { FaGraduationCap } from "react-icons/fa";
+import { BsGraphUpArrow } from "react-icons/bs";
+import { BiSolidFlask } from "react-icons/bi";
+import { HiOutlinePuzzlePiece } from "react-icons/hi2";
 
 export const Activities = {
     LocalFileExplorer: {
-        id: "synbio.activity.local-file-explorer",
-        title: "Local Explorer",
+        id: "synbio.activity.entire-workflow",
+        title: "Entire Workflow",
         component: ExplorerActivityView,
-        icon: FileIcon
+        icon: FileIcon,
+        objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
+    },
+    PartsSelection: {
+        id: "synbio.activity.parts-selection",
+        title: "Parts Selection",
+        component: ExplorerActivityView,
+        icon: HiOutlinePuzzlePiece,
+        objectTypesToList: [
+            "synbio.object-type.synbiohub"
+        ] 
+    },
+    Design: {
+        id: "synbio.activity.design",
+        title: "Design",
+        component: ExplorerActivityView,
+        icon: BsGraphUpArrow,
+        objectTypesToList: [
+            ObjectTypes.SBOL.id,
+            ObjectTypes.SBML.id,
+            ObjectTypes.OMEX.id,
+            ObjectTypes.Analysis.id
+        ]
+    },
+    Build: {
+        id: "synbio.activity.build",
+        title: "Build",
+        component: ExplorerActivityView,
+        icon: GiThorHammer,
+        objectTypesToList: [
+            ObjectTypes.Plasmids.id
+        ]
+    },
+    Test: {
+        id: "synbio.activity.test",
+        title: "Test",
+        component: ExplorerActivityView,
+        icon: BiSolidFlask,
+        objectTypesToList: [
+
+        ]
+    },
+    Learn: {
+        id: "synbio.activity.learn",
+        title: "Learn",
+        component: ExplorerActivityView,
+        icon: FaGraduationCap,
+        objectTypesToList: [
+            "synbio.object-type.flapjack"
+        ]
     },
     // RemoteFileExplorer: {
     //     id: "synbio.activity.remote-file-explorer",
@@ -38,3 +91,4 @@ export const Activities = {
 export function getActivity(id) {
     return Object.values(Activities).find(act => act.id == id)
 }
+
