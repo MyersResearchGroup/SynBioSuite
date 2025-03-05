@@ -4,6 +4,7 @@ import workingDirectorySlice from "./slices/workingDirectorySlice"
 import activitySlice from "./slices/activitySlice"
 import saveIndicatorReducer from './slices/saveIndicatorSlice'
 import failureMessageReducer from './slices/failureMessageSlice'
+import loginModalReducer from './slices/loginModalSlice'
 
 export default configureStore({
     reducer: {
@@ -12,6 +13,7 @@ export default configureStore({
         panels: panelsSlice.reducer,
         saveIndicator: saveIndicatorReducer,
         failureMessage: failureMessageReducer,
+        loginModal: loginModalReducer,
     },
 
     /*  
@@ -23,4 +25,4 @@ export default configureStore({
     })
 })
 
-export { panelsSlice, workingDirectorySlice, activitySlice, saveIndicatorReducer }
+export { panelsSlice, workingDirectorySlice, activitySlice, saveIndicatorReducer, loginModalReducer }

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Modal, Button } from '@mantine/core';
 import InstanceSelector from './InstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
-
+import { closeModal } from '../../redux/slices/loginModalSlice';
+import { useDispatch } from 'react-redux';
 
 function LoginModal({ opened, onClose, repoName }) {
+    const dispatch = useDispatch();
     const [repoSelection, setRepoSelection] = useState("");
     return (
-        <Modal opened={opened} onClose={onClose} title={`Choose Registry`} size="lg">
+        <Modal opened={opened} onClose={() => dispatch(closeModal())} title={`Choose Registry`} size="lg">
             {repoSelection === "" ? (
                 <>
                 <Grid>
