@@ -1,6 +1,7 @@
 import ExplorerActivityView from "./components/activities/explorer/ExplorerActivityView"
 import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
+import LoginStatus from "./components/activities/explorer/LoginStatus";
 import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
 
@@ -24,7 +25,7 @@ export const Activities = {
     LoginStatusPanel: {
         id: "synbio.activity.login-status-panel",
         title: "Check Login Status",
-        component: ExplorerActivityView,
+        component: LoginStatus,
         icon: ProfileWhite,
         mt: 'auto'
     },
