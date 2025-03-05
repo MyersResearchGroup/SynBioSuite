@@ -11,7 +11,7 @@ function LoginModal({ opened, onClose, repoName }) {
     }, [opened]);
 
     return (
-        <Modal opened={opened} onClose={onClose} title={`Choose Registry`} size="lg">
+        <Modal opened={opened} onClose={() => dispatch(closeModal())} title={`Choose Registry`} size="lg">
             {repoSelection === "" ? (
                 <>
                 <Grid>
