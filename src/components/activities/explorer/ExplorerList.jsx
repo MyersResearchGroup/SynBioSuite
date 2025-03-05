@@ -5,7 +5,8 @@ import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import Registries from './Registries.jsx'
 
-export default function ExplorerList({workDir}) {
+export default function ExplorerList({workDir, objectTypesToList}) {
+
     // grab file handles
     const files = useFiles()
     // handle creation
@@ -46,24 +47,24 @@ export default function ExplorerList({workDir}) {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
-                        const filesOfType = files.filter(file => file.objectType == objectType.id)
-                        
-                        return (    
-                            <Accordion.Item value={objectType.id} key={i}>
-                                <Accordion.Control>
-                                    <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
-                                </Accordion.Control>
-                                <Accordion.Panel>
-                                    {objectType.createable &&
-                                        <CreateNewButton
-                                        onCreate={handleCreateObject(objectType)}
-                                        suggestedName={`New ${objectType.title}`}
-                                        >
-                                            New {objectType.title}
-                                        </CreateNewButton>
-                                    }
-                                    {createListItems(filesOfType, objectType.icon)}
-
+                        if(objectTypesToList.includes(objectType.id)){
+                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                                                    return (    
+                                <Accordion.Item value={objectType.id} key={i}>
+                                    <Accordion.Control>
+                                        <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
+                                    </Accordion.Control>
+                                    <Accordion.Panel>
+                                        {objectType.createable &&
+                                            <CreateNewButton
+                                            onCreate={handleCreateObject(objectType)}
+                                            suggestedName={`New ${objectType.title}`}
+                                            >
+                                                New {objectType.title}
+                                            </CreateNewButton>
+                                        }
+                                        {createListItems(filesOfType, objectType.icon)}
+    
                                     {objectType.isRepository && 
                                         <Registries 
                                         defaultRegistry={objectType.defaultRegistry} 
@@ -71,8 +72,10 @@ export default function ExplorerList({workDir}) {
                                         title={objectType.title}/>
                                     }
                                 </Accordion.Panel>
-                            </Accordion.Item>
-                        )
+                                </Accordion.Item>
+                            )
+                        }
+
                     })
                 }
             </Accordion>
