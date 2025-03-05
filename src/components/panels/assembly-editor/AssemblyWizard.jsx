@@ -19,8 +19,10 @@ import { RuntimeStatus } from '../../../runtimeStatus'
 import { CgCheckO } from "react-icons/cg"
 import { useDispatch } from 'react-redux'
 import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
+import AssemblyReviewTable from './AssemblyReviewTable'
 
 export const TabValues = {
+    PLASMID: 'plasmid',
     INSERTS: 'inserts',
     PARAMETERS: 'parameters',
     INPUT: 'input'
@@ -54,10 +56,8 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const handleComponentChange = fileNames => {
         setplasmidId(fileNames)
     }
-    const isComponentOMEX = component?.objectType == ObjectTypes.OMEX.id
 
     // Step 2: select part inserts
-    const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.INSERTS)
     const [insertIDs, setInsertIDs] = usePanelProperty(panelId, 'inserts', false, []) || []
     const handleInsertChange = name => {
         setInsertIDs([...insertIDs, name])
@@ -78,11 +78,9 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     switch (activeStep) {
         case 0: showNextButton = !!plasmidId
         break
-        case 1: showNextButton =
-        (parameterSource == TabValues.INSERTS && !!insertIDs) ||
-        (parameterSource == TabValues.PARAMETERS && true) ||
-        parameterSource == TabValues.INPUT
+        case 1: showNextButton = !!component
         break
+        case 2: showNextButton = true
     }
     
     // submission & response tracking
@@ -98,7 +96,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                 <Stepper.Step
                     allowStepSelect={activeStep > 0}
                     label="Select Plasmid Backbone"
-                    description="SBOL Only"
+                    description="SBOL Component"
                     icon={<TbComponents />}
                 >
                     <Dropzone
@@ -113,50 +111,42 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                 <Stepper.Step
                     allowStepSelect={activeStep > 1}
                     label="Choose part inserts"
-                    description="Select archive or manually enter"
+                    description="SBOL Component"
                     icon={<BiWorld />}
                 >
                     <Space h='xl' />
-                    <Tabs position='center' value={parameterSource} onTabChange={setParameterSource} >
-                        <Tabs.List grow>
-                            {isComponentOMEX ?
-                                <Tabs.Tab value={TabValues.INPUT}>
-                                    Use parameters from input archive
-                                </Tabs.Tab> :
-                                <Tabs.Tab value={TabValues.INSERTS}>
-                                    Upload Part Inserts
-                                </Tabs.Tab>}
-                            <Tabs.Tab value={TabValues.PARAMETERS}>
-                                Manually enter parameters
-                            </Tabs.Tab>
-                        </Tabs.List>
-                        <Tabs.Panel value={TabValues.INSERTS}>
-                            <MultiDropzone
-                                allowedTypes={[ObjectTypes.SBOL.id]} 
-                                items={insertIDs}
-                                onItemsChange={handleInsertChange}
-                                onRemoveItem={handleRemoveInsert}
-                                multiple={true}
-                            >
-                                Drag & drop an inserts from the explorer 
-                            </MultiDropzone>
-                        </Tabs.Panel>
-                        <Tabs.Panel value={TabValues.PARAMETERS}>
-                            <AssemblyForm/>
-                        </Tabs.Panel>
-                        <Tabs.Panel value={TabValues.INPUT}>
-                            <CenteredTitle color="green" leftIcon={<CgCheckO />} height={100}>{component?.name}</CenteredTitle>
-                        </Tabs.Panel>
-                    </Tabs>
+                        <h2 style={{ textAlign: 'center' }}>Upload Part Inserts</h2>
+                        <MultiDropzone
+                            allowedTypes={[ObjectTypes.SBOL.id]} 
+                            items={insertIDs}
+                            onItemsChange={handleInsertChange}
+                            onRemoveItem={handleRemoveInsert}
+                            multiple={true}
+                        >
+                            Drag & drop inserts from the explorer 
+                        </MultiDropzone>
                 </Stepper.Step>
                 <Stepper.Step
                     allowStepSelect={activeStep > 2}
+                    label="Enter Parameters"
+                    description="Choose assembly type"
+                    icon={<BiWorld />}
+                >
+                    <Space h='xl' />
+                        <h2 style={{ textAlign: 'center' }}>Enter Assembly Parameters</h2>
+                            <AssemblyForm/>
+                </Stepper.Step>
+                <Stepper.Step
+                    allowStepSelect={activeStep > 3}
                     label="Generate SBOL"
                     description=""
                     icon={<IoAnalyticsSharp />}
                     loading={false}
                 >
                     <Space h='lg' />
+                        <Group grow style={{ alignItems: 'flex-start' }}>
+                            <AssemblyReviewTable />
+                        </Group>
                 </Stepper.Step>
                 <Stepper.Completed>
                     <CenteredTitle height={150}>Analysis is in progress...</CenteredTitle>
@@ -176,7 +166,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                         >
                             Back
                         </Button>
-                        {activeStep < 2 ?
+                        {activeStep < 3 ?
                             <Button
                                 onClick={nextStep}
                                 sx={{ display: showNextButton ? 'block' : 'none' }}

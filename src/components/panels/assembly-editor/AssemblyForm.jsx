@@ -13,8 +13,7 @@ export const parameterMap = {
         default: "MoClo", 
         options: {
             MoClo: 'MoClo', //no restriction enzyme form options required
-            GoldenGate: 'Golden Gate', //
-            Gibson: 'Gibson', //who cares/for later
+            Gibson: 'Gibson', //for later
         }
     },
     restrictionEnzyme: {
@@ -72,17 +71,28 @@ export default function AssemblyForm() {
                 />
             </InputWrapper>
             <Space h="xl" />
-            <Group grow sx={groupStyle}>
-                <TextInput required label={parameterMap.restrictionEnzyme.label} placeholder="" {...form.getInputProps('restrictionEnzyme')} />
-            </Group>
-            <Space h="lg" />
-            <Group grow sx={groupStyle}>
-                <NumberInput required step={0.01} precision={2} label={parameterMap.dummyField.label} placeholder="" {...form.getInputProps('dummyField')} />
-                <NumberInput required label={parameterMap.dummyField1.label} placeholder="" {...form.getInputProps('dummyField1')} />
-            </Group>
-            <Space h="lg" />
-            <Group grow mb={40} sx={groupStyle}>
-            </Group>
+            {form.values.assemblyMethod === 'MoClo' ? (
+                 <>  
+                    {/* moclo fields */}
+                    <Group grow sx={groupStyle}>
+                        <TextInput required label={parameterMap.restrictionEnzyme.label} placeholder="" {...form.getInputProps('restrictionEnzyme')} />
+                    </Group>
+                    <Space h="lg" />
+                    <Group grow sx={groupStyle}>
+                        <NumberInput required step={0.01} precision={2} label={parameterMap.dummyField.label} placeholder="" {...form.getInputProps('dummyField')} />
+                        <NumberInput required label={parameterMap.dummyField1.label} placeholder="" {...form.getInputProps('dummyField1')} />
+                    </Group>
+                    <Space h="lg" />
+                    <Group grow mb={40} sx={groupStyle}>
+                    </Group>
+                </>
+            ) : (
+                // gibson fields
+                <Group grow sx={groupStyle}>
+                <TextInput required label="Gibson Parameter 1" {...form.getInputProps('gibsonParam1')} />
+                <TextInput required label="Gibson Parameter 2" {...form.getInputProps('gibsonParam2')} />
+                </Group>
+            )}
         </form>
     )
 }
