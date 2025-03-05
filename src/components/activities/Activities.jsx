@@ -3,12 +3,26 @@ import { useActiveActivity, useActivities } from '../../redux/hooks/activityHook
 import { getActivity } from '../../activities'
 import { SVGIcon } from '../../icons'
 import SaveIndicatorDisplay from '../saveIndicatorDisplay'
+import { useEffect } from 'react'
+import { useDispatch } from 'react-redux';
+import { openModal } from '../../redux/slices/loginModalSlice';
 
 export default function Activities() {
 
     // activity state
     const activities = useActivities()
     const [activeActivity, setActiveActivity] = useActiveActivity()
+
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        if (activeActivity == "synbio.activity.login-status-panel") {
+            setActiveActivity("synbio.activity.local-file-explorer");
+            dispatch(openModal());
+        } else {
+            //dispatch(closeModal());
+        }
+    }, [activeActivity])
 
     // create tabs
     const tabs = Object.entries(activities).map(([activityId, activityState]) => {
@@ -57,7 +71,7 @@ export default function Activities() {
             <Tabs.List>
                 {tabs}
             </Tabs.List>
-            {activeActivity != "synbio.activity.login-status-panel" ? tabPanels : null}
+            {tabPanels}
         </Tabs>
     )
 }
