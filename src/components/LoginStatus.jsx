@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Button, Center, Stack, Title, Text, Avatar, Group, useMantineTheme, Grid, Container } from '@mantine/core';
-import LoginModal from '../modules/modular_login/loginModal';
+//import LoginModal from '../modules/modular_login/loginModal';
 
 export default function LoginStatus() {
     const theme = useMantineTheme();
     const [modalOpened, setModalOpened] = useState(false);
     const [repoName, setRepoName] = useState('');
-
     return (
         <Center style={{
             height: '100vh', background: `radial-gradient(${theme.colors.dark[6]}, ${theme.colors.dark[7]})`

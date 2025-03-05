@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Button } from '@mantine/core';
 import InstanceSelector from './InstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 
-
 function LoginModal({ opened, onClose, repoName }) {
-    const [repoSelection, setRepoSelection] = useState("");
+    const [repoSelection, setRepoSelection] = useState(repoName);
+    
+    useEffect(() => {
+        setRepoSelection("");
+    }, [opened]);
+
     return (
         <Modal opened={opened} onClose={onClose} title={`Choose Registry`} size="lg">
             {repoSelection === "" ? (
