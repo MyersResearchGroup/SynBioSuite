@@ -7,7 +7,7 @@ import { Text } from "@mantine/core";
 
 export const importedFile = createContext()
 
-export default function ImportFile({ onSelect, text, ...props }) {
+export default function ImportFile({ onSelect, text}) {
         const [selectedFile, setSelectedFile] = useState(null)
         
         async function addFileMetadata(fileHandle) {
