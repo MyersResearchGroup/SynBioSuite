@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 import PanelSaver from './PanelSaver'
-import SynbioHubFrame from './SynbioHubFrame'
+import SynbioHubFrame from './SynBioHubFrame'
 import { useSelector } from 'react-redux'
 
 export const PanelContext = createContext()
