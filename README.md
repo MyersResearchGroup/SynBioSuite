@@ -45,7 +45,7 @@ npm run dev
 To run this project, you will need to add the following environment variables to your .env file
 
 `VITE_IBIOSIM_API`
-The endpoint for the iBioSim API. The application expects it to be behind an instance of the [iBioSim API Connector](https://github.com/zachsents/iBioSim-API-Connector). A public instance is available here: `https://ibiosimconnector.azurewebsites.net/api/orchestrators/analyze`
+The endpoint for the iBioSim API. The application expects it to be behind an instance of the [iBioSim API Connector](https://github.com/zachsents/iBioSim-API-Connector). A public instance is available here: `https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze`
 
 `VITE_SBOL_CANVAS_URL`
 An instance of [SBOLCanvas](https://github.com/SynBioDex/SBOLCanvas/tree/synbio-suite). A public one is available here: `https://sbolcanvas.org`

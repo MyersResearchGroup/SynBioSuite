@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux'
 
 export const PanelContext = createContext()
 
-export default function SBOLEditorPanel({id}) {
+export default function SBOLEditorPanel({id, fileObjectTypeId}) {
     const activePanel = useSelector(state => state.panels.active)
     return (
         <PanelContext.Provider value={activePanel}>
@@ -27,7 +27,7 @@ export default function SBOLEditorPanel({id}) {
                     </Center>
                 </Tabs.Tab>
             </Tabs> */}
-            <CanvasFrame />
+            <CanvasFrame fileTypeObjectId={fileObjectTypeId}/>
             <PanelSaver id={activePanel} />
         </PanelContext.Provider>
     )

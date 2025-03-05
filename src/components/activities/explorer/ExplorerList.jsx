@@ -6,15 +6,20 @@ import ExplorerListItem from './ExplorerListItem'
 import SaveIndicatorDisplay from '../../saveIndicatorDisplay'
 
 
-export default function ExplorerList({currentDirectory}) {
+export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
+    let tempDirectory;
 
     // handle creation
     const createFile = useCreateFile()
-    const handleCreateObject = objectType => fileName => {
-        createFile(fileName + objectType.extension, objectType.id)
+    const handleCreateObject = objectType => async fileName => {
+        if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("plasmid", { create: true });
+             
+        }
+        createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }
 
     // generate DragObjects based on data
@@ -29,7 +34,7 @@ export default function ExplorerList({currentDirectory}) {
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
             <Title mt={10} order={6}>
-                Current Folder: {currentDirectory}            
+                Current Folder: {workDir.name}            
             </Title>
 
             <Accordion
@@ -43,26 +48,28 @@ export default function ExplorerList({currentDirectory}) {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
-                        const filesOfType = files.filter(file => file.objectType == objectType.id)
+                        if(objectTypesToList.includes(objectType.id)){
+                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                            return (    
+                                <Accordion.Item value={objectType.id} key={i}>
+                                    <Accordion.Control>
+                                        <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
+                                    </Accordion.Control>
+                                    <Accordion.Panel>
+                                        {objectType.createable &&
+                                            <CreateNewButton
+                                                onCreate={handleCreateObject(objectType)}
+                                                suggestedName={`New ${objectType.title}`}
+                                            >
+                                                New {objectType.title}
+                                            </CreateNewButton>
+                                        }
+                                        {createListItems(filesOfType, objectType.icon)}
+                                    </Accordion.Panel>
+                                </Accordion.Item>
+                            )
+                        }
 
-                        return (    
-                            <Accordion.Item value={objectType.id} key={i}>
-                                <Accordion.Control>
-                                    <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
-                                </Accordion.Control>
-                                <Accordion.Panel>
-                                    {objectType.createable &&
-                                        <CreateNewButton
-                                            onCreate={handleCreateObject(objectType)}
-                                            suggestedName={`New ${objectType.title}`}
-                                        >
-                                            New {objectType.title}
-                                        </CreateNewButton>
-                                    }
-                                    {createListItems(filesOfType, objectType.icon)}
-                                </Accordion.Panel>
-                            </Accordion.Item>
-                        )
                     })
                 }
             </Accordion>
