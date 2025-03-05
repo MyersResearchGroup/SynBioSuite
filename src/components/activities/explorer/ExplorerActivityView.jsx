@@ -5,7 +5,7 @@ import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 
-export default function ExplorerActivityView({ }) {
+export default function ExplorerActivityView({objectTypesToList }) {
 
     // handle first time visiting
     const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
@@ -24,7 +24,7 @@ export default function ExplorerActivityView({ }) {
 
     return workingDirectory ?
         <>
-            <ExplorerList currentDirectory = {workingDirectory.name} />
+            <ExplorerList workDir = {workingDirectory} objectTypesToList = {objectTypesToList} />
             <Center mt={20}>
                 <FolderSelect onSelect={handleDirectorySelection}>
                     Switch Folder

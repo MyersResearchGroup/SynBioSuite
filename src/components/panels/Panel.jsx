@@ -23,12 +23,12 @@ const Tab = forwardRef(({ id, ...props }, ref) => {
 })
 
 function Content({ id, ...props }) {
-
     const panelType = usePanelType(id)
+    const fileHandle = usePanelProperty(id, 'fileHandle')
 
     return (
         <MantineTabs.Panel value={id} {...props}>
-            <panelType.component id={id} />
+            <panelType.component id={id} fileObjectTypeId={fileHandle.objectType} />
         </MantineTabs.Panel>
     )
 }

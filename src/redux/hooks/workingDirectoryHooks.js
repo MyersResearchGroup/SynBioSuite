@@ -46,14 +46,15 @@ export function useWorkingDirectory() {
 
 // Action hooks
 
+
 export function useCreateFile() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-    return (fileName, objectType) => {
-        workDir.getFileHandle(fileName, { create: true })
+    return (fileName, objectType, directory = workDir) => { // Optional arg directory in which the file will be created 
+        directory.getFileHandle(fileName, { create: true })
             .then(fileHandle => {
-                addFileMetadata(fileHandle, { objectType })
+                addFileMetadata(fileHandle, directory.name, { objectType })
                 dispatch(actions.addFile(fileHandle))
                 openPanel(fileHandle)
             })
@@ -72,7 +73,7 @@ export function useCreateFileWithFilePicker() {
             }]
         })
             .then(fileHandle => {
-                addFileMetadata(fileHandle)
+                addFileMetadata(fileHandle, null)
                 dispatch(actions.addFile(fileHandle))
                 openPanel(fileHandle)
             })
@@ -103,24 +104,42 @@ export function useSafeName(baseName) {
 
 // Utility
 
-async function findFilesInDirectory(dirHandle) {
+export async function findFilesInDirectory(dirHandle) {
     const files = []
+
 
     // loop through async iterator of file names (called keys here)
     for await (const handle of dirHandle.values()) {
         if (handle.kind == 'file') {
-            await addFileMetadata(handle)
+            await addFileMetadata(handle, null)
             files.push(handle)
         }
+
     }
+
+        // Check for subfolders "output" and "metadata"
+        for await (const [name, subHandle] of dirHandle.entries()) {
+            if (subHandle.kind === 'directory' && (name.toLowerCase() === 'output' || name.toLowerCase() === 'metadata' || name.toLowerCase() === "plasmid")) {
+                for await (const handle of subHandle.values()) {
+                if (handle.kind === 'file') {
+                    await addFileMetadata(handle, name)
+                    files.push(handle)
+                }
+                }
+            }
+        }
 
     return files
 }
 
-async function addFileMetadata(handle, { objectType } = {}) {
+async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
     // handle.id = uuidv4()
-    handle.id = handle.name
-    handle.objectType = objectType || await classifyFile(handle)
+    if (subDirectoryName === null) {
+        handle.id = handle.name;
+    } else {
+        handle.id = (subDirectoryName + '/' + handle.name);
+    }
+    handle.objectType = objectType || await classifyFile(handle, subDirectoryName)
 }
 
 export function titleFromFileName(fileName) {
