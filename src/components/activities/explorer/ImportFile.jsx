@@ -20,16 +20,6 @@ export default function ImportFile({ onSelect, text, ...props }) {
             }
         }
 
-        const handleOpenFile = () => {
-            openPanel(file)
-        }
-
-        // right click handler
-        const handleRightClick = event => {
-        event.preventDefault()
-        setContextMenuOpen(true)
-    }
-
         
         const handleClick = async () => {
             try {
@@ -66,7 +56,7 @@ export default function ImportFile({ onSelect, text, ...props }) {
                 <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
                 <AiOutlinePlus />
                 <Text size="sm" sx={textStyle} >
-                     {}
+                     {text}
                  </Text> 
                 </importedFile.Provider>
             </Group>
