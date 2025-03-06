@@ -28,7 +28,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         try {
             const arrayBuffer = await file.fileobj.arrayBuffer()
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
-            const draftHandle = await currentDirectory.getFileHandle(file.name, { create: true })
+            const draftHandle = await workDir.getFileHandle(file.name, { create: true })
             const copiedText = await copied.text()
 
             writeToFileHandle(draftHandle, copiedText)
@@ -81,9 +81,10 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
+                        const filesOfType = files.filter(file => file.objectType == objectType.id)
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
-                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+
                                                     return (    
                                 <Accordion.Item value={objectType.id} key={i}>
                                     <Accordion.Control>
