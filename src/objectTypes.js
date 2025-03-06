@@ -2,8 +2,25 @@ import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
 import { GiSewingMachine } from "react-icons/gi"
+import { RiGitRepositoryLine } from "react-icons/ri";
 
 export const ObjectTypes = {
+    SYNBIOHUB: {
+        id: "synbio.object-type.synbiohub",
+        title: "SynBioHub Registry",
+        listTitle: "SynBioHub Registries",
+        icon: RiGitRepositoryLine,
+        isRepository: true,
+        defaultRegistry: "https://synbiohub.org"
+    },
+    Flapjack: {
+        id: "synbio.object-type.flapjack",
+        title: "Flapjack Registry",
+        listTitle: "Flapjack Registries",
+        icon: RiGitRepositoryLine,
+        isRepository: true,
+        defaultRegistry: "https://ebugsfj.synbiohub.org"
+    },
     SBOL: {
         id: "synbio.object-type.sbol",
         title: "Design",

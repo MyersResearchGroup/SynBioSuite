@@ -1,7 +1,8 @@
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
-import { CanvasIcon, SimulationIcon } from "./icons";
+import SynBioHubPanel from "./components/panels/SynBioHubPanel";
+import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import { ObjectTypes } from "./objectTypes";
 import { GiSewingMachine } from "react-icons/gi";
 
@@ -61,6 +62,12 @@ export const PanelTypes = {
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify(restOfPanel)
         }
+    },
+    SynBioHub: {
+        id: "synbio.panel-type.synbiohub",
+        title: "SynBioHub",
+        component: SynBioHubPanel,
+        icon: SynBioHub,
     }
 }
 
