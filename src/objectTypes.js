@@ -1,6 +1,7 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
+import { PiTreeStructureFill } from "react-icons/pi"
 
 export const ObjectTypes = {
     SBOL: {
@@ -18,6 +19,7 @@ export const ObjectTypes = {
         title: "SBML File",
         listTitle: "SBML Files",
         fileMatch: /<sbml/,
+        icon: PiTreeStructureFill,
         importable: true,
         badgeLabel: "SBML",
     },
