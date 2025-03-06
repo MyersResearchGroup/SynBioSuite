@@ -48,6 +48,7 @@ export const ObjectTypes = {
         icon: GiSewingMachine,
         createable: true,
         extension: '.json',
+    },
     Plasmids:{
         id: "synbio.object-type.plasmid",
         title: "Plasmid",
