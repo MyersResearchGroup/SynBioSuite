@@ -1,6 +1,7 @@
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
-import { CanvasIcon, SimulationIcon } from "./icons";
+import SynBioHubPanel from "./components/panels/SynBioHubPanel";
+import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import { ObjectTypes } from "./objectTypes";
 
 
@@ -38,6 +39,12 @@ export const PanelTypes = {
         }),
 
         serialize: panel => panel.sbol
+    },
+    SynBioHub: {
+        id: "synbio.panel-type.synbiohub",
+        title: "SynBioHub",
+        component: SynBioHubPanel,
+        icon: SynBioHub,
     }
 }
 
