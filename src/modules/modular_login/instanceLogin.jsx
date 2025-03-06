@@ -150,7 +150,7 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
                     mt="md"
                     {...form.getInputProps('password')}
                 />
-                <Button type="submit" onClick={() => console.log("testing")} mt="md">
+                <Button type="submit" mt="md">
                     Login
                 </Button>
                 <Button variant="outline" mt="md" ml="sm" onClick={() => goBack(false)}>
