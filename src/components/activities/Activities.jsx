@@ -40,7 +40,7 @@ export default function Activities() {
                 <Text style={{display:"inline"}} size={'xs'} ml={10}>
                     <SaveIndicatorDisplay/>
                 </Text>
-                <activityDef.component {...activityState} />
+                <activityDef.component {...activityState} objectTypesToList = {activityDef.objectTypesToList} />
             </Tabs.Panel>
         )
     })
