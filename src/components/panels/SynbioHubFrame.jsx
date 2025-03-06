@@ -3,7 +3,7 @@ import { PanelContext } from "./SynBioHubPanel"
 import { useContext } from "react"
 import { useRef } from "react"
 
-export default function SynbioHubFrame({}) {
+export default function SynBioHubFrame({}) {
 
     const panelId = useContext(PanelContext)
     // iframe reference
