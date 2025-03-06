@@ -7,6 +7,7 @@ import CanvasIcon from './canvas.svg?component'
 import SimulationIcon from './simulation.svg?component'
 import RemoteControlIcon from './remote-control.svg?component'
 import BugReport from './bug-report.svg?component'
+import SynBioHub from './synbiohub.svg?component'
 
 
 export {
@@ -15,7 +16,8 @@ export {
     CanvasIcon,
     SimulationIcon,
     RemoteControlIcon,
-    BugReport
+    BugReport,
+    SynBioHub
 }
 
 

@@ -24,7 +24,7 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
-
+            "synbio.object-type.synbiohub"
         ] 
     },
     Design: {
@@ -63,7 +63,7 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: FaGraduationCap,
         objectTypesToList: [
-            
+            "synbio.object-type.flapjack"
         ]
     },
     // RemoteFileExplorer: {
