@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 import PanelSaver from './PanelSaver'
-import SynbioHubFrame from './SynBioHubFrame'
+import SynBioHubFrame from './SynBioHubFrame'
 import { useSelector } from 'react-redux'
 
 export const PanelContext = createContext()
@@ -26,7 +26,7 @@ export default function SynBioHubPanel({fileObjectTypeId}) {
                     </Center>
                 </Tabs.Tab>
             </Tabs> */}
-            <SynbioHubFrame/>
+            <SynBioHubFrame/>
             <PanelSaver id={activePanel} />
         </PanelContext.Provider>
     )
