@@ -16,7 +16,13 @@ export const Activities = {
         title: "Entire Workflow",
         component: ExplorerActivityView,
         icon: FileIcon,
-        objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
+        objectTypesToList:  [
+            ObjectTypes.SBOL.id,
+            //ObjectTypes.SBML.id,
+            //ObjectTypes.OMEX.id,
+            ObjectTypes.Analysis.id
+        ]
+        //Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
     },
     PartsSelection: {
         id: "synbio.activity.parts-selection",
@@ -34,8 +40,8 @@ export const Activities = {
         icon: BsGraphUpArrow,
         objectTypesToList: [
             ObjectTypes.SBOL.id,
-            ObjectTypes.SBML.id,
-            ObjectTypes.OMEX.id,
+            //ObjectTypes.SBML.id,
+            //ObjectTypes.OMEX.id,
             ObjectTypes.Analysis.id
         ]
     },
