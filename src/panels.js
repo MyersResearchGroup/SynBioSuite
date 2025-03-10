@@ -1,8 +1,10 @@
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
+import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import { ObjectTypes } from "./objectTypes";
+import { GiSewingMachine } from "react-icons/gi";
 
 
 export const PanelTypes = {
@@ -39,6 +41,27 @@ export const PanelTypes = {
         }),
 
         serialize: panel => panel.sbol
+    },
+    AssemblyPlanCreator: {
+        id: "synbio.panel-type.assembly-plan-creator",
+        title: "Assembly Plan Creator",
+        component: AssemblyPanel,
+        objectTypes: [ ObjectTypes.Assembly.id ],
+        icon: GiSewingMachine,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        }
     },
     SynBioHub: {
         id: "synbio.panel-type.synbiohub",
