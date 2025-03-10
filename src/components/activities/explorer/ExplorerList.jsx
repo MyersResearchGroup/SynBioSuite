@@ -81,64 +81,44 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
-                        const filesOfType = files.filter(file => file.objectType == objectType.id)
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
-
-                                                    return (    
+                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                            return (    
                                 <Accordion.Item value={objectType.id} key={i}>
                                     <Accordion.Control>
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
+                                        {objectType.importable &&
+                                        <ImportFile
+                                        onSelect={finalImport}
+                                        text={`Import ${objectType.title}`} >                                      
+                                        </ImportFile>
+                                }
                                         {objectType.createable &&
                                             <CreateNewButton
-                                            onCreate={handleCreateObject(objectType)}
-                                            suggestedName={`New ${objectType.title}`}
+                                                
+                                                onCreate={handleCreateObject(objectType)}
+                                                suggestedName={`New ${objectType.title}`}
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
-    
                                     {objectType.isRepository && 
                                         <Registries 
                                         defaultRegistry={objectType.defaultRegistry} 
                                         typeOfRegistry={objectType.listTitle}
                                         title={objectType.title}/>
                                     }
-                                </Accordion.Panel>
+                                    </Accordion.Panel>
                                 </Accordion.Item>
                             )
+
+
                         }
 
-
-                        return (    
-                            <Accordion.Item value={objectType.id} key={i}>
-                                <Accordion.Control>
-                                    <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
-                                </Accordion.Control>
-                                <Accordion.Panel>
-                                    {objectType.importable &&
-                                    <ImportFile
-                                    onSelect={finalImport}
-                                    text={`Import ${objectType.title}`} >
-                                        
-                                    </ImportFile>
-                            }
-                                    {objectType.createable &&
-                                        <CreateNewButton
-                                            
-                                            onCreate={handleCreateObject(objectType)}
-                                            suggestedName={`New ${objectType.title}`}
-                                        >
-                                            New {objectType.title}
-                                        </CreateNewButton>
-                                    }
-                                    {createListItems(filesOfType, objectType.icon)}
-                                </Accordion.Panel>
-                            </Accordion.Item>
-                        )
                     })
                 }
             </Accordion>
