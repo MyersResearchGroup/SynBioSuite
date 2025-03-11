@@ -14,10 +14,8 @@ function LoginModal({ opened, onClose, repoName }) {
     
     const handleRemoveInstance = (repo) => {
         if(repo == "SynbioHub") {
-            //setSBHInstanceData(SBHInstanceData.filter(instance => `${instance.email},  ${instance.instance}` === SBHSelectedInstanceValue));
             SBHsetSelectedInstanceValue(null);
         } else if (repo == "Flapjack") {
-            //setFJInstanceData(FJInstanceData.filter(instance => `${instance.username},  ${instance.instance}` === FJSelectedInstanceValue));
             FJsetSelectedInstanceValue(null);
         }
     };

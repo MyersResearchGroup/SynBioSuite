@@ -18,8 +18,6 @@ const login = async (instance, emailOrUsername, password, repoName) => {
                 }
             });
             if(response.data){
-                console.log(`Values for login: instance=${instance}, email=${emailOrUsername}, password=${password}`);
-                console.log('Response data:', response.data);
                 return response.data;
             }
         } catch (error) {
@@ -39,8 +37,6 @@ const login = async (instance, emailOrUsername, password, repoName) => {
                 }
             });
             if(response.data){
-                console.log(`Values for login: instance=${instance}, username=${emailOrUsername}, password=${password}`);
-                console.log('Response data:', response.data);
                 return {
                     username: response.data.username,
                     access: response.data.access,
@@ -76,7 +72,6 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
 
     const handleSubmit = async (values) => {
         if (form.isValid()){
-            console.log(`Submitting login for instance=${values.instance}, email=${values.email}`);
             try {
                 const info = await login(values.instance, repoName === "SynbioHub" ? values.email : values.username, values.password, repoName);
                 const newInstance = { 
@@ -130,12 +125,14 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
         <Box sx={{ maxWidth: 300 }} mx="auto">
             <form
                 onSubmit={form.onSubmit((values) => {
-                    handleSubmit(values);
+                    // Strip https:// and www. from the beginning of the value
+                    const instance = values.instance.replace(/^(https?:\/\/)?(www\.)?/, '');
+                    handleSubmit({ ...values, instance });
                 })}
             >
                 <TextInput
-                    label={`${repoName} instance`}
-                    placeholder="Enter instance"
+                    label={`${repoName} URL`}
+                    placeholder="Enter URL"
                     {...form.getInputProps('instance')}
                 />
                 <TextInput
