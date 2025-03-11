@@ -1,28 +1,28 @@
-import { useState, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, Button } from '@mantine/core';
-import InstanceLogin from './instanceLogin';
+import FJInstanceLogin from './FJInstanceLogin';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 
-const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
+const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
-    const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
+    const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const [nullInstanceSelected, setNullInstanceSelected] = useState(false);
-    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
+    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: [] });
     
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` !== selectedInstanceValue));
+        setInstanceData(instanceData.filter(instance => `${instance.username},  ${instance.instance}` !== selectedInstanceValue));
         setSelectedInstanceValue(null);
     };
 
     return (
         <>
             {showLogin ? (
-                <InstanceLogin onClose={onClose} repoName={repoName} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
+                <FJInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
             ) : (
                 <>
                     <Select
-                        label={`Select an instance of ${repoName}`}
+                        label={`Select a Flapjack registry`}
                         placeholder="Pick one"
                         data={instanceData}
                         onChange={(value) => {setNullInstanceSelected(false); setSelectedInstanceValue(value)}}
@@ -51,4 +51,4 @@ const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
     );
 };
 
-export default InstanceSelector;
+export default FJInstanceSelector;

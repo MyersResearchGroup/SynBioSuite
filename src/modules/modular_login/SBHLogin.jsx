@@ -5,67 +5,40 @@ import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification } from '@mantine/notifications';
 
-const login = async (instance, emailOrUsername, password, repoName) => {
-    if(repoName === 'SynbioHub') {
-        try {
-            const response = await axios.post(`https://${instance}/login`, {
-                "email": emailOrUsername,
-                "password": password
-            }, {
-                headers: {
-                    'accept': 'text/plain',
-                    'Content-Type': 'application/json',
-                }
-            });
-            if(response.data){
-                return response.data;
+const login = async (instance, email, password) => {
+    try {
+        const response = await axios.post(`https://${instance}/login`, {
+            "email": email,
+            "password": password
+        }, {
+            headers: {
+                'accept': 'text/plain',
+                'Content-Type': 'application/json',
             }
-        } catch (error) {
-            console.error('Error:', error);
-            throw error;
+        });
+        if(response.data){
+            return response.data;
         }
-    }
-    console.log("Repo name:", repoName);
-    if (repoName === "Flapjack") {
-        try {
-            const response = await axios.post(`https://${instance}/api/auth/log_in/`, {
-                "username": emailOrUsername,
-                "password": password
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            if(response.data){
-                return {
-                    username: response.data.username,
-                    access: response.data.access,
-                    refresh: response.data.refresh
-                }
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            throw error;
-        }
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
     }
 };
 
-const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
-    const [instanceData, setInstanceData] = useLocalStorage({ key: repoName, defaultValue: [] });
-    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
+const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
+    const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
 
     const form = useForm({
         initialValues: {
             instance: '',
             email: '',
-            username: '',
             password: '',
         },
 
         validate: {
-            instance: (value) => (value && !/[/]/.test(value) ? null : `${repoName} instance is required and must not contain forward slashes`),
-            email: (value) => (repoName !== "Flapjack" ? (value && /^\S+@\S+$/.test(value) ? null : 'Invalid email') : null),
-            username: (value) => (repoName === "Flapjack" ? (value ? null : 'Username is required') : null),
+            instance: (value) => (value && !/[/]/.test(value) ? null : `SynbioHub instance is required and must not contain forward slashes`),
+            email: (value) => (value && /^\S+@\S+$/.test(value) ? null : 'Invalid email'),
             password: (value) => (value ? null : 'Password is required')
         },
     });
@@ -73,13 +46,13 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(values.instance, repoName === "SynbioHub" ? values.email : values.username, values.password, repoName);
+                const info = await login(values.instance, values.email, values.password);
                 const newInstance = { 
-                    value: `${repoName == "SynbioHub" ? values.email : values.username},  ${values.instance}`, 
-                    label: `${repoName == "SynbioHub" ? values.email : values.username},  ${values.instance}`,
+                    value: `${values.email},  ${values.instance}`, 
+                    label: `${values.email},  ${values.instance}`,
                     instance: values.instance, 
                     email: values.email, 
-                    ...(repoName === "SynbioHub" ? { authtoken: info } : { access: info.access, refresh: info.refresh }) 
+                    authtoken: info 
                 };
                 const existingIndex = instanceData.findIndex((instance) => instance.value === newInstance.value);
                 if (existingIndex !== -1) {
@@ -131,15 +104,15 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
                 })}
             >
                 <TextInput
-                    label={`${repoName} URL`}
+                    label={`SynbioHub URL`}
                     placeholder="Enter URL"
                     {...form.getInputProps('instance')}
                 />
                 <TextInput
-                    label={repoName != "Flapjack" ? "Email" : "Username"}
-                    placeholder={`Enter your ${repoName != "Flapjack" ? "Email" : "Username"}`}
+                    label={"Email"}
+                    placeholder={`Enter your email here`}
                     mt="md"
-                    {...form.getInputProps(repoName != "Flapjack" ? 'email' : 'username')}
+                    {...form.getInputProps('email')}
                 />
                 <PasswordInput
                     label="Password"
@@ -150,7 +123,7 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
                 <Button type="submit" mt="md">
                     Login
                 </Button>
-                <Button variant="outline" mt="md" ml="sm" onClick={() => goBack(false)}>
+                <Button variant="outline" mt="md" ml="sm" onClick={() => {if(instanceData.length == 0) {setRepoSelection("")} else goBack(false)}}>
                     Back
                 </Button>
             </form>
@@ -158,4 +131,4 @@ const InstanceLogin = ({ onClose, repoName, goBack, setRepoSelection }) => {
     );
 };
 
-export default InstanceLogin;
+export default SBHInstanceLogin;
