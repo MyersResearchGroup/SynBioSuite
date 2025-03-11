@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Modal, Button } from '@mantine/core';
-import InstanceSelector from './InstanceSelector';
+import FJInstanceSelector from './FJInstanceSelector';
+import SBHInstanceSelector from './SBHInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
+import SBHInstanceLogin from './SBHLogin';
+import FJInstanceLogin from './FJInstanceLogin';
 
 function LoginModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
@@ -155,11 +158,21 @@ function LoginModal({ opened, onClose, repoName }) {
                             </div>
                         </Grid.Col>}
                     </Grid>
-                    {/*<Button onClick={() => setRepoSelection("SynbioHub")} style={{ float: 'left' }}>Log into SynbioHub</Button>
-                    <Button onClick={() => setRepoSelection("Flapjack")} style={{ marginLeft: '3%' }}>Log into Flapjack</Button>*/}
                 </>
             ) : (
-                <InstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} repoName={repoSelection} />
+                repoSelection === "SynbioHub" ? (
+                    SBHInstanceData.length === 0 ? (
+                        <SBHInstanceLogin onClose={onClose} setRepoSelection={setRepoSelection} />
+                    ) : (
+                        <SBHInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />
+                    )
+                ) : (
+                    FJInstanceData.length === 0 ? (
+                        <FJInstanceLogin onClose={onClose} setRepoSelection={setRepoSelection} />
+                    ) : (
+                        <FJInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />
+                    )
+                )
             )}
         </Modal>
     );
