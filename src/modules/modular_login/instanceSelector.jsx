@@ -38,7 +38,7 @@ const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
                         Remove Repository</Button>
                         <Button ml="auto" onClick={() => 
                         {if (selectedInstanceValue != null)
-                            {handleRemoveInstance(); setRepoSelection("")}
+                            setRepoSelection("")
                             else showNotification({
                                 title: 'Warning',
                                 message: 'No repository selected. Please select a repository.',
