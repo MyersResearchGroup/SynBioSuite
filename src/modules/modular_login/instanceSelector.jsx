@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { Select, Button } from '@mantine/core';
 import InstanceLogin from './instanceLogin';
 import { useLocalStorage } from '@mantine/hooks';
+import { showNotification } from '@mantine/notifications';
 
 const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
@@ -10,9 +11,7 @@ const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
     const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `${repoName}-Primary`, defaultValue: [] });
     
     const handleRemoveInstance = () => {
-        console.log(instanceData.filter(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` === selectedInstanceValue));
-        console.log(selectedInstanceValue);
-        setInstanceData(instanceData.filter(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` === selectedInstanceValue));
+        setInstanceData(instanceData.filter(instance => `${repoName == "SynbioHub" ? instance.email : instance.username},  ${instance.instance}` !== selectedInstanceValue));
         setSelectedInstanceValue(null);
     };
 
@@ -37,7 +36,14 @@ const InstanceSelector = ({onClose, repoName, setRepoSelection }) => {
                             {handleRemoveInstance(); setRepoSelection("")}
                             else setNullInstanceSelected(true)}}>
                         Remove Repository</Button>
-                        <Button ml="auto" onClick={() => setRepoSelection("")}>Confirm Repository Selection</Button>
+                        <Button ml="auto" onClick={() => 
+                        {if (selectedInstanceValue != null)
+                            {handleRemoveInstance(); setRepoSelection("")}
+                            else showNotification({
+                                title: 'Warning',
+                                message: 'No repository selected. Please select a repository.',
+                                color: 'yellow',
+                            })}}>Confirm Repository Selection</Button>
                     </div>
                 </>
             )}
