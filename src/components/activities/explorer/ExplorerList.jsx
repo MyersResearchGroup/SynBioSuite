@@ -3,12 +3,42 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
+import {writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
+import ImportFile from './ImportFile'
+import { useState} from 'react'
 import Registries from './Registries.jsx'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
+    let tempDirectory;
+
+    const [importedFile, setImportedFile] = useState(null)
+
+    const finalImport = (file) => {
+        setImportedFile(file)
+        copySelectedFile(file)
+    }
+
+    async function copySelectedFile(file) {
+        if (!file) return null
+        try {
+            const arrayBuffer = await file.fileobj.arrayBuffer()
+            const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
+            const draftHandle = await workDir.getFileHandle(file.name, { create: true })
+            const copiedText = await copied.text()
+
+            writeToFileHandle(draftHandle, copiedText)
+
+            return copied
+        } catch (err) {
+            console.error("Error copying file:", err)
+            return null
+        }
+    }
+    
+
     // handle creation
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
@@ -49,29 +79,34 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
                             const filesOfType = files.filter(file => file.objectType == objectType.id)
-                                                    return (    
+                            return (    
                                 <Accordion.Item value={objectType.id} key={i}>
                                     <Accordion.Control>
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
+                                        {objectType.importable &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Import ${objectType.title}`} >                                      
+                                            </ImportFile>
+                                        }
                                         {objectType.createable &&
                                             <CreateNewButton
-                                            onCreate={handleCreateObject(objectType)}
-                                            suggestedName={`New ${objectType.title}`}
+                                                onCreate={handleCreateObject(objectType)}
+                                                suggestedName={`New ${objectType.title}`}
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
-    
                                     {objectType.isRepository && 
                                         <Registries 
                                         defaultRegistry={objectType.defaultRegistry} 
                                         typeOfRegistry={objectType.listTitle}
                                         title={objectType.title}/>
                                     }
-                                </Accordion.Panel>
+                                    </Accordion.Panel>
                                 </Accordion.Item>
                             )
                         }

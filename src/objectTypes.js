@@ -1,6 +1,7 @@
 import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
+import { PiTreeStructureFill } from "react-icons/pi"
 import { GiSewingMachine } from "react-icons/gi"
 import { RiGitRepositoryLine } from "react-icons/ri";
 
@@ -36,7 +37,8 @@ export const ObjectTypes = {
         title: "Model",
         listTitle: "Models",
         fileMatch: /<sbml/,
-        createable: false,
+        icon: PiTreeStructureFill,
+        importable: true,
         badgeLabel: "SBML",
     },
     OMEX: {
@@ -45,7 +47,7 @@ export const ObjectTypes = {
         listTitle: "Archives",
         fileNameMatch: /\.omex$/,
         icon: BiWorld,
-        createable: false,
+        importable: true,
         badgeLabel: "OMEX",
     },
     Analysis: {
