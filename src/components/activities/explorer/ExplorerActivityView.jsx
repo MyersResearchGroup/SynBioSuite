@@ -11,16 +11,16 @@ export default function ExplorerActivityView({objectTypesToList }) {
     const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
 
     // handle directory selection
-    const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
-    const handleDirectorySelection = dirHandle => {
-        firstTime && setFirstTime(false)
-        setWorkingDirectory(dirHandle)
-    }
+        const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
+        const handleDirectorySelection = dirHandle => {
+            firstTime && setFirstTime(false)
+            setWorkingDirectory(dirHandle)
+        }
 
     // handle refreshing working directory
-    const refreshWorkDir = () => {
-        setWorkingDirectory(workingDirectory, false)
-    }
+        const refreshWorkDir = () => {
+            setWorkingDirectory(workingDirectory, false)
+        }
 
     return workingDirectory ?
         <>
@@ -44,8 +44,8 @@ export default function ExplorerActivityView({objectTypesToList }) {
         </>
 }
 
-const refreshButtonStyle = theme => ({
-    position: 'absolute',
-    top: 5,
-    right: 5
-})
+        const refreshButtonStyle = theme => ({
+        position: 'absolute',
+        top: 5,
+        right: 5
+        })
