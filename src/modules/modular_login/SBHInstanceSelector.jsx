@@ -4,6 +4,8 @@ import SBHInstanceLogin from './SBHLogin';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 
+import axios from 'axios';
+
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
@@ -11,8 +13,33 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: [] });
     
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => `${instance.email},  ${instance.instance}` !== selectedInstanceValue));
+        setInstanceData(instanceData.filter(instance => `${instance.name},  ${instance.instance}` !== selectedInstanceValue));
         setSelectedInstanceValue(null);
+    };
+
+    const login = async (instance, auth) => {
+        try {
+            const response = await axios.get(`https://${instance}/profile`, {
+                headers: {
+                    'Accept': 'text/plain; charset=UTF-8',
+                    "X-authorization" : `${auth}`
+                }
+            });
+            if(response.data){
+                setRepoSelection("");
+                return;
+            }
+        } catch (error) {
+            handleRemoveInstance();
+            showNotification({
+                title: 'Login Failed',
+                message: 'Unable to login. Registry removed from list. Please add and try again.',
+                color: 'red',
+            });
+            setRepoSelection("");
+            console.error('Error:', error);
+            throw error;
+        }
     };
 
     return (
@@ -33,12 +60,12 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                         <Button mr="md" onClick={() => {setShowLogin(true)}}>Add Repository</Button>
                         <Button onClick={() => 
                         {if (selectedInstanceValue != null)
-                            {handleRemoveInstance(); setRepoSelection("")}
+                            {console.log("TESTED"); handleRemoveInstance(); setRepoSelection("")}
                             else setNullInstanceSelected(true)}}>
                         Remove Repository</Button>
                         <Button ml="auto" onClick={() => 
                         {if (selectedInstanceValue != null)
-                            setRepoSelection("")
+                            login(instanceData.filter(instance => instance.value == selectedInstanceValue)[0].instance, instanceData.filter(instance => instance.value == selectedInstanceValue)[0].authtoken)
                             else showNotification({
                                 title: 'Warning',
                                 message: 'No repository selected. Please select a repository.',
