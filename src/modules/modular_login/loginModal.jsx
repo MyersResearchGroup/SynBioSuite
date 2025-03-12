@@ -40,27 +40,21 @@ function LoginModal({ opened, onClose, repoName }) {
                                     radius="md"
                                 />
                                 <div>
-                                    <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-                                        User's Name
+                                    <Text fz="xs" mt={10} fw={700} c="dimmed">
+                                        Registry: {SBHInstanceData.filter(instance => instance.value == SBHSelectedInstanceValue)[0].instance}
                                     </Text>
         
                                     <Text fz="lg" fw={500}>
-                                        User's Username
+                                        Username: {SBHInstanceData.filter(instance => instance.value == SBHSelectedInstanceValue)[0].username}
                                     </Text>
         
                                     <Group noWrap spacing={10} mt={3}>
                                         <Text fz="xs" c="dimmed">
-                                            email@example.com
+                                            Email: {SBHInstanceData.filter(instance => instance.value == SBHSelectedInstanceValue)[0].email}
                                         </Text>
                                     </Group>
-        
-                                    <Group noWrap spacing={10} mt={5}>
-                                        <Text fz="xs" c="dimmed">
-                                            Affiliation
-                                        </Text>
-                                    </Group>
-                                    <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub");}}>
-                                        Log out of SynbioHub
+                                    <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>
+                                        Change SynbioHub Registry
                                     </Button>
                                 </div>
                             </Grid.Col> : <Grid.Col span={5}>
@@ -70,7 +64,7 @@ function LoginModal({ opened, onClose, repoName }) {
                                 radius="md"
                             />
                             <div>
-                                <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
+                                <Text fz="xs" mt={10} fw={700} c="dimmed">
                                     User's Name: Not Logged In
                                 </Text>
     
@@ -90,7 +84,7 @@ function LoginModal({ opened, onClose, repoName }) {
                                     </Text>
                                 </Group>
                                 <Button mt="md" onClick={() => {setRepoSelection("SynbioHub")}}>
-                                    Log into SynbioHub
+                                    Select SynbioHub Registry
                                 </Button>
                             </div>
                         </Grid.Col>}
@@ -103,23 +97,17 @@ function LoginModal({ opened, onClose, repoName }) {
                                     radius="md"
                                 />
                                 <div>
-                                    <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-                                        User's Name
+                                    <Text fz="xs" mt={10} fw={700} c="dimmed">
+                                        Registry: Not Logged In
                                     </Text>
         
                                     <Text fz="lg" fw={500}>
-                                        User's Username
+                                        Username: Not Logged In
                                     </Text>
         
                                     <Group noWrap spacing={10} mt={3}>
                                         <Text fz="xs" c="dimmed">
-                                            email@example.com
-                                        </Text>
-                                    </Group>
-        
-                                    <Group noWrap spacing={10} mt={5}>
-                                        <Text fz="xs" c="dimmed">
-                                            Affiliation
+                                            Email: Not Logged In
                                         </Text>
                                     </Group>
                                     <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack");}}>
@@ -133,23 +121,17 @@ function LoginModal({ opened, onClose, repoName }) {
                                 radius="md"
                             />
                             <div>
-                                <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-                                    User's Name: Not Logged In
+                                <Text fz="xs" mt={10} fw={700} c="dimmed">
+                                    Registry: Not Logged In
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
-                                    User's Username: Not Logged In
+                                    Username: Not Logged In
                                 </Text>
     
                                 <Group noWrap spacing={10} mt={3}>
                                     <Text fz="xs" c="dimmed">
                                         Email: Not Logged In
-                                    </Text>
-                                </Group>
-    
-                                <Group noWrap spacing={10} mt={5}>
-                                    <Text fz="xs" c="dimmed">
-                                        Affiliation: Not Logged In
                                     </Text>
                                 </Group>
                                 <Button mt="md" onClick={() => {setRepoSelection("Flapjack")}}>

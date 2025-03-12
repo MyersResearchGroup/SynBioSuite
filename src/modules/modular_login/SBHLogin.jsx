@@ -17,6 +17,25 @@ const login = async (instance, email, password) => {
             }
         });
         if(response.data){
+            let data = await getProfile(instance, response.data);
+            data.auth = response.data;
+            return data;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+};
+
+const getProfile = async (instance, auth) => {
+    try {
+        const response = await axios.get(`https://${instance}/profile`, {
+            headers: {
+                'Accept': 'text/plain; charset=UTF-8',
+                "X-authorization" : `${auth}`
+            }
+        });
+        if(response.data){
             return response.data;
         }
     } catch (error) {
@@ -38,7 +57,7 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
 
         validate: {
             instance: (value) => (value && !/[/]/.test(value) ? null : `SynbioHub instance is required and must not contain forward slashes`),
-            email: (value) => (value && /^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+            email: (value) => (null),
             password: (value) => (value ? null : 'Password is required')
         },
     });
@@ -48,11 +67,15 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
             try {
                 const info = await login(values.instance, values.email, values.password);
                 const newInstance = { 
-                    value: `${values.email},  ${values.instance}`, 
-                    label: `${values.email},  ${values.instance}`,
+                    value: `${info.name},  ${values.instance}`, 
+                    label: `${info.name},  ${values.instance}`,
                     instance: values.instance, 
-                    email: values.email, 
-                    authtoken: info 
+                    email: info.email, 
+                    authtoken: info.auth,
+                    name: info.name,
+                    username: info.username,
+                    affiliation: info.affiliation
+
                 };
                 const existingIndex = instanceData.findIndex((instance) => instance.value === newInstance.value);
                 if (existingIndex !== -1) {
@@ -109,8 +132,8 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
                     {...form.getInputProps('instance')}
                 />
                 <TextInput
-                    label={"Email"}
-                    placeholder={`Enter your email here`}
+                    label={"Email or Username"}
+                    placeholder={`Enter your email or username here`}
                     mt="md"
                     {...form.getInputProps('email')}
                 />

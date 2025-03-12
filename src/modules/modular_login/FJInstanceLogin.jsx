@@ -18,6 +18,7 @@ const login = async (instance, username, password) => {
         if(response.data){
             return {
                 username: response.data.username,
+                email: response.data.email,
                 access: response.data.access,
                 refresh: response.data.refresh
             }
@@ -55,6 +56,7 @@ const InstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
                     label: `${values.username},  ${values.instance}`,
                     instance: values.instance, 
                     username: values.username, 
+                    email: info.email,
                     access: info.access,
                     refresh: info.refresh 
                 };
