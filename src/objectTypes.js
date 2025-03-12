@@ -5,7 +5,6 @@ import { PiTreeStructureFill } from "react-icons/pi"
 import { GiSewingMachine } from "react-icons/gi"
 import { RiGitRepositoryLine } from "react-icons/ri";
 
-
 export const ObjectTypes = {
     SYNBIOHUB: {
         id: "synbio.object-type.synbiohub",

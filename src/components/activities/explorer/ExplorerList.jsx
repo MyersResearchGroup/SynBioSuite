@@ -3,7 +3,6 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-
 import {writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import ImportFile from './ImportFile'
 import { useState} from 'react'
@@ -13,7 +12,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
-
     let tempDirectory;
 
     const [importedFile, setImportedFile] = useState(null)
@@ -62,12 +60,9 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 )
 
     return (
-
         <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
             <Title mt={10} order={6} mb={10}>
-
                 Current Folder: {workDir.name}            
-
             </Title>
             
 
@@ -91,14 +86,13 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                     </Accordion.Control>
                                     <Accordion.Panel>
                                         {objectType.importable &&
-                                        <ImportFile
-                                        onSelect={finalImport}
-                                        text={`Import ${objectType.title}`} >                                      
-                                        </ImportFile>
-                                }
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Import ${objectType.title}`} >                                      
+                                            </ImportFile>
+                                        }
                                         {objectType.createable &&
                                             <CreateNewButton
-                                                
                                                 onCreate={handleCreateObject(objectType)}
                                                 suggestedName={`New ${objectType.title}`}
                                             >
@@ -115,8 +109,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                     </Accordion.Panel>
                                 </Accordion.Item>
                             )
-
-
                         }
 
                     })
@@ -142,4 +134,3 @@ const titleStyle = theme => ({
     fontSize: 12,
     textTransform: 'uppercase',
 })
-

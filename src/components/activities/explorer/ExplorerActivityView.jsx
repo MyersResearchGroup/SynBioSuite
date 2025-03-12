@@ -5,7 +5,6 @@ import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 
-
 export default function ExplorerActivityView({objectTypesToList }) {
 
     // handle first time visiting
@@ -22,7 +21,6 @@ export default function ExplorerActivityView({objectTypesToList }) {
         const refreshWorkDir = () => {
             setWorkingDirectory(workingDirectory, false)
         }
-
 
     return workingDirectory ?
         <>
@@ -45,7 +43,6 @@ export default function ExplorerActivityView({objectTypesToList }) {
             </Center>
         </>
 }
-
 
         const refreshButtonStyle = theme => ({
         position: 'absolute',
