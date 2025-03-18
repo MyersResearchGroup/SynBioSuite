@@ -6,23 +6,33 @@ import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import SBHInstanceLogin from './SBHLogin';
 import FJInstanceLogin from './FJInstanceLogin';
+import AddInstance from './addInstance';
+
 
 function LoginModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
     
-    const [SBHInstanceData, setSBHInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [SBHSelectedInstanceValue, SBHsetSelectedInstanceValue] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
-    const [FJInstanceData, setFJInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
-    const [FJSelectedInstanceValue, FJsetSelectedInstanceValue] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
+    const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [selectedSBH, setSelectedSBH] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
+    const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
+    const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
     
+    const findInstance = (instance, repo) => {
+        if (repo == "SBH")
+            return dataSBH.find((element) => element.value === instance);
+        else if (repo == "FJ")
+            return dataFJ.find((element) => element.value === instance);
+    }
+
     const handleRemoveInstance = (repo) => {
         if(repo == "SynbioHub") {
-            SBHsetSelectedInstanceValue(null);
+            setSelectedSBH(null);
         } else if (repo == "Flapjack") {
-            FJsetSelectedInstanceValue(null);
+            setSelectedFJ(null);
         }
     };
 
+    //To reset the repoSelection state when the modal is closed
     useEffect(() => {
         setRepoSelection("");
     }, [opened]);
@@ -32,32 +42,7 @@ function LoginModal({ opened, onClose, repoName }) {
             {repoSelection === "" ? (
                 <>
                     <Grid>
-                        {SBHSelectedInstanceValue ?
-                            <Grid.Col span={5}>
-                                <Avatar
-                                    src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
-                                    size={94}
-                                    radius="md"
-                                />
-                                <div>
-                                    <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                        Registry: {SBHInstanceData.filter(instance => instance.value == SBHSelectedInstanceValue)[0].instance}
-                                    </Text>
-        
-                                    <Text fz="lg" fw={500}>
-                                        Username: {SBHInstanceData.filter(instance => instance.value == SBHSelectedInstanceValue)[0].username}
-                                    </Text>
-        
-                                    <Group noWrap spacing={10} mt={3}>
-                                        <Text fz="xs" c="dimmed">
-                                            Email: {SBHInstanceData.filter(instance => instance.value == SBHSelectedInstanceValue)[0].email}
-                                        </Text>
-                                    </Group>
-                                    <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>
-                                        Change SynbioHub Registry
-                                    </Button>
-                                </div>
-                            </Grid.Col> : <Grid.Col span={5}>
+                        <Grid.Col span={5}>
                             <Avatar
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
@@ -65,56 +50,27 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    User's Name: Not Logged In
+                                    Registry: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
-                                    User's Username: Not Logged In
+                                    Username: {selectedSBH ? findInstance(selectedSBH, "SBH").username : "Not Logged In"}
                                 </Text>
     
                                 <Group noWrap spacing={10} mt={3}>
                                     <Text fz="xs" c="dimmed">
-                                        Email: Not Logged In
+                                        Email: {selectedSBH ? findInstance(selectedSBH, "SBH").email : "Not Logged In"}
                                     </Text>
                                 </Group>
-    
-                                <Group noWrap spacing={10} mt={5}>
-                                    <Text fz="xs" c="dimmed">
-                                        Affiliation: Not Logged In
-                                    </Text>
-                                </Group>
-                                <Button mt="md" onClick={() => {setRepoSelection("SynbioHub")}}>
+                                {selectedSBH ? <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>
+                                    Change SynbioHub Registry
+                                </Button> : <Button mt="md" onClick={() => {setRepoSelection("SynbioHub")}}>
                                     Select SynbioHub Registry
-                                </Button>
+                                </Button>}
                             </div>
-                        </Grid.Col>}
+                        </Grid.Col>
                         <Grid.Col span={2}></Grid.Col>
-                        {FJSelectedInstanceValue ?
-                            <Grid.Col span={5}>
-                                <Avatar
-                                    src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
-                                    size={94}
-                                    radius="md"
-                                />
-                                <div>
-                                    <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                        Registry: Not Logged In
-                                    </Text>
-        
-                                    <Text fz="lg" fw={500}>
-                                        Username: Not Logged In
-                                    </Text>
-        
-                                    <Group noWrap spacing={10} mt={3}>
-                                        <Text fz="xs" c="dimmed">
-                                            Email: Not Logged In
-                                        </Text>
-                                    </Group>
-                                    <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack");}}>
-                                        Log out of Flapjack
-                                    </Button>
-                                </div>
-                            </Grid.Col> : <Grid.Col span={5}>
+                        <Grid.Col span={5}>
                             <Avatar
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
@@ -122,40 +78,34 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Registry: Not Logged In
+                                    Registry: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
-                                    Username: Not Logged In
+                                    Username: {selectedFJ ? findInstance(selectedFJ, "FJ").username : "Not Logged In"}
                                 </Text>
     
                                 <Group noWrap spacing={10} mt={3}>
                                     <Text fz="xs" c="dimmed">
-                                        Email: Not Logged In
+                                        Email: {selectedFJ ? findInstance(selectedFJ, "FJ").email : "Not Logged In"}
                                     </Text>
                                 </Group>
-                                <Button mt="md" onClick={() => {setRepoSelection("Flapjack")}}>
-                                    Log into Flapjack
-                                </Button>
+                                {selectedFJ ? <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("SynbioHub")}}>
+                                    Change Flapjack Registry
+                                </Button> : <Button mt="md" onClick={() => {setRepoSelection("Flapjack")}}>
+                                    Select Flapjack Registry
+                                </Button>}
                             </div>
-                        </Grid.Col>}
+                        </Grid.Col>
                     </Grid>
                 </>
             ) : (
-                repoSelection === "SynbioHub" ? (
-                    SBHInstanceData.length === 0 ? (
-                        <SBHInstanceLogin onClose={onClose} setRepoSelection={setRepoSelection} />
-                    ) : (
-                        <SBHInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />
-                    )
-                ) : (
-                    FJInstanceData.length === 0 ? (
-                        <FJInstanceLogin onClose={onClose} setRepoSelection={setRepoSelection} />
-                    ) : (
-                        <FJInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />
-                    )
+                repoSelection === "SynbioHub" ?
+                        (<SBHInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />)
+                    :
+                        (<FJInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />)
                 )
-            )}
+            }
         </Modal>
     );
 }

@@ -1,21 +1,51 @@
 import { useState, useEffect } from 'react';
 import { Select, Button } from '@mantine/core';
 import SBHInstanceLogin from './SBHLogin';
+import AddInstance from './addInstance';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
-
 import axios from 'axios';
 
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
+    const [addingInstance, setAddingInstance] = useState("placeholder");
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [nullInstanceSelected, setNullInstanceSelected] = useState(false);
-    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: [] });
+    const [nullSelected, setNullSelected] = useState(false);
+    const [selected, setSelected] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: [] });
     
+    const findInstance = (instance) => {
+        return instanceData.find((element) => element.value === instance);
+    }
+
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => `${instance.name},  ${instance.instance}` !== selectedInstanceValue));
-        setSelectedInstanceValue(null);
+        setInstanceData(instanceData.filter(instance => instance.value !== selected));
+        setSelected(null);
     };
+
+    const stripData = (selected, showNotificationFlag = false) => {
+        const updatedInstance = {
+            value: selected,
+            label: selected,
+            instance: selected,
+            email: '',
+            authtoken: '',
+            name: '',
+            username: '',
+            affiliation: ''
+        };
+        const updatedInstanceData = instanceData.map((item) =>
+            item.instance === selected ? updatedInstance : item
+        );
+        setInstanceData(updatedInstanceData);
+        
+        if (!showNotificationFlag) {
+            showNotification({
+                title: 'Logout Successful',
+                message: 'You have successfully logged out of the registry',
+                color: 'green',
+            });
+        }
+    }
 
     const login = async (instance, auth) => {
         try {
@@ -30,47 +60,78 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 return;
             }
         } catch (error) {
-            handleRemoveInstance();
+            stripData(instance, true);
             showNotification({
                 title: 'Login Failed',
-                message: 'Unable to login. Registry removed from list. Please add and try again.',
+                message: 'Unable to login. Try logging in again.',
                 color: 'red',
             });
-            setRepoSelection("");
             console.error('Error:', error);
             throw error;
         }
     };
 
+    useEffect(() => {
+        if (addingInstance != null && addingInstance != "placeholder") {
+            const newInstance = { 
+                value: addingInstance, 
+                label: addingInstance,
+                instance: addingInstance, 
+                email: '', 
+                authtoken: '',
+                name: '',
+                username: '',
+                affiliation: ''
+
+            };
+            if (!instanceData.some(instance => instance.value === newInstance.value)) {
+                setInstanceData([...instanceData, newInstance]);
+                setSelected(addingInstance);
+            } else {
+                showNotification({
+                    title: 'Login exists',
+                    message: 'This repository has already been added. Please add a different repository.',
+                    color: 'yellow',
+                })
+            }
+        }
+    }, [addingInstance]);
+
     return (
         <>
-            {showLogin ? (
-                <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
-            ) : (
-                <>
+            {!addingInstance ? 
+                <AddInstance goBack={setAddingInstance} repo={"SynbioHub"}/>
+            :
+                showLogin ?
+                    <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
+            : ( <>
                     <Select
                         label={`Select a SynbioHub registry`}
                         placeholder="Pick one"
                         data={instanceData}
-                        onChange={(value) => {setNullInstanceSelected(false); setSelectedInstanceValue(value)}}
-                        value={selectedInstanceValue}
+                        onChange={(value) => {setNullSelected(false); setSelected(value)}}
+                        value={selected}
                     />
-                    {nullInstanceSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected instance. Please select an instance</div>}
+                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected instance. Please select an instance</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
-                        <Button mr="md" onClick={() => {setShowLogin(true)}}>Add Repository</Button>
-                        <Button onClick={() => 
-                        {if (selectedInstanceValue != null)
-                            {console.log("TESTED"); handleRemoveInstance(); setRepoSelection("")}
-                            else setNullInstanceSelected(true)}}>
-                        Remove Repository</Button>
-                        <Button ml="auto" onClick={() => 
-                        {if (selectedInstanceValue != null)
-                            login(instanceData.filter(instance => instance.value == selectedInstanceValue)[0].instance, instanceData.filter(instance => instance.value == selectedInstanceValue)[0].authtoken)
-                            else showNotification({
-                                title: 'Warning',
-                                message: 'No repository selected. Please select a repository.',
-                                color: 'yellow',
-                            })}}>Confirm Repository Selection</Button>
+                        <Button mr="md" onClick={() => {setAddingInstance(null)}}>Add</Button>
+                        {selected && (
+                        <>
+                            <Button mr="md" onClick={() => 
+                                {if (selected != null)
+                                    {handleRemoveInstance(); setRepoSelection("")}
+                                    else setNullSelected(true)}}>
+                                Remove
+                            </Button>
+                            {findInstance(selected)?.authtoken ?
+                                (<>
+                                    <Button mr="md" onClick={() => {stripData(selected)}}>Log Out</Button>
+                                    <Button ml="auto" onClick={() => {login(selected, findInstance(selected)?.authtoken)}}>Select</Button>
+                                </>)
+                            :
+                                <Button mr="md" onClick={() => {setShowLogin(true)}}>Login</Button>}
+                        </>
+                        )}
                     </div>
                 </>
             )}

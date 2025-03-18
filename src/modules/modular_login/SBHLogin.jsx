@@ -3,10 +3,16 @@ import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
-import { showNotification } from '@mantine/notifications';
+import { showNotification, cleanNotifications } from '@mantine/notifications';
 
 const login = async (instance, email, password) => {
     try {
+        showNotification({
+            title: 'Logging in',
+            message: 'Please wait...',
+            color: 'blue',
+            loading: true,
+        });
         const response = await axios.post(`https://${instance}/login`, {
             "email": email,
             "password": password
@@ -22,6 +28,7 @@ const login = async (instance, email, password) => {
             return data;
         }
     } catch (error) {
+        cleanNotifications();
         console.error('Error:', error);
         throw error;
     }
@@ -36,9 +43,11 @@ const getProfile = async (instance, auth) => {
             }
         });
         if(response.data){
+            cleanNotifications();
             return response.data;
         }
     } catch (error) {
+        cleanNotifications();
         console.error('Error:', error);
         throw error;
     }
@@ -46,17 +55,15 @@ const getProfile = async (instance, auth) => {
 
 const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [selectedInstanceValue, setSelectedInstanceValue] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
+    const [instance, setSelectedInstanceValue] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
 
     const form = useForm({
         initialValues: {
-            instance: '',
             email: '',
             password: '',
         },
 
         validate: {
-            instance: (value) => (value && !/[/]/.test(value) ? null : `SynbioHub instance is required and must not contain forward slashes`),
             email: (value) => (null),
             password: (value) => (value ? null : 'Password is required')
         },
@@ -66,37 +73,28 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
         if (form.isValid()){
             try {
                 const info = await login(values.instance, values.email, values.password);
-                const newInstance = { 
-                    value: `${info.name},  ${values.instance}`, 
-                    label: `${info.name},  ${values.instance}`,
+                const updatedInstance = { 
+                    value: values.instance, 
+                    label: values.instance,
                     instance: values.instance, 
                     email: info.email, 
                     authtoken: info.auth,
                     name: info.name,
                     username: info.username,
                     affiliation: info.affiliation
-
                 };
-                const existingIndex = instanceData.findIndex((instance) => instance.value === newInstance.value);
-                if (existingIndex !== -1) {
-                    const updatedInstanceData = [...instanceData];
-                    updatedInstanceData[existingIndex] = newInstance;
-                    setInstanceData(updatedInstanceData);
-                    showNotification({
-                        title: 'Login exists',
-                        message: 'This repository has already been added.',
-                        color: 'yellow',
-                    });
-                } else {
-                    setInstanceData([...instanceData, newInstance]);
-                    showNotification({
-                        title: 'Login successful',
-                        message: 'You have successfully logged in.',
-                        color: 'green',
-                    });
-                }
-                setSelectedInstanceValue(newInstance.value);
-                setRepoSelection("");
+
+                const updatedInstanceData = instanceData.map((item) =>
+                    item.instance === values.instance ? updatedInstance : item
+                );
+                setInstanceData(updatedInstanceData);
+                showNotification({
+                    title: 'Login successful',
+                    message: 'You have successfully logged in.',
+                    color: 'green',
+                });
+                setSelectedInstanceValue(updatedInstance.value);
+                goBack(false)
             } catch (error) {
                 console.error('Login failed:', error);
                 if(error.status === 401){
@@ -120,17 +118,8 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
     return (
         <Box sx={{ maxWidth: 300 }} mx="auto">
             <form
-                onSubmit={form.onSubmit((values) => {
-                    // Strip https:// and www. from the beginning of the value
-                    const instance = values.instance.replace(/^(https?:\/\/)?(www\.)?/, '');
-                    handleSubmit({ ...values, instance });
-                })}
+                onSubmit={form.onSubmit((values) => {handleSubmit({ ...values, instance })})}
             >
-                <TextInput
-                    label={`SynbioHub URL`}
-                    placeholder="Enter URL"
-                    {...form.getInputProps('instance')}
-                />
                 <TextInput
                     label={"Email or Username"}
                     placeholder={`Enter your email or username here`}
