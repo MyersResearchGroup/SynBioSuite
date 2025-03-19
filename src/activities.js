@@ -1,7 +1,8 @@
 import ExplorerActivityView from "./components/activities/explorer/ExplorerActivityView"
 import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
-import { FileIcon, RemoteControlIcon, BugReport } from "./icons"
+import LoginStatus from "./components/activities/explorer/LoginStatus";
+import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
 import { GiThorHammer} from "react-icons/gi";
 import { ObjectTypes } from "./objectTypes";
@@ -74,12 +75,18 @@ export const Activities = {
     // },
 
     // Any activities below will be pushed to the bottom of the toolbar
+    LoginStatusPanel: {
+        id: "synbio.activity.login-status-panel",
+        title: "Check Login Status",
+        component: LoginStatus,
+        icon: ProfileWhite,
+        mt: 'auto'
+    },
     GitHub: {
         id: "synbio.activity.GitHub",
         title: "GitHub and Website ",
         component: GitHubView,
         icon: RiGithubFill,
-        mt: 'auto'
     },
     BugReport: {
         id: "synbio.activity.bug-report",
