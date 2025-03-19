@@ -106,11 +106,18 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         typeOfRegistry={objectType.listTitle}
                                         title={objectType.title}/>
                                     }
+                                    {false && objectType.uploadable &&
+                                        <CreateNewButton
+                                            /*onCreate={handleCreateObject(objectType)}*/
+                                            suggestedName={`Upload ${objectType.title}`}
+                                        >
+                                            Upload {objectType.title}
+                                        </CreateNewButton>
+                                    }
                                     </Accordion.Panel>
                                 </Accordion.Item>
                             )
                         }
-
                     })
                 }
             </Accordion>

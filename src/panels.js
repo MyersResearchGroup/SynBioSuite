@@ -1,8 +1,10 @@
+import { FcAddDatabase } from "react-icons/fc";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
+import CollectionPanel from "./components/panels/xdc/CollectionPanel";
 import { ObjectTypes } from "./objectTypes";
 import { GiSewingMachine } from "react-icons/gi";
 
@@ -48,7 +50,16 @@ export const PanelTypes = {
         component: AssemblyPanel,
         objectTypes: [ ObjectTypes.Assembly.id ],
         icon: GiSewingMachine,
+    },
+    Experiment: {
+        id: "synbio.panel-type.data-collector",
+        title: "Data Collector",
+        component: CollectionPanel,
+        objectTypes: [ ObjectTypes.Experiment.id ],
+        icon: FcAddDatabase,
 
+        //To be implemented
+        //Reads contents of file and returns object
         deserialize: content => {
             try {
                 return JSON.parse(content)
