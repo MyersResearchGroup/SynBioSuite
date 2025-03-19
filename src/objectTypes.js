@@ -84,14 +84,13 @@ export const ObjectTypes = {
         icon: TbComponents,
         fileNameMatch: /\.xml$/
     },
-    Experiment: {
+    Experiments: {
         id: "synbio.object-type.experiment",
         title: "Experiments",
         listTitle: "Experiments",
-        fileNameMatch: /\.xdc/,
+        fileNameMatch: /\.xdc$/,
         icon: GrTestDesktop,
         createable: true,
-        uploadable: false,
         extension: ".xdc",
     },
     Metadata: {
@@ -101,16 +100,14 @@ export const ObjectTypes = {
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
-        uploadable: true,
     },
-    Output: {
-        id: "synbio.object-type.output-data",
-        title: "Plate Reader Outputs",
-        listTitle: "Plate Reader Outputs",
+    Results: {
+        id: "synbio.object-type.experimental-results",
+        title: "Experimental Results",
+        listTitle: "Experimental Results",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: VscOutput,
         createable: false,
-        uploadable: true,
     },
 }
 
@@ -123,17 +120,19 @@ export async function classifyFile(file, subDirectoryName) {
     const matchFromFileName = Object.values(ObjectTypes).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if (!subDirectoryName && matchFromFileName && matchFromFileName && matchFromFileName != ObjectTypes.Plasmids.id && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Output.id) {
+    if (!subDirectoryName && matchFromFileName && matchFromFileName && matchFromFileName != ObjectTypes.Plasmids.id && matchFromFileName != ObjectTypes.Results.id && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Experiments.id) {
         return matchFromFileName;
     } 
     else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmid" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Plasmids.id;
     }
-    else if 
-    (subDirectoryName != null && subDirectoryName.toLowerCase() === "output" && ObjectTypes.Output.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Output.id;
-    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "metadata" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
+    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "experimental results" && ObjectTypes.Results.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Results.id;
+    }
+    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "experimental setups" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Metadata.id;
+    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "xdc" && ObjectTypes.Experiments.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Experiments.id;
     }
 
     // otherwise, read file content
