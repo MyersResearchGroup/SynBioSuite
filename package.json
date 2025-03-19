@@ -20,6 +20,7 @@
         "@visx/legend": "^2.10.0",
         "@visx/scale": "^2.2.2",
         "@visx/xychart": "^2.11.1",
+        "axios": "^1.7.9",
         "browser-downloads": "^0.2.0",
         "buffer": "^6.0.3",
         "exceljs": "^4.3.0",
