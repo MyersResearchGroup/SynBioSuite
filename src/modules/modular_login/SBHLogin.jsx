@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
@@ -53,9 +53,9 @@ const getProfile = async (instance, auth) => {
     }
 };
 
-const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
+const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [instance, setSelectedInstanceValue] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
+    const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
 
     const form = useForm({
         initialValues: {
@@ -72,11 +72,12 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(values.instance, values.email, values.password);
+                const info = await login(selected, values.email, values.password);
+                
                 const updatedInstance = { 
-                    value: values.instance, 
-                    label: values.instance,
-                    instance: values.instance, 
+                    value: selected, 
+                    label: selected,
+                    instance: selected, 
                     email: info.email, 
                     authtoken: info.auth,
                     name: info.name,
@@ -85,15 +86,19 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.instance === values.instance ? updatedInstance : item
+                    item.instance === selected ? updatedInstance : item
                 );
+                
                 setInstanceData(updatedInstanceData);
+                
                 showNotification({
                     title: 'Login successful',
                     message: 'You have successfully logged in.',
                     color: 'green',
                 });
-                setSelectedInstanceValue(updatedInstance.value);
+                
+                setSelected(updatedInstance.value);
+                
                 goBack(false)
             } catch (error) {
                 console.error('Login failed:', error);
@@ -118,7 +123,7 @@ const SBHInstanceLogin = ({ onClose, goBack, setRepoSelection }) => {
     return (
         <Box sx={{ maxWidth: 300 }} mx="auto">
             <form
-                onSubmit={form.onSubmit((values) => {handleSubmit({ ...values, instance })})}
+                onSubmit={form.onSubmit((values) => {handleSubmit(values)})}
             >
                 <TextInput
                     label={"Email or Username"}
