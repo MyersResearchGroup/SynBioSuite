@@ -92,7 +92,7 @@ function LoginModal({ opened, onClose, repoName }) {
                                         Email: {selectedFJ ? findInstance(selectedFJ, "FJ").email : "Not Logged In"}
                                     </Text>
                                 </Group>
-                                {selectedFJ ? <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("SynbioHub")}}>
+                                {selectedFJ ? <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("Flapjack")}}>
                                     Change Flapjack Registry
                                 </Button> : <Button mt="md" onClick={() => {setRepoSelection("Flapjack")}}>
                                     Select Flapjack Registry

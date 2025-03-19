@@ -24,7 +24,7 @@ export {
     ProfileGreen,
     ProfileOrange,
     ProfileRed,
-    ProfileWhite
+    ProfileWhite,
     SynBioHub
 }
 
