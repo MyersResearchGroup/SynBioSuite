@@ -3,7 +3,7 @@ import { Select, Button } from '@mantine/core';
 import SBHInstanceLogin from './SBHLogin';
 import AddInstance from './addInstance';
 import { useLocalStorage } from '@mantine/hooks';
-import { showNotification } from '@mantine/notifications';
+import { cleanNotifications, showNotification } from '@mantine/notifications';
 import axios from 'axios';
 
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
@@ -71,6 +71,37 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
+    const logout = async (instance, auth) => {
+        try {
+            cleanNotifications();
+            showNotification({
+                title: 'Logging out',
+                message: 'Logging out of SynbioHub',
+                color: 'blue',
+                loading: true,
+            });
+            const response = await axios.post(`https://${instance}/logout`, null, {
+                headers: {
+                    'Accept': 'text/plain; charset=UTF-8',
+                    "X-authorization" : `${auth}`
+                }
+            });
+            cleanNotifications();
+            stripData(instance);
+
+        } catch (error) {
+            cleanNotifications();
+            stripData(instance, true);
+            showNotification({
+                title: 'Logout Failed',
+                message: 'Unable to logout from SynbioHub correctly. Credentials on SynbioSuite have been reset. If this is happening consistently please reach out to the SynbioSuite team.',
+                color: 'red',
+            });
+            console.error('Error:', error);
+            throw error;
+        }
+    };
+
     useEffect(() => {
         if (addingInstance != null && addingInstance != "placeholder") {
             const newInstance = { 
@@ -112,7 +143,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                         onChange={(value) => {setNullSelected(false); setSelected(value)}}
                         value={selected}
                     />
-                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected instance. Please select an instance</div>}
+                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected registry. Please select an registry</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
                         <Button mr="md" onClick={() => {setAddingInstance(null)}}>Add</Button>
                         {selected && (
@@ -125,7 +156,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                             </Button>
                             {findInstance(selected)?.authtoken ?
                                 (<>
-                                    <Button mr="md" onClick={() => {stripData(selected)}}>Log Out</Button>
+                                    <Button mr="md" onClick={() => {logout(selected, findInstance(selected)?.authtoken)}}>Log Out</Button>
                                     <Button ml="auto" onClick={() => {login(selected, findInstance(selected)?.authtoken)}}>Select</Button>
                                 </>)
                             :

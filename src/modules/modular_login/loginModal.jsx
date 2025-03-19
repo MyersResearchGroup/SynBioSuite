@@ -5,7 +5,7 @@ import SBHInstanceSelector from './SBHInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import SBHInstanceLogin from './SBHLogin';
-import FJInstanceLogin from './FJInstanceLogin';
+import FJInstanceLogin from './FJLogin';
 import AddInstance from './addInstance';
 
 
@@ -47,6 +47,7 @@ function LoginModal({ opened, onClose, repoName }) {
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
                                 radius="md"
+                                style={{ opacity: selectedSBH ? 1 : 0.5 }}
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
@@ -75,6 +76,7 @@ function LoginModal({ opened, onClose, repoName }) {
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
                                 radius="md"
+                                style={{ opacity: selectedFJ ? 1 : 0.5 }}
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
