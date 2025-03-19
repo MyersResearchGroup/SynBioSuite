@@ -116,9 +116,9 @@ export async function findFilesInDirectory(dirHandle) {
         }
 
     }
-    // Check for subfolders "output" and "metadata"
+
     for await (const [name, subHandle] of dirHandle.entries()) {
-        if (subHandle.kind === 'directory' && (name.toLowerCase() === 'output' || name.toLowerCase() === 'metadata')) {
+        if (subHandle.kind === 'directory') {
             for await (const handle of subHandle.values()) {
             if (handle.kind === 'file') {
                 await addFileMetadata(handle, name)
@@ -127,18 +127,6 @@ export async function findFilesInDirectory(dirHandle) {
             }
         }
     }
-
-        // Check for subfolders "output" and "metadata"
-        for await (const [name, subHandle] of dirHandle.entries()) {
-            if (subHandle.kind === 'directory' && (name.toLowerCase() === 'output' || name.toLowerCase() === 'metadata' || name.toLowerCase() === "plasmid")) {
-                for await (const handle of subHandle.values()) {
-                if (handle.kind === 'file') {
-                    await addFileMetadata(handle, name)
-                    files.push(handle)
-                }
-                }
-            }
-        }
 
     return files
 }
