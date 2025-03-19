@@ -10,6 +10,7 @@ import { MantineProvider } from '@mantine/core'
 
 import TimeAgo from "javascript-time-ago"
 import en from "javascript-time-ago/locale/en.json"
+import { ModalsProvider } from '@mantine/modals'
 
 // const canvasBlue = ["#d6daee", "#c2c8e5", "#adb5dc", "#99a3d4", "#8490cb", "#707ec2", "#5b6bb9", "#4759b1", "#3246a8", "#2d3f97"]
 const theme = {
@@ -32,7 +33,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <Provider store={store}>
             <MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
-                <App />
+                <ModalsProvider>
+                    <App />
+                </ModalsProvider>
             </MantineProvider>
         </Provider>
     </React.StrictMode>
