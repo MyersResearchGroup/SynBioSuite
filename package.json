@@ -21,7 +21,7 @@
         "@visx/legend": "^2.10.0",
         "@visx/scale": "^2.2.2",
         "@visx/xychart": "^2.11.1",
-        "axios": "^1.7.7",
+        "axios": "^1.7.9",
         "browser-downloads": "^0.2.0",
         "buffer": "^6.0.3",
         "exceljs": "^4.3.0",
@@ -35,6 +35,7 @@
         "react-redux": "^8.0.2",
         "react-smart-tabs": "^0.3.2",
         "react-time-ago": "^7.2.1",
+        "synbiosuite": "file:",
         "uuid": "^8.3.2"
     },
     "devDependencies": {
