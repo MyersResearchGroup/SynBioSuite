@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Center, Title, Text, Group, useMantineTheme, ActionIcon } from "@mantine/core"
+import { Center, Title, Text, Group, useMantineTheme, ActionIcon, Stack } from "@mantine/core"
 
 import { CgCheckO } from "react-icons/cg"
 import { AiOutlineSmile } from "react-icons/ai"
@@ -57,6 +57,65 @@ export default function Dropzone({ children, allowedTypes, item, onItemChange })
             </Center>
     )
 }
+
+export function MultiDropzone({ children, allowedTypes, items = [], onItemsChange, onRemoveItem }) {
+    const [allowedToDrop, setAllowedToDrop] = useState(null);
+  
+    const handleDragLeave = () => {
+      setAllowedToDrop(null);
+    };
+  
+    const handleDragOver = event => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "link";
+      const itemType = event.dataTransfer.types
+        .find(key => key.startsWith('type:'))
+        ?.replace('type:', '');
+      setAllowedToDrop(!allowedTypes || allowedTypes.includes(itemType));
+    };
+  
+    const handleDrop = event => {
+      event.preventDefault();
+      if (allowedToDrop) {
+        const newItem = event.dataTransfer.getData("fileId") || event.dataTransfer.getData("name");
+        if (newItem && !items.includes(newItem)) {
+          onItemsChange(newItem);
+        }
+      }
+      setAllowedToDrop(null);
+    };
+  
+    return (
+      <Center
+        sx={containerStyle(allowedToDrop)}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <Stack gap="xl">
+        {items?.length > 0 ? (
+                items.map(item => (
+                    <Center key={item} sx={successStyles.container}>
+                    <CgCheckO style={successStyles.icon} />
+                    <Title order={3} sx={successStyles.title}>{item}</Title>
+                    <ActionIcon sx={successStyles.removeIcon} onClick={() => onRemoveItem(item)}>
+                        <IoClose />
+                    </ActionIcon>
+                    </Center>
+                ))
+            ) : (
+                allowedToDrop == null ? (
+                    <Title order={3} sx={titleStyle}>{children}</Title>
+                ) : allowedToDrop ? (
+                    <Text sx={iconStyle}><AiOutlineSmile /></Text>
+                ) : (
+                    <Title order={3} sx={errorTitleStyle}>Item not allowed</Title>
+                )
+            )}
+        </Stack>
+      </Center>
+    );
+  }
 
 const successStyles = {
     container: theme => ({

@@ -24,6 +24,7 @@
         "browser-downloads": "^0.2.0",
         "buffer": "^6.0.3",
         "exceljs": "^4.3.0",
+        "glob": "^11.0.1",
         "javascript-time-ago": "^2.5.7",
         "react": "^18.2.0",
         "react-component-export-image": "^1.0.6",

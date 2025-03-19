@@ -5,10 +5,9 @@ import { PanelContext } from './SBOLEditorPanel'
 import { usePanelProperty } from "../../../redux/hooks/panelsHooks"
 
 
-export default function CanvasFrame() {
+export default function CanvasFrame({fileTypeObjectId}) {
 
     const panelId = useContext(PanelContext)
-
     // state containing full SBOL content
     const [sbolContent, setSBOLContent] = usePanelProperty(panelId, "sbol", false)
 
@@ -50,9 +49,10 @@ export default function CanvasFrame() {
 
         // post message
         iframeRef.current.contentWindow.postMessage(
+            
             sbolContent ?
-                { sbol: sbolContent } : // either send SBOL content
-                'hello canvas',         // or send dummy message
+                { sbol: sbolContent, panelType: fileTypeObjectId} : // either send SBOL content
+                {panelType: fileTypeObjectId},         // if no sbolContent, just send in panel type
             import.meta.env.VITE_SBOL_CANVAS_URL
         )
     }

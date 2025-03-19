@@ -11,6 +11,7 @@ import ProfileGreen from './profile-green.svg?component'
 import ProfileOrange from './profile-orange.svg?component'
 import ProfileRed from './profile-red.svg?component'
 import ProfileWhite from './profile-white.svg?component'
+import SynBioHub from './synbiohub.svg?component'
 
 
 export {
@@ -24,6 +25,7 @@ export {
     ProfileOrange,
     ProfileRed,
     ProfileWhite
+    SynBioHub
 }
 
 
