@@ -4,9 +4,6 @@ import FJInstanceSelector from './FJInstanceSelector';
 import SBHInstanceSelector from './SBHInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
-import SBHInstanceLogin from './SBHLogin';
-import FJInstanceLogin from './FJLogin';
-import AddInstance from './addInstance';
 
 
 function LoginModal({ opened, onClose, repoName }) {
