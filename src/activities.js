@@ -16,7 +16,7 @@ export const Activities = {
         title: "Entire Workflow",
         component: ExplorerActivityView,
         icon: FileIcon,
-        objectTypesToList:  Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
+        objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
     },
     PartsSelection: {
         id: "synbio.activity.parts-selection",
