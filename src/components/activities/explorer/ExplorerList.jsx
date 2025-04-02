@@ -3,11 +3,11 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-
 import {writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import ImportFile from './ImportFile'
 import { useState} from 'react'
 import Registries from './Registries.jsx'
+import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -17,6 +17,14 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     let tempDirectory;
 
     const [importedFile, setImportedFile] = useState(null)
+
+    // handle directory selection
+    const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
+
+    // handle refreshing working directory
+    const refreshWorkDir = () => {
+            setWorkingDirectory(workDir, false)
+        }
 
     const finalImport = (file) => {
         setImportedFile(file)
@@ -31,7 +39,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             const draftHandle = await workDir.getFileHandle(file.name, { create: true })
             const copiedText = await copied.text()
 
-            writeToFileHandle(draftHandle, copiedText)
+            await writeToFileHandle(draftHandle, copiedText)
+            refreshWorkDir()
 
             return copied
         } catch (err) {
