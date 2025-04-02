@@ -2,8 +2,8 @@ import { BiWorld } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
 import { PiTreeStructureFill } from "react-icons/pi"
+import { GiSewingMachine } from "react-icons/gi"
 import { RiGitRepositoryLine } from "react-icons/ri";
-
 
 export const ObjectTypes = {
     SYNBIOHUB: {
@@ -58,6 +58,15 @@ export const ObjectTypes = {
         icon: IoAnalyticsSharp,
         createable: true,
         extension: '.analysis',
+    },
+    Assembly: {
+        id: "synbio.object-type.assembly-plan",
+        title: "Assembly Plan",
+        listTitle: "Assembly Plans",
+        fileNameMatch: /\.json$/,
+        icon: GiSewingMachine,
+        createable: true,
+        extension: '.json',
     },
     Plasmids:{
         id: "synbio.object-type.plasmid",
