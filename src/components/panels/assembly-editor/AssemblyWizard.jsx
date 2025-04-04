@@ -100,7 +100,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                     icon={<TbComponents />}
                 >
                     <Dropzone
-                        allowedTypes={[ObjectTypes.SBOL.id]}
+                        allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]}
                         item={component?.name}
                         onItemChange={handleComponentChange}
                         multiple={true}

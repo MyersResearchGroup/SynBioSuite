@@ -68,7 +68,7 @@ export const ObjectTypes = {
         createable: true,
         extension: '.json',
     },
-    Plasmids:{
+    Plasmids: {
         id: "synbio.object-type.plasmid",
         title: "Plasmid",
         listTitle: "Plasmids",
