@@ -75,7 +75,8 @@ export const ObjectTypes = {
         createable: true,
         extension: '.xml',
         icon: TbComponents,
-        fileNameMatch: /\.xml$/
+        fileNameMatch: /\.xml$/,
+        badgeLabel: "PLASMID"
     }
 }
 
