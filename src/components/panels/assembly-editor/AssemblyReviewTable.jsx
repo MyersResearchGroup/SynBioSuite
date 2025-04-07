@@ -6,9 +6,10 @@ import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirector
 import { parameterMap } from './AssemblyForm'
 import { PanelContext } from './AssemblyPanel'
 import { TabValues as ParameterSources } from './AssemblyWizard'
+import { useEffect } from 'react'
 
 
-export default function AssemblyReviewTable() {
+export default function AssemblyReviewTable({ onInsertFilesReady }) {
 
     const panelId = useContext(PanelContext)
 
@@ -21,12 +22,12 @@ export default function AssemblyReviewTable() {
 
     const insertFileIds = usePanelProperty(panelId, 'inserts')
     const insertFiles = insertFileIds.map(id => useFile(id))
-    const insertFileObjectType = getObjectType(insertFiles[0]?.objectType)
-    console.log(insertFileObjectType)
 
-    const environmentFileId = usePanelProperty(panelId, 'environment')
-    const environmentFile = useFile(environmentFileId)
-    const environmentFileObjectType = getObjectType(environmentFile?.objectType)
+    useEffect(() => {
+        if (onInsertFilesReady && insertFiles.every(f => f !== undefined)) {
+          onInsertFilesReady(insertFiles)
+        }
+      }, [insertFiles, onInsertFilesReady])
 
     const formTableContents = () => {
         return Object.entries(formValues)
@@ -48,8 +49,8 @@ export default function AssemblyReviewTable() {
                     <td>
                     <Group position='right'>
                         <Text weight={600}>{titleFromFileName(file?.name)}</Text>
-                        {insertFileObjectType?.badgeLabel &&
-                        <Badge>{insertFileObjectType.badgeLabel}</Badge>}
+                        {getObjectType(file?.objectType)?.badgeLabel &&
+                        <Badge>{getObjectType(file?.objectType).badgeLabel}</Badge>}
                     </Group>
                     </td>
                 </tr>
@@ -60,7 +61,8 @@ export default function AssemblyReviewTable() {
 
     return (
         <Container>
-            <Table horizontalSpacing={20}>
+            <h2>Review Assembly Plan:</h2>
+            <Table horizontalSpacing={0}>
                 <thead>
                     <tr>
                         <th></th>

@@ -7,7 +7,6 @@ import { TbComponents } from 'react-icons/tb'
 import { IoAnalyticsSharp } from 'react-icons/io5'
 import { BiWorld } from "react-icons/bi"
 import AssemblyForm from './AssemblyForm'
-// import ReviewTable from './ReviewTable'
 import { ObjectTypes } from '../../../objectTypes'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
@@ -15,11 +14,11 @@ import { useRef } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useTimeout } from '@mantine/hooks'
-import { RuntimeStatus } from '../../../runtimeStatus'
 import { CgCheckO } from "react-icons/cg"
 import { useDispatch } from 'react-redux'
 import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
 import AssemblyReviewTable from './AssemblyReviewTable'
+import { submitAssembly } from '../../../SBOL2Build'
 
 export const TabValues = {
     PLASMID: 'plasmid',
@@ -44,6 +43,9 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
 
+    const [status, setStatus] = usePanelProperty(panelId, "runtimeStatus", false)
+    const [, setRequestedAt] = usePanelProperty(panelId, "lastRequestedAt", false)
+
     // stepper states
     const numSteps = 3
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
@@ -52,13 +54,14 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
 
     // Step 1: select plasmid
     const [plasmidId, setplasmidId] = usePanelProperty(panelId, 'backbone', false)
-    const component = useFile(plasmidId)
-    const handleComponentChange = fileNames => {
+    const acceptorPlasmid = useFile(plasmidId)
+    const handlePlasmidChange = fileNames => {
         setplasmidId(fileNames)
     }
 
     // Step 2: select part inserts
     const [insertIDs, setInsertIDs] = usePanelProperty(panelId, 'inserts', false, []) || []
+    let insertFiles = []
     const handleInsertChange = name => {
         setInsertIDs([...insertIDs, name])
     }
@@ -78,7 +81,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     switch (activeStep) {
         case 0: showNextButton = !!plasmidId
         break
-        case 1: showNextButton = !!component
+        case 1: showNextButton = !!acceptorPlasmid
         break
         case 2: showNextButton = true
     }
@@ -90,26 +93,49 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const orchestrationUrisRef = useRef(orchestrationUris)  // have to use refs for access from setTimeout callback
     orchestrationUrisRef.current = orchestrationUris
 
+    const handleAssemblySubmit = async () => {
+        setStatus(true)
+        setRequestedAt(Date.now())
+        
+        try {
+            // start analysis
+            const response = await submitAssembly(
+                fileHandle,
+                insertFiles,
+                acceptorPlasmid
+            )
+            setStatus(false)
+        }
+        catch (error) {
+            console.log(error)
+            setStatus(false)
+        }
+    }
+
+    const setInsertFileHandles = (fileHandles) => {
+        insertFiles = fileHandles
+    }
+
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step
-                    allowStepSelect={activeStep > 0}
+                    allowStepSelect={activeStep > 0 || status}
                     label="Select Plasmid Backbone"
                     description="SBOL Component"
                     icon={<TbComponents />}
                 >
                     <Dropzone
                         allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]}
-                        item={component?.name}
-                        onItemChange={handleComponentChange}
+                        item={acceptorPlasmid?.name}
+                        onItemChange={handlePlasmidChange}
                         multiple={true}
                     >
                         Drag & drop a component from the explorer
                     </Dropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1}
+                    allowStepSelect={activeStep > 1 || status}
                     label="Choose part inserts"
                     description="SBOL Component"
                     icon={<BiWorld />}
@@ -117,7 +143,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                     <Space h='xl' />
                         <h2 style={{ textAlign: 'center' }}>Upload Part Inserts</h2>
                         <MultiDropzone
-                            allowedTypes={[ObjectTypes.SBOL.id]} 
+                            allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]} 
                             items={insertIDs}
                             onItemsChange={handleInsertChange}
                             onRemoveItem={handleRemoveInsert}
@@ -127,7 +153,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                         </MultiDropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2}
+                    allowStepSelect={activeStep > 2 || status}
                     label="Enter Parameters"
                     description="Choose assembly type"
                     icon={<BiWorld />}
@@ -137,27 +163,38 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                             <AssemblyForm/>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 3}
+                    allowStepSelect={activeStep > 3 || status}
                     label="Generate SBOL"
                     description=""
                     icon={<IoAnalyticsSharp />}
-                    loading={false}
+                    loading={status}
                 >
                     <Space h='lg' />
                         <Group grow style={{ alignItems: 'flex-start' }}>
-                            <AssemblyReviewTable />
+                            <AssemblyReviewTable onInsertFilesReady={setInsertFileHandles}/>
                         </Group>
                 </Stepper.Step>
-                <Stepper.Completed>
-                    <CenteredTitle height={150}>Analysis is in progress...</CenteredTitle>
-                    <Button color='red'>Cancel</Button>
-                </Stepper.Completed>
             </Stepper>
             <Group position="center" mt="xl">
-                {false ?
-                    <Button color='red' onClick={() => cancelAnalysis(RuntimeStatus.CANCELLED)}>
-                        Cancel
-                    </Button> :
+                {status ?
+                    <>
+                        <Button color='red' onClick={() => setStatus(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="default"
+                            onClick={prevStep}
+                            sx={{ display: activeStep == 0 || activeStep == 3 ? 'none' : 'block' }}
+                        >
+                            Back
+                        </Button>
+                        <Button
+                            onClick={nextStep}
+                            sx={{ display: showNextButton ? 'block' : 'none' }}
+                        >
+                                Next step
+                        </Button> <></>
+                    </> :
                     <>
                         <Button
                             variant="default"
@@ -178,6 +215,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                                 gradient={{ from: "blue", to: "indigo" }}
                                 variant="gradient"
                                 radius="xl"
+                                onClick={handleAssemblySubmit}
                             >
                                 Generate SBOL
                             </Button>}  
