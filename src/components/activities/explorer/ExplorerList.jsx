@@ -55,7 +55,15 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         let tempDirectory;
         if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
             tempDirectory = await workDir.getDirectoryHandle("plasmid", { create: true });
-            
+        }
+        if(objectType.title === "Metadata"){ // Retrieve XDC spreadsheet directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("experimental setups", { create: true });
+        }
+        if(objectType.title === "Results"){ // Retrieve plate reader outputs directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("experimental results", { create: true });
+        }
+        if(objectType.title === "Experiments"){ // Retrieve XDC directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("XDC", { create: true });
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }
@@ -120,7 +128,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                 </Accordion.Item>
                             )
                         }
-
                     })
                 }
             </Accordion>
