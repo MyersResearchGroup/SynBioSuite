@@ -11,14 +11,10 @@ const FAILED = "Failed"
 const CANCELLED = "Cancelled"
 
 //Added for XDC Support
-const CONNECTED = "Connected"
-const PROCESSING_OUTPUT = "Processing Output"
-const PROCESSING_METADATA = "Processing Metadata"
-const SBH_UPLOAD = "SynBioHub Upload"
-const FJ_UPLOAD = "Flapjack Upload"
+const WAITING = "Waiting"
 
 const statusGroups = {
-    running: [REQUESTED, ACCEPTED, PENDING, RUNNING, UPLOADING, PROCESSING, CONNECTED, PROCESSING_OUTPUT, PROCESSING_METADATA, SBH_UPLOAD, FJ_UPLOAD],
+    running: [REQUESTED, ACCEPTED, PENDING, RUNNING, UPLOADING, PROCESSING, WAITING, UPLOADING],
     successful: [COMPLETED],
     unsuccessful: [FAILED, CANCELLED],
 }
@@ -31,11 +27,9 @@ export const RuntimeStatus = {
     COMPLETED,
     FAILED,
     CANCELLED,
-    CONNECTED,
-    PROCESSING_METADATA,
-    PROCESSING_OUTPUT,
-    SBH_UPLOAD,
-    FJ_UPLOAD,
+    WAITING,
+    PROCESSING,
+    UPLOADING,
     ...Object.fromEntries(
         Object.entries(statusGroups).map(([key, group]) => [
             key, status => group.includes(status)
