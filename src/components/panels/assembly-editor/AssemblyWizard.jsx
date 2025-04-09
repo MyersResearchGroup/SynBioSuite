@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Container, Stepper, Group, Button, Tabs, Space, Title, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
 import Dropzone, { MultiDropzone } from '../../Dropzone'
-import CenteredTitle from '../../CenteredTitle'
-import { showNotification } from '@mantine/notifications'
 import { TbComponents } from 'react-icons/tb'
 import { IoAnalyticsSharp } from 'react-icons/io5'
 import { BiWorld } from "react-icons/bi"
@@ -13,9 +11,6 @@ import { useContext } from 'react'
 import { useRef } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import { useTimeout } from '@mantine/hooks'
-import { CgCheckO } from "react-icons/cg"
-import { useDispatch } from 'react-redux'
 import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
 import AssemblyReviewTable from './AssemblyReviewTable'
 import { submitAssembly } from '../../../SBOL2Build'
@@ -43,8 +38,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
 
-    const [status, setStatus] = usePanelProperty(panelId, "runtimeStatus", false)
-    const [, setRequestedAt] = usePanelProperty(panelId, "lastRequestedAt", false)
+    const [status, setStatus] = useState(false)
 
     // stepper states
     const numSteps = 3
@@ -95,7 +89,6 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
 
     const handleAssemblySubmit = async () => {
         setStatus(true)
-        setRequestedAt(Date.now())
         
         try {
             // start analysis
@@ -115,6 +108,8 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const setInsertFileHandles = (fileHandles) => {
         insertFiles = fileHandles
     }
+
+    console.log(status)
 
     return (
         <Container style={stepperContainerStyle}>
