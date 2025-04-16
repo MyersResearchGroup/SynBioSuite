@@ -7,3 +7,4 @@ excel_sbol_utils==1.0.43
 sbol2
 requests
 pandas
+sbol2build

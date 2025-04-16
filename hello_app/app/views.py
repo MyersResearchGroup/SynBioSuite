@@ -7,7 +7,9 @@ import excel2sbol.converter as conv
 import sbol2
 import requests
 import os
+import sbol2build
 from excel2flapjack.main import X2F
+from flapjack import Flapjack
 from pandas import ExcelFile
 import json
 
@@ -111,11 +113,17 @@ class XDC:
 
         
     def log_in_fj(self):
-        if not self.fj_token:
-            self.xdc.fj_login(username=self.fj_user, password=self.fj_pass)
-            self.status = "Logged into Flapjack"
-        else:
-            pass #TODO
+        if self.fj_token:
+            self.x2f.fj.log_in_token(username=self.fj_user, access_token=self.fj_token, refresh_token=None)
+        elif self.fj_user and self.fj_pass:
+            self.x2f.fj.log_in(username=self.fj_user, password=self.fj_pass)
+            self.fj_token = self.x2f.fj.access_token
+
+        # if not self.fj_token:
+        #     self.xdc.fj_login(username=self.fj_user, password=self.fj_pass)
+        #     self.status = "Logged into Flapjack"
+        # else:
+            
         self.status = "Logged into Flapjack"
 
     def log_in_sbh(self):
@@ -309,6 +317,29 @@ def test_upload_file():
     xdc.convert_to_sbol()
     sbh_url = xdc.upload_to_sbh()
     return sbh_url
+
+@app.route('/login_fj', methods = ['POST'])
+def login_fj():
+    fj_url = request.form['fj_url']
+    fj_user = request.form['fj_user']
+    fj_pass = request.form['fj_pass']
+
+    # Add functionality to use requests library
+
+    fj = Flapjack(url_base=fj_url) #Local Instance
+    fj.log_in(username=fj_user, password=fj_pass)
+
+    return jsonify({"token": fj.access_token})
+
+@app.route('/logout_fj', methods = ['POST'])
+def logout_fj():
+    fj_url = request.form['fj_url']
+    fj_token = request.form['fj_token']
+
+    fj = Flapjack(url_base=fj_url)
+    fj.log_out(refresh=fj_token)
+
+    return jsonify({"status": "success"})
 
 @app.route('/login_sbh', methods = ['POST'])
 def login_sbh():
@@ -747,6 +778,65 @@ def process_files():
 
     return modified_file_data
 
+@app.route('/return_info', methods=['POST'])
+def return_info():
+    # Return the profile information of the logged in user
+
+    
+    return
+
 @app.route('/test')
 def test():
     return jsonify({"status": "working"}), 200
+
+@app.route('/sbol_2_build_golden_gate', methods=['POST'])
+def sbol_2_build_golden_gate():
+    # Error checking in the request
+    print("request", request.files)
+
+    if 'plasmid_backbone' not in request.files:
+        return jsonify({"error": "Missing plasmid backbone"}), 400
+    if 'insert_parts' not in request.files:
+        return jsonify({"error": "Missing insert parts"}), 400
+    if 'wizard_selections' not in request.form:
+        return jsonify({"error": "Missing wizard selections"}), 400
+
+    wizard_selection = request.form.get('wizard_selections')
+    plasmid_backbone = request.files.get('plasmid_backbone')
+    insert_parts = request.files.getlist('insert_parts')
+
+    # Parse the json
+
+    wizard_selection_json = json.loads(wizard_selection)
+    assembly_method = wizard_selection_json.get('formValues').get('assemblyMethod')
+
+    # Check if the assembly method is valid
+    if assembly_method != 'MoClo':
+        return jsonify({"error": "Invalid assembly method"}), 400
+    
+    # Get the restriction item
+    restriction_enzyme = wizard_selection_json.get('formValues').get('restrictionEnzyme')
+
+    # code for sbol2build
+    part_docs = []
+    for item in insert_parts:
+        doc = sbol2.Document()
+        doc.read(item)
+        part_docs.append(doc)
+    
+    bb_doc = sbol2.Document()
+    bb_doc.read(plasmid_backbone)
+
+    assembly_doc = sbol2.Document()
+    assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
+
+    composites = assembly_obj.run()
+
+    return_string = assembly_doc.writeString()
+
+    # Return the file as a response
+    return return_string
+
+
+
+    
