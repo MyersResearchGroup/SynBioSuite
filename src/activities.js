@@ -56,7 +56,9 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: BiSolidFlask,
         objectTypesToList: [
-
+            ObjectTypes.Experiments.id,
+            ObjectTypes.Metadata.id,
+            ObjectTypes.Results.id
         ]
     },
     Learn: {
