@@ -12,20 +12,14 @@ export const parameterMap = {
         label: "Assembly Type",
         default: "MoClo", 
         options: {
-            MoClo: 'MoClo', //no restriction enzyme form options required
-            Gibson: 'Gibson', //for later
+            MoClo: 'MoClo',
+            // Gibson: 'Gibson', //DEPRECATED in version 2.0.0, 
         }
     },
     restrictionEnzyme: {
         label: "Restriction Enzyme",
         default: "BsaI"
-        // validation: some type of restriction enzymne db?
-    },
-    dummyField: {
-        label: "DF"
-    },
-    dummyField1: {
-        label: "DF1"
+        // validation: resolve on backend
     },
 }
 
@@ -79,8 +73,6 @@ export default function AssemblyForm() {
                     </Group>
                     <Space h="lg" />
                     <Group grow sx={groupStyle}>
-                        <NumberInput required step={0.01} precision={2} label={parameterMap.dummyField.label} placeholder="" {...form.getInputProps('dummyField')} />
-                        <NumberInput required label={parameterMap.dummyField1.label} placeholder="" {...form.getInputProps('dummyField1')} />
                     </Group>
                     <Space h="lg" />
                     <Group grow mb={40} sx={groupStyle}>
