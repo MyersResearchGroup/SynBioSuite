@@ -54,8 +54,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("plasmid", { create: true });
+            tempDirectory = await workDir.getDirectoryHandle("plasmids", { create: true });
             
+        }
+        if(objectType.title === "Assembly Plan"){ // Retrieve Plasmid directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("assemblyPlans", { create: true });   
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }

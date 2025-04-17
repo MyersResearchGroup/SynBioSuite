@@ -109,8 +109,6 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
         insertFiles = fileHandles
     }
 
-    console.log(status)
-
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
