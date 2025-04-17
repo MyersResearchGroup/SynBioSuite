@@ -53,9 +53,17 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
-        if(objectType.title === "Plasmid"){ // Retrieve Plasmid directory, if it doesn't exist create it first
+        if(objectType.title === "Plasmids"){ // Retrieve Plasmids directory, if it doesn't exist create it first
             tempDirectory = await workDir.getDirectoryHandle("plasmids", { create: true });
-            
+        }
+        if(objectType.title === "Metadata"){ // Retrieve XDC spreadsheet directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("experimental setups", { create: true });
+        }
+        if(objectType.title === "Results"){ // Retrieve plate reader outputs directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("experimental results", { create: true });
+        }
+        if(objectType.title === "Experiments"){ // Retrieve XDC directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("XDC", { create: true });
         }
         if(objectType.title === "Assembly Plan"){ // Retrieve Plasmid directory, if it doesn't exist create it first
             tempDirectory = await workDir.getDirectoryHandle("assemblyPlans", { create: true });   
@@ -123,7 +131,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                 </Accordion.Item>
                             )
                         }
-
                     })
                 }
             </Accordion>

@@ -14,6 +14,7 @@
         "@mantine/core": "^5.0.0",
         "@mantine/form": "^5.0.0",
         "@mantine/hooks": "^5.0.0",
+        "@mantine/modals": "^5.10.5",
         "@mantine/notifications": "^5.0.0",
         "@reduxjs/toolkit": "^1.8.3",
         "@visx/glyph": "^2.10.0",
@@ -26,6 +27,7 @@
         "exceljs": "^4.3.0",
         "glob": "^11.0.1",
         "javascript-time-ago": "^2.5.7",
+        "js-cookie": "^3.0.5",
         "react": "^18.2.0",
         "react-component-export-image": "^1.0.6",
         "react-dom": "^18.0.0",
@@ -33,6 +35,7 @@
         "react-redux": "^8.0.2",
         "react-smart-tabs": "^0.3.2",
         "react-time-ago": "^7.2.1",
+        "synbiosuite": "file:",
         "uuid": "^8.3.2"
     },
     "devDependencies": {
