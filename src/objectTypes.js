@@ -66,6 +66,16 @@ export const ObjectTypes = {
         uploadable: false,
         extension: '.analysis',
     },
+    Plasmids: {
+        id: "synbio.object-type.plasmid",
+        title: "Plasmid",
+        listTitle: "Plasmids",
+        createable: true,
+        extension: '.xml',
+        icon: TbComponents,
+        fileNameMatch: /\.xml$/,
+        badgeLabel: "PLASMID"
+    },
     Assembly: {
         id: "synbio.object-type.assembly-plan",
         title: "Assembly Plan",
@@ -74,15 +84,6 @@ export const ObjectTypes = {
         icon: GiSewingMachine,
         createable: true,
         extension: '.json',
-    },
-    Plasmids:{
-        id: "synbio.object-type.plasmid",
-        title: "Plasmid",
-        listTitle: "Plasmids",
-        createable: true,
-        extension: '.xml',
-        icon: TbComponents,
-        fileNameMatch: /\.xml$/
     },
     Experiments: {
         id: "synbio.object-type.experiment",

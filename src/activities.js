@@ -46,7 +46,8 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: GiThorHammer,
         objectTypesToList: [
-            ObjectTypes.Plasmids.id
+            ObjectTypes.Plasmids.id,
+            ObjectTypes.Assembly.id
         ]
     },
     Test: {
