@@ -50,6 +50,20 @@ export const PanelTypes = {
         component: AssemblyPanel,
         objectTypes: [ ObjectTypes.Assembly.id ],
         icon: GiSewingMachine,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        }
     },
     Experiment: {
         id: "synbio.panel-type.data-collector",

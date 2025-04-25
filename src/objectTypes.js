@@ -124,8 +124,11 @@ export async function classifyFile(file, subDirectoryName) {
     if (!subDirectoryName && matchFromFileName && matchFromFileName && matchFromFileName != ObjectTypes.Plasmids.id && matchFromFileName != ObjectTypes.Results.id && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Experiments.id) {
         return matchFromFileName;
     } 
-    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmid" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
+    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmids" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Plasmids.id;
+    }
+    else if (subDirectoryName != null && subDirectoryName === "assemblyPlans" && ObjectTypes.Assembly.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Assembly.id;
     }
     else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "experimental results" && ObjectTypes.Results.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Results.id;
