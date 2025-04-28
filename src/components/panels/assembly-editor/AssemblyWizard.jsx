@@ -7,7 +7,7 @@ import { BiWorld, BiDownload, BiCloudUpload } from "react-icons/bi"
 import { FaCheckCircle } from 'react-icons/fa'; 
 import AssemblyForm from './AssemblyForm'
 import { ObjectTypes } from '../../../objectTypes'
-import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
+import { titleFromFileName, useFile, useCreateFile, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { useRef } from 'react'
 import { PanelContext } from './AssemblyPanel'
@@ -15,6 +15,8 @@ import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
 import AssemblyReviewTable from './AssemblyReviewTable'
 import { submitAssembly } from '../../../SBOL2Build'
+import { useSelector } from 'react-redux'
+import { showErrorNotification } from '../../../modules/util'
 
 export const TabValues = {
     PLASMID: 'plasmid',
@@ -34,6 +36,9 @@ export const TabValues = {
 
 export default function AssemblyWizard({handleViewResult, isResults = false}) {
     const panelId = useContext(PanelContext)
+
+    const createFileClosure = useCreateFile()
+    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
@@ -92,16 +97,23 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
         setStatus(true)
         
         try {
-            // start analysis
+            // backend call
             const response = await submitAssembly(
                 fileHandle,
                 insertFiles,
                 acceptorPlasmid
             )
-            setStatus(false)
+            //reponse handling
+            console.log(response)
+            
+            const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
+            const assemblyPlanFileHandle = createFileClosure(panelTitle + '.xml', null, subdirectoryHandle)
+            writeToFileHandle(assemblyPlanFileHandle, response) //write SBOL string to file
         }
         catch (error) {
             console.log(error)
+        } 
+        finally {
             setStatus(false)
         }
     }
