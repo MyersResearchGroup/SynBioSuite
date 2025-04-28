@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Container, Stepper, Group, Button, Tabs, Space, Title, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
+import { Container, Stepper, Group, Button, Tabs, Space, Menu, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
 import Dropzone, { MultiDropzone } from '../../Dropzone'
 import { TbComponents } from 'react-icons/tb'
 import { IoAnalyticsSharp } from 'react-icons/io5'
-import { BiWorld } from "react-icons/bi"
+import { BiWorld, BiDownload, BiCloudUpload } from "react-icons/bi"
+import { FaCheckCircle } from 'react-icons/fa'; 
 import AssemblyForm from './AssemblyForm'
 import { ObjectTypes } from '../../../objectTypes'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
@@ -31,7 +32,7 @@ export const TabValues = {
  * bp011 = https://github.com/SynBioDex/SBOL-examples/tree/main/SBOL/best-practices/BP011
 */
 
-export default function AssemblyWizard({handleViewResult, isResults}) {
+export default function AssemblyWizard({handleViewResult, isResults = false}) {
     const panelId = useContext(PanelContext)
 
     // file info
@@ -39,6 +40,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
     const panelTitle = titleFromFileName(fileHandle.name)
 
     const [status, setStatus] = useState(false)
+    const [backendResponse, setBackendResponse] = useState(false)
 
     // stepper states
     const numSteps = 3
@@ -67,7 +69,6 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
 
     // form state
     const formValues = usePanelProperty(panelId, "formValues")
-    const [formValidated, setFormValidated] = useState()
 
     
     // determine if we can move to next step or not
@@ -113,7 +114,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step
-                    allowStepSelect={activeStep > 0 || status}
+                    allowStepSelect={activeStep > 0 || status || isResults}
                     label="Select Plasmid Backbone"
                     description="SBOL Component"
                     icon={<TbComponents />}
@@ -128,7 +129,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                     </Dropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1 || status}
+                    allowStepSelect={activeStep > 1 || status || isResults}
                     label="Choose part inserts"
                     description="SBOL Component"
                     icon={<BiWorld />}
@@ -146,7 +147,7 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                         </MultiDropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2 || status}
+                    allowStepSelect={activeStep > 2 || status || isResults}
                     label="Enter Parameters"
                     description="Choose assembly type"
                     icon={<BiWorld />}
@@ -156,10 +157,9 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                             <AssemblyForm/>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 3 || status}
+                    allowStepSelect={activeStep > 3 || status || isResults}
                     label="Generate SBOL"
-                    description=""
-                    icon={<IoAnalyticsSharp />}
+                    icon={backendResponse ? <FaCheckCircle size={45} color="2fb044"/> : <IoAnalyticsSharp />}
                     loading={status}
                 >
                     <Space h='lg' />
@@ -211,14 +211,25 @@ export default function AssemblyWizard({handleViewResult, isResults}) {
                                 onClick={handleAssemblySubmit}
                             >
                                 Generate SBOL
-                            </Button>}  
-                        {isResults && activeStep === 2 && <Button
-                            gradient={{ from: "green", to: "green" }}
-                            variant="gradient"
-                            radius="xl"
-                            onClick={handleViewResult}
-                        >   View Results
-                        </Button>}                  
+                            </Button>}
+                        {backendResponse && isResults && activeStep === 3 && <Menu trigger="hover" closeDelay={250}>   
+                            <Menu.Target>
+                                <Button 
+                                gradient={{ from: "green", to: "green" }}
+                                variant="gradient"
+                                radius="xl"
+                                >{panelTitle}.xml</Button>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                            <Menu.Label>Assembly Plan SBOL</Menu.Label>
+                                <Menu.Item icon={<BiDownload/>}>
+                                    Download
+                                </Menu.Item>
+                                <Menu.Item icon={<BiCloudUpload/>}>
+                                    Upload to SynBioHub
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>}                  
                     </>}
             </Group>
         </Container>
