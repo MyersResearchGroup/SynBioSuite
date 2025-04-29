@@ -7,7 +7,7 @@ import { BiWorld, BiDownload, BiCloudUpload } from "react-icons/bi"
 import { FaCheckCircle } from 'react-icons/fa'; 
 import AssemblyForm from './AssemblyForm'
 import { ObjectTypes } from '../../../objectTypes'
-import { titleFromFileName, useFile, useCreateFile, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
+import { titleFromFileName, useFile, useCreateAssemblyFile, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { useRef } from 'react'
 import { PanelContext } from './AssemblyPanel'
@@ -37,7 +37,7 @@ export const TabValues = {
 export default function AssemblyWizard({handleViewResult, isResults = false}) {
     const panelId = useContext(PanelContext)
 
-    const createFileClosure = useCreateFile()
+    const createFileClosure = useCreateAssemblyFile()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
 
     // file info
@@ -86,13 +86,9 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
         case 2: showNextButton = true
     }
     
-    // submission & response tracking
-    const [results, setResults] = usePanelProperty(panelId, 'results', false)
-    const [orchestrationUris, setOrchestrationUris] = usePanelProperty(panelId, 'orchestrationUris', false)
-
-    const orchestrationUrisRef = useRef(orchestrationUris)  // have to use refs for access from setTimeout callback
-    orchestrationUrisRef.current = orchestrationUris
-
+    // adding file to json
+    const [assemblyPlanFile, setAssemblyPlanFile] = usePanelProperty(panelId, 'AssemblyPlan', '')
+    
     const handleAssemblySubmit = async () => {
         setStatus(true)
         
@@ -107,11 +103,12 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
             console.log(response)
             
             const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
-            const assemblyPlanFileHandle = createFileClosure(panelTitle + '.xml', null, subdirectoryHandle)
-            writeToFileHandle(assemblyPlanFileHandle, response) //write SBOL string to file
+            const assemblyPlanFileHandle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
+            await writeToFileHandle(assemblyPlanFileHandle, response) //write SBOL string to file
+
+            setAssemblyPlanFile(assemblyPlanFileHandle.name)
         }
         catch (error) {
-            console.log(error)
         } 
         finally {
             setStatus(false)
