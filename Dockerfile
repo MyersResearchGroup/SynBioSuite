@@ -1,13 +1,13 @@
-FROM --platform=arm64 tiangolo/uwsgi-nginx-flask:python3.9
+FROM tiangolo/uwsgi-nginx-flask:python3.9
 
 COPY ./hello_app /app
 WORKDIR /app
 
 RUN mkdir -p /app/data
 
-ENV STATIC_PATH /hello_app/app/static
+ENV STATIC_PATH=/hello_app/app/static
 
-ENV LISTEN_PORT 5003
+ENV LISTEN_PORT=5003
 EXPOSE 5003
 
 # Install requirements
