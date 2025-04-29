@@ -3,6 +3,7 @@ import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
 import { PiTreeStructureFill } from "react-icons/pi"
 import { GiSewingMachine } from "react-icons/gi"
+import { GiThorHammer} from "react-icons/gi"
 import { RiGitRepositoryLine } from "react-icons/ri";
 import { GrTestDesktop } from "react-icons/gr";
 import { MdAlignVerticalTop } from "react-icons/md";
@@ -85,6 +86,15 @@ export const ObjectTypes = {
         createable: true,
         extension: '.json',
     },
+    Build: {
+        id: "synbio.object-type.build",
+        title: "Build",
+        listTitle: "Builds",
+        fileNameMatch: /\.json$/,
+        icon: GiThorHammer,
+        createable: true,
+        extension: '.json',
+    },
     Experiments: {
         id: "synbio.object-type.experiment",
         title: "Experiments",
@@ -129,6 +139,9 @@ export async function classifyFile(file, subDirectoryName) {
     }
     else if (subDirectoryName != null && subDirectoryName === "assemblyPlans" && ObjectTypes.Assembly.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Assembly.id;
+    }
+    else if (subDirectoryName != null && subDirectoryName === "builds" && ObjectTypes.Build.fileNameMatch?.test(file.name)) {
+        return ObjectTypes.Build.id;
     }
     else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "experimental results" && ObjectTypes.Results.fileNameMatch?.test(file.name)) {
         return ObjectTypes.Results.id;
