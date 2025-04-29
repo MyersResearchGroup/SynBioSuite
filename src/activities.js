@@ -47,7 +47,8 @@ export const Activities = {
         icon: GiThorHammer,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
-            ObjectTypes.Assembly.id
+            ObjectTypes.Assembly.id, 
+            ObjectTypes.Build.id
         ]
     },
     Test: {
