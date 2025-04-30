@@ -1,11 +1,11 @@
 FROM tiangolo/uwsgi-nginx-flask:python3.9
 
-COPY ./hello_app /app
+COPY ./sbs_server /app
 WORKDIR /app
 
 RUN mkdir -p /app/data
 
-ENV STATIC_PATH=/hello_app/app/static
+ENV STATIC_PATH=/sbs_server/app/static
 
 ENV LISTEN_PORT=5003
 EXPOSE 5003
