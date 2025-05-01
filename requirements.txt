@@ -1,1 +1,7 @@
 Flask
+flask_cors
+requests
+numpy==1.26.1
+pandas==1.3.3
+tricahue==0.0b3
+sbol2build

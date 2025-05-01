@@ -21,7 +21,7 @@ docker build -t sbs_server .
 
 Run the image:
 ```bash
-docker run -p 5003:5000 sbs_server
+docker run -p 5003:5003 sbs_server
 ```
 
 The server will be running on localhost:5003
