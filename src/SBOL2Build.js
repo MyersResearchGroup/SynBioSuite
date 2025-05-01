@@ -13,16 +13,12 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
     await commands.FileSave.execute(wizardInput.id)
 
     // attach input file
-    formdata.append("wizard_selections", await wizardInput.getFile())
+    const json = await wizardInput.getFile()
+    const text = await json.text()
 
+    for (const part of insertParts) formdata.append("insert_parts", await part.getFile())
     formdata.append("plasmid_backbone", await acceptorBackbone.getFile())
-    
-    for (const part of insertParts) {
-        formdata.append("insert_parts", await part.getFile())
-    }
-
-    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-    await sleep(5000)
+    formdata.append("wizard_selections", text)
 
     try {
         const response = await axios.post(import.meta.env.VITE_SBOL2BUILD_API,

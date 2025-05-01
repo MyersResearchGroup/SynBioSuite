@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Container, Stepper, Group, Button, Tabs, Space, Menu, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
 import Dropzone, { MultiDropzone } from '../../Dropzone'
 import { TbComponents } from 'react-icons/tb'
@@ -9,14 +9,12 @@ import AssemblyForm from './AssemblyForm'
 import { ObjectTypes } from '../../../objectTypes'
 import { titleFromFileName, useFile, useCreateAssemblyFile, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
-import { useRef } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import { setfailureMessage } from '../../../redux/slices/failureMessageSlice'
 import AssemblyReviewTable from './AssemblyReviewTable'
 import { submitAssembly } from '../../../SBOL2Build'
 import { useSelector } from 'react-redux'
-import { showErrorNotification } from '../../../modules/util'
+import PanelSaver from '../PanelSaver'
 
 export const TabValues = {
     PLASMID: 'plasmid',
@@ -36,6 +34,7 @@ export const TabValues = {
 
 export default function AssemblyWizard({handleViewResult, isResults = false}) {
     const panelId = useContext(PanelContext)
+    PanelSaver(panelId)
 
     const createFileClosure = useCreateAssemblyFile()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
@@ -44,8 +43,11 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
 
+    // adding file to json
+    const [assemblyPlanFile, setAssemblyPlanFile] = usePanelProperty(panelId, 'AssemblyPlan', '')
+
     const [status, setStatus] = useState(false)
-    const [backendResponse, setBackendResponse] = useState(false)
+    const [backendResponse, setBackendResponse] = useState(assemblyPlanFile ? true : false)
 
     // stepper states
     const numSteps = 3
@@ -86,9 +88,6 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
         case 2: showNextButton = true
     }
     
-    // adding file to json
-    const [assemblyPlanFile, setAssemblyPlanFile] = usePanelProperty(panelId, 'AssemblyPlan', '')
-    
     const handleAssemblySubmit = async () => {
         setStatus(true)
         
@@ -100,8 +99,9 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                 acceptorPlasmid
             )
             //reponse handling
-            console.log(response)
-            
+            if (response.includes('xmlns:sbol="http://sbols.org/v2#"')) { 
+                setBackendResponse(true)
+            }
             const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
             const assemblyPlanFileHandle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
             await writeToFileHandle(assemblyPlanFileHandle, response) //write SBOL string to file
@@ -123,7 +123,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step
-                    allowStepSelect={activeStep > 0 || status || isResults}
+                    allowStepSelect={activeStep > 0 || status || backendResponse}
                     label="Select Plasmid Backbone"
                     description="SBOL Component"
                     icon={<TbComponents />}
@@ -138,7 +138,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                     </Dropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1 || status || isResults}
+                    allowStepSelect={activeStep > 1 || status || backendResponse}
                     label="Choose part inserts"
                     description="SBOL Component"
                     icon={<BiWorld />}
@@ -156,7 +156,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                         </MultiDropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2 || status || isResults}
+                    allowStepSelect={activeStep > 2 || status || backendResponse}
                     label="Enter Parameters"
                     description="Choose assembly type"
                     icon={<BiWorld />}
@@ -166,7 +166,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                             <AssemblyForm/>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 3 || status || isResults}
+                    allowStepSelect={activeStep > 3 || status || backendResponse}
                     label="Generate SBOL"
                     icon={backendResponse ? <FaCheckCircle size={45} color="2fb044"/> : <IoAnalyticsSharp />}
                     loading={status}
@@ -221,7 +221,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                             >
                                 Generate SBOL
                             </Button>}
-                        {backendResponse && isResults && activeStep === 3 && <Menu trigger="hover" closeDelay={250}>   
+                        {backendResponse && activeStep === 3 && <Menu trigger="hover" closeDelay={250}>   
                             <Menu.Target>
                                 <Button 
                                 gradient={{ from: "green", to: "green" }}
