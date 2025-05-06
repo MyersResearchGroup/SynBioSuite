@@ -1,0 +1,351 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Biological Data Processing API",
+        "description": "API for managing SBOL data, file processing, and assembly planning",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "Main API endpoint"
+        }
+    ],
+    "tags": [
+        {
+            "name": "System",
+            "description": "System health and data endpoints"
+        },
+        {
+            "name": "File Upload",
+            "description": "File upload and processing endpoints"
+        },
+        {
+            "name": "Assembly",
+            "description": "Biological assembly operations"
+        },
+        {
+            "name": "Data Processing",
+            "description": "Data extraction and processing"
+        }
+    ],
+    "paths": {
+        "/pin": {
+            "get": {
+                "tags": ["System"],
+                "summary": "Check if the API is running",
+                "description": "Simple endpoint to verify the API is operational",
+                "responses": {
+                    "200": {
+                        "description": "API is operational",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "working"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/data": {
+            "get": {
+                "tags": ["System"],
+                "summary": "Get data JSON",
+                "description": "Returns the data.json static file",
+                "responses": {
+                    "200": {
+                        "description": "Data returned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/test_metadata_upload": {
+            "post": {
+                "tags": ["File Upload"],
+                "summary": "Test metadata file upload",
+                "description": "Endpoint for testing metadata file uploads",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Metadata file to upload"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Upload successful"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                }
+            }
+        },
+        "/upload_sbs": {
+            "post": {
+                "tags": ["File Upload"],
+                "summary": "Upload file from SBS",
+                "description": "Uploads a metadata file with parameters from SBS, processes it with Tricahue XDC, and uploads to SBH",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "Metadata": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Metadata file to upload"
+                                    },
+                                    "Params": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Parameters file in JSON format"
+                                    }
+                                },
+                                "required": ["Metadata", "Params"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Upload successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "sbh_url": {
+                                            "type": "string",
+                                            "description": "SBH URL where the data was uploaded"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                }
+            }
+        },
+        "/extract_data": {
+            "post": {
+                "tags": ["Data Processing"],
+                "summary": "Extract data from files",
+                "description": "Processes metadata and platereader output files to extract data",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "Metadata": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Metadata file"
+                                    },
+                                    "platereader_output": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Platereader output file"
+                                    },
+                                    "preset": {
+                                        "type": "string",
+                                        "description": "Selected preset for processing"
+                                    }
+                                },
+                                "required": ["Metadata", "platereader_output", "preset"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Data extraction successful",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                }
+            }
+        },
+        "/return_info": {
+            "post": {
+                "tags": ["System"],
+                "summary": "Return user information",
+                "description": "Returns the profile information of the logged in user",
+                "responses": {
+                    "200": {
+                        "description": "Information returned successfully"
+                    }
+                }
+            }
+        },
+        "/sbol_2_build_golden_gate": {
+            "post": {
+                "tags": ["Assembly"],
+                "summary": "Build Golden Gate assembly",
+                "description": "Creates a SBOL2 golden gate assembly plan based on input parts and backbone",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "plasmid_backbone": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "description": "Plasmid backbone file"
+                                    },
+                                    "insert_parts": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        },
+                                        "description": "Insert parts files"
+                                    },
+                                    "wizard_selections": {
+                                        "type": "string",
+                                        "description": "JSON string containing wizard selections including assembly method and restriction enzyme"
+                                    }
+                                },
+                                "required": ["plasmid_backbone", "insert_parts", "wizard_selections"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assembly plan created successfully",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "XDCParams": {
+                "type": "object",
+                "properties": {
+                    "fj_url": {
+                        "type": "string",
+                        "description": "FreeGenes URL"
+                    },
+                    "sbh_url": {
+                        "type": "string",
+                        "description": "SynBioHub URL"
+                    },
+                    "sbh_collec": {
+                        "type": "string",
+                        "description": "SynBioHub collection"
+                    },
+                    "sbh_collec_desc": {
+                        "type": "string",
+                        "description": "SynBioHub collection description"
+                    },
+                    "sbh_overwrite": {
+                        "type": "boolean",
+                        "description": "Overwrite existing SynBioHub data"
+                    },
+                    "fj_overwrite": {
+                        "type": "boolean",
+                        "description": "Overwrite existing FreeGenes data"
+                    },
+                    "fj_token": {
+                        "type": "string",
+                        "description": "FreeGenes authentication token"
+                    },
+                    "sbh_token": {
+                        "type": "string",
+                        "description": "SynBioHub authentication token"
+                    }
+                }
+            },
+            "WizardSelections": {
+                "type": "object",
+                "properties": {
+                    "formValues": {
+                        "type": "object",
+                        "properties": {
+                            "assemblyMethod": {
+                                "type": "string",
+                                "enum": ["MoClo"],
+                                "description": "Assembly method"
+                            },
+                            "restrictionEnzyme": {
+                                "type": "string",
+                                "description": "Restriction enzyme for the assembly"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
