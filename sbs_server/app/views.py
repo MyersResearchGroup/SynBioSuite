@@ -154,12 +154,19 @@ def sbol_2_build_golden_gate():
     assembly_doc = sbol2.Document()
     assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
 
-    composites = assembly_obj.run()
+    try:
+        composites = assembly_obj.run()
 
-    return_string = assembly_doc.writeString()
+        return_string = assembly_doc.writeString()
 
-    # Return the file as a response
-    return return_string
+        # Return the file as a response
+        return return_string
+
+    except ValueError as e:
+        # catch sbol2build errors and return to frontend
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
 
 
 
