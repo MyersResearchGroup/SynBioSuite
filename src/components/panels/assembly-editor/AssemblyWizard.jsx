@@ -15,6 +15,7 @@ import AssemblyReviewTable from './AssemblyReviewTable'
 import { submitAssembly } from '../../../SBOL2Build'
 import { useSelector } from 'react-redux'
 import PanelSaver from '../PanelSaver'
+import { useEffect } from 'react'
 
 export const TabValues = {
     PLASMID: 'plasmid',
@@ -42,12 +43,26 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
-
+    const [fileUrl, setFileUrl] = useState()
+    
     // adding file to json
     const [assemblyPlanFile, setAssemblyPlanFile] = usePanelProperty(panelId, 'AssemblyPlan', '')
 
     const [status, setStatus] = useState(false)
     const [backendResponse, setBackendResponse] = useState(assemblyPlanFile ? true : false)
+
+    //creating download url on filename init from backend respose
+    useEffect(() => {
+        const setup = async () => {
+            const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
+            const handle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
+            const file = await handle.getFile();
+            const url = URL.createObjectURL(file);
+            setFileUrl(url);
+        };
+        if (backendResponse) setup();
+        return () => { if (fileUrl) URL.revokeObjectURL(fileUrl); };
+      }, [assemblyPlanFile]);
 
     // stepper states
     const numSteps = 3
@@ -231,7 +246,11 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                             </Menu.Target>
                             <Menu.Dropdown>
                             <Menu.Label>Assembly Plan SBOL</Menu.Label>
-                                <Menu.Item icon={<BiDownload/>}>
+                                <Menu.Item 
+                                    component="a"
+                                    href={fileUrl}
+                                    download={`${panelTitle}.xml`}
+                                    icon={<BiDownload />}>
                                     Download
                                 </Menu.Item>
                                 <Menu.Item icon={<BiCloudUpload/>}>
