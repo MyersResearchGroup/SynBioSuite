@@ -35,7 +35,7 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
         console.error(error);
     
         if (error.response) {
-            showErrorNotification('Error ' + error.response.status, error.response.data?.message || 'Unknown server error');
+            showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
         } else if (error.request) { // no response
             showErrorNotification('Network error', 'No response from server.');
         } else {
