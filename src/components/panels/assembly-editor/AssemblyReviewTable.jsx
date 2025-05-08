@@ -34,7 +34,7 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
             .filter(([, value]) => value != null)
                 .map(([key, value], i) =>
                     <tr key={i}>
-                        <td>{parameterMap[key]?.label}</td>
+                        <td>{parameterMap[key]?.label}:</td>
                         <td align='right' >{`${value}`}</td>
                     </tr>)
     }
@@ -61,7 +61,7 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
 
     return (
         <Container>
-            <h2>Review Assembly Plan:</h2>
+            <h2>Review Assembly Plan</h2>
             <Table horizontalSpacing={0}>
                 <thead>
                     <tr>

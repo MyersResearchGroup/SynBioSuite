@@ -61,6 +61,17 @@ export function useCreateFile() {
     }
 }
 
+export function useCreateAssemblyFile() {
+    const dispatch = useDispatch()
+    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
+    return async (fileName, objectType, directory = workDir) => { // Optional arg directory in which the file will be created 
+        const fileHandle = directory.getFileHandle(fileName, { create: true })
+        addFileMetadata(fileHandle, directory.name, { objectType })
+        dispatch(actions.addFile(fileHandle))
+        return fileHandle
+    }
+}
+
 export function useCreateFileWithFilePicker() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
