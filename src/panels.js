@@ -6,7 +6,8 @@ import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
 import { ObjectTypes } from "./objectTypes";
-import { GiSewingMachine } from "react-icons/gi";
+import { GiSewingMachine, GiThorHammer } from "react-icons/gi";
+import BuildPanel from "./components/panels/build/BuildPanel";
 
 
 export const PanelTypes = {
@@ -50,6 +51,41 @@ export const PanelTypes = {
         component: AssemblyPanel,
         objectTypes: [ ObjectTypes.Assembly.id ],
         icon: GiSewingMachine,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        }
+    },
+    BuildEditor: {
+        id: "synbio.panel-type.build-editor",
+        title: "Build Editor",
+        component: BuildPanel,
+        objectTypes: [ ObjectTypes.Build.id ],
+        icon: GiThorHammer,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        } 
     },
     Experiment: {
         id: "synbio.panel-type.data-collector",

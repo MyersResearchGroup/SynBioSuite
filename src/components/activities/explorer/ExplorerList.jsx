@@ -65,8 +65,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         if(objectType.title === "Experiments"){ // Retrieve XDC directory, if it doesn't exist create it first
             tempDirectory = await workDir.getDirectoryHandle("XDC", { create: true });
         }
-        if(objectType.title === "Assembly Plan"){ // Retrieve Plasmid directory, if it doesn't exist create it first
+        if(objectType.title === "Assembly Plan"){ // Retrieve assembly plan directory, if it doesn't exist create it first
             tempDirectory = await workDir.getDirectoryHandle("assemblyPlans", { create: true });   
+        }
+        if(objectType.title === "Build"){ // Retrieve build directory, if it doesn't exist create it first
+            tempDirectory = await workDir.getDirectoryHandle("builds", { create: true });   
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }

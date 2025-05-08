@@ -1,4 +1,6 @@
+import axios from 'axios'
 import commands from "./commands"
+import { showErrorNotification } from './modules/util'
 
 export async function submitAssembly(wizardInput, insertParts, acceptorBackbone) {
     console.log(wizardInput)
@@ -11,20 +13,35 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
     await commands.FileSave.execute(wizardInput.id)
 
     // attach input file
-    formdata.append("wizard_selections", await wizardInput.getFile())
+    const json = await wizardInput.getFile()
+    const text = await json.text()
 
+    for (const part of insertParts) formdata.append("insert_parts", await part.getFile())
     formdata.append("plasmid_backbone", await acceptorBackbone.getFile())
+    formdata.append("wizard_selections", text)
+
+    try {
+        const response = await axios.post(import.meta.env.VITE_SBOL2BUILD_API,
+            formdata,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
     
-    for (const part of insertParts) {
-        formdata.append("insert_parts", await part.getFile())
+        return response.data;
+    } catch (error) {
+        console.error(error);
+    
+        if (error.response) {
+            showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
+        } else if (error.request) { // no response
+            showErrorNotification('Network error', 'No response from server.');
+        } else {
+            showErrorNotification('Unexpected error', error.message);
+        }
+    
+        throw error;
     }
-
-    const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-    await sleep(5000)
-
-    const response = await fetch(import.meta.env.VITE_SBOL2BUILD_API, {
-        method: 'POST',
-        body: formdata,
-        redirect: 'follow'
-    })
 }
