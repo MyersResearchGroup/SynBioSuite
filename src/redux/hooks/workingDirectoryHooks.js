@@ -61,6 +61,28 @@ export function useCreateFile() {
     }
 }
 
+export function useReadFileById() {
+    const files = useFiles()
+    
+    return async (fileId) => {
+        const fileHandle = files.find(file => file.id === fileId)
+        
+        if (!fileHandle) {
+            console.error("File not found:", fileId)
+            return null
+        }
+        
+        try {
+            const file = await fileHandle.getFile()
+            const contents = await file.text()
+            return contents
+        } catch (error) {
+            console.error("Error reading file:", fileId, error)
+            return null
+        }
+    }
+}
+
 export function useCreateAssemblyFile() {
     const dispatch = useDispatch()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
