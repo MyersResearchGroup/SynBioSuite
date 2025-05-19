@@ -33,9 +33,30 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     async function copySelectedFile(file) {
         if (!file) return null
         try {
+
+
+            /*
+
+                let directoryHandle = null
+
+                ------
+
+                some code blah blah <---- subDirectory is not null / empty
+
+                ------
+                return {
+                    fileobj: file,
+                    name: file.name,
+                    fileHandle: fileHandle,
+                    directoryHandle: directoryHandle1, <------
+                    objectType: await classifyFile(fileHandle) 
+                }
+            */
+
             const arrayBuffer = await file.fileobj.arrayBuffer()
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
-            const draftHandle = await workDir.getFileHandle(file.name, { create: true })
+            const targetDir = file.directoryHandle || workDir
+            const draftHandle = await targetDir.getFileHandle(file.name, { create: true })
             const copiedText = await copied.text()
 
             await writeToFileHandle(draftHandle, copiedText)
@@ -112,7 +133,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         {objectType.importable &&
                                             <ImportFile
                                             onSelect={finalImport}
-                                            text={`Import ${objectType.title}`} >                                      
+                                            text={`Import ${objectType.title}`}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
                                             </ImportFile>
                                         }
                                         {objectType.createable &&
