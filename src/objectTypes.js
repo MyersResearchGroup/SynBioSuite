@@ -115,6 +115,7 @@ export const ObjectTypes = {
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
+        importable: true,
         subdirectory: "experimentalSetups",
     },
     Results: {
@@ -124,6 +125,7 @@ export const ObjectTypes = {
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: VscOutput,
         createable: false,
+        importable: true,
         subdirectory: "experimentalResults",
     },
 }
@@ -140,26 +142,25 @@ function getOBjectBySubdirectory(subDirectoryName) {
 }
 
 export async function classifyFile(file, subDirectoryName) {
-    // try to match by file name
-    const matchFromFileName = Object.values(ObjectTypes).find(
+    // try to match by file name and
+    const matchFromFileName = Object.values(ObjectTypes).filter(ot => !ot.subdirectory).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if (!subDirectoryName && matchFromFileName && !subDirectoryName) {
+    if (subDirectoryName == null && matchFromFileName) {
         return matchFromFileName;
-    } 
+    }
+    else if(subDirectoryName == null){
+        //read file content
+        const fileContent = await (await file.getFile()).text()
+        return Object.values(ObjectTypes).filter(ot => !ot.subdirectory).find(
+            ot => ot.fileMatch?.test(fileContent)
+        )?.id
+    }
     else if (subDirectoryName) {
         // try to match by subdirectory name
         const matchFromSubdirectory = getOBjectBySubdirectory(subDirectoryName)
         if (matchFromSubdirectory) {
             return matchFromSubdirectory.id
         }
-    }
-
-    // otherwise, read file content
-    if(subDirectoryName == null){
-        const fileContent = await (await file.getFile()).text()
-        return Object.values(ObjectTypes).find(
-            ot => ot.fileMatch?.test(fileContent)
-        )?.id
     }
 }

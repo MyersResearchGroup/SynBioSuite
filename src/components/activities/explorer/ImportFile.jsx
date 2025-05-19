@@ -4,18 +4,37 @@ import { getPrimaryColor } from "../../../modules/colorScheme";
 import { createContext, useState } from "react";
 import { classifyFile } from "../../../objectTypes";
 import { Text } from "@mantine/core";
+import { useSelector } from "react-redux";
 
 export const importedFile = createContext()
 
-export default function ImportFile({ onSelect, text}) {
+export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
+        console.log("Subdirectory is: " + useSubdirectory)
         const [selectedFile, setSelectedFile] = useState(null)
-        
+        const dirName = useSelector(state => state.workingDirectory.directoryHandle)
+
+
+
         async function addFileMetadata(fileHandle) {
-            const file = await fileHandle.getFile() 
+            let directoryHandle = null
+            const file = await fileHandle.getFile()
+         
+            if( useSubdirectory ) {   
+                //const subdirectoryName = useSubdirectory 
+                try {
+                    //Checks to see if subdirectory exists already
+                    directoryHandle = await dirName.getDirectoryHandle(useSubdirectory, { create: false });        
+                } catch (e) {
+                    //If subdirectory does not exist, create it
+                    directoryHandle = await dirName.getDirectoryHandle(useSubdirectory, { create: true });
+                }
+            }
+
             return {
                 fileobj: file,
                 name: file.name,
                 fileHandle: fileHandle,
+                directoryHandle: directoryHandle,
                 objectType: await classifyFile(fileHandle) 
             }
         }
@@ -24,18 +43,7 @@ export default function ImportFile({ onSelect, text}) {
         const handleClick = async () => {
             try {
                 const [fileHandle] = await window.showOpenFilePicker({
-                    types: [
-                        {
-                            description: "OMEX or Edge HTML Files",
-                            accept: {
-                                "application/omex": [".omex"],
-                                "text/html": [".html", ".htm"],
-                                "application/xhtml+xml": [".xhtml"],
-                                "application/xml": [".xml"],
-                                "multipart/related": [".mhtml"]
-                            }
-                        }
-                    ],
+                    types: [],
                     multiple: false,
                     startIn: 'desktop'
                 })
