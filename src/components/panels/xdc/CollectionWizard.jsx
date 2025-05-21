@@ -10,7 +10,7 @@ import { IoIosCloudUpload } from "react-icons/io";
 import { TbStatusChange } from "react-icons/tb";
 import { RuntimeStatus } from "../../../runtimeStatus"
 import { useDispatch } from "react-redux"
-import { openSBH, openFJ } from "../../../redux/slices/loginModalSlice"
+import { openSBH, openFJ } from "../../../redux/slices/modalSlice"
 import { useLocalStorage } from "@mantine/hooks"
 
 
