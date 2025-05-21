@@ -5,7 +5,7 @@ import { SVGIcon } from '../../icons'
 import SaveIndicatorDisplay from '../saveIndicatorDisplay'
 import { useEffect } from 'react'
 import { useDispatch } from 'react-redux';
-import { openModal } from '../../redux/slices/loginModalSlice';
+import { openModal } from '../../redux/slices/modalSlice';
 
 export default function Activities() {
 
