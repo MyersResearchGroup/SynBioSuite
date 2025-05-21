@@ -9,7 +9,6 @@ import { useSelector } from "react-redux";
 export const importedFile = createContext()
 
 export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
-        console.log("Subdirectory is: " + useSubdirectory)
         const [selectedFile, setSelectedFile] = useState(null)
         const dirName = useSelector(state => state.workingDirectory.directoryHandle)
 
