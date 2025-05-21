@@ -89,6 +89,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
                             const filesOfType = files.filter(file => file.objectType == objectType.id)
+                                .sort((a, b) => a.name.localeCompare(b.name))
                             return (    
                                 <Accordion.Item value={objectType.id} key={i}>
                                     <Accordion.Control>
