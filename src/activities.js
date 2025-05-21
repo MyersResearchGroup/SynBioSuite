@@ -33,7 +33,7 @@ export const Activities = {
         id: "synbio.activity.design",
         title: "Design",
         component: ExplorerActivityView,
-        icon: BsGraphUpArrow,
+        icon: PiDna,
         objectTypesToList: [
             ObjectTypes.SBOL.id,
         ]
@@ -42,7 +42,7 @@ export const Activities = {
         id: "synbio.activity.models",
         title: "Models",
         component: ExplorerActivityView,
-        icon: PiDna,
+        icon: BsGraphUpArrow,
         objectTypesToList: [
             ObjectTypes.SBML.id,
             ObjectTypes.OMEX.id,
