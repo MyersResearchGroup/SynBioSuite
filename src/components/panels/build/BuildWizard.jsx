@@ -12,6 +12,8 @@ import BuildForm from './BuildForm'
 import { submitBuild } from '../../../SBOL2Build'
 import { BiDownload } from 'react-icons/bi'
 import { FaGithub } from "react-icons/fa";
+import { FaRegFileCode } from "react-icons/fa6";
+
 
 export default function BuildWizard({}) {
     const panelId = useContext(PanelContext)
@@ -80,6 +82,46 @@ export default function BuildWizard({}) {
         }
     }
 
+    const handleFileDownload = async () => {
+        try {
+            // Fetch the specific file from the public directory
+            const response = await fetch('/AWAITING-SBS-PUDU-TEST.py');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+            }
+            
+            const fileContent = await response.blob();
+            
+            // Use File System Access API if available
+            if ('showSaveFilePicker' in window) {
+                const options = {
+                    suggestedName: `${panelTitle}.py`,
+                    types: [{
+                        description: 'Python Files',
+                        accept: { 'text/x-python': ['.py'] }
+                    }]
+                };
+                
+                const fileHandle = await window.showSaveFilePicker(options);
+                const writable = await fileHandle.createWritable();
+                await writable.write(fileContent);
+                await writable.close();
+            } else {
+                // Fallback for browsers without File System Access API
+                const url = URL.createObjectURL(fileContent);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${panelTitle}.py`;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
+        } catch (error) {
+            console.error('Error downloading file:', error);
+        }
+    };
+
     return (
         <Container style={{ marginTop: 40, padding: '0 40px' }}>
             <Stepper active={activeStep} onStepClick={setActiveStep} color="blue" size="sm" mb="md">
@@ -140,28 +182,14 @@ export default function BuildWizard({}) {
                 )}
                 {status ? <Button color='red' onClick={() => setStatus(false)}>Cancel</Button> : <></>}
                 {(formValues?.buildMethod === "Automated" && backendResponse && activeStep === 1) && (
-                    <Menu trigger="hover" closeDelay={250}>   
-                        <Menu.Target>
-                            <Button 
-                            gradient={{ from: "green", to: "green" }}
-                            variant="gradient"
-                            radius="xl"
-                            >{panelTitle}.py</Button>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                        <Menu.Label>Build SBOL</Menu.Label>
-                            <Menu.Item 
-                                component="a"
-                                href={fileUrl}
-                                download={`${panelTitle}.xml`}
-                                icon={<BiDownload />}>
-                                Download
-                            </Menu.Item>
-                            <Menu.Item icon={<FaGithub/>}>
-                                Upload to Github
-                            </Menu.Item>
-                        </Menu.Dropdown>
-                    </Menu>
+                    <Button 
+                        gradient={{ from: "green", to: "green" }}
+                        variant="gradient"
+                        radius="xl"
+                        onClick={handleFileDownload}
+                    >
+                        <BiDownload style={{ marginRight: '5px' }} />{panelTitle}.py
+                    </Button>
                 )}
             </Group>
         </Container>
