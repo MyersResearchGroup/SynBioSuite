@@ -1,0 +1,23 @@
+name: Deploy Docker Image CI
+
+defaults:
+  run:
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: |
+        docker build -t synbiosuite/synbiosuite-api:latest .
+    - name: Publish to DockerHub
+      run: |
+        docker login -u ${{ secrets.SYNBIOSUITE_DOCKER_USERNAME }} -p ${{ secrets.SYNBIOSUITE_DOCKER_PASSWORD }}
+        docker push synbiosuite/synbiosuite-api:latest
