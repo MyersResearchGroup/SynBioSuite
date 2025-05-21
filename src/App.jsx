@@ -4,14 +4,16 @@ import { NotificationsProvider } from "@mantine/notifications";
 import BrowserCompatiblityCatch from './components/BrowserCompatiblityCatch';
 import LoginModal from './modules/modular_login/loginModal';
 import { useSelector, useDispatch } from 'react-redux';
-import { closeModal, closeSBH, closeFJ } from './redux/slices/loginModalSlice';
+import { closeModal, closeSBH, closeFJ, openDirectory, closeDirectory } from './redux/slices/modalSlice';
 import FJModal from './modules/modular_login/FJModal';
 import SBHModal from './modules/modular_login/SBHModal';
+import { Modal } from '@mantine/core';
 
 export default function App() {
-    const loginModalOpened = useSelector((state) => state.loginModal.isOpen);
-    const sbhModalOpened = useSelector((state) => state.loginModal.sbhOpen);
-    const fjModalOpened = useSelector((state) => state.loginModal.fjOpen);
+    const loginModalOpened = useSelector((state) => state.modal.bothOpen);
+    const sbhModalOpened = useSelector((state) => state.modal.sbhOpen);
+    const fjModalOpened = useSelector((state) => state.modal.fjOpen);
+    const directoryModalOpened = useSelector((state) => state.modal.directoryOpen);
     const dispatch = useDispatch();
 
     return (
@@ -34,6 +36,13 @@ export default function App() {
                 onClose={() => dispatch(closeFJ())}
                 repoName=""
             />
+            <Modal
+                opened={directoryModalOpened}
+                onClose={() => dispatch(closeDirectory())}
+                title="Placeholder for directory modal"
+            >
+                <p>Placeholder for directory modal</p>
+            </Modal>
         </NotificationsProvider>
     );
 }
