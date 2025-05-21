@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: |
-        docker build -t synbiosuite/synbiosuite-api:latest .
-    - name: Publish to DockerHub
-  run: |
-    echo "${{ secrets.SYNBIOSUITE_DOCKER_PASSWORD }}" | docker login -u "${{ secrets.SYNBIOSUITE_DOCKER_USERNAME }}" --password-stdin
-    docker push synbiosuite/synbiosuite-api:latest
+      - uses: actions/checkout@v4
+      - name: Build the Docker image
+        run: |
+          docker build -t synbiosuite/synbiosuite-api:latest .
+      - name: Publish to DockerHub
+        run: |
+          echo "${{ secrets.SYNBIOSUITE_DOCKER_PASSWORD }}" | docker login -u "${{ secrets.SYNBIOSUITE_DOCKER_USERNAME }}" --password-stdin
+          docker push synbiosuite/synbiosuite-api:latest
