@@ -15,6 +15,6 @@ jobs:
       run: |
         docker build -t synbiosuite/synbiosuite-api:latest .
     - name: Publish to DockerHub
-      run: |
-        docker login -u ${{ secrets.SYNBIOSUITE_DOCKER_USERNAME }} -p ${{ secrets.SYNBIOSUITE_DOCKER_PASSWORD }}
-        docker push synbiosuite/synbiosuite-api:latest
+  run: |
+    echo "${{ secrets.SYNBIOSUITE_DOCKER_PASSWORD }}" | docker login -u "${{ secrets.SYNBIOSUITE_DOCKER_USERNAME }}" --password-stdin
+    docker push synbiosuite/synbiosuite-api:latest
