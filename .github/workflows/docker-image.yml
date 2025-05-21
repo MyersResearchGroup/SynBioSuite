@@ -1,8 +1,5 @@
 name: Deploy Docker Image CI
 
-defaults:
-  run:
-
 on:
   push:
     branches: [ main ]
