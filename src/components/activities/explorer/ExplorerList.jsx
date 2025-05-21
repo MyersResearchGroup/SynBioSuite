@@ -33,26 +33,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     async function copySelectedFile(file) {
         if (!file) return null
         try {
-
-
-            /*
-
-                let directoryHandle = null
-
-                ------
-
-                some code blah blah <---- subDirectory is not null / empty
-
-                ------
-                return {
-                    fileobj: file,
-                    name: file.name,
-                    fileHandle: fileHandle,
-                    directoryHandle: directoryHandle1, <------
-                    objectType: await classifyFile(fileHandle) 
-                }
-            */
-
             const arrayBuffer = await file.fileobj.arrayBuffer()
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
             const targetDir = file.directoryHandle || workDir
@@ -74,23 +54,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
-        if(objectType.title === "Plasmids"){ // Retrieve Plasmids directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("plasmids", { create: true });
-        }
-        if(objectType.title === "Metadata"){ // Retrieve XDC spreadsheet directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("experimental setups", { create: true });
-        }
-        if(objectType.title === "Results"){ // Retrieve plate reader outputs directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("experimental results", { create: true });
-        }
-        if(objectType.title === "Experiments"){ // Retrieve XDC directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("XDC", { create: true });
-        }
-        if(objectType.title === "Assembly Plan"){ // Retrieve assembly plan directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("assemblyPlans", { create: true });   
-        }
-        if(objectType.title === "Build"){ // Retrieve build directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("builds", { create: true });   
+        if(objectType.subdirectory){
+            tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }
