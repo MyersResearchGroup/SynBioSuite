@@ -2,11 +2,32 @@ import axios from 'axios'
 import commands from "./commands"
 import { showErrorNotification } from './modules/util'
 
-export async function submitAssembly(wizardInput, insertParts, acceptorBackbone) {
-    console.log(wizardInput)
-    console.log(insertParts)
-    console.log(acceptorBackbone)
+
+//There is an issue with where the file upload is not being sent correctly to the server
+export async function upload_sbs(metadata, parameters) {
+    try {
+        const formdata = new FormData();
+        
+        const metadataFile = await metadata.getFile();
+        formdata.append("Metadata", metadataFile, metadataFile.name || "metadata.xlsx");
     
+        const parametersJson = JSON.stringify(parameters);
+        const paramBlob = new Blob([parametersJson], { type: 'application/json' });
+        formdata.append("Params", paramBlob, "parameters.json");
+        
+        const response = await axios.post(import.meta.env.VITE_SYNBIOSUITE_API + "/api/upload_sbs_up",
+            formdata
+        );
+        
+        return response.data;
+    } catch (error) {
+        console.error("Upload SBS error:", error);
+        showErrorNotification('Error', error.message);
+        throw error;
+    }
+}
+
+export async function submitAssembly(wizardInput, insertParts, acceptorBackbone) {
     var formdata = new FormData()
 
     // ensure that file is serialized and saved
@@ -21,7 +42,7 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
     formdata.append("wizard_selections", text)
 
     try {
-        const response = await axios.post(import.meta.env.VITE_SBOL2BUILD_API,
+        const response = await axios.post(import.meta.env.VITE_SYNBIOSUITE_API + '/sbol_2_build_golden_gate',
             formdata,
             {
                 headers: {
