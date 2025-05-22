@@ -35,7 +35,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         try {
             const arrayBuffer = await file.fileobj.arrayBuffer()
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
-            const draftHandle = await workDir.getFileHandle(file.name, { create: true })
+            const targetDir = file.directoryHandle || workDir
+            const draftHandle = await targetDir.getFileHandle(file.name, { create: true })
             const copiedText = await copied.text()
 
             await writeToFileHandle(draftHandle, copiedText)
@@ -53,23 +54,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
-        if(objectType.title === "Plasmids"){ // Retrieve Plasmids directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("plasmids", { create: true });
-        }
-        if(objectType.title === "Metadata"){ // Retrieve XDC spreadsheet directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("experimental setups", { create: true });
-        }
-        if(objectType.title === "Results"){ // Retrieve plate reader outputs directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("experimental results", { create: true });
-        }
-        if(objectType.title === "Experiments"){ // Retrieve XDC directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("XDC", { create: true });
-        }
-        if(objectType.title === "Assembly Plan"){ // Retrieve assembly plan directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("assemblyPlans", { create: true });   
-        }
-        if(objectType.title === "Build"){ // Retrieve build directory, if it doesn't exist create it first
-            tempDirectory = await workDir.getDirectoryHandle("builds", { create: true });   
+        if(objectType.subdirectory){
+            tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
         createFile(fileName + objectType.extension, objectType.id, tempDirectory)
     }
@@ -103,6 +89,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
                             const filesOfType = files.filter(file => file.objectType == objectType.id)
+                                .sort((a, b) => a.name.localeCompare(b.name))
                             return (    
                                 <Accordion.Item value={objectType.id} key={i}>
                                     <Accordion.Control>
@@ -112,7 +99,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         {objectType.importable &&
                                             <ImportFile
                                             onSelect={finalImport}
-                                            text={`Import ${objectType.title}`} >                                      
+                                            text={`Import ${objectType.title}`}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
                                             </ImportFile>
                                         }
                                         {objectType.createable &&

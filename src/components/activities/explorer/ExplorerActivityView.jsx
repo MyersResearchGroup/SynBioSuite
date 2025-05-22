@@ -4,8 +4,16 @@ import ExplorerList from './ExplorerList'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
+import { openDirectory } from '../../../redux/slices/modalSlice'
+import { useDispatch } from 'react-redux'
+
+function checkDirectoryVersion(dispatch) {
+    //To be implemented with a scan of the various folders in the directory to see if renaming is required
+    dispatch(openDirectory())
+}
 
 export default function ExplorerActivityView({objectTypesToList }) {
+    const dispatch = useDispatch()
 
     // handle first time visiting
     const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
@@ -15,6 +23,7 @@ export default function ExplorerActivityView({objectTypesToList }) {
         const handleDirectorySelection = dirHandle => {
             firstTime && setFirstTime(false)
             setWorkingDirectory(dirHandle)
+            checkDirectoryVersion(dispatch)
         }
 
     // handle refreshing working directory

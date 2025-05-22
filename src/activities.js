@@ -10,6 +10,7 @@ import { FaGraduationCap } from "react-icons/fa";
 import { BsGraphUpArrow } from "react-icons/bs";
 import { BiSolidFlask } from "react-icons/bi";
 import { HiOutlinePuzzlePiece } from "react-icons/hi2";
+import { PiDna } from "react-icons/pi";
 
 export const Activities = {
     LocalFileExplorer: {
@@ -32,9 +33,17 @@ export const Activities = {
         id: "synbio.activity.design",
         title: "Design",
         component: ExplorerActivityView,
-        icon: BsGraphUpArrow,
+        icon: PiDna,
         objectTypesToList: [
             ObjectTypes.SBOL.id,
+        ]
+    },
+    Model: {
+        id: "synbio.activity.models",
+        title: "Models",
+        component: ExplorerActivityView,
+        icon: BsGraphUpArrow,
+        objectTypesToList: [
             ObjectTypes.SBML.id,
             ObjectTypes.OMEX.id,
             ObjectTypes.Analysis.id
