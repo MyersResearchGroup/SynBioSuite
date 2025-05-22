@@ -8,6 +8,7 @@ import { closeModal, closeSBH, closeFJ, openDirectory, closeDirectory } from './
 import FJModal from './modules/modular_login/FJModal';
 import SBHModal from './modules/modular_login/SBHModal';
 import { Modal } from '@mantine/core';
+import DirectoryModal from './modules/directory_modal/directoryModal';
 
 export default function App() {
     const loginModalOpened = useSelector((state) => state.modal.bothOpen);
@@ -36,13 +37,10 @@ export default function App() {
                 onClose={() => dispatch(closeFJ())}
                 repoName=""
             />
-            <Modal
+            <DirectoryModal
                 opened={directoryModalOpened}
                 onClose={() => dispatch(closeDirectory())}
-                title="Placeholder for directory modal"
-            >
-                <p>Placeholder for directory modal</p>
-            </Modal>
+            />
         </NotificationsProvider>
     );
 }
