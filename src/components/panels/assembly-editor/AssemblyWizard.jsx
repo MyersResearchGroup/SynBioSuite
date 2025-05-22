@@ -216,7 +216,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                         <Button
                             variant="default"
                             onClick={prevStep}
-                            sx={{ display: activeStep == 0 || activeStep == 3 ? 'none' : 'block' }}
+                            sx={{ display: activeStep == 0 ? 'none' : 'block' }}
                         >
                             Back
                         </Button>
