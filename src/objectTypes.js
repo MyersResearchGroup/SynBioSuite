@@ -20,14 +20,6 @@ export const ObjectTypes = {
         isRepository: true,
         defaultRegistry: "https://synbiohub.org"
     },
-    Flapjack: {
-        id: "synbio.object-type.flapjack",
-        title: "Flapjack Registry",
-        listTitle: "Flapjack Registries",
-        icon: RiGitRepositoryLine,
-        isRepository: true,
-        defaultRegistry: "https://ebugsfj.synbiohub.org"
-    },
     SBOL: {
         id: "synbio.object-type.sbol",
         title: "Design",
@@ -127,6 +119,14 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalResults",
+    },
+    Flapjack: {
+        id: "synbio.object-type.flapjack",
+        title: "Flapjack Registry",
+        listTitle: "Flapjack Registries",
+        icon: RiGitRepositoryLine,
+        isRepository: true,
+        defaultRegistry: "https://ebugsfj.synbiohub.org"
     },
 }
 
