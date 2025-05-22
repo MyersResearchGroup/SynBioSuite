@@ -75,7 +75,8 @@ export const ObjectTypes = {
         extension: '.xml',
         icon: TbComponents,
         fileNameMatch: /\.xml$/,
-        badgeLabel: "PLASMID"
+        badgeLabel: "PLASMID",
+        subdirectory: "plasmids"
     },
     Assembly: {
         id: "synbio.object-type.assembly-plan",
@@ -85,6 +86,7 @@ export const ObjectTypes = {
         icon: GiSewingMachine,
         createable: true,
         extension: '.json',
+        subdirectory: "assemblyPlans"
     },
     Build: {
         id: "synbio.object-type.build",
@@ -94,6 +96,7 @@ export const ObjectTypes = {
         icon: GiThorHammer,
         createable: true,
         extension: '.json',
+        subdirectory: "builds"
     },
     Experiments: {
         id: "synbio.object-type.experiment",
@@ -103,6 +106,7 @@ export const ObjectTypes = {
         icon: GrTestDesktop,
         createable: true,
         extension: ".xdc",
+        subdirectory: "xdc"
     },
     Metadata: {
         id: "synbio.object-type.experimental-data",
@@ -111,6 +115,8 @@ export const ObjectTypes = {
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
+        importable: true,
+        subdirectory: "experimentalSetups",
     },
     Results: {
         id: "synbio.object-type.experimental-results",
@@ -119,6 +125,8 @@ export const ObjectTypes = {
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: VscOutput,
         createable: false,
+        importable: true,
+        subdirectory: "experimentalResults",
     },
 }
 
@@ -126,37 +134,33 @@ export function getObjectType(id) {
     return Object.values(ObjectTypes).find(ot => ot.id == id)
 }
 
+function getOBjectBySubdirectory(subDirectoryName) {
+    if (!subDirectoryName) {
+        return null
+    }
+    return Object.values(ObjectTypes).filter(ot => ot.subdirectory).find(ot => ot.subdirectory.toLowerCase() == subDirectoryName.toLowerCase())
+}
+
 export async function classifyFile(file, subDirectoryName) {
-    // try to match by file name
-    const matchFromFileName = Object.values(ObjectTypes).find(
+    // try to match by file name and
+    const matchFromFileName = Object.values(ObjectTypes).filter(ot => !ot.subdirectory).find(
         ot => ot.fileNameMatch?.test(file.name)
     )?.id
-    if (!subDirectoryName && matchFromFileName && matchFromFileName && matchFromFileName != ObjectTypes.Plasmids.id && matchFromFileName != ObjectTypes.Results.id && matchFromFileName != ObjectTypes.Metadata.id && matchFromFileName != ObjectTypes.Experiments.id) {
+    if (subDirectoryName == null && matchFromFileName) {
         return matchFromFileName;
-    } 
-    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "plasmids" && ObjectTypes.Plasmids.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Plasmids.id;
     }
-    else if (subDirectoryName != null && subDirectoryName === "assemblyPlans" && ObjectTypes.Assembly.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Assembly.id;
-    }
-    else if (subDirectoryName != null && subDirectoryName === "builds" && ObjectTypes.Build.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Build.id;
-    }
-    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "experimental results" && ObjectTypes.Results.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Results.id;
-    }
-    else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "experimental setups" && ObjectTypes.Metadata.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Metadata.id;
-    } else if (subDirectoryName != null && subDirectoryName.toLowerCase() === "xdc" && ObjectTypes.Experiments.fileNameMatch?.test(file.name)) {
-        return ObjectTypes.Experiments.id;
-    }
-
-    // otherwise, read file content
-    if(subDirectoryName == null){
+    else if(subDirectoryName == null){
+        //read file content
         const fileContent = await (await file.getFile()).text()
-        return Object.values(ObjectTypes).find(
+        return Object.values(ObjectTypes).filter(ot => !ot.subdirectory).find(
             ot => ot.fileMatch?.test(fileContent)
         )?.id
+    }
+    else if (subDirectoryName) {
+        // try to match by subdirectory name
+        const matchFromSubdirectory = getOBjectBySubdirectory(subDirectoryName)
+        if (matchFromSubdirectory) {
+            return matchFromSubdirectory.id
+        }
     }
 }
