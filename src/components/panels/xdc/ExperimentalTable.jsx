@@ -19,36 +19,6 @@ export default function ExperimentalTable({onInsertFilesReady}) {
     const [XDCdataID] = usePanelProperty(panelId, 'results', false)
     const XDCdataFile = useFile(XDCdataID)
 
-    const partInserttableOfcontents = () => {
-
-        return <>
-            <tr>
-                <td><Text weight={600}>Metadata:</Text></td>
-                <td>
-                    <Group position='right'>
-                        <Text weight={600}>{titleFromFileName(experimentalFile?.name)}</Text>
-                        {experimentalFileObjectType?.badgeLabel &&
-                            <Badge>{experimentalFileObjectType.badgeLabel}</Badge>}
-                    </Group>
-                </td>
-            </tr>
-        </>
-    }
-
-                                <Text weight = {600}>{XDCdataFile ? 
-                                <tr>
-                                    <td><Text weight={600}>Results:</Text></td>
-                                    <td>
-                                        <Group position='right'>
-                                            <Text weight={600}>{titleFromFileName(XDCdataFile?.name)}</Text>
-                                            {experimentalFileObjectType?.badgeLabel &&
-                                                <Badge>{experimentalFileObjectType.badgeLabel}</Badge>}
-                                        </Group>
-                                    </td>
-                                </tr>
-                                    : console.log("No XDCdataFile found")}
-                                </Text>
-
     return (
         <Container>
             <Table horizontalSpacing={20}>
@@ -58,28 +28,30 @@ export default function ExperimentalTable({onInsertFilesReady}) {
                         <th></th>
                     </tr>
             </thead>
-            <tbody>
-                <tr>
-                    <td><Text weight={600}>Results:</Text></td>
-                    <td>
-                        <Group>
-                        <Text weight={600}>{titleFromFileName(XDCdataFile?.name)}</Text>
-                        {XDCdataFile?.objectType && getObjectType(XDCdataFile.objectType)?.badgeLabel &&
-                            <Badge>{getObjectType(XDCdataFile.objectType).badgeLabel}</Badge>}
-                        </Group>
-                    </td>
-                </tr>
-                <tr>
-                    <td><Text weight={600}>Metadata:</Text></td>
-                    <td>
-                        <Group>
-                        <Text weight={600}>{titleFromFileName(experimentalFile?.name)}</Text>
-                        {experimentalFileObjectType?.badgeLabel &&
-                            <Badge>{experimentalFileObjectType.badgeLabel}</Badge>}
-                        </Group>
-                    </td>
-                </tr>
-            </tbody>
+                <tbody>
+                    {XDCdataFile ? (
+                        <tr>
+                            <td><Text weight={600}>Results:</Text></td>
+                            <td>
+                                <Group>
+                                    <Text weight={600}>{titleFromFileName(XDCdataFile?.name)}</Text>
+                                    {XDCdataFile?.objectType && getObjectType(XDCdataFile.objectType)?.badgeLabel &&
+                                        <Badge>{getObjectType(XDCdataFile.objectType).badgeLabel}</Badge>}
+                                </Group>
+                            </td>
+                        </tr>
+                    ) : null}
+                    <tr>
+                        <td><Text weight={600}>Metadata:</Text></td>
+                        <td>
+                            <Group>
+                                <Text weight={600}>{titleFromFileName(experimentalFile?.name)}</Text>
+                                {experimentalFileObjectType?.badgeLabel &&
+                                    <Badge>{experimentalFileObjectType.badgeLabel}</Badge>}
+                            </Group>
+                        </td>
+                    </tr>
+                </tbody>
             </Table>
         </Container>
     )
