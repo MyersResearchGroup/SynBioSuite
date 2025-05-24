@@ -13,6 +13,7 @@ import { useDispatch } from "react-redux"
 import { openSBH, openFJ } from "../../../redux/slices/loginModalSlice"
 import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
+import { useState } from "react"
 
 
 
@@ -31,6 +32,7 @@ export default function CollectionWizard() {
         else if (repo == "FJ")
             return dataFJ.find((element) => element.value === instance);
     }
+
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
@@ -93,7 +95,7 @@ export default function CollectionWizard() {
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
                             {/*<XDCTimeline />*/}
-                            <ExperimentalTable />
+                            <ExperimentalTable/>
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
                                     <Avatar
