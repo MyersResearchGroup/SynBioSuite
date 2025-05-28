@@ -66,3 +66,45 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
         throw error;
     }
 }
+
+export async function submitBuild(wizardInput, assemblyPlan) {
+    console.log(wizardInput)
+    console.log(assemblyPlan)
+    
+    var formdata = new FormData()
+
+    // ensure that file is serialized and saved
+    await commands.FileSave.execute(wizardInput.id)
+
+    // attach input file
+    const json = await wizardInput.getFile()
+    const text = await json.text()
+
+    formdata.append("assembly_plan", await assemblyPlan.getFile())
+    formdata.append("wizard_selections", text)
+
+    try {
+        const response = await axios.post(import.meta.env.VITE_SBOL2BUILD_API,
+            formdata,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
+    
+        return response.data;
+    } catch (error) {
+        console.error(error);
+    
+        if (error.response) {
+            showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
+        } else if (error.request) { // no response
+            showErrorNotification('Network error', 'No response from server.');
+        } else {
+            showErrorNotification('Unexpected error', error.message);
+        }
+    
+        throw error;
+    }
+}

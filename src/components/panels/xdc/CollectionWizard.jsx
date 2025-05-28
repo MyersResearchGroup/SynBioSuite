@@ -12,10 +12,11 @@ import { RuntimeStatus } from "../../../runtimeStatus"
 import { useDispatch } from "react-redux"
 import { openSBH, openFJ } from "../../../redux/slices/modalSlice"
 import { useLocalStorage } from "@mantine/hooks"
+import ExperimentalTable from "./ExperimentalTable"
+//import { useState } from "react"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
-
 
 
 export default function CollectionWizard() {
@@ -33,6 +34,7 @@ export default function CollectionWizard() {
         else if (repo == "FJ")
             return dataFJ.find((element) => element.value === instance);
     }
+
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
@@ -127,7 +129,9 @@ export default function CollectionWizard() {
                 >
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            <XDCTimeline />
+                            {/*<XDCTimeline />*/}
+                            <ExperimentalTable/>
+                            { selectedSBH || selectedFJ ? <XDCTimeline /> : //hypothetically, this would work but I can't test it yet
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
                                     <Avatar
@@ -171,7 +175,7 @@ export default function CollectionWizard() {
                                         </Text>
                                     </div>
                                 </Group>
-                            </Group>
+                            </Group>}
                         </Group>
                     </Group>
                 </Stepper.Step>
