@@ -44,7 +44,7 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
             {insertFiles.map((file, index) => (
                 <tr key={index}>
                 {index === 0 
-                    ? <td><Text weight={900}>Parts:</Text></td> 
+                    ? <td><Text weight={600}>Parts</Text></td> 
                     : <td><Text></Text></td>}
                     <td>
                     <Group position='right'>
@@ -61,8 +61,7 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
 
     return (
         <Container>
-            <h2>Review Assembly Plan</h2>
-            <Table horizontalSpacing={0}>
+            <Table style = {{width: '50%', margin: 'auto'}} horizontalSpacing = {20}> {/* width is now halved and table is now centered*/}
                 <thead>
                     <tr>
                         <th></th>
@@ -71,7 +70,7 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
                 </thead>
                 <tbody>
                     <tr>
-                        <td><Text weight={900}>Acceptor Backbone:</Text></td>
+                        <td><Text weight={600}>Acceptor Backbone:</Text></td>
                         <td>
                             <Group position='right'>
                                 <Text weight={600}>{titleFromFileName(vectorFile?.name)}</Text>
