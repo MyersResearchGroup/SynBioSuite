@@ -9,7 +9,7 @@ import { PanelContext } from './BuildPanel'
 import { Button, Group, Stepper, Space, Menu } from '@mantine/core'
 import Dropzone from '../../Dropzone' // adjust import if needed
 import BuildForm from './BuildForm'
-import { submitBuild } from '../../../SBOL2Build'
+import { submitBuild } from '../../../API'
 import { BiDownload } from 'react-icons/bi'
 import { FaGithub } from "react-icons/fa";
 import { FaRegFileCode } from "react-icons/fa6";
