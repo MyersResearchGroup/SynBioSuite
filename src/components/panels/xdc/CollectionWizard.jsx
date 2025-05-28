@@ -10,11 +10,13 @@ import { IoIosCloudUpload } from "react-icons/io";
 import { TbStatusChange } from "react-icons/tb";
 import { RuntimeStatus } from "../../../runtimeStatus"
 import { useDispatch } from "react-redux"
-import { openSBH, openFJ } from "../../../redux/slices/loginModalSlice"
+import { openSBH, openFJ } from "../../../redux/slices/modalSlice"
 import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
-import { useState } from "react"
-
+//import { useState } from "react"
+import { MdTextSnippet } from "react-icons/md"
+import { TextInput, Textarea } from "@mantine/core"
+import { upload_sbs } from "../../../API"
 
 
 export default function CollectionWizard() {
@@ -38,14 +40,13 @@ export default function CollectionWizard() {
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     
     // stepper states
-    const numSteps = 4 
+    const numSteps = 3
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
     
     // Step 1: Experimental Metadata file
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
-    const metadataFile = useFile(metadataID)
     
     const handleMetadataChange = name => {
         setMetadataID(name)
@@ -59,15 +60,21 @@ export default function CollectionWizard() {
         setResultsID(name)
     }
     
-    //Step 2: Timeline status--indicates XDC server's status
+    // Step 2: Collection Information
+    const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
+    const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
+
+    //Step 3: Timeline status--indicates XDC server's status
     const [timelineStatus, setTimelineStatus] = usePanelProperty(panelId, "runtimeStatus", false, RuntimeStatus.WAITING);
 
     const getFileNameWithoutExtension = (fileName) => fileName.replace(/\.[^/.]+$/, "");
 
+    const metadataFile = useFile(metadataID)
+    
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
-                <Stepper.Step allowStepSelect={activeStep > 0 && activeStep != 2}
+                <Stepper.Step allowStepSelect={activeStep > 0 && activeStep != numSteps}
                     label="Upload Files"
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
@@ -85,9 +92,37 @@ export default function CollectionWizard() {
                         Drag & drop Experimental Results from the explorer
                     </Dropzone>
                 </Stepper.Step>
-
+                <Stepper.Step allowStepSelect={activeStep > 1 && activeStep != numSteps}
+                    label="Collection Info"
+                    description="Upload Collection Information"
+                    icon={<MdTextSnippet />}>
+                    <div style={{ width: '100%' }}>
+                        <Text fw={500}>Collection Name</Text>
+                        <Space h="xs" />
+                        <TextInput
+                            value={collectionName || ""}
+                            onChange={(e) => setCollectionName(e.target.value)}
+                            placeholder="Enter collection name"
+                            radius="md"
+                            size="md"
+                            style={{ width: '100%' }}
+                        />
+                        
+                        <Text fw={500} mt="md">Collection Description</Text>
+                        <Space h="xs" />
+                        <Textarea
+                            value={collectionDescription || ""}
+                            onChange={(e) => setCollectionDescription(e.target.value)}
+                            placeholder="Enter collection description"
+                            minRows={4}
+                            radius="md"
+                            size="md"
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1 && activeStep != 2}
+                    allowStepSelect={activeStep > 2 && activeStep != numSteps}
                     label="Uploader Info"
                     description="Upload your experiment here"
                     icon={<TbStatusChange />}
@@ -144,7 +179,6 @@ export default function CollectionWizard() {
                         </Group>
                     </Group>
                 </Stepper.Step>
-
                 <Stepper.Completed>
                     {false ? <><Text size="xl">
                         The link to your SynBioHub collection can be found at:
@@ -180,7 +214,7 @@ export default function CollectionWizard() {
                         :
                             <></>
                         }
-                    </Text>
+                    </Text>a
                     <hr />
                     <Text size="xs" ta="center" fs="italic">
                         * The "Experiments" file has been updated to include the link as well as relevant information as a reciept of your actions. To prevent losing this information further modifying this experiments file through SynBioSuite has been disabled and strongly discouraged.
@@ -192,14 +226,26 @@ export default function CollectionWizard() {
                 <Button
                     variant="default"
                     onClick={prevStep}
-                    sx={{ display: activeStep === 0 || activeStep === 2 ? 'none' : 'block' }}
+                    sx={{ display: activeStep != 0 /*&& activeStep < numSteps*/ ? 'block' : 'none' }}
                 >
                     Back
                 </Button>
-                {activeStep == 1 && timelineStatus == RuntimeStatus.WAITING ? (
+                {activeStep == numSteps - 1 /*&& timelineStatus == RuntimeStatus.WAITING*/ ? (
                     <>
                         <Button
                             onClick={() => {
+                                upload_sbs(metadataFile, {
+                                    fj_url: "",
+                                    fj_user: "",
+                                    fj_pass: "",
+                                    sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
+                                    sbh_user: import.meta.env.VITE_SYNBIOHUB_USERNAME,
+                                    sbh_pass: import.meta.env.VITE_SYNBIOHUB_PASSWORD,
+                                    sbh_collec: collectionName,
+                                    sbh_collec_desc: collectionDescription,
+                                    fj_overwrite: false,
+                                    sbh_overwrite: false
+                                })
                                 setTimelineStatus(RuntimeStatus.PROCESSING);
                                 setTimeout(() => {
                                     setTimelineStatus(RuntimeStatus.UPLOADING);
@@ -250,7 +296,7 @@ export default function CollectionWizard() {
                 ) : (
                     <></>
                 )}
-                {activeStep == 0 && metadataID ? (
+                {(activeStep == 0 && metadataID) || (activeStep == 1 && collectionName && collectionDescription)? (
                     <Button
                         onClick={nextStep}
                         sx={{ display: 'block' }}
