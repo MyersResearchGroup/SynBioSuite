@@ -40,7 +40,7 @@ export const Activities = {
     },
     Model: {
         id: "synbio.activity.models",
-        title: "Models",
+        title: "Model",
         component: ExplorerActivityView,
         icon: BsGraphUpArrow,
         objectTypesToList: [
