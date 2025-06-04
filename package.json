@@ -36,7 +36,8 @@
         "react-smart-tabs": "^0.3.2",
         "react-time-ago": "^7.2.1",
         "synbiosuite": "file:",
-        "uuid": "^8.3.2"
+        "uuid": "^8.3.2",
+        "xlsx": "^0.18.5"
     },
     "devDependencies": {
         "@babel/core": "^7.18.2",
