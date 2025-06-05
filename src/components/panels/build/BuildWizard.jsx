@@ -197,7 +197,7 @@ export default function BuildWizard({}) {
                     </Button>
                 )}
                 {status ? <Button color='red' onClick={() => setStatus(false)}>Cancel</Button> : <></>}
-                {(formValues?.buildMethod === "Automated" && backendResponse && activeStep === 1) && (
+                {(formValues?.buildMethod === "Automated" && backendResponse && activeStep === numSteps - 1) && (
                     <Button 
                         gradient={{ from: "green", to: "green" }}
                         variant="gradient"
