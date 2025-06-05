@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'
-import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { usePanelProperty, usePanel } from '../../../redux/hooks/panelsHooks'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { PanelContext } from './BuildPanel'
 import { Container, Table, Group, Text, Badge } from '@mantine/core'
@@ -15,12 +15,13 @@ export default function BuildTable({ onInsertFilesReady }) {
 
     const panelId = useContext(PanelContext)
 
-    const [buildId] = usePanelProperty(panelId, 'metadata', false)
-    const buildFile = useFile(buildId)
+    const [assemblyPlanId] = usePanelProperty(panelId, 'assemblyPlan', false)
+    const assemblyPlanFile = useFile(assemblyPlanId)
+    const assemblyPlanObjectType = getObjectType(assemblyPlanFile?.objectType)
+
+    const [buildId] = usePanelProperty(panelId, 'fileHandle', false)
+    const buildFile = useFile(buildId?.id)
     const buildFileObjectType = getObjectType(buildFile?.objectType)
-    console.log("BuildId: ", buildId)
-    console.log("Build File: ", buildFile)
-    console.log("panelId: ", panelId)
 
     // set up state in global store and add default values
     const [formValues, setFormValues] = usePanelProperty(panelId, 'formValues', false)
@@ -62,8 +63,20 @@ export default function BuildTable({ onInsertFilesReady }) {
                         </td>
                     </tr>
                     <tr>
+                        <td>Assembly Plan:</td>
+                        <td align='right'>
+                            {assemblyPlanFile && (
+                                <Group position='right'>
+                                    <Text weight={600}>{titleFromFileName(assemblyPlanFile?.name)}</Text>
+                                    {assemblyPlanObjectType?.badgeLabel &&
+                                        <Badge>{assemblyPlanObjectType.badgeLabel}</Badge>}
+                                </Group>
+                            )}
+                        </td>
+                    </tr>
+                    <tr>
                         <td>Build Method:</td>
-                        <td>
+                        <td align = 'right'>
                             <Text weight={600}>{form.values.buildMethod}</Text>
                         </td>
                     </tr>
