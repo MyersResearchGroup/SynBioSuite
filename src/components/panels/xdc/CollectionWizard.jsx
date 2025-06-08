@@ -17,6 +17,9 @@ import ExperimentalTable from "./ExperimentalTable"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
+import * as XLSX from 'xlsx'
+import { useState } from "react"
+import { getObjectType } from '../../../objectTypes'
 
 
 export default function CollectionWizard() {
@@ -34,6 +37,56 @@ export default function CollectionWizard() {
         else if (repo == "FJ")
             return dataFJ.find((element) => element.value === instance);
     }
+
+    const [experimentalId] = usePanelProperty(panelId, 'metadata', false)
+    const experimentalFile = useFile(experimentalId)
+    const experimentalFileObjectType = getObjectType(experimentalFile?.objectType)
+
+    const [libraryName, setLibraryName] = useState(null)
+    const [description, setDescription] = useState(null)
+    
+    
+        //excel information
+        const readExcelFile = (eFile) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.readAsArrayBuffer(eFile)
+                reader.onload= (event) => {resolve(event.target.result)}
+                reader.onerror = (error) =>{reject(error)}
+                })
+            }
+    
+        if (experimentalFile) {
+            experimentalFile.getFile().then((realFile) => {
+                readExcelFile(realFile).then(arrayBuffer => {
+                    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+                    let temp_libraryName = null;
+                    let temp_description = null;
+    
+                    for (const row of rows) {
+                        for (let i = 0; i < row.length; i++) {
+                            if (row[i] && typeof row[i] === "string") {
+                                const cell = row[i].toLowerCase();
+                                if (cell.includes("library name") || cell.includes("collection name")) {
+                                    temp_libraryName = row[i+1];
+                                }
+                                if (cell.includes("description")) {
+                                    temp_description = row[i+1];
+                                }
+                            }
+                            if (temp_libraryName && temp_description) {
+                                setLibraryName(temp_libraryName)
+                                setDescription(temp_description)
+                            }
+                        }
+                    }
+                })
+            })
+        }
 
 
     // file info
@@ -100,9 +153,9 @@ export default function CollectionWizard() {
                         <Text fw={500}>Collection Name</Text>
                         <Space h="xs" />
                         <TextInput
-                            value={collectionName || ""}
                             onChange={(e) => setCollectionName(e.target.value)}
-                            placeholder="Enter collection name"
+                            defaultValue = {collectionName || libraryName} //add state machine for changing files where if new file != old file
+                                                                //, then use libraryName || collectionName
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -111,9 +164,8 @@ export default function CollectionWizard() {
                         <Text fw={500} mt="md">Collection Description</Text>
                         <Space h="xs" />
                         <Textarea
-                            value={collectionDescription || ""}
                             onChange={(e) => setCollectionDescription(e.target.value)}
-                            placeholder="Enter collection description"
+                            defaultValue={collectionDescription || description}
                             minRows={4}
                             radius="md"
                             size="md"
@@ -129,7 +181,7 @@ export default function CollectionWizard() {
                 >
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            <ExperimentalTable/>
+                            <ExperimentalTable newCollectionname = {collectionName} newDescriptionName = {collectionDescription}/>
                             { selectedSBH || selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
@@ -295,7 +347,7 @@ export default function CollectionWizard() {
                 ) : (
                     <></>
                 )}
-                {(activeStep == 0 && metadataID) || (activeStep == 1 && collectionName && collectionDescription)? (
+                {(activeStep == 0 && metadataID) || (activeStep == 1)? (
                     <Button
                         onClick={nextStep}
                         sx={{ display: 'block' }}
