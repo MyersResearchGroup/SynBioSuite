@@ -20,6 +20,7 @@ import { upload_sbs } from "../../../API"
 import * as XLSX from 'xlsx'
 import { useState } from "react"
 import { getObjectType } from '../../../objectTypes'
+import { useEffect } from "react"
 
 
 export default function CollectionWizard() {
@@ -44,17 +45,22 @@ export default function CollectionWizard() {
 
     const [libraryName, setLibraryName] = useState(null)
     const [description, setDescription] = useState(null)
+
+    const [lastExperimentalId, setLastExperimentalId] = useState(experimentalId)
+
+
+
     
     
-        //excel information
-        const readExcelFile = (eFile) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader()
-                reader.readAsArrayBuffer(eFile)
-                reader.onload= (event) => {resolve(event.target.result)}
-                reader.onerror = (error) =>{reject(error)}
-                })
-            }
+    //excel information
+    const readExcelFile = (eFile) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.readAsArrayBuffer(eFile)
+            reader.onload= (event) => {resolve(event.target.result)}
+            reader.onerror = (error) =>{reject(error)}
+            })
+        }
     
         if (experimentalFile) {
             experimentalFile.getFile().then((realFile) => {
@@ -117,6 +123,14 @@ export default function CollectionWizard() {
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
 
+    useEffect(() => {
+        if (experimentalId !== lastExperimentalId) {
+            setCollectionName(libraryName); // set to parsed value from new file
+            setCollectionDescription(description); // set to parsed value from new file
+            setLastExperimentalId(experimentalId);
+        }
+    }, [experimentalId, libraryName, description, lastExperimentalId, setCollectionName, setCollectionDescription]);
+
     //Step 3: Timeline status--indicates XDC server's status
     const [timelineStatus, setTimelineStatus] = usePanelProperty(panelId, "runtimeStatus", false, RuntimeStatus.WAITING);
 
@@ -154,8 +168,7 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <TextInput
                             onChange={(e) => setCollectionName(e.target.value)}
-                            defaultValue = {collectionName || libraryName} //add state machine for changing files where if new file != old file
-                                                                //, then use libraryName || collectionName
+                            defaultValue = {collectionName || ""}
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -165,7 +178,7 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <Textarea
                             onChange={(e) => setCollectionDescription(e.target.value)}
-                            defaultValue={collectionDescription || description}
+                            defaultValue={collectionDescription || ""}
                             minRows={4}
                             radius="md"
                             size="md"
