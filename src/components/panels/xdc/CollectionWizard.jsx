@@ -129,9 +129,8 @@ export default function CollectionWizard() {
                 >
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            {/*<XDCTimeline />*/}
                             <ExperimentalTable/>
-                            { selectedSBH || selectedFJ ? <XDCTimeline /> : //hypothetically, this would work but I can't test it yet
+                            { selectedSBH || selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
                                     <Avatar

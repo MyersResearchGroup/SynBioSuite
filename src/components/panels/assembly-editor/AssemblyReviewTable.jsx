@@ -1,11 +1,10 @@
 import { Badge, Container, Group, Table, Text } from '@mantine/core'
 import { useContext } from 'react'
 import { getObjectType } from '../../../objectTypes'
-import { usePanel, usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { parameterMap } from './AssemblyForm'
 import { PanelContext } from './AssemblyPanel'
-import { TabValues as ParameterSources } from './AssemblyWizard'
 import { useEffect } from 'react'
 
 
@@ -14,7 +13,6 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
     const panelId = useContext(PanelContext)
 
     const formValues = usePanelProperty(panelId, 'formValues')
-    const parameterSource = usePanelProperty(panelId, 'parameterSource')
 
     const vectorFileId = usePanelProperty(panelId, 'backbone')
     const vectorFile = useFile(vectorFileId)
@@ -61,7 +59,7 @@ export default function AssemblyReviewTable({ onInsertFilesReady }) {
 
     return (
         <Container>
-            <Table style = {{width: '50%', margin: 'auto'}} horizontalSpacing = {20}> {/* width is now halved and table is now centered*/}
+            <Table style = {{width: '50%', margin: 'auto'}} horizontalSpacing = {20}> 
                 <thead>
                     <tr>
                         <th></th>
