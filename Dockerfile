@@ -5,7 +5,7 @@ WORKDIR /app
 
 RUN mkdir -p /app/data
 
-ENV STATIC_PATH=/sbs_server/app/static
+ENV STATIC_PATH=/app/app/static
 
 ENV LISTEN_PORT=5003
 EXPOSE 5003
