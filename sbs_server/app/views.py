@@ -50,7 +50,58 @@ def upload_file_from_sbs_post():
             sbh_overwrite = params_from_request['sbh_overwrite'], 
             fj_overwrite = params_from_request['fj_overwrite'], 
             fj_token = params_from_request['fj_token'], 
-            sbh_token = params_from_request['sbh_token'])
+            sbh_token = params_from_request['sbh_token'],
+            homespace = "https://synbiohub.org/gonza10v"
+            )
+            
+
+
+    xdc.initialize()
+    xdc.log_in_sbh()
+    xdc.convert_to_sbol()
+    sbh_url = xdc.upload_to_sbh()
+
+    sbs_upload_response_dict ={
+        "sbh_url": sbh_url,
+        "status": "success"
+    }
+    return jsonify(sbs_upload_response_dict)
+
+@app.route('/api/upload_sbs_up', methods = ['POST'])
+def upload_file_from_sbs_post_up():
+    if 'Metadata' not in request.files:
+        print(request)
+        return 'No file part', 400
+    file = request.files['Metadata']
+    if file.filename == '':
+        return 'No selected file', 400
+    file_contents = file.read()
+    if 'Params' not in request.files:
+        return 'No Params file part', 400
+    params_file = request.files['Params']
+    if params_file.filename == '':
+        return 'No selected Params file', 400
+    params_from_request = json.loads(params_file.read())
+
+    # instantiate the XDC class using the params_from_request dictionary
+    print(request.files['Metadata'])
+    xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
+            fj_url = params_from_request['fj_url'],
+            fj_user = params_from_request['fj_user'],
+            fj_pass = params_from_request['fj_pass'], 
+            sbh_url = params_from_request['sbh_url'], 
+            sbh_user = params_from_request['sbh_user'], 
+            sbh_pass = params_from_request['sbh_pass'],
+            sbh_collection = params_from_request['sbh_collec'], 
+            sbh_collection_description = params_from_request['sbh_collec_desc'],
+            sbh_overwrite = params_from_request['sbh_overwrite'], 
+            fj_overwrite = params_from_request['fj_overwrite'], 
+            fj_token = None, 
+            sbh_token = None,
+            homespace = "https://synbiohub.org/gonza10v"
+            )
+            
+
 
     xdc.initialize()
     xdc.log_in_sbh()
