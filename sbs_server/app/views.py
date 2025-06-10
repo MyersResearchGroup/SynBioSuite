@@ -106,8 +106,12 @@ def upload_file_from_sbs_post_up():
     xdc.initialize()
     xdc.log_in_sbh()
     xdc.convert_to_sbol()
-    sbh_url = xdc.upload_to_sbh()
 
+    try:
+        sbh_url = xdc.upload_to_sbh()
+    except AttributeError as e:
+        return jsonify({"error": str(e)}), 400
+    
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
         "status": "success"
@@ -172,5 +176,17 @@ def sbol_2_build_golden_gate():
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
 
 
+@app.route('/api/inspect_request', methods=['POST'])
+def inspect_request():
+    files = {}
+    for name in request.files:
+        file = request.files[name]
+        try:
+            files[name] = json.loads(file.read())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
 
-    
+    return jsonify({
+        "message": "Request received successfully", 
+        "files": files}), 200
+
