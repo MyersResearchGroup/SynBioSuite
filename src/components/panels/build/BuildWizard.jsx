@@ -13,6 +13,7 @@ import { submitBuild } from '../../../API'
 import { BiDownload } from 'react-icons/bi'
 import { FaGithub } from "react-icons/fa";
 import { FaRegFileCode } from "react-icons/fa6";
+import BuildTable from './BuildTable'
 
 
 export default function BuildWizard({}) {
@@ -28,7 +29,7 @@ export default function BuildWizard({}) {
 
     const [status, setStatus] = useState(false)
     
-    const numSteps = 2
+    const numSteps = 3
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
@@ -40,8 +41,11 @@ export default function BuildWizard({}) {
     }
     const [buildFile, setBuildFile] = usePanelProperty(panelId, 'build', '')
 
+    const setInsertFileHandles = (fileHandles) => {
+        insertFiles = fileHandles
+    }
 
-    const formValues = usePanelProperty(panelId, "formValues")
+    const formValues = usePanelProperty(panelId, 'formValues')
 
     let showNextButton = false
     switch (activeStep) {
@@ -160,9 +164,21 @@ export default function BuildWizard({}) {
                 >
                     <Space h='lg' />
                     <Group grow style={{ alignItems: 'flex-start' }}>
-                        <></>
+                            <BuildTable onInsertFilesReady={setInsertFileHandles}/>
                     </Group>
                 </Stepper.Completed>
+                <Stepper.Step
+                    allowStepSelect={activeStep > 3}
+                    label="Review & Submit"
+                    description="Review the build and submit."
+                    loading={status}>
+                    <Space h="xl" />
+                    <Title order={3} align="center" mb="md">
+                    Review and Submit Build
+                    </Title>
+                    <Space h="sm" />
+                    <BuildTable onInsertFilesReady={setInsertFileHandles}/>
+                </Stepper.Step>
             </Stepper>
             <Group position="center" mt="xl">
                 {activeStep == 0 ? <></> :
@@ -181,7 +197,7 @@ export default function BuildWizard({}) {
                     </Button>
                 )}
                 {status ? <Button color='red' onClick={() => setStatus(false)}>Cancel</Button> : <></>}
-                {(formValues?.buildMethod === "Automated" && backendResponse && activeStep === 1) && (
+                {(formValues?.buildMethod === "Automated" && backendResponse && activeStep === numSteps - 1) && (
                     <Button 
                         gradient={{ from: "green", to: "green" }}
                         variant="gradient"
