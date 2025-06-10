@@ -9,7 +9,7 @@ import json
 import sbol2build
 import tricahue
 import sbol2
-import pudupy
+#import pudupy
 
 #routes
 #check if the app is running
@@ -226,50 +226,53 @@ def build_pudu():
     print("request", request.files)
 
     if 'assembly_plan' not in request.files:
-        return jsonify({"error": "Missing asembly plan"}), 400
+        return jsonify({"error": "Missing assembly plan"}), 400
     if 'wizard_selections' not in request.form:
         return jsonify({"error": "Missing wizard selections"}), 400
 
     wizard_selection = request.form.get('wizard_selections')
-    assembly_plan = request.files.get('assembly_plan')
+    assembly_plan_file = request.files.get('assembly_plan')
 
-    # Parse the json
+    # # Parse the json
     wizard_selection_json = json.loads(wizard_selection)
     build_method = wizard_selection_json.get('formValues').get('buildMethod')
 
     # Check if the assembly method is valid
-    if assembly_method != 'PUDU':
+    if build_method != 'PUDU':
         return jsonify({"error": "Invalid build method"}), 400
     
-    # Get the assembly, is in text and read using SBOL
-    #restriction_enzyme = wizard_selection_json.get('formValues').get('restrictionEnzyme')
-
+    # Get the assembly, is in text [?] and read using SBOL
     # transform assembly plan in text to a SBOL document, similar to the example following
-    part_docs = []
-    for item in insert_parts:
-        doc = sbol2.Document()
-        doc.read(item)
-        part_docs.append(doc)
-    
-    bb_doc = sbol2.Document()
-    bb_doc.read(plasmid_backbone)
 
-    #transform assembly plan document to dictionary
-    #use dictionary in PUDU
-
-    assembly_doc = sbol2.Document()
-    assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
+    # part_docs = []
+    # for item in insert_parts:
+    #     doc = sbol2.Document()
+    #     doc.read(item)
+    #     part_docs.append(doc)
 
     try:
-        composites = assembly_obj.run()
+        assembly_plan = assembly_plan_file.read().decode('utf-8')
+        assembly_plan_doc = sbol2.Document()
+        assembly_plan_doc.readString(assembly_plan)
+        # pudupy.dictionaryCreatorPython(assembly_plan_file)
+    except Exception as e:
+        return jsonify({"error": f"Error parsing file: {str(e)}"}), 400
 
-        return_string = assembly_doc.writeString()
+    # TODO: transform assembly plan document to dictionary
 
-        # Return the file as a response
-        return return_string
+    # TODO: use dictionary in PUDU
 
+    try:
+        # composites = assembly_obj.run()
+
+        # return_string = assembly_doc.writeString()
+
+        # # Return the file as a response
+        # return return_string
+        return jsonify({"message": "PUDU build not implemented yet"}), 501
+    
     except ValueError as e:
-        # catch sbol2build errors and return to frontend
+        # catch errors and return to frontend
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
