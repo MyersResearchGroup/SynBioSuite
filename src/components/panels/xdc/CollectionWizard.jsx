@@ -46,11 +46,7 @@ export default function CollectionWizard() {
     const [libraryName, setLibraryName] = useState(null)
     const [description, setDescription] = useState(null)
 
-    const [lastExperimentalId, setLastExperimentalId] = useState(experimentalId)
-
-
-
-    
+    // const [lastExperimentalId, setLastExperimentalId] = useState(null)
     
     //excel information
     const readExcelFile = (eFile) => {
@@ -123,20 +119,22 @@ export default function CollectionWizard() {
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
 
-    useEffect(() => {
-        if (experimentalId !== lastExperimentalId) {
-            setCollectionName(libraryName); // set to parsed value from new file
-            setCollectionDescription(description); // set to parsed value from new file
-            setLastExperimentalId(experimentalId);
-        }
-    }, [experimentalId, libraryName, description, lastExperimentalId, setCollectionName, setCollectionDescription]);
-
     //Step 3: Timeline status--indicates XDC server's status
     const [timelineStatus, setTimelineStatus] = usePanelProperty(panelId, "runtimeStatus", false, RuntimeStatus.WAITING);
 
     const getFileNameWithoutExtension = (fileName) => fileName.replace(/\.[^/.]+$/, "");
 
     const metadataFile = useFile(metadataID)
+
+    //account for changes in the experimentalId
+    // useEffect(() => {
+    //     setLastExperimentalId()
+    //     if (experimentalId !== lastExperimentalId) {
+    //         setCollectionName(libraryName) // set to parsed value from new file
+    //         setCollectionDescription(description) // set to parsed value from new file
+    //         setLastExperimentalId(experimentalId)
+    //     }
+    // }, [experimentalId, libraryName, description, lastExperimentalId]);
     
     return (
         <Container style={stepperContainerStyle}>
@@ -168,7 +166,7 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <TextInput
                             onChange={(e) => setCollectionName(e.target.value)}
-                            defaultValue = {collectionName || ""}
+                            defaultValue = {libraryName || collectionName || ""}
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -178,7 +176,7 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <Textarea
                             onChange={(e) => setCollectionDescription(e.target.value)}
-                            defaultValue={collectionDescription || ""}
+                            defaultValue={description || collectionDescription || ""}
                             minRows={4}
                             radius="md"
                             size="md"
