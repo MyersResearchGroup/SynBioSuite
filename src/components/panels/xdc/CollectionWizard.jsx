@@ -46,7 +46,7 @@ export default function CollectionWizard() {
     const [libraryName, setLibraryName] = useState(null)
     const [description, setDescription] = useState(null)
 
-    // const [lastExperimentalId, setLastExperimentalId] = useState(null)
+    console.log("libraryName", libraryName)
     
     //excel information
     const readExcelFile = (eFile) => {
@@ -57,7 +57,8 @@ export default function CollectionWizard() {
             reader.onerror = (error) =>{reject(error)}
             })
         }
-    
+
+    function getDescriptionandLibraryName ()  {
         if (experimentalFile) {
             experimentalFile.getFile().then((realFile) => {
                 readExcelFile(realFile).then(arrayBuffer => {
@@ -65,10 +66,10 @@ export default function CollectionWizard() {
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    
+
                     let temp_libraryName = null;
                     let temp_description = null;
-    
+
                     for (const row of rows) {
                         for (let i = 0; i < row.length; i++) {
                             if (row[i] && typeof row[i] === "string") {
@@ -89,6 +90,12 @@ export default function CollectionWizard() {
                 })
             })
         }
+    }
+
+    function handleClick (){
+        getDescriptionandLibraryName()
+        nextStep()
+    }
 
 
     // file info
@@ -114,27 +121,14 @@ export default function CollectionWizard() {
     const handleExperimentalDataChange = name => {
         setResultsID(name)
     }
-    
-    // Step 2: Collection Information
-    const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
-    const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
 
-    //Step 3: Timeline status--indicates XDC server's status
+    //Step 2: Timeline status--indicates XDC server's status
     const [timelineStatus, setTimelineStatus] = usePanelProperty(panelId, "runtimeStatus", false, RuntimeStatus.WAITING);
 
     const getFileNameWithoutExtension = (fileName) => fileName.replace(/\.[^/.]+$/, "");
 
     const metadataFile = useFile(metadataID)
 
-    //account for changes in the experimentalId
-    // useEffect(() => {
-    //     setLastExperimentalId()
-    //     if (experimentalId !== lastExperimentalId) {
-    //         setCollectionName(libraryName) // set to parsed value from new file
-    //         setCollectionDescription(description) // set to parsed value from new file
-    //         setLastExperimentalId(experimentalId)
-    //     }
-    // }, [experimentalId, libraryName, description, lastExperimentalId]);
     
     return (
         <Container style={stepperContainerStyle}>
@@ -165,8 +159,8 @@ export default function CollectionWizard() {
                         <Text fw={500}>Collection Name</Text>
                         <Space h="xs" />
                         <TextInput
-                            onChange={(e) => setCollectionName(e.target.value)}
-                            defaultValue = {libraryName || collectionName || ""}
+                            onChange={(e) => setLibraryName(e.target.value)}
+                            defaultValue = {libraryName}
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -175,8 +169,8 @@ export default function CollectionWizard() {
                         <Text fw={500} mt="md">Collection Description</Text>
                         <Space h="xs" />
                         <Textarea
-                            onChange={(e) => setCollectionDescription(e.target.value)}
-                            defaultValue={description || collectionDescription || ""}
+                            onChange={(e) => setDescription(e.target.value)}
+                            defaultValue = {description}
                             minRows={4}
                             radius="md"
                             size="md"
@@ -192,7 +186,7 @@ export default function CollectionWizard() {
                 >
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            <ExperimentalTable newCollectionname = {collectionName} newDescriptionName = {collectionDescription}/>
+                            <ExperimentalTable newCollectionname = {libraryName} newDescriptionName = {description}/>
                             { selectedSBH || selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
@@ -303,8 +297,8 @@ export default function CollectionWizard() {
                                     sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
                                     sbh_user: import.meta.env.VITE_SYNBIOHUB_USERNAME,
                                     sbh_pass: import.meta.env.VITE_SYNBIOHUB_PASSWORD,
-                                    sbh_collec: collectionName,
-                                    sbh_collec_desc: collectionDescription,
+                                    sbh_collec: libraryName,
+                                    sbh_collec_desc: description,
                                     fj_overwrite: false,
                                     sbh_overwrite: false
                                 })
@@ -358,7 +352,15 @@ export default function CollectionWizard() {
                 ) : (
                     <></>
                 )}
-                {(activeStep == 0 && metadataID) || (activeStep == 1)? (
+                {(activeStep == 0 && metadataID) ? (
+                    <Button
+                        onClick={handleClick}
+                        sx={{ display: 'block' }}
+                    >
+                        Next step
+                    </Button>
+                ) 
+                : (activeStep == 1)? (
                     <Button
                         onClick={nextStep}
                         sx={{ display: 'block' }}
