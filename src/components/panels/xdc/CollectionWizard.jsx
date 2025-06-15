@@ -22,7 +22,6 @@ import { useState } from "react"
 import { getObjectType } from '../../../objectTypes'
 import { useEffect } from "react"
 
-
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const dispatch = useDispatch()
@@ -45,8 +44,18 @@ export default function CollectionWizard() {
 
     const [libraryName, setLibraryName] = useState(null)
     const [description, setDescription] = useState(null)
+    const [pendingNextStep, setPendingNextStep] = useState(false)
 
-    console.log("libraryName", libraryName)
+    const currentInfo = JSON.stringify({
+        updatedData:{
+            updatedDescription: description,
+            updatedCollectionName: libraryName,
+            updatedMetadata: experimentalFile?.name
+        }
+    })
+
+
+
     
     //excel information
     const readExcelFile = (eFile) => {
@@ -58,44 +67,48 @@ export default function CollectionWizard() {
             })
         }
 
-    function getDescriptionandLibraryName ()  {
+    const getDescriptionandLibraryName = async () => {
         if (experimentalFile) {
-            experimentalFile.getFile().then((realFile) => {
-                readExcelFile(realFile).then(arrayBuffer => {
-                    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            const realFile = await experimentalFile.getFile();
+            const arrayBuffer = await readExcelFile(realFile);
+            const workbook = XLSX.read(arrayBuffer, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    let temp_libraryName = null;
-                    let temp_description = null;
+            let temp_libraryName = null;
+            let temp_description = null;
 
-                    for (const row of rows) {
-                        for (let i = 0; i < row.length; i++) {
-                            if (row[i] && typeof row[i] === "string") {
-                                const cell = row[i].toLowerCase();
-                                if (cell.includes("library name") || cell.includes("collection name")) {
-                                    temp_libraryName = row[i+1];
-                                }
-                                if (cell.includes("description")) {
-                                    temp_description = row[i+1];
-                                }
-                            }
-                            if (temp_libraryName && temp_description) {
-                                setLibraryName(temp_libraryName)
-                                setDescription(temp_description)
-                            }
+            for (const row of rows) {
+                for (let i = 0; i < row.length; i++) {
+                    if (row[i] && typeof row[i] === "string") {
+                        const cell = row[i].toLowerCase();
+                        if (cell.includes("library name") || cell.includes("collection name")) {
+                            temp_libraryName = row[i+1];
+                        }
+                        if (cell.includes("description")) {
+                            temp_description = row[i+1];
                         }
                     }
-                })
-            })
+                }
+            }
+
+            if (temp_libraryName) setLibraryName(temp_libraryName);
+            if (temp_description) setDescription(temp_description);
         }
     }
 
-    function handleClick (){
-        getDescriptionandLibraryName()
-        nextStep()
+    async function handleClick (){
+        await getDescriptionandLibraryName()
+        setPendingNextStep(true)
     }
+
+    useEffect(() => {
+        if (pendingNextStep) {
+            setPendingNextStep(false);
+            nextStep();
+        }
+    }, [libraryName, description, pendingNextStep])
 
 
     // file info
