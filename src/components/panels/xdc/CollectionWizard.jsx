@@ -4,7 +4,7 @@ import { ObjectTypes } from '../../../objectTypes'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { PanelContext } from './CollectionPanel'
-import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { usePanel, usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import XDCTimeline from './XDCTimeline'
 import { IoIosCloudUpload } from "react-icons/io";
 import { TbStatusChange } from "react-icons/tb";
@@ -46,16 +46,8 @@ export default function CollectionWizard() {
     const [description, setDescription] = useState(null)
     const [pendingNextStep, setPendingNextStep] = useState(false)
 
-    const currentInfo = JSON.stringify({
-        updatedData:{
-            updatedDescription: description,
-            updatedCollectionName: libraryName,
-            updatedMetadata: experimentalFile?.name
-        }
-    })
-
-
-
+    const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
+    const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
     
     //excel information
     const readExcelFile = (eFile) => {
@@ -102,13 +94,19 @@ export default function CollectionWizard() {
         await getDescriptionandLibraryName()
         setPendingNextStep(true)
     }
-
+    //make sure next step is called when libraryName and description are set properly
     useEffect(() => {
         if (pendingNextStep) {
             setPendingNextStep(false);
             nextStep();
         }
     }, [libraryName, description, pendingNextStep])
+
+    //loads in previous information
+    useEffect(() => {
+        if (collectionName && !libraryName) setLibraryName(collectionName);
+        if (collectionDescription && !description) setDescription(collectionDescription);
+    }, [collectionName, collectionDescription])
 
 
     // file info
@@ -172,7 +170,10 @@ export default function CollectionWizard() {
                         <Text fw={500}>Collection Name</Text>
                         <Space h="xs" />
                         <TextInput
-                            onChange={(e) => setLibraryName(e.target.value)}
+                            onChange={(e) => {
+                                setLibraryName(e.target.value)
+                                setCollectionName(e.target.value)
+                            }}
                             defaultValue = {libraryName}
                             radius="md"
                             size="md"
@@ -182,7 +183,10 @@ export default function CollectionWizard() {
                         <Text fw={500} mt="md">Collection Description</Text>
                         <Space h="xs" />
                         <Textarea
-                            onChange={(e) => setDescription(e.target.value)}
+                            onChange={(e) => {
+                                setDescription(e.target.value)
+                                setCollectionDescription(e.target.value)
+                            }}
                             defaultValue = {description}
                             minRows={4}
                             radius="md"
