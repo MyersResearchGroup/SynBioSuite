@@ -59,7 +59,12 @@ def upload_file_from_sbs_post():
     xdc.initialize()
     xdc.log_in_sbh()
     xdc.convert_to_sbol()
-    sbh_url = xdc.upload_to_sbh()
+    xdc.generate_sbol_hash_map()
+
+    try:
+        sbh_url = xdc.upload_to_sbh()
+    except AttributeError as e:
+        return jsonify({"error": str(e)}), 400
 
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
@@ -106,6 +111,7 @@ def upload_file_from_sbs_post_up():
     xdc.initialize()
     xdc.log_in_sbh()
     xdc.convert_to_sbol()
+    xdc.generate_sbol_hash_map()
 
     try:
         sbh_url = xdc.upload_to_sbh()
