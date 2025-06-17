@@ -204,7 +204,7 @@ export default function CollectionWizard() {
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
                             <ExperimentalTable newCollectionname = {libraryName} newDescriptionName = {description}/>
-                            { selectedSBH || selectedFJ ? <XDCTimeline /> : 
+                            { selectedSBH && selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
                                     <Avatar
