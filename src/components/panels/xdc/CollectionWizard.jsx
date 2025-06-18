@@ -60,7 +60,7 @@ export default function CollectionWizard() {
     }
 
     const getDescriptionandLibraryName = async () => {
-            const realFile = await experimentalFile.getFile()
+            const realFile = experimentalFile.getFile()
             const arrayBuffer = await readExcelFile(realFile)
             const workbook = XLSX.read(arrayBuffer, { type: "array" })
             const sheetName = workbook.SheetNames[0]
@@ -92,6 +92,7 @@ export default function CollectionWizard() {
         getDescriptionandLibraryName()
         setPendingNextStep(true)
     }
+    
     //make sure next step is called when libraryName and description are set properly
     useEffect(() => {
         if (pendingNextStep) {
