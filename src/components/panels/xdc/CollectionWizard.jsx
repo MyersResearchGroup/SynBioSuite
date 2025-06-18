@@ -88,8 +88,8 @@ export default function CollectionWizard() {
             if (temp_description) setDescription(temp_description);
     }
 
-    async function handleClick (){
-        await getDescriptionandLibraryName()
+    function handleClick (){
+        getDescriptionandLibraryName()
         setPendingNextStep(true)
     }
     //make sure next step is called when libraryName and description are set properly
