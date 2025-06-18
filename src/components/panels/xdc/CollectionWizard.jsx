@@ -60,32 +60,32 @@ export default function CollectionWizard() {
     }
 
     const getDescriptionandLibraryName = async () => {
-            const realFile = experimentalFile.getFile()
-            const arrayBuffer = await readExcelFile(realFile)
-            const workbook = XLSX.read(arrayBuffer, { type: "array" })
-            const sheetName = workbook.SheetNames[0]
-            const worksheet = workbook.Sheets[sheetName]
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        const realFile = experimentalFile.getFile()
+        const arrayBuffer = await readExcelFile(realFile)
+        const workbook = XLSX.read(arrayBuffer, { type: "array" })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
 
-            let temp_libraryName = null
-            let temp_description = null
+        let temp_libraryName = null
+        let temp_description = null
 
-            for (const row of rows) {
-                for (let i = 0; i < row.length; i++) {
-                    if (row[i] && typeof row[i] === "string") {
-                        const cell = row[i].toLowerCase();
-                        if (cell.includes("library name") || cell.includes("collection name")) {
-                            temp_libraryName = row[i+1]
-                        }
-                        if (cell.includes("description")) {
-                            temp_description = row[i+1]
-                        }
+        for (const row of rows) {
+            for (let i = 0; i < row.length; i++) {
+                if (row[i] && typeof row[i] === "string") {
+                    const cell = row[i].toLowerCase()
+                    if (cell.includes("library name") || cell.includes("collection name")) {
+                        temp_libraryName = row[i+1]
+                    }
+                    if (cell.includes("description")) {
+                        temp_description = row[i+1]
                     }
                 }
             }
+        }
 
-            if (temp_libraryName) setLibraryName(temp_libraryName);
-            if (temp_description) setDescription(temp_description);
+        if (temp_libraryName) setLibraryName(temp_libraryName)
+        if (temp_description) setDescription(temp_description)
     }
 
     function handleClick (){
