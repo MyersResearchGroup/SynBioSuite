@@ -56,8 +56,8 @@ export default function CollectionWizard() {
             reader.readAsArrayBuffer(eFile)
             reader.onload= (event) => {resolve(event.target.result)}
             reader.onerror = (error) =>{reject(error)}
-            })
-        }
+        })
+    }
 
     const getDescriptionandLibraryName = async () => {
         if (experimentalFile) {
@@ -91,7 +91,7 @@ export default function CollectionWizard() {
     }
 
     async function handleClick (){
-        await getDescriptionandLibraryName()
+        //await getDescriptionandLibraryName()
         setPendingNextStep(true)
     }
     //make sure next step is called when libraryName and description are set properly
