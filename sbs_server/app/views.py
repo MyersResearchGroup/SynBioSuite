@@ -9,7 +9,7 @@ import json
 import sbol2build
 import tricahue
 import sbol2
-#import pudupy
+import pudu
 
 #routes
 #check if the app is running
@@ -113,6 +113,7 @@ def upload_file_from_sbs_post_up():
     xdc.initialize()
     xdc.log_in_sbh()
     xdc.convert_to_sbol()
+    xdc.generate_sbol_hash_map()
     sbh_url = xdc.upload_to_sbh()
 
     sbs_upload_response_dict ={
