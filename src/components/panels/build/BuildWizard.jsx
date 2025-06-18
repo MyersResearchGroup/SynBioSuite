@@ -203,7 +203,7 @@ export default function BuildWizard({}) {
                     >
                         <BiDownload style={{ marginRight: '5px' }} />{panelTitle}.py
                     </Button>
-                 :null
+                 : null
                 }
             </Group>
         </Container>
