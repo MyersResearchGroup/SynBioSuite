@@ -60,8 +60,7 @@ export default function CollectionWizard() {
     }
 
     const getDescriptionandLibraryName = async () => {
-        if (experimentalFile) {
-            const realFile = await experimentalFile.getFile();
+            const realFile = experimentalFile.getFile();
             const arrayBuffer = await readExcelFile(realFile);
             const workbook = XLSX.read(arrayBuffer, { type: "array" });
             const sheetName = workbook.SheetNames[0];
@@ -87,11 +86,10 @@ export default function CollectionWizard() {
 
             if (temp_libraryName) setLibraryName(temp_libraryName);
             if (temp_description) setDescription(temp_description);
-        }
     }
 
     async function handleClick (){
-        //await getDescriptionandLibraryName()
+        await getDescriptionandLibraryName()
         setPendingNextStep(true)
     }
     //make sure next step is called when libraryName and description are set properly
