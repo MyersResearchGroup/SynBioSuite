@@ -44,7 +44,7 @@ export default function CollectionWizard() {
 
     const [libraryName, setLibraryName] = useState(null)
     const [description, setDescription] = useState(null)
-    const [pendingNextStep, setPendingNextStep] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
@@ -59,47 +59,81 @@ export default function CollectionWizard() {
         })
     }
 
-    const getDescriptionandLibraryName = async () => {
-        const realFile = experimentalFile.getFile()
-        const arrayBuffer = await readExcelFile(realFile)
-        const workbook = XLSX.read(arrayBuffer, { type: "array" })
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+    function getDescriptionandLibraryName() {
+        if (!experimentalFile) return
+        setLoading(true)
+        experimentalFile.getFile().then(realFile => {
+            readExcelFile(realFile).then(arrayBuffer => {
+                const workbook = XLSX.read(arrayBuffer, { type: "array" });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-        let temp_libraryName = null
-        let temp_description = null
-
-        for (const row of rows) {
-            for (let i = 0; i < row.length; i++) {
-                if (row[i] && typeof row[i] === "string") {
-                    const cell = row[i].toLowerCase()
-                    if (cell.includes("library name") || cell.includes("collection name")) {
-                        temp_libraryName = row[i+1]
-                    }
-                    if (cell.includes("description")) {
-                        temp_description = row[i+1]
+                let temp_libraryName = null;
+                let temp_description = null;
+                outer: for (const row of rows) {
+                    for (let i = 0; i < row.length; i++) {
+                        if (row[i] && typeof row[i] === "string") {
+                            const cell = row[i].toLowerCase();
+                            if (cell.includes("library name") || cell.includes("collection name")) {
+                                temp_libraryName = row[i + 1];
+                            }
+                            if (cell.includes("description")) {
+                                temp_description = row[i + 1];
+                            }
+                            if (temp_libraryName && temp_description) break outer;
+                        }
                     }
                 }
-            }
-        }
+                if (temp_libraryName) setLibraryName(temp_libraryName);
+                if (temp_description) setDescription(temp_description);
+                setLoading(false);
+            }).catch(() => setLoading(false));
+        }).catch(() => setLoading(false));
+    }    
 
-        if (temp_libraryName) setLibraryName(temp_libraryName)
-        if (temp_description) setDescription(temp_description)
-    }
+    // const getDescriptionandLibraryName = async () => {
+    //     const realFile = experimentalFile.getFile()
+    //     const arrayBuffer = await readExcelFile(realFile)
+    //     const workbook = XLSX.read(arrayBuffer, { type: "array" })
+    //     const sheetName = workbook.SheetNames[0]
+    //     const worksheet = workbook.Sheets[sheetName]
+    //     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+
+    //     let temp_libraryName = null
+    //     let temp_description = null
+
+    //     for (const row of rows) {
+    //         for (let i = 0; i < row.length; i++) {
+    //             if (row[i] && typeof row[i] === "string") {
+    //                 const cell = row[i].toLowerCase()
+    //                 if (cell.includes("library name") || cell.includes("collection name")) {
+    //                     temp_libraryName = row[i+1]
+    //                 }
+    //                 if (cell.includes("description")) {
+    //                     temp_description = row[i+1]
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     if (temp_libraryName) setLibraryName(temp_libraryName)
+    //     if (temp_description) setDescription(temp_description)
+    // }
 
     function handleClick (){
         getDescriptionandLibraryName()
-        setPendingNextStep(true)
+        nextStep()
+        //setPendingNextStep(true)
     }
     
     //make sure next step is called when libraryName and description are set properly
-    useEffect(() => {
-        if (pendingNextStep) {
-            setPendingNextStep(false)
-            nextStep()
-        }
-    }, [libraryName, description, pendingNextStep])
+    // useEffect(() => {
+    //     if (pendingNextStep) {
+    //         setPendingNextStep(false)
+    //         nextStep()
+    //     }
+    // }, [libraryName, description, pendingNextStep])
 
     //loads in previous information
     useEffect(() => {
@@ -173,7 +207,7 @@ export default function CollectionWizard() {
                                 setLibraryName(e.target.value)
                                 setCollectionName(e.target.value)
                             }}
-                            defaultValue = {libraryName}
+                            value={loading && libraryName === null ? '...loading' : (libraryName ?? '')}
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -186,7 +220,7 @@ export default function CollectionWizard() {
                                 setDescription(e.target.value)
                                 setCollectionDescription(e.target.value)
                             }}
-                            defaultValue = {description}
+                            value={loading && description === null ? '...loading' : (description ?? '')}
                             minRows={4}
                             radius="md"
                             size="md"
