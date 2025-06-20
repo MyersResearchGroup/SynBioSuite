@@ -60,7 +60,6 @@ export default function CollectionWizard() {
     }
 
     function getDescriptionandLibraryName() {
-        if (!experimentalFile) return
         setLoading(true)
         experimentalFile.getFile().then(realFile => {
             readExcelFile(realFile).then(arrayBuffer => {
@@ -71,7 +70,7 @@ export default function CollectionWizard() {
 
                 let temp_libraryName = null;
                 let temp_description = null;
-                outer: for (const row of rows) {
+                for (const row of rows) {
                     for (let i = 0; i < row.length; i++) {
                         if (row[i] && typeof row[i] === "string") {
                             const cell = row[i].toLowerCase();
@@ -81,15 +80,14 @@ export default function CollectionWizard() {
                             if (cell.includes("description")) {
                                 temp_description = row[i + 1];
                             }
-                            if (temp_libraryName && temp_description) break outer;
                         }
                     }
                 }
                 if (temp_libraryName) setLibraryName(temp_libraryName);
                 if (temp_description) setDescription(temp_description);
                 setLoading(false);
-            }).catch(() => setLoading(false));
-        }).catch(() => setLoading(false));
+            })
+        })
     }    
 
     // const getDescriptionandLibraryName = async () => {
