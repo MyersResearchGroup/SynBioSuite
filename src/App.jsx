@@ -37,10 +37,6 @@ export default function App() {
                 onClose={() => dispatch(closeFJ())}
                 repoName=""
             />
-            <DirectoryModal
-                opened={directoryModalOpened}
-                onClose={() => dispatch(closeDirectory())}
-            />
         </NotificationsProvider>
     );
 }

@@ -24,8 +24,8 @@ export default function BuildWizard({}) {
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
     const [fileUrl, setFileUrl] = useState()
-    const [backendResponse, setBackendResponse] = useState(false)
-    const [firstBuild, setFirstBuild] = useState(true)
+    const [backendResponse, setBackendResponse] = usePanelProperty(panelId, 'backendResponse', false, true)
+    const [firstBuild, setFirstBuild] = usePanelProperty(panelId, 'firstBuild', false, true)
 
     const [status, setStatus] = useState(false)
     
@@ -163,9 +163,6 @@ export default function BuildWizard({}) {
                     loading={status}
                 >
                     <Space h='lg' />
-                    <Group grow style={{ alignItems: 'flex-start' }}>
-                            <BuildTable onInsertFilesReady={setInsertFileHandles}/>
-                    </Group>
                 </Stepper.Completed>
                 <Stepper.Step
                     allowStepSelect={activeStep > 3}
@@ -192,12 +189,12 @@ export default function BuildWizard({}) {
                     </Button>
                 }
                 {activeStep === numSteps - 1 && !status && (
-                    <Button onClick={handleBuildSubmit} color="blue">
+                    <Button onClick={handleBuildSubmit} color="blue" radius = "xl"> 
                         {firstBuild ? "Build" : "Rebuild"}
                     </Button>
                 )}
                 {status ? <Button color='red' onClick={() => setStatus(false)}>Cancel</Button> : <></>}
-                {(formValues?.buildMethod === "Automated" && backendResponse && activeStep === numSteps - 1) && (
+                {(!firstBuild && backendResponse && activeStep  == numSteps -1) ?
                     <Button 
                         gradient={{ from: "green", to: "green" }}
                         variant="gradient"
@@ -206,7 +203,8 @@ export default function BuildWizard({}) {
                     >
                         <BiDownload style={{ marginRight: '5px' }} />{panelTitle}.py
                     </Button>
-                )}
+                 : null
+                }
             </Group>
         </Container>
     )
