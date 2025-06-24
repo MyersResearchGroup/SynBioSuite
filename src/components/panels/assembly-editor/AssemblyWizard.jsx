@@ -65,7 +65,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
       }, [assemblyPlanFile]);
 
     // stepper states
-    const numSteps = 3
+    const numSteps = 2
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
@@ -96,11 +96,9 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
     // determine if we can move to next step or not
     let showNextButton = false
     switch (activeStep) {
-        case 0: showNextButton = !!plasmidId
+        case 0: showNextButton = (!!plasmidId) || (!!acceptorPlasmid)
         break
-        case 1: showNextButton = !!acceptorPlasmid
-        break
-        case 2: showNextButton = true
+        case 1: showNextButton = true
     }
     
     const handleAssemblySubmit = async () => {
@@ -139,7 +137,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step
                     allowStepSelect={activeStep > 0 || status || backendResponse}
-                    label="Select Plasmid Backbone"
+                    label="Select Genetic Parts"
                     description="SBOL Component"
                     icon={<TbComponents />}
                 >
@@ -151,16 +149,8 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                     >
                         Drag & drop a component from the explorer
                     </Dropzone>
-                </Stepper.Step>
-                <Stepper.Step
-                    allowStepSelect={activeStep > 1 || status || backendResponse}
-                    label="Choose part inserts"
-                    description="SBOL Component"
-                    icon={<BiWorld />}
-                >
                     <Space h='xl' />
-                        <h2 style={{ textAlign: 'center' }}>Upload Part Inserts</h2>
-                        <MultiDropzone
+                    <MultiDropzone
                             allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]} 
                             items={insertIDs}
                             onItemsChange={handleInsertChange}
@@ -168,10 +158,10 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                             multiple={true}
                         >
                             Drag & drop inserts from the explorer 
-                        </MultiDropzone>
+                    </MultiDropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2 || status || backendResponse}
+                    allowStepSelect={activeStep > 1 || status || backendResponse}
                     label="Enter Parameters"
                     description="Choose assembly type"
                     icon={<BiWorld />}
@@ -181,8 +171,9 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                             <AssemblyForm/>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 3 || status || backendResponse}
-                    label="Generate SBOL"
+                    allowStepSelect={activeStep > 2 || status || backendResponse}
+                    label="Run Assembly"
+                    description="Review and submit"
                     icon={backendResponse ? <FaCheckCircle size={45} color="2fb044"/> : <IoAnalyticsSharp />}
                     loading={status}
                 >
@@ -201,7 +192,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                         <Button
                             variant="default"
                             onClick={prevStep}
-                            sx={{ display: activeStep == 0 || activeStep == 3 ? 'none' : 'block' }}
+                            sx={{ display: activeStep == 0 || activeStep == 2 ? 'none' : 'block' }}
                         >
                             Back
                         </Button>
@@ -220,7 +211,7 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                         >
                             Back
                         </Button>
-                        {activeStep < 3 ?
+                        {activeStep < 2 ?
                             <Button
                                 onClick={nextStep}
                                 sx={{ display: showNextButton ? 'block' : 'none' }}
@@ -234,9 +225,9 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                                 radius="xl"
                                 onClick={handleAssemblySubmit}
                             >
-                                Generate SBOL
+                                Run Assembly
                             </Button>}
-                        {backendResponse && activeStep === 3 && <Menu trigger="hover" closeDelay={250}>   
+                        {backendResponse && activeStep === 2 && <Menu trigger="hover" closeDelay={250}>   
                             <Menu.Target>
                                 <Button 
                                 gradient={{ from: "green", to: "green" }}
