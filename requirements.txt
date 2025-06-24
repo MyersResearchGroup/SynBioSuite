@@ -3,6 +3,9 @@ flask_cors
 requests
 numpy==1.26.1
 pandas==1.3.3
+pyflapjack @ git+https://github.com/flapjacksynbio/pyFlapjack@xdc_features2
 tricahue==0.0b5
 sbol2build
 flask_swagger_ui
+xlsxwriter
+pudupy==1.0.0b2
