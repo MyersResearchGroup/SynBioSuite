@@ -151,7 +151,6 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                     </Dropzone>
                     <Space h='xl' />
                     <MultiDropzone
-                            style = {{width: '100%', mineHeight: 120}}
                             allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]} 
                             items={insertIDs}
                             onItemsChange={handleInsertChange}
