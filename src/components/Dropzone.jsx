@@ -95,10 +95,10 @@ export function MultiDropzone({ children, allowedTypes, items = [], onItemsChang
         <Stack gap="xl">
         {items?.length > 0 ? (
                 items.map(item => (
-                    <Center key={item} sx={successStyles.container}>
-                    <CgCheckO style={successStyles.icon} />
-                    <Title order={3} sx={successStyles.title}>{item}</Title>
-                    <ActionIcon sx={successStyles.removeIcon} onClick={() => onRemoveItem(item)}>
+                    <Center key={item} sx={MultisuccessStyles.container}>
+                    <CgCheckO style={MultisuccessStyles.icon} />
+                    <Title order={3} sx={MultisuccessStyles.title}>{item}</Title>
+                    <ActionIcon sx={MultisuccessStyles.removeIcon} onClick={() => onRemoveItem(item)}>
                         <IoClose />
                     </ActionIcon>
                     </Center>
@@ -122,6 +122,35 @@ const successStyles = {
         padding: "20px 30px",
         margin: "20px auto",
         width: "80%",
+        borderRadius: 15,
+        border: "3px solid " + theme.colors.green[6]
+    }),
+    icon: theme => ({
+        color: theme.colors.green[6],
+        fontSize: 22,
+    }),
+    title: theme => ({
+        color: theme.colors.green[6],
+        fontWeight: 600,
+        marginLeft: 10
+    }),
+    removeIcon: theme => ({
+        color: theme.other.inactiveColor,
+        fill: theme.other.inactiveColor,
+        fontSize: 20,
+        marginLeft: 'auto',
+        '&:hover': {
+            color: theme.colors.red[5],
+            fill: theme.colors.red[5],
+        }
+    })
+}
+
+const MultisuccessStyles = {
+    container: theme => ({
+        padding: "20px 30px",
+        margin: "20px auto",
+        width: "100%",
         borderRadius: 15,
         border: "3px solid " + theme.colors.green[6]
     }),
