@@ -147,17 +147,18 @@ export default function AssemblyWizard({handleViewResult, isResults = false}) {
                         onItemChange={handlePlasmidChange}
                         multiple={true}
                     >
-                        Drag & drop a component from the explorer
+                        Drag & drop a receptor backbone from the explorer
                     </Dropzone>
                     <Space h='xl' />
                     <MultiDropzone
+                            style = {{width: '100%', mineHeight: 120}}
                             allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]} 
                             items={insertIDs}
                             onItemsChange={handleInsertChange}
                             onRemoveItem={handleRemoveInsert}
                             multiple={true}
                         >
-                            Drag & drop inserts from the explorer 
+                            Drag & drop parts in backbone from the explorer
                     </MultiDropzone>
                 </Stepper.Step>
                 <Stepper.Step
