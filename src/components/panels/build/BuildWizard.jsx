@@ -166,13 +166,10 @@ export default function BuildWizard({}) {
                 </Stepper.Completed>
                 <Stepper.Step
                     allowStepSelect={activeStep > 3}
-                    label="Review & Submit"
-                    description="Review the build and submit."
+                    label="Run Build"
+                    description="Review and submit."
                     loading={status}>
                     <Space h="xl" />
-                    <Title order={3} align="center" mb="md">
-                    Review and Submit Build
-                    </Title>
                     <Space h="sm" />
                     <BuildTable onInsertFilesReady={setInsertFileHandles}/>
                 </Stepper.Step>
