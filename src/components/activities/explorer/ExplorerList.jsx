@@ -71,7 +71,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
-            <Title mt={10} order={6} mb={10}>
+            <Title mt={10} order={6} mb={10} >
                 Current Folder: {workDir.name}            
             </Title>
             
@@ -142,6 +142,6 @@ const accordionStyles = theme => ({
 
 const titleStyle = theme => ({
     fontWeight: 600,
-    fontSize: 12,
+    fontSize: 11,
     textTransform: 'uppercase',
 })
