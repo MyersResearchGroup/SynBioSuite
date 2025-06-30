@@ -1,6 +1,7 @@
 import axios from 'axios'
 import commands from "./commands"
 import { showErrorNotification } from './modules/util'
+import { useState } from 'react';
 
 
 //There is an issue with where the file upload is not being sent correctly to the server
@@ -105,6 +106,28 @@ export async function submitBuild(wizardInput, assemblyPlan) {
             showErrorNotification('Unexpected error', error.message);
         }
     
+        throw error;
+    }
+}
+export async function getDescriptionandLibraryName(excelFile) {
+    try {
+        const formdata = new FormData();
+        const file = await excelFile.getFile();
+        formdata.append("file", file, file.name || "metadata.xlsx");
+
+        const response = await axios.post(
+            import.meta.env.VITE_SYNBIOSUITE_API + "/api/get_description_and_library_name",
+            formdata,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Error getting description and library name:", error);
+        showErrorNotification('Error', error.message);
         throw error;
     }
 }

@@ -13,14 +13,13 @@ import { useDispatch } from "react-redux"
 import { openSBH, openFJ } from "../../../redux/slices/modalSlice"
 import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
-//import { useState } from "react"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
-import * as XLSX from 'xlsx'
 import { useState } from "react"
 import { getObjectType } from '../../../objectTypes'
 import { useEffect } from "react"
+import { getDescriptionandLibraryName } from '../../../API'
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -48,80 +47,26 @@ export default function CollectionWizard() {
 
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
-    
-    //excel information
-    const readExcelFile = (eFile) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.readAsArrayBuffer(eFile)
-            reader.onload= (event) => {resolve(event.target.result)}
-            reader.onerror = (error) =>{reject(error)}
-        })
-    }
 
-    function getDescriptionandLibraryName() {
-        setLoading(true)
-        experimentalFile.getFile().then(realFile => {
-            readExcelFile(realFile).then(arrayBuffer => {
-                const workbook = XLSX.read(arrayBuffer, { type: "array" });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    function updateCollectionInfo (){
+        const response = getDescriptionandLibraryName(metadataFile).then((response) => {
+            console.log("Response: ", response);
+            const name = response.substring(response.indexOf('"name":') + 7, response.indexOf("}")).trim();
+            const description = response.substring(response.indexOf('"description":') + 15, response.lastIndexOf('",')).trim();
 
-                let temp_libraryName = null;
-                let temp_description = null;
-                for (const row of rows) {
-                    for (let i = 0; i < row.length; i++) {
-                        if (row[i] && typeof row[i] === "string") {
-                            const cell = row[i].toLowerCase();
-                            if (cell.includes("library name") || cell.includes("collection name")) {
-                                temp_libraryName = row[i + 1];
-                            }
-                            if (cell.includes("description")) {
-                                temp_description = row[i + 1];
-                            }
-                        }
-                    }
-                }
-                if (temp_libraryName) setLibraryName(temp_libraryName);
-                if (temp_description) setDescription(temp_description);
-                setLoading(false);
-            })
-        })
-    }    
 
-    // const getDescriptionandLibraryName = async () => {
-    //     const realFile = experimentalFile.getFile()
-    //     const arrayBuffer = await readExcelFile(realFile)
-    //     const workbook = XLSX.read(arrayBuffer, { type: "array" })
-    //     const sheetName = workbook.SheetNames[0]
-    //     const worksheet = workbook.Sheets[sheetName]
-    //     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+            setCollectionName(name === "NaN" ? 'Unnamed Collection' : (name || 'Unnamed Collection'));
+            setLibraryName(name === "NaN" ? 'Unnamed Collection' : (name || 'Unnamed Collection'));
 
-    //     let temp_libraryName = null
-    //     let temp_description = null
+            setCollectionDescription(description === "NaN" ? 'No description provided.' : (description || 'No description provided.'));
+            setDescription(description === "NaN" ? 'No description provided.' : (description || 'No description provided.'));
 
-    //     for (const row of rows) {
-    //         for (let i = 0; i < row.length; i++) {
-    //             if (row[i] && typeof row[i] === "string") {
-    //                 const cell = row[i].toLowerCase()
-    //                 if (cell.includes("library name") || cell.includes("collection name")) {
-    //                     temp_libraryName = row[i+1]
-    //                 }
-    //                 if (cell.includes("description")) {
-    //                     temp_description = row[i+1]
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     if (temp_libraryName) setLibraryName(temp_libraryName)
-    //     if (temp_description) setDescription(temp_description)
-    // }
-
-    function handleClick (){
-        getDescriptionandLibraryName()
-        nextStep()
+            console.log("Collection Name: ", name);
+            console.log("Collection Description: ", description);
+            nextStep();
+        }).catch((error) => {
+            console.error("Error fetching collection info:", error);
+        });
         //setPendingNextStep(true)
     }
     
@@ -135,8 +80,8 @@ export default function CollectionWizard() {
 
     //loads in previous information
     useEffect(() => {
-        if (collectionName && !libraryName) setLibraryName(collectionName);
-        if (collectionDescription && !description) setDescription(collectionDescription);
+        if (collectionName) setLibraryName(collectionName);
+        if (collectionDescription) setDescription(collectionDescription);
     }, [collectionName, collectionDescription])
 
 
@@ -402,7 +347,7 @@ export default function CollectionWizard() {
                 )}
                 {(activeStep == 0 && metadataID) ? (
                     <Button
-                        onClick={handleClick}
+                        onClick={() => updateCollectionInfo()}
                         sx={{ display: 'block' }}
                     >
                         Next step
