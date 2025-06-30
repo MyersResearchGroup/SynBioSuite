@@ -108,7 +108,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupsplasmids",
+        subdirectory: "experimentalSetupsPlasmids",
     },
     MetadataChassis: {
         id: "synbio.object-type.experimental-data-chassis",
@@ -118,7 +118,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupschassis",
+        subdirectory: "experimentalSetupsChassis",
     },
     MetadataChemical: {
         id: "synbio.object-type.experimental-data-chemical",
@@ -128,7 +128,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupschemical",
+        subdirectory: "experimentalSetupsChemicals",
     },
     MetadataMedias: {
         id: "synbio.object-type.experimental-data-medias",
@@ -138,7 +138,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupsmedias",
+        subdirectory: "experimentalSetupsMedias",
     },
     MetadataStrains: {
         id: "synbio.object-type.experimental-data-strains",
@@ -148,7 +148,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupsstrains",
+        subdirectory: "experimentalSetupsStrains",
     },
     MetadataSampleDesigns: {
         id: "synbio.object-type.experimental-data-designs",
@@ -158,7 +158,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupsdesigns",
+        subdirectory: "experimentalSetupsDesigns",
     },
     MetadataStudies: {
         id: "synbio.object-type.experimental-data-studies",
@@ -168,7 +168,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetupsstudies",
+        subdirectory: "experimentalSetupsStudies",
     },
     Results: {
         id: "synbio.object-type.experimental-results",
