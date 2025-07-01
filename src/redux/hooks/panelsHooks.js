@@ -68,6 +68,27 @@ export function useOpenPanel() {
         }
 
         // read in file content
+        if(panelTypeDef?.useBuffer) {
+            // if panel type uses buffer, read file as buffer
+            const file = await fileHandle.getFile();
+            if (file.size === 0) {
+                showNotification({
+                    message: "The file is likely corrupted. Please try to reimport it",
+                    color: "red"
+                });
+                return;
+            }
+            const fileContent = await file.arrayBuffer();
+            const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {};
+            // dispatch open action
+            dispatch(actions.openPanel({
+                ...savedProperties,
+                id: fileHandle.id,
+                type: panelTypeDef.id,
+                fileHandle,
+            }));
+            return;
+        }
         const fileContent = await (await fileHandle.getFile()).text()
         const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {}
 
