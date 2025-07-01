@@ -37,7 +37,7 @@
         "react-time-ago": "^7.2.1",
         "synbiosuite": "file:",
         "uuid": "^8.3.2",
-        "xlsx": "^0.18.5"
+        "xlsx": "file:public/vendor/xlsx-0.20.3.tgz"
     },
     "devDependencies": {
         "@babel/core": "^7.18.2",
