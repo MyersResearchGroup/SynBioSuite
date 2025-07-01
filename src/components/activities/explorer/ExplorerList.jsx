@@ -37,11 +37,10 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             const copied = new File([arrayBuffer], `copy_of_${file.name}`, { type: file.type })
             const targetDir = file.directoryHandle || workDir
             const draftHandle = await targetDir.getFileHandle(file.name, { create: true })
-            const copiedText = await copied.text()
-
-            await writeToFileHandle(draftHandle, copiedText)
+            const writable = await draftHandle.createWritable()
+            await writable.write(arrayBuffer)
+            await writable.close()
             refreshWorkDir()
-
             return copied
         } catch (err) {
             console.error("Error copying file:", err)
