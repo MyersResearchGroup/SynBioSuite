@@ -27,7 +27,8 @@ export default function ExcelFileReader() {
             const initialSheet = wb.SheetNames[0];
             setSelectedSheet(initialSheet);
             const ws = wb.Sheets[initialSheet];
-            const content = utils.sheet_to_json(ws, {blankrows: true});
+            // Set header:1 to get all rows as arrays, including the first row
+            const content = utils.sheet_to_json(ws, { header: 1, blankrows: true, defval: null });
             setData(content);
         })();
     }, [excelFile]);
@@ -36,20 +37,20 @@ export default function ExcelFileReader() {
         if (!excelFile || !selectedSheet) return;
         const wb = read(excelFile);
         const ws = wb.Sheets[selectedSheet];
-        const content = utils.sheet_to_json(ws, {blankrows: true});
+        const content = utils.sheet_to_json(ws, { raw: false, header: 1, blankrows: true, defval: null });
         setData(content);
     }, [selectedSheet, excelFile]);
 
-    const exportFile = useCallback(() => {
-        const ws = utils.json_to_sheet(data);
+    /*const exportFile = useCallback(() => {
+        const ws = utils.aoa_to_sheet(data);
         const wb = utils.book_new();
         utils.book_append_sheet(wb, ws, "Data");
         writeFileXLSX(wb, "SheetJSReactAoO.xlsx");
-    }, [data]);
+    }, [data]);*/
 
     if (!data || data.length === 0) return <div>No data loaded.</div>;
 
-    const columns = Object.keys(data[0]);
+    const columns = data[0] || [];
 
     return (
         <div>
@@ -70,27 +71,27 @@ export default function ExcelFileReader() {
             <table>
                 <thead>
                     <tr>
-                        {columns.map(col => (
-                            <th key={col}>{col}</th>
+                        {columns.map((col, idx) => (
+                            <th key={idx}>{col}</th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
-                    {data.map((row, idx) => (
+                    {data.slice(1).map((row, idx) => (
                         <tr key={idx}>
-                            {columns.map(col => (
-                                <td key={col}>{row[col]}</td>
+                            {columns.map((_, colIdx) => (
+                                <td key={colIdx}>{row[colIdx]}</td>
                             ))}
                         </tr>
                     ))}
                 </tbody>
-                <tfoot>
+                {/* <tfoot>
                     <tr>
                         <td colSpan={columns.length}>
                             <button onClick={exportFile}>Export XLSX</button>
                         </td>
                     </tr>
-                </tfoot>
+                </tfoot> */}
             </table>
         </div>
     );
