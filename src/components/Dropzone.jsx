@@ -3,10 +3,10 @@ import { Center, Title, Text, Group, useMantineTheme, ActionIcon, Stack } from "
 
 import { CgCheckO } from "react-icons/cg"
 import { AiOutlineSmile } from "react-icons/ai"
-import { IoClose } from "react-icons/io5"
+import { IoClose, IoRefresh } from "react-icons/io5"
 
 
-export default function Dropzone({ children, allowedTypes, item, onItemChange }) {
+export default function Dropzone({ children, allowedTypes, item, onItemChange, refresh = null, link = null }) {
 
     const theme = useMantineTheme()
 
@@ -37,24 +37,53 @@ export default function Dropzone({ children, allowedTypes, item, onItemChange })
     }
 
     return (
-        item ?
-            <Center sx={successStyles.container} >
+        item ? (
+            <Center sx={successStyles.container(theme)} >
                 <CgCheckO style={successStyles.icon(theme)} />
-                <Title order={3} sx={successStyles.title}>{item}</Title>
-                <ActionIcon sx={successStyles.removeIcon} onClick={() => onItemChange(null)} ><IoClose /></ActionIcon>
-            </Center> :
+                {link ? (
+                    <Title
+                        order={3}
+                        sx={successStyles.title(theme)}
+                        component="a"
+                        href="#"
+                        onClick={e => {
+                            e.preventDefault();
+                            link();
+                        }}
+                        style={{ cursor: "pointer", textDecoration: "underline" }}
+                    >
+                        {item}
+                    </Title>
+                ) : (
+                    <Title order={3} sx={successStyles.title(theme)}>{item}</Title>
+                )}
+                <Group sx={successStyles.removeIcon(theme)}>
+                    {refresh && (
+                        <ActionIcon onClick={() => refresh()}>
+                            <IoRefresh />
+                        </ActionIcon>
+                    )}
+                    <ActionIcon onClick={() => onItemChange(null)} >
+                        <IoClose />
+                    </ActionIcon>
+                </Group>
+            </Center>
+        ) : (
             <Center
-                sx={containerStyle(allowedToDrop)}
+                sx={containerStyle(allowedToDrop)(theme)}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                {allowedToDrop == null ?
-                    <Title order={3} sx={titleStyle}>{children}</Title> :
-                    allowedToDrop ?
-                        <Text sx={iconStyle}><AiOutlineSmile /></Text> :
-                        <Title order={3} sx={errorTitleStyle}>Item not allowed</Title>}
+                {allowedToDrop == null ? (
+                    <Title order={3} sx={titleStyle(theme)}>{children}</Title>
+                ) : allowedToDrop ? (
+                    <Text sx={iconStyle(theme)}><AiOutlineSmile /></Text>
+                ) : (
+                    <Title order={3} sx={errorTitleStyle(theme)}>Item not allowed</Title>
+                )}
             </Center>
+        )
     )
 }
 
