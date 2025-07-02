@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { read, utils, writeFileXLSX } from 'xlsx';
+import { read, utils } from 'xlsx';
 import { PanelContext } from "./ExcelFIlePanel";
 import { usePanelProperty } from "../../redux/hooks/panelsHooks";
 import { useFile } from "../../redux/hooks/workingDirectoryHooks";

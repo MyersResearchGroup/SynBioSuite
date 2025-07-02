@@ -17,7 +17,7 @@ import ExperimentalTable from "./ExperimentalTable"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
-import * as XLSX from 'xlsx'
+import { read, utils } from 'xlsx'
 import { useState } from "react"
 import { getObjectType } from '../../../objectTypes'
 import { useEffect } from "react"
@@ -48,24 +48,14 @@ export default function CollectionWizard() {
 
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
-    
-    //excel information
-    const readExcelFile = (eFile) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.readAsArrayBuffer(eFile)
-            reader.onload= (event) => {resolve(event.target.result)}
-            reader.onerror = (error) =>{reject(error)}
-        })
-    }
 
     const getDescriptionandLibraryName = async () => {
-        const realFile = experimentalFile.getFile()
-        const arrayBuffer = await readExcelFile(realFile)
-        const workbook = XLSX.read(arrayBuffer, { type: "array" })
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        const realFile = await experimentalFile.getFile()
+        const arrayBuffer = await realFile.arrayBuffer()
+        const wb = read(arrayBuffer, { type: "array" })
+        const firstSheetName = wb.SheetNames[0];
+        const ws = wb.Sheets[firstSheetName];
+        const rows = utils.sheet_to_json(ws, { raw: false, header: 1, blankrows: true, defval: null });
 
         let temp_libraryName = null
         let temp_description = null
@@ -83,9 +73,8 @@ export default function CollectionWizard() {
                 }
             }
         }
-
-        if (temp_libraryName) setLibraryName(temp_libraryName)
-        if (temp_description) setDescription(temp_description)
+        if (temp_libraryName) setCollectionName(temp_libraryName)
+        if (temp_description) setCollectionDescription(temp_description)
     }
 
     function handleClick (){
