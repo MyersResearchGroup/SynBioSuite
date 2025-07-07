@@ -4,6 +4,7 @@ const initialState = {
     bothOpen: false,
     fjOpen: false,
     sbHOpen: false,
+    iframesOpen: false,
     directoryOpen: false
 };
 
@@ -34,8 +35,14 @@ export const modalSlice = createSlice({
         },
         closeDirectory: (state) => {
             state.directoryOpen = false;
-        }
+        },
+        openIframes: (state) => {
+            state.iframesOpen = true;
+        },
+        closeIframes: (state) => {
+            state.iframesOpen = false;
+        },
     },
 });
-export const { openModal, closeModal, openSBH, closeSBH, openFJ, closeFJ, openDirectory, closeDirectory } = modalSlice.actions; 
+export const { openModal, closeModal, openSBH, closeSBH, openFJ, closeFJ, openDirectory, closeDirectory, openIframes, closeIframes } = modalSlice.actions; 
 export default modalSlice.reducer;
