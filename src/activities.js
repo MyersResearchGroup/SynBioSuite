@@ -68,7 +68,7 @@ export const Activities = {
         objectTypesToList: [
             ObjectTypes.Experiments.id,
             ObjectTypes.MetadataPlasmids.id,
-            ObjectTypes.MetadataChemical.id,
+            ObjectTypes.MetadataChemicals.id,
             ObjectTypes.MetadataMedias.id,
             ObjectTypes.MetadataChassis.id,
             ObjectTypes.MetadataStudies.id,

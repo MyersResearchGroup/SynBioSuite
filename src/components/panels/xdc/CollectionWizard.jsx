@@ -79,7 +79,7 @@ export default function CollectionWizard() {
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.Metadata.id]}
+                        allowedTypes={[ObjectTypes.MetadataPlasmids.id || ObjectTypes.MetadataChassis.id || ObjectTypes.MetadataChemicals.id || ObjectTypes.MetadataMedias.id || ObjectTypes.MetadataSampleDesigns.id || ObjectTypes.MetadataStudies.id || ObjectTypes.MetadataStrains.id]}
                         item={metadataFile?.name}
                         onItemChange={handleMetadataChange}>
                         Drag & drop Experimental Metadata from the explorer
@@ -130,7 +130,7 @@ export default function CollectionWizard() {
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
                             <ExperimentalTable/>
-                            { selectedSBH || selectedFJ ? <XDCTimeline /> : 
+                            { selectedSBH && selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
                                     <Avatar
