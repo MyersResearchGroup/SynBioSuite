@@ -10,7 +10,7 @@ import { IoIosCloudUpload } from "react-icons/io";
 import { TbStatusChange } from "react-icons/tb";
 import { RuntimeStatus } from "../../../runtimeStatus"
 import { useDispatch } from "react-redux"
-import { openSBH, openFJ } from "../../../redux/slices/modalSlice"
+import { openSBH, openFJ, openIframes, closeIframes } from "../../../redux/slices/modalSlice"
 import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
 //import { useState } from "react"
@@ -30,6 +30,7 @@ export default function CollectionWizard() {
     const [selectedSBH, setSelectedSBH] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
     const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
+
 
     const findInstance = (instance, repo) => {
         if (repo == "SBH")
@@ -115,6 +116,10 @@ export default function CollectionWizard() {
     const numSteps = 3
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
+    const nextStepV2 = () => {
+        setActiveStep((current) => (current < numSteps ? current + 1 : current));
+        dispatch(openIframes());
+    }
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
     
     // Step 1: Experimental Metadata file
@@ -378,7 +383,7 @@ export default function CollectionWizard() {
                 ) 
                 : (activeStep == 1)? (
                     <Button
-                        onClick={nextStep}
+                        onClick={nextStepV2}
                         sx={{ display: 'block' }}
                     >
                         Next step
