@@ -120,7 +120,7 @@ export const ObjectTypes = {
         importable: true,
         subdirectory: "experimentalSetupsChassis",
     },
-    MetadataChemical: {
+    MetadataChemicals: {
         id: "synbio.object-type.experimental-data-chemical",
         title: "Chemical Metadata",
         listTitle: "Experimental Metadata: Chemicals",
