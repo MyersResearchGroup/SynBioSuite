@@ -12,19 +12,19 @@ export default function DownloadMetadata({ objectType}) {
         let url, fileName;
 
         if (objectType?.id == "synbio.object-type.experimental-data-chassis") {
-            url = "https://o365coloradoedu-my.sharepoint.com/:x:/g/personal/kesc9143_colorado_edu/EexhkRIe8ZBOuN4yVP2fyjcBaJSH1Tk04oTEvtjJlf5CBQ?email=Kenzo.Schwab%40colorado.edu&e=KDkuhb"
+            url = "/Tricahue_v11.6b_Chassis.xlsm"
             fileName = "Tricahue_v11.6b_Chassis.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data-chemical") {
-            url = "https://o365coloradoedu-my.sharepoint.com/:x:/g/personal/kesc9143_colorado_edu/EYrLIbU1TE5CvIDZyQ5TUcABZdlJDmSc38p3ZUAJprA5_g?email=Kenzo.Schwab%40colorado.edu&e=qrlxVl"
+            url = "/Tricahue_v11.6b_Chemicals.xlsm"
             fileName = "Tricahue_v11.6b_Chemicals.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data-medias") {
-            url = "https://o365coloradoedu-my.sharepoint.com/:x:/g/personal/kesc9143_colorado_edu/EZatxuZgD8lMp3WSCoy42toBPKZt24zsYV7Vy_4YzPveMg?email=Kenzo.Schwab%40colorado.edu&e=sg2LWr"
+            url = "/Tricahue_v11.6b_Medias.xlsm"
             fileName = "Tricahue_v11.6b_Medias.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data-sample-designs") {
-            url = "https://o365coloradoedu-my.sharepoint.com/:x:/g/personal/kesc9143_colorado_edu/EdfXrJ8iz8ZDsZBe0r332fIBGQDu38TOzFsc-rvTn76kuw?email=Kenzo.Schwab%40colorado.edu&e=reRvda"
+            url = "/Tricahue_SampleDesign.xlsm"
             fileName = "Tricahue_SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data-strains") {
-            url = "https://o365coloradoedu-my.sharepoint.com/:x:/g/personal/kesc9143_colorado_edu/EVzbqSXPBHxEhI1xI-tDw08BZCaS3Gi1Q9_8fBjg99Zakg?email=Kenzo.Schwab%40colorado.edu&e=u1va1h"
+            url = "/Tricahue_Strain.xslm"
             fileName = "Tricahue_Strain.xslm"
         }
 
