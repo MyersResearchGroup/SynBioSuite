@@ -8,6 +8,7 @@ import { RiGitRepositoryLine } from "react-icons/ri";
 import { GrTestDesktop } from "react-icons/gr";
 import { MdAlignVerticalTop } from "react-icons/md";
 import { VscOutput } from "react-icons/vsc";
+import download from "browser-downloads"
 
 
 
@@ -119,6 +120,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetupsChassis",
+        downloadable: true,
     },
     MetadataChemicals: {
         id: "synbio.object-type.experimental-data-chemical",
@@ -129,6 +131,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetupsChemicals",
+        downloadable: true,
     },
     MetadataMedias: {
         id: "synbio.object-type.experimental-data-medias",
@@ -139,6 +142,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetupsMedias",
+        downloadable: true,
     },
     MetadataStrains: {
         id: "synbio.object-type.experimental-data-strains",
@@ -149,6 +153,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetupsStrains",
+        downloadable: true,
     },
     MetadataSampleDesigns: {
         id: "synbio.object-type.experimental-data-designs",
@@ -159,6 +164,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetupsDesigns",
+        downloadable: true,
     },
     MetadataStudies: {
         id: "synbio.object-type.experimental-data-studies",

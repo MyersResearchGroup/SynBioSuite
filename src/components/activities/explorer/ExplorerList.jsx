@@ -8,6 +8,8 @@ import ImportFile from './ImportFile'
 import { useState} from 'react'
 import Registries from './Registries.jsx'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
+import Download from 'browser-downloads'
+import DownloadMetadata from './DownloadMetadata.jsx'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -110,6 +112,12 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
+                                        }
+                                        {objectType.downloadable &&
+                                            <DownloadMetadata
+                                                objectType={objectType}
+                                            >
+                                            </DownloadMetadata>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository && 
