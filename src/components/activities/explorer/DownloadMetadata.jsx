@@ -20,12 +20,12 @@ export default function DownloadMetadata({ objectType}) {
         } else if (objectType?.id == "synbio.object-type.experimental-data-medias") {
             url = "/Tricahue_v11.6b_Medias.xlsm"
             fileName = "Tricahue_v11.6b_Medias.xlsm"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-sample-designs") {
+        } else if (objectType?.id == "synbio.object-type.experimental-data-designs") {
             url = "/Tricahue_SampleDesign.xlsm"
             fileName = "Tricahue_SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data-strains") {
-            url = "/Tricahue_Strain.xslm"
-            fileName = "Tricahue_Strain.xslm"
+            url = "/Tricahue_Strain.xlsm"
+            fileName = "Tricahue_Strain.xlsm"
         }
 
 
