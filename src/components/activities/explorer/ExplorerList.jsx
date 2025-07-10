@@ -25,7 +25,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     // handle refreshing working directory
     const refreshWorkDir = () => {
             setWorkingDirectory(workDir, false)
-        }
+    }
 
     const finalImport = (file) => {
         setImportedFile(file)
@@ -50,6 +50,23 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             return null
         }
     }
+
+    // handle file download
+    async function onWrite(file, subdirectory) {
+        try {
+            const targetDir = await workDir.getDirectoryHandle(subdirectory, { create: true });
+            const fileHandle = await targetDir.getFileHandle(file.name, { create: true });
+            const arrayBuffer = await file.arrayBuffer();
+
+            await writeToFileHandle(fileHandle, new Uint8Array(arrayBuffer));
+            refreshWorkDir();
+
+            return true;
+        } catch (err) {
+            console.error("Error writing file to directory:", err);
+            return false;
+        }
+    }
     
 
     // handle creation
@@ -69,7 +86,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             icon={Icon && <Icon />}
             key={i}
         />
-)
+    )
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
@@ -116,6 +133,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         {objectType.downloadable &&
                                             <DownloadMetadata
                                                 objectType={objectType}
+                                                onWrite={onWrite}
                                             >
                                             </DownloadMetadata>
                                         }
