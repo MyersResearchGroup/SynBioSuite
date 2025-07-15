@@ -18,7 +18,7 @@ import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
 
-
+// synbiohub auth token: "61ca892a-67a9-4c45-98f3-517ac8cdd5da"
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const dispatch = useDispatch()
