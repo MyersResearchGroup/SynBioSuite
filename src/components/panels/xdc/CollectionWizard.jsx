@@ -22,6 +22,8 @@ import { useState } from "react"
 import { getObjectType } from '../../../objectTypes'
 import { useEffect } from "react"
 
+// synbiohub auth token: "61ca892a-67a9-4c45-98f3-517ac8cdd5da"
+
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const dispatch = useDispatch()
@@ -148,7 +150,7 @@ export default function CollectionWizard() {
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.Metadata.id]}
+                        allowedTypes={[ObjectTypes.MetadataPlasmids.id || ObjectTypes.MetadataChassis.id || ObjectTypes.MetadataChemicals.id || ObjectTypes.MetadataMedias.id || ObjectTypes.MetadataSampleDesigns.id || ObjectTypes.MetadataStudies.id || ObjectTypes.MetadataStrains.id]}
                         item={metadataFile?.name}
                         onItemChange={handleMetadataChange}>
                         Drag & drop Experimental Metadata from the explorer
