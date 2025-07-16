@@ -8,6 +8,7 @@ import { RiGitRepositoryLine } from "react-icons/ri";
 import { GrTestDesktop } from "react-icons/gr";
 import { MdAlignVerticalTop } from "react-icons/md";
 import { VscOutput } from "react-icons/vsc";
+import download from "browser-downloads"
 
 
 
@@ -100,15 +101,80 @@ export const ObjectTypes = {
         extension: ".xdc",
         subdirectory: "xdc"
     },
-    Metadata: {
-        id: "synbio.object-type.experimental-data",
-        title: "Experimental Metadata",
-        listTitle: "Experimental Metadata",
+    MetadataPlasmids: {
+        id: "synbio.object-type.experimental-data-plasmids",
+        title: "Plasmid Metadata",
+        listTitle: "Experimental Metadata: Plasmids",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetups",
+        subdirectory: "experimentalSetupsPlasmids",
+    },
+    MetadataChassis: {
+        id: "synbio.object-type.experimental-data-chassis",
+        title: "Chassis Metadata",
+        listTitle: "Experimental Metadata: Chassis",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalSetupsChassis",
+        downloadable: true,
+    },
+    MetadataChemicals: {
+        id: "synbio.object-type.experimental-data-chemical",
+        title: "Chemical Metadata",
+        listTitle: "Experimental Metadata: Chemicals",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalSetupsChemicals",
+        downloadable: true,
+    },
+    MetadataMedias: {
+        id: "synbio.object-type.experimental-data-medias",
+        title: "Medias Metadata",
+        listTitle: "Experimental Metadata: Medias",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalSetupsMedias",
+        downloadable: true,
+    },
+    MetadataStrains: {
+        id: "synbio.object-type.experimental-data-strains",
+        title: "Strain Metadata",
+        listTitle: "Experimental Metadata: Strains",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalSetupsStrains",
+        downloadable: true,
+    },
+    MetadataSampleDesigns: {
+        id: "synbio.object-type.experimental-data-designs",
+        title: "Design Metadata",
+        listTitle: "Experimental Metadata: Designs",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalSetupsDesigns",
+        downloadable: true,
+    },
+    MetadataStudies: {
+        id: "synbio.object-type.experimental-data-studies",
+        title: "Study Metadata",
+        listTitle: "Experimental Metadata: Studies",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalSetupsStudies",
     },
     Results: {
         id: "synbio.object-type.experimental-results",
