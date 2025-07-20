@@ -8,7 +8,7 @@ export default function DownloadMetadata({ objectType, onWrite}) {
     const handleClick = async () => {
 
         let url, fileName, subdirectory;
-
+        //categorize the object type
         if (objectType?.id == "synbio.object-type.experimental-data-chassis") {
             url = "/Tricahue_v11.6b_Chassis.xlsm"
             fileName = "Tricahue_v11.6b_Chassis.xlsm"
