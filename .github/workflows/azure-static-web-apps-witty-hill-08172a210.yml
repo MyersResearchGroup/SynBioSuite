@@ -3,6 +3,7 @@ name: Azure Static Web Apps CI/CD
 env:
   VITE_IBIOSIM_API: https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze
   VITE_SBOL_CANVAS_URL: https://sbolcanvas.org
+  VITE_SYNBIOHUB_AUTH_TOKEN: 61ca892a-67a9-4c45-98f3-517ac8cdd5da
   
 on:
   push:
@@ -48,3 +49,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WITTY_HILL_08172A210 }}
           action: "close"
+          app_location: "/"
