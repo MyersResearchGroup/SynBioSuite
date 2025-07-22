@@ -101,7 +101,7 @@ export const ObjectTypes = {
         extension: ".xdc",
         subdirectory: "xdc"
     },
-    MetadataPlasmids: {
+    MetadataPlasmids: { //new obect types
         id: "synbio.object-type.experimental-data-plasmids",
         title: "Plasmid Metadata",
         listTitle: "Experimental Metadata: Plasmids",

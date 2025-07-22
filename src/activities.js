@@ -74,7 +74,7 @@ export const Activities = {
             ObjectTypes.MetadataStudies.id,
             ObjectTypes.MetadataSampleDesigns.id,
             ObjectTypes.MetadataStrains.id,
-            ObjectTypes.Results.id
+            ObjectTypes.Results.id //note: not all of these have templates
         ]
     },
     Learn: {
