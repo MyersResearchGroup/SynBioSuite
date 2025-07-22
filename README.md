@@ -31,7 +31,7 @@ Install dependencies
 npm install
 ```
 
-Add .env file (see *Environment Variables* section below).
+Add .env file (see *Environment Variables* section below). 
 
 Start the development server
 
