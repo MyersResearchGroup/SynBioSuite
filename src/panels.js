@@ -8,6 +8,8 @@ import CollectionPanel from "./components/panels/xdc/CollectionPanel";
 import { ObjectTypes } from "./objectTypes";
 import { GiSewingMachine, GiThorHammer } from "react-icons/gi";
 import BuildPanel from "./components/panels/build/BuildPanel";
+import { PiMicrosoftExcelLogoFill } from "react-icons/pi";
+import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
 
 
 export const PanelTypes = {
@@ -109,6 +111,18 @@ export const PanelTypes = {
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify(restOfPanel)
         }
+    },
+    ExcelFile: {
+        id: "synbio.panel-type.excel-file",
+        title: "Experimental Setup",
+        component: ExcelFilePanel,
+        objectTypes: [ ObjectTypes.MetadataPlasmids.id, ObjectTypes.MetadataChassis.id, ObjectTypes.MetadataChemicals.id, ObjectTypes.MetadataMedias.id, ObjectTypes.MetadataStrains.id, ObjectTypes.MetadataSampleDesigns.id, ObjectTypes.MetadataStudies.id],
+        icon: PiMicrosoftExcelLogoFill,
+        deserialize: content => ({
+            file: content
+        }),
+        serialize: panel => panel.file,
+        useBuffer: true
     },
     SynBioHub: {
         id: "synbio.panel-type.synbiohub",

@@ -17,16 +17,21 @@ import ExperimentalTable from "./ExperimentalTable"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
-import * as XLSX from 'xlsx'
+import { read, utils } from 'xlsx'
 import { useState } from "react"
 import { getObjectType } from '../../../objectTypes'
 import { useEffect } from "react"
+import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 
 // synbiohub auth token: "61ca892a-67a9-4c45-98f3-517ac8cdd5da"
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const dispatch = useDispatch()
+    const openPanel = useOpenPanel()
+    const handleOpenFile = (file) => {
+        openPanel(file)
+    }
 
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [selectedSBH, setSelectedSBH] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
@@ -44,30 +49,18 @@ export default function CollectionWizard() {
     const experimentalFile = useFile(experimentalId)
     const experimentalFileObjectType = getObjectType(experimentalFile?.objectType)
 
-    const [libraryName, setLibraryName] = useState(null)
-    const [description, setDescription] = useState(null)
     const [pendingNextStep, setPendingNextStep] = useState(false)
 
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
-    
-    //excel information
-    const readExcelFile = (eFile) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.readAsArrayBuffer(eFile)
-            reader.onload= (event) => {resolve(event.target.result)}
-            reader.onerror = (error) =>{reject(error)}
-        })
-    }
 
     const getDescriptionandLibraryName = async () => {
-        const realFile = experimentalFile.getFile()
-        const arrayBuffer = await readExcelFile(realFile)
-        const workbook = XLSX.read(arrayBuffer, { type: "array" })
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        const realFile = await experimentalFile.getFile()
+        const arrayBuffer = await realFile.arrayBuffer()
+        const wb = read(arrayBuffer, { type: "array" })
+        const firstSheetName = wb.SheetNames[0];
+        const ws = wb.Sheets[firstSheetName];
+        const rows = utils.sheet_to_json(ws, { raw: false, header: 1, blankrows: true, defval: null });
 
         let temp_libraryName = null
         let temp_description = null
@@ -86,8 +79,12 @@ export default function CollectionWizard() {
             }
         }
 
-        if (temp_libraryName) setLibraryName(temp_libraryName)
-        if (temp_description) setDescription(temp_description)
+        if (temp_libraryName) setCollectionName(temp_libraryName)
+        if (temp_description) setCollectionDescription(temp_description)
+    }
+
+    const refreshCollectionInfo = () => {
+        getDescriptionandLibraryName()
     }
 
     function handleClick (){
@@ -101,13 +98,7 @@ export default function CollectionWizard() {
             setPendingNextStep(false)
             nextStep()
         }
-    }, [libraryName, description, pendingNextStep])
-
-    //loads in previous information
-    useEffect(() => {
-        if (collectionName && !libraryName) setLibraryName(collectionName);
-        if (collectionDescription && !description) setDescription(collectionDescription);
-    }, [collectionName, collectionDescription])
+    }, [collectionName, collectionDescription, pendingNextStep])
 
 
     // file info
@@ -152,7 +143,9 @@ export default function CollectionWizard() {
                     <Dropzone
                         allowedTypes={[ObjectTypes.MetadataPlasmids.id || ObjectTypes.MetadataChassis.id || ObjectTypes.MetadataChemicals.id || ObjectTypes.MetadataMedias.id || ObjectTypes.MetadataSampleDesigns.id || ObjectTypes.MetadataStudies.id || ObjectTypes.MetadataStrains.id]}
                         item={metadataFile?.name}
-                        onItemChange={handleMetadataChange}>
+                        onItemChange={handleMetadataChange}
+                        link={() => handleOpenFile(metadataFile)}
+                        refresh={() => refreshCollectionInfo()}>
                         Drag & drop Experimental Metadata from the explorer
                     </Dropzone>
                     <Space h='lg' />
@@ -172,10 +165,9 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <TextInput
                             onChange={(e) => {
-                                setLibraryName(e.target.value)
                                 setCollectionName(e.target.value)
                             }}
-                            defaultValue = {libraryName}
+                            value={collectionName}
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -185,10 +177,9 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <Textarea
                             onChange={(e) => {
-                                setDescription(e.target.value)
                                 setCollectionDescription(e.target.value)
                             }}
-                            defaultValue = {description}
+                            value={collectionDescription}
                             minRows={4}
                             radius="md"
                             size="md"
@@ -204,7 +195,7 @@ export default function CollectionWizard() {
                 >
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            <ExperimentalTable newCollectionname = {libraryName} newDescriptionName = {description}/>
+                            <ExperimentalTable newCollectionname = {collectionName} newDescriptionName = {collectionDescription}/>
                             { selectedSBH && selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
@@ -315,8 +306,8 @@ export default function CollectionWizard() {
                                     sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
                                     sbh_user: import.meta.env.VITE_SYNBIOHUB_USERNAME,
                                     sbh_pass: import.meta.env.VITE_SYNBIOHUB_PASSWORD,
-                                    sbh_collec: libraryName,
-                                    sbh_collec_desc: description,
+                                    sbh_collec: collectionName,
+                                    sbh_collec_desc: collectionDescription,
                                     fj_overwrite: false,
                                     sbh_overwrite: false
                                 })
@@ -370,15 +361,7 @@ export default function CollectionWizard() {
                 ) : (
                     <></>
                 )}
-                {(activeStep == 0 && metadataID) ? (
-                    <Button
-                        onClick={handleClick}
-                        sx={{ display: 'block' }}
-                    >
-                        Next step
-                    </Button>
-                ) 
-                : (activeStep == 1)? (
+                {(activeStep <= 1)? (
                     <Button
                         onClick={nextStep}
                         sx={{ display: 'block' }}
