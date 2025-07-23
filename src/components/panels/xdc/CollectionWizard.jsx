@@ -30,6 +30,8 @@ export default function CollectionWizard() {
     const [selectedSBH, setSelectedSBH] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
     const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
+    const synbio_auth_token = dataSBH.length > 0 ? dataSBH[0].authtoken : null;
+
 
     const findInstance = (instance, repo) => {
         if (repo == "SBH")
@@ -311,7 +313,7 @@ export default function CollectionWizard() {
                                     fj_user: "",
                                     fj_pass: "",
                                     sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
-                                    sbh_token: import.meta.env.VITE_SYNBIOHUB_TOKEN,
+                                    sbh_token: synbio_auth_token,
                                     sbh_collec: libraryName,
                                     sbh_collec_desc: description,
                                     fj_overwrite: false,
