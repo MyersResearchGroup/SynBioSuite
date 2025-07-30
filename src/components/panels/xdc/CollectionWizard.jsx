@@ -42,66 +42,12 @@ export default function CollectionWizard() {
 
     const [experimentalId] = usePanelProperty(panelId, 'metadata', false)
     const experimentalFile = useFile(experimentalId)
-    const experimentalFileObjectType = getObjectType(experimentalFile?.objectType)
 
     const [libraryName, setLibraryName] = useState(null)
     const [description, setDescription] = useState(null)
-    const [pendingNextStep, setPendingNextStep] = useState(false)
 
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
-    
-    //excel information
-    const readExcelFile = (eFile) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.readAsArrayBuffer(eFile)
-            reader.onload= (event) => {resolve(event.target.result)}
-            reader.onerror = (error) =>{reject(error)}
-        })
-    }
-
-    const getDescriptionandLibraryName = async () => {
-        const realFile = experimentalFile.getFile()
-        const arrayBuffer = await readExcelFile(realFile)
-        const workbook = XLSX.read(arrayBuffer, { type: "array" })
-        const sheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[sheetName]
-        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
-
-        let temp_libraryName = null
-        let temp_description = null
-
-        for (const row of rows) {
-            for (let i = 0; i < row.length; i++) {
-                if (row[i] && typeof row[i] === "string") {
-                    const cell = row[i].toLowerCase()
-                    if (cell.includes("library name") || cell.includes("collection name")) {
-                        temp_libraryName = row[i+1]
-                    }
-                    if (cell.includes("description")) {
-                        temp_description = row[i+1]
-                    }
-                }
-            }
-        }
-
-        if (temp_libraryName) setLibraryName(temp_libraryName)
-        if (temp_description) setDescription(temp_description)
-    }
-
-    function handleClick (){
-        getDescriptionandLibraryName()
-        setPendingNextStep(true)
-    }
-    
-    //make sure next step is called when libraryName and description are set properly
-    useEffect(() => {
-        if (pendingNextStep) {
-            setPendingNextStep(false)
-            nextStep()
-        }
-    }, [libraryName, description, pendingNextStep])
 
     //loads in previous information
     useEffect(() => {
@@ -371,7 +317,7 @@ export default function CollectionWizard() {
                 )}
                 {(activeStep == 0 && metadataID) ? (
                     <Button
-                        onClick={handleClick}
+                        onClick={nextStep}
                         sx={{ display: 'block' }}
                     >
                         Next step
