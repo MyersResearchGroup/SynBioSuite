@@ -9,6 +9,7 @@ import json
 import sbol2build
 import tricahue
 import sbol2
+import pudu
 
 #routes
 #check if the app is running
@@ -59,7 +60,12 @@ def upload_file_from_sbs_post():
     xdc.initialize()
     xdc.log_in_sbh()
     xdc.convert_to_sbol()
-    sbh_url = xdc.upload_to_sbh()
+    xdc.generate_sbol_hash_map()
+
+    try:
+        sbh_url = xdc.upload_to_sbh()
+    except AttributeError as e:
+        return jsonify({"error": str(e)}), 400
 
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
@@ -106,8 +112,13 @@ def upload_file_from_sbs_post_up():
     xdc.initialize()
     xdc.log_in_sbh()
     xdc.convert_to_sbol()
-    sbh_url = xdc.upload_to_sbh()
+    xdc.generate_sbol_hash_map()
 
+    try:
+        sbh_url = xdc.upload_to_sbh()
+    except AttributeError as e:
+        return jsonify({"error": str(e)}), 400
+    
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
         "status": "success"
@@ -171,6 +182,75 @@ def sbol_2_build_golden_gate():
     except Exception as e:
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
 
+@app.route('/build_pudu', methods=['POST'])
+def build_pudu():
+    # Error checking in the request
+    print("request", request.files)
 
+    if 'assembly_plan' not in request.files:
+        return jsonify({"error": "Missing assembly plan"}), 400
+    if 'wizard_selections' not in request.form:
+        return jsonify({"error": "Missing wizard selections"}), 400
 
+    wizard_selection = request.form.get('wizard_selections')
+    assembly_plan_file = request.files.get('assembly_plan')
+
+    # # Parse the json
+    wizard_selection_json = json.loads(wizard_selection)
+    build_method = wizard_selection_json.get('formValues').get('buildMethod')
+
+    # Check if the assembly method is valid
+    if build_method != 'PUDU':
+        return jsonify({"error": "Invalid build method"}), 400
     
+    # Get the assembly, is in text [?] and read using SBOL
+    # transform assembly plan in text to a SBOL document, similar to the example following
+
+    # part_docs = []
+    # for item in insert_parts:
+    #     doc = sbol2.Document()
+    #     doc.read(item)
+    #     part_docs.append(doc)
+
+    try:
+        assembly_plan = assembly_plan_file.read().decode('utf-8')
+        assembly_plan_doc = sbol2.Document()
+        assembly_plan_doc.readString(assembly_plan)
+        # pudupy.dictionaryCreatorPython(assembly_plan_file)
+    except Exception as e:
+        return jsonify({"error": f"Error parsing file: {str(e)}"}), 400
+
+    # TODO: transform assembly plan document to dictionary
+
+    # TODO: use dictionary in PUDU
+
+    try:
+        # composites = assembly_obj.run()
+
+        # return_string = assembly_doc.writeString()
+
+        # # Return the file as a response
+        # return return_string
+        return jsonify({"message": "PUDU build not implemented yet"}), 501
+    
+    except ValueError as e:
+        # catch errors and return to frontend
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
+
+
+@app.route('/api/inspect_request', methods=['POST'])
+def inspect_request():
+    files = {}
+    for name in request.files:
+        file = request.files[name]
+        try:
+            files[name] = json.loads(file.read())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    return jsonify({
+        "message": "Request received successfully", 
+        "files": files}), 200
+
