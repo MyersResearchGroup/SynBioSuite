@@ -1,0 +1,12 @@
+{
+    "fj_url": "charmmefj-api.synbiohub.org",
+    "fj_user": "Gonza10V",
+    "fj_pass": "010101",
+    "sbh_url": "https://synbiohub.org",
+    "sbh_user": "test@test.test",
+    "sbh_pass": "test123",
+    "sbh_collec": "xdc_sbs_test_uploader_file",
+    "sbh_collec_desc": "xdc_sbs_test_uploader_file_description",
+    "fj_overwrite": false,
+    "sbh_overwrite": false
+}
