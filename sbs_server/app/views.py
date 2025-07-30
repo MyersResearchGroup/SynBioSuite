@@ -36,6 +36,10 @@ def upload_file_from_sbs_post():
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
+    expected_params = ['fj_url', 'fj_token', 'sbh_url', 'sbh_token', 'sbh_collec', 'sbh_collec_desc', 'sbh_overwrite', 'fj_overwrite']
+    for param in expected_params:
+        if param not in params_from_request:
+            return 'Parameter ' + param + ' not found in request', 400
 
     # instantiate the XDC class using the params_from_request dictionary
     print(request.files['Metadata'])
@@ -54,16 +58,15 @@ def upload_file_from_sbs_post():
             sbh_token = params_from_request['sbh_token'],
             homespace = "https://synbiohub.org/gonza10v"
             )
-            
-
-
-    xdc.initialize()
-    xdc.log_in_sbh()
-    xdc.convert_to_sbol()
-    xdc.generate_sbol_hash_map()
 
     try:
+        xdc.initialize()
+        xdc.log_in_sbh()
+        xdc.log_in_fj()
+        xdc.convert_to_sbol()
+        xdc.generate_sbol_hash_map()
         sbh_url = xdc.upload_to_sbh()
+        xdc.upload_to_fj()
     except AttributeError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -88,6 +91,10 @@ def upload_file_from_sbs_post_up():
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
+    expected_params = ['fj_url', 'fj_user', 'fj_pass', 'sbh_url', 'sbh_user', 'sbh_pass', 'sbh_collec', 'sbh_collec_desc', 'sbh_overwrite', 'fj_overwrite']
+    for param in expected_params:
+        if param not in params_from_request:
+            return 'Parameter ' + param + ' not found in request', 400
 
     # instantiate the XDC class using the params_from_request dictionary
     print(request.files['Metadata'])
@@ -105,21 +112,20 @@ def upload_file_from_sbs_post_up():
             fj_token = None, 
             sbh_token = None,
             homespace = "https://synbiohub.org/gonza10v"
-            )
-            
-
-
-    xdc.initialize()
-    xdc.log_in_sbh()
-    xdc.convert_to_sbol()
-    xdc.generate_sbol_hash_map()
+            )            
 
     try:
+        xdc.initialize()
+        xdc.log_in_fj()
+        xdc.log_in_sbh()
+        xdc.convert_to_sbol()
+        xdc.generate_sbol_hash_map()
         sbh_url = xdc.upload_to_sbh()
+        xdc.upload_to_fj()
     except AttributeError as e:
         return jsonify({"error": str(e)}), 400
     
-    sbs_upload_response_dict ={
+    sbs_upload_response_dict = {
         "sbh_url": sbh_url,
         "status": "success"
     }
@@ -216,21 +222,14 @@ def build_pudu():
         assembly_plan = assembly_plan_file.read().decode('utf-8')
         assembly_plan_doc = sbol2.Document()
         assembly_plan_doc.readString(assembly_plan)
-        # pudupy.dictionaryCreatorPython(assembly_plan_file)
     except Exception as e:
         return jsonify({"error": f"Error parsing file: {str(e)}"}), 400
 
-    # TODO: transform assembly plan document to dictionary
-
-    # TODO: use dictionary in PUDU
-
     try:
-        # composites = assembly_obj.run()
+        # TODO: AssemblyToJSON - using PUDU function
 
-        # return_string = assembly_doc.writeString()
+        # TODO: Run script (which has opentrons script hardcoded) using JSON file
 
-        # # Return the file as a response
-        # return return_string
         return jsonify({"message": "PUDU build not implemented yet"}), 501
     
     except ValueError as e:
