@@ -4,7 +4,7 @@ import { ObjectTypes } from '../../../objectTypes'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { PanelContext } from './CollectionPanel'
-import { usePanel, usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import XDCTimeline from './XDCTimeline'
 import { IoIosCloudUpload } from "react-icons/io";
 import { TbStatusChange } from "react-icons/tb";
@@ -13,14 +13,9 @@ import { useDispatch } from "react-redux"
 import { openSBH, openFJ } from "../../../redux/slices/modalSlice"
 import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
-//import { useState } from "react"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
 import { upload_sbs } from "../../../API"
-import * as XLSX from 'xlsx'
-import { useState } from "react"
-import { getObjectType } from '../../../objectTypes'
-import { useEffect } from "react"
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -43,18 +38,8 @@ export default function CollectionWizard() {
     const [experimentalId] = usePanelProperty(panelId, 'metadata', false)
     const experimentalFile = useFile(experimentalId)
 
-    const [libraryName, setLibraryName] = useState(null)
-    const [description, setDescription] = useState(null)
-
     const [collectionName, setCollectionName] = usePanelProperty(panelId, 'collectionName', false)
     const [collectionDescription, setCollectionDescription] = usePanelProperty(panelId, 'collectionDescription', false)
-
-    //loads in previous information
-    useEffect(() => {
-        if (collectionName && !libraryName) setLibraryName(collectionName);
-        if (collectionDescription && !description) setDescription(collectionDescription);
-    }, [collectionName, collectionDescription])
-
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
@@ -118,10 +103,9 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <TextInput
                             onChange={(e) => {
-                                setLibraryName(e.target.value)
                                 setCollectionName(e.target.value)
                             }}
-                            defaultValue = {libraryName}
+                            defaultValue = {collectionName}
                             radius="md"
                             size="md"
                             style={{ width: '100%' }}
@@ -131,10 +115,9 @@ export default function CollectionWizard() {
                         <Space h="xs" />
                         <Textarea
                             onChange={(e) => {
-                                setDescription(e.target.value)
                                 setCollectionDescription(e.target.value)
                             }}
-                            defaultValue = {description}
+                            defaultValue = {collectionDescription}
                             minRows={4}
                             radius="md"
                             size="md"
@@ -150,7 +133,7 @@ export default function CollectionWizard() {
                 >
                     <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                         <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            <ExperimentalTable newCollectionname = {libraryName} newDescriptionName = {description}/>
+                            <ExperimentalTable newCollectionname = {collectionName} newDescriptionName = {collectionDescription}/>
                             { selectedSBH && selectedFJ ? <XDCTimeline /> : 
                             <Group grow style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <Group grow onClick={() => dispatch(openSBH())} style={{ alignItems: 'center', width: '100%' }}>
@@ -260,8 +243,8 @@ export default function CollectionWizard() {
                                     fj_pass: "",
                                     sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
                                     sbh_token: synbio_auth_token,
-                                    sbh_collec: libraryName,
-                                    sbh_collec_desc: description,
+                                    sbh_collec: collectionName,
+                                    sbh_collec_desc: collectionDescription,
                                     fj_overwrite: false,
                                     sbh_overwrite: false
                                 })
@@ -315,7 +298,7 @@ export default function CollectionWizard() {
                 ) : (
                     <></>
                 )}
-                {(activeStep == 0 && metadataID) ? (
+                {((activeStep == 1) || (activeStep == 0 && metadataID)) ? (
                     <Button
                         onClick={nextStep}
                         sx={{ display: 'block' }}
@@ -323,14 +306,7 @@ export default function CollectionWizard() {
                         Next step
                     </Button>
                 ) 
-                : (activeStep == 1)? (
-                    <Button
-                        onClick={nextStep}
-                        sx={{ display: 'block' }}
-                    >
-                        Next step
-                    </Button>
-                ) : (
+                :  (
                     <></>
                 )}
             </Group>
