@@ -26,6 +26,8 @@ export default function CollectionWizard() {
     const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
     const synbio_auth_token = dataSBH.length > 0 ? dataSBH[0].authtoken : null;
+    const fj_refresh_token = dataFJ.length > 0 ? dataFJ[0].refresh : null;
+    
 
 
     const findInstance = (instance, repo) => {
@@ -238,9 +240,8 @@ export default function CollectionWizard() {
                         <Button
                             onClick={() => {
                                 upload_sbs(metadataFile, {
-                                    fj_url: "",
-                                    fj_user: "",
-                                    fj_pass: "",
+                                    fj_url: import.meta.env.VITE_FJ_URL,
+                                    fj_token: fj_refresh_token,
                                     sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
                                     sbh_token: synbio_auth_token,
                                     sbh_collec: collectionName,
