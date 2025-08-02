@@ -15,7 +15,8 @@ import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
 import { MdTextSnippet } from "react-icons/md"
 import { TextInput, Textarea } from "@mantine/core"
-import { upload_sbs } from "../../../API"
+import { new_upload_sbs, upload_sbs } from "../../../API"
+
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -239,10 +240,10 @@ export default function CollectionWizard() {
                     <>
                         <Button
                             onClick={() => {
-                                upload_sbs(metadataFile, {
-                                    fj_url: import.meta.env.VITE_FJ_URL,
-                                    fj_token: fj_refresh_token,
-                                    sbh_url: import.meta.env.VITE_SYNBIOHUB_URL,
+                                new_upload_sbs(metadataFile, {
+                                    fj_url: "",
+                                    fj_token: "",
+                                    sbh_url: import.meta.env.VITE_SYNBIOSUITE_URL,
                                     sbh_token: synbio_auth_token,
                                     sbh_collec: collectionName,
                                     sbh_collec_desc: collectionDescription,

@@ -3,6 +3,28 @@ import commands from "./commands"
 import { showErrorNotification } from './modules/util'
 
 
+export async function new_upload_sbs(metadata, parameters) {
+    const formdata = new FormData();
+    const metadataFile = await metadata.getFile();
+
+    formdata.append("Metadata", metadataFile, metadataFile.name || "metadata.xlsx")
+
+    const parametersJson = JSON.stringify(parameters);
+    const paramBlob = new Blob([parametersJson], { type: 'application/json' });
+    formdata.append("Params", paramBlob, "parameters.json");
+
+    const requestOptions = {
+    method: "POST",
+    body: formdata,
+    redirect: "follow"
+    };
+
+    fetch("http://127.0.0.1:5003/api/upload_sbs", requestOptions)
+    .then((response) => response.text())
+    .then((result) => console.log(result))
+    .catch((error) => console.error(error));
+}
+
 //There is an issue with where the file upload is not being sent correctly to the server
 export async function upload_sbs(metadata, parameters) {
     try {
@@ -15,7 +37,7 @@ export async function upload_sbs(metadata, parameters) {
         const paramBlob = new Blob([parametersJson], { type: 'application/json' });
         formdata.append("Params", paramBlob, "parameters.json");
         
-        const response = await axios.post(import.meta.env.VITE_SYNBIOSUITE_API + "/api/upload_sbs_up",
+        const response = await axios.post(import.meta.env.VITE_SYNBIOSUITE_API + "/api/upload_sbs",
             formdata
         );
         
