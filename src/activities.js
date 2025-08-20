@@ -67,14 +67,8 @@ export const Activities = {
         icon: BiSolidFlask,
         objectTypesToList: [
             ObjectTypes.Experiments.id,
-            ObjectTypes.MetadataPlasmids.id,
-            ObjectTypes.MetadataChemicals.id,
-            ObjectTypes.MetadataMedias.id,
-            ObjectTypes.MetadataChassis.id,
-            ObjectTypes.MetadataStudies.id,
-            ObjectTypes.MetadataSampleDesigns.id,
-            ObjectTypes.MetadataStrains.id,
-            ObjectTypes.Results.id //note: not all of these have templates
+            ObjectTypes.Metadata.id,
+            ObjectTypes.ResourceLibrary.id,
         ]
     },
     Learn: {
