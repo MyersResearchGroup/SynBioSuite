@@ -241,8 +241,8 @@ export default function CollectionWizard() {
                         <Button
                             onClick={() => {
                                 new_upload_sbs(metadataFile, {
-                                    fj_url: "",
-                                    fj_token: "",
+                                    fj_url: import.meta.env.VITE_FJ_URL,
+                                    fj_token: fj_refresh_token,
                                     sbh_url: import.meta.env.VITE_SYNBIOSUITE_URL,
                                     sbh_token: synbio_auth_token,
                                     sbh_collec: collectionName,
