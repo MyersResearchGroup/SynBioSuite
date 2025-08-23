@@ -4,7 +4,7 @@ import { getPrimaryColor } from "../../../modules/colorScheme";
 import { AiOutlineDownload, AiOutlinePlus } from "react-icons/ai";
 
 export default function DownloadMetadata({ objectType}) {
-    
+    //questions: what is parts? some don't templates?, what to do about plasmids?
     const handleClick = async () => {
 
         let url, fileName;
