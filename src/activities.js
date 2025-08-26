@@ -27,9 +27,9 @@ export const Activities = {
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
             "synbio.object-type.synbiohub",
-            ObjectTypes.MetadataChassis.id,
-            ObjectTypes.MetadataChemicals.id,
-            ObjectTypes.MetadataMedias.id
+            ObjectTypes.Chassis.id,
+            ObjectTypes.Chemicals.id,
+            ObjectTypes.Medias.id
         ] 
     },
     Design: {
@@ -61,9 +61,8 @@ export const Activities = {
             ObjectTypes.Plasmids.id,
             ObjectTypes.Assembly.id, 
             ObjectTypes.Build.id,
-            ObjectTypes.MetadataPlasmids.id,
-            ObjectTypes.MetadataSampleDesigns.id,
-            ObjectTypes.MetadataStrains.id
+            ObjectTypes.SampleDesigns.id,
+            ObjectTypes.Strains.id
         ]
     },
     Test: {
