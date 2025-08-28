@@ -9,19 +9,19 @@ export default function DownloadMetadata({ objectType}) {
 
         let url, fileName;
         //categorize the object type
-        if (objectType?.id == "synbio.object-type.experimental-data-chassis") {
+        if (objectType?.id == "synbio.object-type.chassis") {
             url = "/Tricahue_v11.6b_Chassis.xlsm"
             fileName = "Tricahue_v11.6b_Chassis.xlsm"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-chemical") {
+        } else if (objectType?.id == "synbio.object-type.chemical") {
             url = "/Tricahue_v11.6b_Chemicals.xlsm"
             fileName = "Tricahue_v11.6b_Chemicals.xlsm"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-medias") {
+        } else if (objectType?.id == "synbio.object-type.medias") {
             url = "/Tricahue_v11.6b_Medias.xlsm"
             fileName = "Tricahue_v11.6b_Medias.xlsm"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-designs") {
+        } else if (objectType?.id == "synbio.object-type.sample-designs") {
             url = "/Tricahue_SampleDesign.xlsm"
             fileName = "Tricahue_SampleDesign.xlsm"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-strains") {
+        } else if (objectType?.id == "synbio.object-type.strain") {
             url = "/Tricahue_Strain.xlsm"
             fileName = "Tricahue_Strain.xlsm"
         }
