@@ -50,24 +50,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         }
     }
 
-    // handle file download
-    async function onWrite(file, subdirectory) {
-        try {
-            const targetDir = await workDir.getDirectoryHandle(subdirectory, { create: true });
-            const fileHandle = await targetDir.getFileHandle(file.name, { create: true });
-            const arrayBuffer = await file.arrayBuffer();
-
-            await writeToFileHandle(fileHandle, new Uint8Array(arrayBuffer));
-            refreshWorkDir();
-
-            return true;
-        } catch (err) {
-            console.error("Error writing file to directory:", err);
-            return false;
-        }
-    }
-    
-
     // handle creation
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
@@ -132,7 +114,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         {objectType.downloadable &&
                                             <DownloadMetadata
                                                 objectType={objectType}
-                                                onWrite={onWrite}
                                             >
                                             </DownloadMetadata>
                                         }
