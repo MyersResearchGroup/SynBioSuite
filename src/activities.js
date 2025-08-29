@@ -20,13 +20,16 @@ export const Activities = {
         icon: FileIcon,
         objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
     },
-    PartsSelection: {
-        id: "synbio.activity.parts-selection",
-        title: "Parts Selection",
+    ResourceSelection: {
+        id: "synbio.activity.resource-selection",
+        title: "Resource Selection",
         component: ExplorerActivityView,
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
-            "synbio.object-type.synbiohub"
+            "synbio.object-type.synbiohub",
+            ObjectTypes.Chassis.id,
+            ObjectTypes.Chemicals.id,
+            ObjectTypes.Medias.id,
         ] 
     },
     Design: {
@@ -57,7 +60,9 @@ export const Activities = {
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Assembly.id, 
-            ObjectTypes.Build.id
+            ObjectTypes.Build.id,
+            ObjectTypes.SampleDesigns.id,
+            ObjectTypes.Strains.id
         ]
     },
     Test: {
@@ -67,13 +72,7 @@ export const Activities = {
         icon: BiSolidFlask,
         objectTypesToList: [
             ObjectTypes.Experiments.id,
-            ObjectTypes.MetadataPlasmids.id,
-            ObjectTypes.MetadataChemicals.id,
-            ObjectTypes.MetadataMedias.id,
-            ObjectTypes.MetadataChassis.id,
-            ObjectTypes.MetadataStudies.id,
-            ObjectTypes.MetadataSampleDesigns.id,
-            ObjectTypes.MetadataStrains.id,
+            ObjectTypes.Metadata.id,
             ObjectTypes.Results.id //note: not all of these have templates
         ]
     },

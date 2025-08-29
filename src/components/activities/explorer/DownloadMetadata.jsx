@@ -3,41 +3,41 @@ import { Group, Text } from "@mantine/core";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { AiOutlineDownload, AiOutlinePlus } from "react-icons/ai";
 
-export default function DownloadMetadata({ objectType, onWrite}) {
+export default function DownloadMetadata({ objectType}) {
     
     const handleClick = async () => {
 
-        let url, fileName, subdirectory;
+        let url, fileName;
         //categorize the object type
-        if (objectType?.id == "synbio.object-type.experimental-data-chassis") {
+        if (objectType?.id == "synbio.object-type.chassis") {
             url = "/Tricahue_v11.6b_Chassis.xlsm"
             fileName = "Tricahue_v11.6b_Chassis.xlsm"
-            subdirectory = "experimentalSetupsChassis"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-chemical") {
+        } else if (objectType?.id == "synbio.object-type.chemicals") {
             url = "/Tricahue_v11.6b_Chemicals.xlsm"
             fileName = "Tricahue_v11.6b_Chemicals.xlsm"
-            subdirectory = "experimentalSetupsChemicals"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-medias") {
+        } else if (objectType?.id == "synbio.object-type.medias") {
             url = "/Tricahue_v11.6b_Medias.xlsm"
             fileName = "Tricahue_v11.6b_Medias.xlsm"
-            subdirectory = "experimentalSetupsMedias"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-designs") {
+        } else if (objectType?.id == "synbio.object-type.sample-designs") {
             url = "/Tricahue_SampleDesign.xlsm"
             fileName = "Tricahue_SampleDesign.xlsm"
-            subdirectory = "experimentalSetupsDesigns"
-        } else if (objectType?.id == "synbio.object-type.experimental-data-strains") {
+        } else if (objectType?.id == "synbio.object-type.strains") {
             url = "/Tricahue_Strain.xlsm"
             fileName = "Tricahue_Strain.xlsm"
-            subdirectory = "experimentalSetupsStrains"
         }
 
 
-        if (url && fileName && subdirectory) {
+        if (url && fileName) {
             try{
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const file = new File([blob], fileName, { type: blob.type });
-                await onWrite(file, subdirectory);
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
             }
             catch(error){
                 window.open(url, '_blank');
