@@ -11,19 +11,19 @@ export default function DownloadMetadata({ objectType}) {
         //categorize the object type
         if (objectType?.id == "synbio.object-type.chassis") {
             url = "/Tricahue_v11.6b_Chassis.xlsm"
-            fileName = "Tricahue_v11.6b_Chassis.xlsm"
+            fileName = "Chassis.xlsm"
         } else if (objectType?.id == "synbio.object-type.chemicals") {
             url = "/Tricahue_v11.6b_Chemicals.xlsm"
-            fileName = "Tricahue_v11.6b_Chemicals.xlsm"
+            fileName = "Chemicals.xlsm"
         } else if (objectType?.id == "synbio.object-type.medias") {
             url = "/Tricahue_v11.6b_Medias.xlsm"
-            fileName = "Tricahue_v11.6b_Medias.xlsm"
+            fileName = "Medias.xlsm"
         } else if (objectType?.id == "synbio.object-type.sample-designs") {
             url = "/Tricahue_SampleDesign.xlsm"
-            fileName = "Tricahue_SampleDesign.xlsm"
+            fileName = "SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.strains") {
             url = "/Tricahue_Strain.xlsm"
-            fileName = "Tricahue_Strain.xlsm"
+            fileName = "Strain.xlsm"
         }
 
 

@@ -96,6 +96,12 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
+                                        {objectType.downloadable &&
+                                            <DownloadMetadata
+                                                objectType={objectType}
+                                            >
+                                            </DownloadMetadata>
+                                        }
                                         {objectType.importable &&
                                             <ImportFile
                                             onSelect={finalImport}
@@ -110,12 +116,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
-                                        }
-                                        {objectType.downloadable &&
-                                            <DownloadMetadata
-                                                objectType={objectType}
-                                            >
-                                            </DownloadMetadata>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository && 
