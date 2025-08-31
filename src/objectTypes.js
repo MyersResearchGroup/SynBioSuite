@@ -134,6 +134,18 @@ export const ObjectTypes = {
         subdirectory: "medias",
         downloadable: true,
     },
+    Parts: {
+        id: "synbio.object-type.parts",
+        title: "Parts",
+        listTitle: "Parts",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        createable: false,
+        importable: true,
+        subdirectory: "parts",
+        downloadable: true,
+
+    },
     Strains: {
         id: "synbio.object-type.strains",
         title: "Strains",
