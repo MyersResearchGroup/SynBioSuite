@@ -30,6 +30,7 @@ export const Activities = {
             ObjectTypes.Chassis.id,
             ObjectTypes.Chemicals.id,
             ObjectTypes.Medias.id,
+            ObjectTypes.Parts.id
         ] 
     },
     Design: {

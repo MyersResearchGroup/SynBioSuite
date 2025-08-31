@@ -24,6 +24,9 @@ export default function DownloadMetadata({ objectType}) {
         } else if (objectType?.id == "synbio.object-type.strains") {
             url = "/Tricahue_Strain.xlsm"
             fileName = "Strain.xlsm"
+        } else if (objectType?.id == "synbio.object-type.parts") {
+            url = "/parts.xlsm"
+            fileName = "Parts.xlsm"
         }
 
 
