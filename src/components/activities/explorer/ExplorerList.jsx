@@ -50,24 +50,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         }
     }
 
-    // handle file download
-    async function onWrite(file, subdirectory) {
-        try {
-            const targetDir = await workDir.getDirectoryHandle(subdirectory, { create: true });
-            const fileHandle = await targetDir.getFileHandle(file.name, { create: true });
-            const arrayBuffer = await file.arrayBuffer();
-
-            await writeToFileHandle(fileHandle, new Uint8Array(arrayBuffer));
-            refreshWorkDir();
-
-            return true;
-        } catch (err) {
-            console.error("Error writing file to directory:", err);
-            return false;
-        }
-    }
-    
-
     // handle creation
     const createFile = useCreateFile()
     const handleCreateObject = objectType => async fileName => {
@@ -114,6 +96,12 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
+                                        {objectType.downloadable &&
+                                            <DownloadMetadata
+                                                objectType={objectType}
+                                            >
+                                            </DownloadMetadata>
+                                        }
                                         {objectType.importable &&
                                             <ImportFile
                                             onSelect={finalImport}
@@ -128,13 +116,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
-                                        }
-                                        {objectType.downloadable &&
-                                            <DownloadMetadata
-                                                objectType={objectType}
-                                                onWrite={onWrite}
-                                            >
-                                            </DownloadMetadata>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository && 
