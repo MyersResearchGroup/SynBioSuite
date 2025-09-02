@@ -141,7 +141,7 @@ export default function CollectionWizard() {
                     description="Upload experimental data"
                     icon={<IoIosCloudUpload />}>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.MetadataPlasmids.id, ObjectTypes.MetadataChassis.id, ObjectTypes.MetadataChemicals.id, ObjectTypes.MetadataMedias.id, ObjectTypes.MetadataSampleDesigns.id, ObjectTypes.MetadataStudies.id, ObjectTypes.MetadataStrains.id]}
+                        allowedTypes={[ObjectTypes.Parts.id, ObjectTypes.Chassis.id, ObjectTypes.Chemicals.id, ObjectTypes.Medias.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id, ObjectTypes.Strains.id]}
                         item={metadataFile?.name}
                         onItemChange={handleMetadataChange}
                         link={() => handleOpenFile(metadataFile)}
