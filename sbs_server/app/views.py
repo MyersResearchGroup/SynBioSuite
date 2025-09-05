@@ -5,15 +5,17 @@ from .main import app
 import sys
 import os
 import json
+import xml.etree.ElementTree as ET
 
 import sbol2build
 import tricahue
-import sbol2
+import sbol2 as sb2
 import pudu
+import subprocess
 
 #routes
 #check if the app is running
-@app.route('/api/pin')
+@app.route('/api/status')
 def pin():
     return jsonify({"status": "working"}), 200
 
@@ -197,14 +199,14 @@ def sbol_2_build_golden_gate():
     # code for sbol2build
     part_docs = []
     for item in insert_parts:
-        doc = sbol2.Document()
+        doc = sb2.Document()
         doc.read(item)
         part_docs.append(doc)
     
-    bb_doc = sbol2.Document()
+    bb_doc = sb2.Document()
     bb_doc.read(plasmid_backbone)
 
-    assembly_doc = sbol2.Document()
+    assembly_doc = sb2.Document()
     assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
 
     try:
@@ -221,7 +223,7 @@ def sbol_2_build_golden_gate():
     except Exception as e:
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
 
-@app.route('/build_pudu', methods=['POST'])
+@app.route('/api/build_pudu', methods=['POST'])
 def build_pudu():
     # Error checking in the request
     print("request", request.files)
@@ -241,35 +243,21 @@ def build_pudu():
     # Check if the assembly method is valid
     if build_method != 'PUDU':
         return jsonify({"error": "Invalid build method"}), 400
-    
-    # Get the assembly, is in text [?] and read using SBOL
-    # transform assembly plan in text to a SBOL document, similar to the example following
 
-    # part_docs = []
-    # for item in insert_parts:
-    #     doc = sbol2.Document()
-    #     doc.read(item)
-    #     part_docs.append(doc)
+    # TODO: save xml to a file ('assembly_plan.xml')
 
     try:
-        assembly_plan = assembly_plan_file.read().decode('utf-8')
-        assembly_plan_doc = sbol2.Document()
-        assembly_plan_doc.readString(assembly_plan)
-        # pudupy.dictionaryCreatorPython(assembly_plan_file)
-    except Exception as e:
-        return jsonify({"error": f"Error parsing file: {str(e)}"}), 400
+        # Run script (which has opentrons script hardcoded) using JSON file
+        log = subprocess.run(["python", "run_sbol2assembly.py"], capture_output=True).stdout
+        curpath = os.path.abspath(os.curdir)
+        print(curpath)
+        # write captured output to a text file
+        # w = write mode, create file if doesn't exist; b = binary file
+        with open("files/build_log.txt", "wb") as log_file:
+            log_file.write(log)
+        # read excel file "sbol2_assembly_output.xlsx"
 
-    # TODO: transform assembly plan document to dictionary
-
-    # TODO: use dictionary in PUDU
-
-    try:
-        # composites = assembly_obj.run()
-
-        # return_string = assembly_doc.writeString()
-
-        # # Return the file as a response
-        # return return_string
+        # returns: build_log.txt, excel file, py protocol, build plan
         return jsonify({"message": "PUDU build not implemented yet"}), 501
     
     except ValueError as e:
