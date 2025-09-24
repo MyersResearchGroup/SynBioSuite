@@ -39,7 +39,7 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
         if (!showNotificationFlag) {
             showNotification({
                 title: 'Logout Successful',
-                message: 'You have successfully logged out of the registry',
+                message: 'You have successfully logged out of the repository',
                 color: 'green',
             });
         }
@@ -125,13 +125,13 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
             ) : (
                 <>
                     <Select
-                        label={`Select a Flapjack registry`}
+                        label={`Select a Flapjack repository`}
                         placeholder="Pick one"
                         data={instanceData}
                         onChange={(value) => {setNullSelected(false); setSelected(value)}}
                         value={selected}
                     />
-                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected registry. Please select an registry</div>}
+                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected repository. Please select an repository</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
                         <Button mr="md" onClick={() => {setAddingInstance(null)}}>Add</Button>
                         {selected && (

@@ -15,8 +15,8 @@ import download from "browser-downloads"
 export const ObjectTypes = {
     SYNBIOHUB: {
         id: "synbio.object-type.synbiohub",
-        title: "SynBioHub Registry",
-        listTitle: "SynBioHub Registries",
+        title: "SynBioHub Repository",
+        listTitle: "SynBioHub Repositories",
         icon: RiGitRepositoryLine,
         isRepository: true,
         defaultRegistry: "https://synbiohub.org"
@@ -190,8 +190,8 @@ export const ObjectTypes = {
     },
     Flapjack: {
         id: "synbio.object-type.flapjack",
-        title: "Flapjack Registry",
-        listTitle: "Flapjack Registries",
+        title: "Flapjack Repository",
+        listTitle: "Flapjack Repositories",
         icon: RiGitRepositoryLine,
         isRepository: true,
         defaultRegistry: "https://ebugsfj.synbiohub.org"
