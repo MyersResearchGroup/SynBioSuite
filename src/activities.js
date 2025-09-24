@@ -62,7 +62,6 @@ export const Activities = {
             ObjectTypes.Plasmids.id,
             ObjectTypes.Assembly.id, 
             ObjectTypes.Build.id,
-            ObjectTypes.SampleDesigns.id,
             ObjectTypes.Strains.id
         ]
     },
@@ -72,6 +71,7 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: BiSolidFlask,
         objectTypesToList: [
+            ObjectTypes.SampleDesigns.id,
             ObjectTypes.Experiments.id,
             ObjectTypes.Metadata.id,
             ObjectTypes.Results.id //note: not all of these have templates
