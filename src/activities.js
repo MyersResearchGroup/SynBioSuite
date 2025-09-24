@@ -4,7 +4,7 @@ import GitHubView from "./components/activities/explorer/GitHubView";
 import LoginStatus from "./components/activities/explorer/LoginStatus";
 import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
-import { GiThorHammer} from "react-icons/gi";
+import { TiPipette } from "react-icons/ti";
 import { ObjectTypes } from "./objectTypes";
 import { FaGraduationCap } from "react-icons/fa";
 import { BsGraphUpArrow } from "react-icons/bs";
@@ -57,7 +57,7 @@ export const Activities = {
         id: "synbio.activity.build",
         title: "Build",
         component: ExplorerActivityView,
-        icon: GiThorHammer,
+        icon: TiPipette,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
