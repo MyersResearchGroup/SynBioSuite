@@ -25,7 +25,7 @@ function FJModal({ opened, onClose, repoName }) {
     }, [opened]);
 
     return (
-        <Modal opened={opened} onClose={onClose} title={`Choose Registry`} size="lg">
+        <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
             {repoSelection === "" ? (
                 <>
                     <Grid justify="center">
@@ -38,7 +38,7 @@ function FJModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Registry: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
+                                    Repository: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
@@ -49,13 +49,13 @@ function FJModal({ opened, onClose, repoName }) {
                                 </Text>
                                 {selectedFJ ? <>
                                     <Button mt="md" mr="sm" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("Flapjack")}}>
-                                        Change Flapjack Registry
+                                        Change Flapjack Repository
                                     </Button>
                                     <Button mt="md" ml="sm" onClick={() => {onClose(); setRepoSelection("")}}>
-                                        Confirm Registry Selection
+                                        Confirm Repository Selection
                                     </Button>
                                 </> : <Button mt="md" onClick={() => {setRepoSelection("Flapjack")}}>
-                                    Select Flapjack Registry
+                                    Select Flapjack Repository
                                 </Button>}
                             </div>
                         </Grid.Col>

@@ -26,7 +26,7 @@ function SBHModal({ opened, onClose, repoName }) {
     }, [opened]);
 
     return (
-        <Modal opened={opened} onClose={onClose} title={`Choose Registry`} size="lg">
+        <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
             {repoSelection === "" ? (
                 <>
                     <Grid justify="center">
@@ -39,7 +39,7 @@ function SBHModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Registry: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
+                                    Repository: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
@@ -50,13 +50,13 @@ function SBHModal({ opened, onClose, repoName }) {
                                 </Text>
                                 {selectedSBH ? <>
                                     <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>
-                                        Change SynbioHub Registry
+                                        Change SynbioHub Repository
                                     </Button>
                                     <Button mt="md" ml="sm" onClick={() => {onClose(); setRepoSelection("")}}>
-                                        Confirm Registry Selection
+                                        Confirm Repository Selection
                                     </Button>
                                 </> : <Button mt="md" onClick={() => {setRepoSelection("SynbioHub")}}>
-                                    Select SynbioHub Registry
+                                    Select SynbioHub Repository
                                 </Button>}
                             </div>
                         </Grid.Col>

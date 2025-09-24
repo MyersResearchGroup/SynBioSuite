@@ -35,7 +35,7 @@ function LoginModal({ opened, onClose, repoName }) {
     }, [opened]);
 
     return (
-        <Modal opened={opened} onClose={onClose} title={`Choose Registry`} size="lg">
+        <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
             {repoSelection === "" ? (
                 <>
                     <Grid>
@@ -48,7 +48,7 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Registry: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
+                                    Repository: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
@@ -61,9 +61,9 @@ function LoginModal({ opened, onClose, repoName }) {
                                     </Text>
                                 </Group>
                                 {selectedSBH ? <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>
-                                    Change SynbioHub Registry
+                                    Change SynbioHub Repository
                                 </Button> : <Button mt="md" onClick={() => {setRepoSelection("SynbioHub")}}>
-                                    Select SynbioHub Registry
+                                    Select SynbioHub Repository
                                 </Button>}
                             </div>
                         </Grid.Col>
@@ -77,7 +77,7 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Registry: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
+                                    Repository: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
@@ -90,9 +90,9 @@ function LoginModal({ opened, onClose, repoName }) {
                                     </Text>
                                 </Group>
                                 {selectedFJ ? <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("Flapjack")}}>
-                                    Change Flapjack Registry
+                                    Change Flapjack Repository
                                 </Button> : <Button mt="md" onClick={() => {setRepoSelection("Flapjack")}}>
-                                    Select Flapjack Registry
+                                    Select Flapjack Repository
                                 </Button>}
                             </div>
                         </Grid.Col>
