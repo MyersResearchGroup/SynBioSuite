@@ -60,9 +60,9 @@ export const Activities = {
         icon: GiThorHammer,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
+            ObjectTypes.Strains.id,
             ObjectTypes.Assembly.id, 
             ObjectTypes.Build.id,
-            ObjectTypes.Strains.id
         ]
     },
     Test: {
