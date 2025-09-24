@@ -22,7 +22,7 @@ export const Activities = {
     },
     ResourceSelection: {
         id: "synbio.activity.resource-selection",
-        title: "Resource Selection",
+        title: "Resources",
         component: ExplorerActivityView,
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
