@@ -27,6 +27,7 @@ export default function ExplorerListItem({ fileId, icon }) {
 
     // command list
     const contextMenuCommands = [
+        commands.FileDownload,
         commands.FileDelete
     ]
 
