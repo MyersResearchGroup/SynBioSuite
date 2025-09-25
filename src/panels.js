@@ -45,9 +45,25 @@ export const PanelTypes = {
             sbol: content
         }),
 
-        serialize: panel => panel.sbol
-    },
-    AssemblyPlanCreator: {
+        serialize: panel => {
+            if (!panel.sbol || panel.sbol.trim() === "") {
+            return `<?xml version="1.0" ?>
+                <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:om="http://www.ontology-of-units-of-measure.org/resource/om-2/" xmlns:SBOLCanvas="https://sbolcanvas.org/">
+                <sbol:ModuleDefinition rdf:about="https://sbolcanvas.org/module1">
+                    <sbol:persistentIdentity rdf:resource="https://sbolcanvas.org/module1"/>
+                    <sbol:displayId>module1</sbol:displayId>
+                </sbol:ModuleDefinition>
+                <SBOLCanvas:Layout rdf:about="https://sbolcanvas.org/module1_Layout">
+                    <sbol:persistentIdentity rdf:resource="https://sbolcanvas.org/module1_Layout"/>
+                    <sbol:displayId>module1_Layout</sbol:displayId>
+                    <SBOLCanvas:objectRef rdf:resource="https://sbolcanvas.org/module1"/>
+                </SBOLCanvas:Layout>
+                </rdf:RDF>`;
+            }
+            return panel.sbol;
+            }
+        },
+        AssemblyPlanCreator: {
         id: "synbio.panel-type.assembly-plan-creator",
         title: "Assembly Plan Creator",
         component: AssemblyPanel,
