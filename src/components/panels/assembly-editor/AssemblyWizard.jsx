@@ -1,21 +1,13 @@
 import { useState } from 'react'
-import { Container, Stepper, Group, Button, Tabs, Space, Menu, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
-import Dropzone, { MultiDropzone } from '../../Dropzone'
-import { TbComponents } from 'react-icons/tb'
-import { IoAnalyticsSharp } from 'react-icons/io5'
-import { BiWorld, BiDownload, BiCloudUpload } from "react-icons/bi"
-import { FaCheckCircle } from 'react-icons/fa'; 
+import { Container, Stepper, Group, Button, Space, Menu, Text, SimpleGrid, Box, Badge, SegmentedControl } from "@mantine/core"
+import { BiDownload, BiCloudUpload } from "react-icons/bi"
 import AssemblyForm from './AssemblyForm'
-import { ObjectTypes } from '../../../objectTypes'
-import { titleFromFileName, useFile, useCreateAssemblyFile, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
+import { titleFromFileName, useCreateAssemblyFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import AssemblyReviewTable from './AssemblyReviewTable'
-import { submitAssembly } from '../../../API'
 import { useSelector } from 'react-redux'
 import PanelSaver from '../PanelSaver'
-import { useEffect } from 'react'
 
 export const TabValues = {
     PLASMID: 'plasmid',
@@ -35,221 +27,195 @@ export const TabValues = {
 
 export default function AssemblyWizard({handleViewResult, isResults = false}) {
     const panelId = useContext(PanelContext)
-    PanelSaver(panelId)
-
-    const createFileClosure = useCreateAssemblyFile()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
+    PanelSaver(panelId)
+    const createFileClosure = useCreateAssemblyFile()
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
     const [fileUrl, setFileUrl] = useState()
-    
-    // adding file to json
-    const [assemblyPlanFile, setAssemblyPlanFile] = usePanelProperty(panelId, 'AssemblyPlan', '')
-
-    const [status, setStatus] = useState(false)
-    const [backendResponse, setBackendResponse] = useState(assemblyPlanFile ? true : false)
-
-    //creating download url on filename init from backend respose
-    useEffect(() => {
-        const setup = async () => {
-            const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
-            const handle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
-            const file = await handle.getFile();
-            const url = URL.createObjectURL(file);
-            setFileUrl(url);
-        };
-        if (backendResponse) setup();
-        return () => { if (fileUrl) URL.revokeObjectURL(fileUrl); };
-      }, [assemblyPlanFile]);
 
     // stepper states
-    const numSteps = 2
+    const numSteps = 100
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
+    let showNextButton = true
 
-    // Step 1: select plasmid
-    const [plasmidId, setplasmidId] = usePanelProperty(panelId, 'backbone', false)
-    const acceptorPlasmid = useFile(plasmidId)
-    const handlePlasmidChange = fileNames => {
-        setplasmidId(fileNames)
-    }
-
-    // Step 2: select part inserts
-    const [insertIDs, setInsertIDs] = usePanelProperty(panelId, 'inserts', false, []) || []
-    let insertFiles = []
-    const handleInsertChange = name => {
-        setInsertIDs([...insertIDs, name])
-    }
-
-    const handleRemoveInsert = id => {
-        const newIDs = insertIDs.filter(item => item !== id)
-        setInsertIDs(newIDs)
-    }
-
-    // form state
-    const formValues = usePanelProperty(panelId, "formValues")
-
-    
-    // determine if we can move to next step or not
-    let showNextButton = false
-    switch (activeStep) {
-        case 0: showNextButton = (!!plasmidId) || (!!acceptorPlasmid)
-        break
-        case 1: showNextButton = true
-    }
-    
-    const handleAssemblySubmit = async () => {
-        setStatus(true)
-        
-        try {
-            // backend call
-            const response = await submitAssembly(
-                fileHandle,
-                insertFiles,
-                acceptorPlasmid
-            )
-            //reponse handling
-            if (response.includes('xmlns:sbol="http://sbols.org/v2#"')) { 
-                setBackendResponse(true)
-            }
-            const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
-            const assemblyPlanFileHandle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
-            await writeToFileHandle(assemblyPlanFileHandle, response) //write SBOL string to file
-
-            setAssemblyPlanFile(assemblyPlanFileHandle.name)
-        }
-        catch (error) {
-        } 
-        finally {
-            setStatus(false)
-        }
-    }
-
-    const setInsertFileHandles = (fileHandles) => {
-        insertFiles = fileHandles
+    const [selectedBox, selectBox] = usePanelProperty(panelId, "selectBox", false, 0)
+    const handleBoxSelect = (box) => {
+        selectBox(selectedBox === box ? "" : box);
     }
 
     return (
         <Container style={stepperContainerStyle}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step
-                    allowStepSelect={activeStep > 0 || status || backendResponse}
-                    label="Select Genetic Parts"
-                    description="SBOL Component"
-                    icon={<TbComponents />}
+                    allowStepSelect={activeStep > 0}
+                    label="Abstract Design Selection"
                 >
-                    <Dropzone
-                        allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]}
-                        item={acceptorPlasmid?.name}
-                        onItemChange={handlePlasmidChange}
-                        multiple={true}
+                    <Button
+                        variant="outline"
+                        fullWidth
+                        style={{ marginBottom: 16 }}
                     >
-                        Drag & drop a receptor backbone from the explorer
-                    </Dropzone>
+                        Insert Abstract Designs from SynBioHub
+                    </Button>
+                    <Box mb={16}>
+                        <Text weight={500} mb={8}>Imported Abstract Designs</Text>
+                        <SimpleGrid cols={1} spacing={4}>
+                            <Group spacing="xs">
+                                <Badge color="blue" variant="light">{`Design ${1}`}</Badge>
+                                <Text size="sm" color="dimmed">{"No description"}</Text>
+                            </Group>
+                        </SimpleGrid>
+                    </Box>
                     <Space h='xl' />
-                    <MultiDropzone
-                            allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]} 
-                            items={insertIDs}
-                            onItemsChange={handleInsertChange}
-                            onRemoveItem={handleRemoveInsert}
-                            multiple={true}
+                </Stepper.Step>
+                <Stepper.Step
+                    allowStepSelect={activeStep > 1}
+                    label="Plasmids and Assembly Type"
+                >
+                    <AssemblyForm/>
+                    <Space h='xl' />
+
+                    <Button
+                        variant="outline"
+                        fullWidth
+                        style={{ marginBottom: 16 }}
+                    >
+                        Insert Plasmids from SynBioHub
+                    </Button>
+                    <Box mb={16}>
+                        <Text weight={500} mb={8}>Imported Plasmids</Text>
+                        <SimpleGrid cols={1} spacing={4}>
+                            <Group spacing="xs">
+                                <Badge color="blue" variant="light">{`Plasmid ${1}`}</Badge>
+                                <Text size="sm" color="dimmed">{"No description"}</Text>
+                            </Group>
+                        </SimpleGrid>
+                    </Box>
+                </Stepper.Step>
+                <Stepper.Step
+                    allowStepSelect={activeStep > 2}
+                    label="Backbone Selecetion"
+                >
+                    <Group position="center" align="center" mb={16}>
+                        <Text weight={500}>Enable backbone selection:</Text>
+                        <SegmentedControl
+                        data={[
+                            { label: 'Kanamycin', value: 'Kanamycin' },
+                            { label: 'Ampicillin', value: 'Ampicillin' },
+                        ]}
+                        />
+                    </Group>
+                    <SimpleGrid cols={2} spacing={16}>
+                        <Box
+                            p={20}
+                            onClick={() => handleBoxSelect("Box 1")}
+                            style={{
+                                border: selectedBox == "Box 1" ? "2px solid green" : "1px solid #e0e0e0",
+                                borderRadius: 8,
+                                cursor: 'pointer'
+                            }}
                         >
-                            Drag & drop parts in backbone from the explorer
-                    </MultiDropzone>
+                            <Text color={selectedBox == "Box 1" ? "green" : "dimmed"} weight={500}>Box 1</Text>
+                            <Text size="sm" color={selectedBox == "Box 1" ? "green" : "dimmed"}>This would be a valid backbone</Text>
+                        </Box>
+                        <Box
+                            p={20}
+                            onClick={() => handleBoxSelect("Box 2")}
+                            style={{
+                                border: selectedBox == "Box 2" ? "2px solid green" : "1px solid #e0e0e0",
+                                borderRadius: 8,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <Text color={selectedBox == "Box 2" ? "green" : "dimmed"} weight={500}>Box 2</Text>
+                            <Text size="sm" color={selectedBox == "Box 2" ? "green" : "dimmed"}>This would be a valid backbone</Text>
+                        </Box>
+                        <Box
+                            p={20}
+                            onClick={() => handleBoxSelect("Box 3")}
+                            style={{
+                                border: selectedBox == "Box 3" ? "2px solid green" : "1px solid #e0e0e0",
+                                borderRadius: 8,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <Text color={selectedBox == "Box 3" ? "green" : "dimmed"} weight={500}>Box 3</Text>
+                            <Text size="sm" color={selectedBox == "Box 3" ? "green" : "dimmed"}>This would be a valid backbone</Text>
+                        </Box>
+                        <Box
+                            p={20}
+                            onClick={() => handleBoxSelect("Box 4")}
+                            style={{
+                                border: selectedBox == "Box 4" ? "2px solid green" : "1px solid #e0e0e0",
+                                borderRadius: 8,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <Text color={selectedBox == "Box 4" ? "green" : "dimmed"} weight={500}>Box 4</Text>
+                            <Text size="sm" color={selectedBox == "Box 4" ? "green" : "dimmed"}>This would be a valid backbone</Text>
+                        </Box>
+                    </SimpleGrid>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1 || status || backendResponse}
-                    label="Enter Parameters"
-                    description="Choose assembly type"
-                    icon={<BiWorld />}
+                    allowStepSelect={activeStep > 2}
+                    label="Backbone Selecetion"
                 >
-                    <Space h='xl' />
-                        <h2 style={{ textAlign: 'center' }}>Enter Assembly Parameters</h2>
-                            <AssemblyForm/>
-                </Stepper.Step>
-                <Stepper.Step
-                    allowStepSelect={activeStep > 2 || status || backendResponse}
-                    label="Run Assembly"
-                    description="Review and submit"
-                    icon={backendResponse ? <FaCheckCircle size={45} color="2fb044"/> : <IoAnalyticsSharp />}
-                    loading={status}
-                >
-                    <Space h='lg' />
-                        <Group grow style={{ alignItems: 'flex-start' }}>
-                            <AssemblyReviewTable onInsertFilesReady={setInsertFileHandles}/>
-                        </Group>
+                    <Group position='center'>
+                        <Box>
+                            <SimpleGrid cols={2} spacing={8}>
+                                <Box>
+                                    <Text size="sm" color="dimmed">Abstract Designs:</Text>
+                                    <Text>Design 1</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="sm" color="dimmed">Plasmids:</Text>
+                                    <Text>Plasmid 1</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="sm" color="dimmed">Backbone:</Text>
+                                    <Text>{selectedBox || "None selected"}</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="sm" color="dimmed">Antiobiotic Resistance:</Text>
+                                    <Text>Kanamycin / Ampicillin</Text>
+                                </Box>
+                                <Box>
+                                    <Text size="sm" color="dimmed">Assembly Type:</Text>
+                                    <Text>MoClo / Golden Gate / Loop</Text>
+                                </Box>
+                            </SimpleGrid>
+                        </Box>
+                    </Group>
                 </Stepper.Step>
             </Stepper>
             <Group position="center" mt="xl">
-                {status ?
-                    <>
-                        <Button color='red' onClick={() => setStatus(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="default"
-                            onClick={prevStep}
-                            sx={{ display: activeStep == 0 || activeStep == 2 ? 'none' : 'block' }}
-                        >
-                            Back
-                        </Button>
-                        <Button
-                            onClick={nextStep}
-                            sx={{ display: showNextButton ? 'block' : 'none' }}
-                        >
-                                Next step
-                        </Button> <></>
-                    </> :
-                    <>
-                        <Button
-                            variant="default"
-                            onClick={prevStep}
-                            sx={{ display: activeStep == 0 ? 'none' : 'block' }}
-                        >
-                            Back
-                        </Button>
-                        {activeStep < 2 ?
-                            <Button
-                                onClick={nextStep}
-                                sx={{ display: showNextButton ? 'block' : 'none' }}
-                            >
-                                Next step
-                            </Button> :
-                            <Button
-                                type="submit"
-                                gradient={{ from: "blue", to: "indigo" }}
-                                variant="gradient"
-                                radius="xl"
-                                onClick={handleAssemblySubmit}
-                            >
-                                Run Assembly
-                            </Button>}
-                        {backendResponse && activeStep === 2 && <Menu trigger="hover" closeDelay={250}>   
-                            <Menu.Target>
-                                <Button 
-                                gradient={{ from: "green", to: "green" }}
-                                variant="gradient"
-                                radius="xl"
-                                >{panelTitle}.xml</Button>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                            <Menu.Label>Assembly Plan SBOL</Menu.Label>
-                                <Menu.Item 
-                                    component="a"
-                                    href={fileUrl}
-                                    download={`${panelTitle}.xml`}
-                                    icon={<BiDownload />}>
-                                    Download
-                                </Menu.Item>
-                                <Menu.Item icon={<BiCloudUpload/>}>
-                                    Upload to SynBioHub
-                                </Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>}                  
-                    </>}
+                <Button
+                    variant="default"
+                    onClick={prevStep}
+                    sx={{ display: activeStep == 0 ? 'none' : 'block' }}
+                >
+                    Back
+                </Button>
+                {activeStep < 3 ?
+                    <Button
+                        onClick={nextStep}
+                        sx={{ display: showNextButton ? 'block' : 'none' }}
+                    >
+                        Next step
+                    </Button> :
+                    <Button
+                        type="submit"
+                        color='green'
+                        radius="xl"
+                    >
+                        Generate Assembly Plan
+                    </Button>
+                }
             </Group>
         </Container>
     )

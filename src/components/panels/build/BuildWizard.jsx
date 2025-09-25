@@ -1,35 +1,20 @@
-import { useState } from 'react'
-import { Container, Title } from "@mantine/core"
 import { ObjectTypes } from '../../../objectTypes'
 import { useFile, titleFromFileName } from '../../../redux/hooks/workingDirectoryHooks'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import { useContext, useEffect } from 'react'
-import { useSelector } from 'react-redux'
+import { useContext } from 'react'
 import { PanelContext } from './BuildPanel'
-import { Button, Group, Stepper, Space, Menu } from '@mantine/core'
-import Dropzone from '../../Dropzone' // adjust import if needed
-import BuildForm from './BuildForm'
-import { submitBuild } from '../../../API'
-import { BiDownload } from 'react-icons/bi'
-import { FaGithub } from "react-icons/fa";
-import { FaRegFileCode } from "react-icons/fa6";
-import BuildTable from './BuildTable'
+import { Container, Button, Group, Stepper, SegmentedControl, Text, SimpleGrid, Autocomplete } from '@mantine/core'
+import Dropzone from '../../Dropzone'
 
 
 export default function BuildWizard({}) {
     const panelId = useContext(PanelContext)
-    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
     const panelTitle = titleFromFileName(fileHandle.name)
-    const [fileUrl, setFileUrl] = useState()
-    const [backendResponse, setBackendResponse] = usePanelProperty(panelId, 'backendResponse', false, true)
-    const [firstBuild, setFirstBuild] = usePanelProperty(panelId, 'firstBuild', false, true)
 
-    const [status, setStatus] = useState(false)
-    
-    const numSteps = 3
+    const numSteps = 100
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
@@ -38,52 +23,6 @@ export default function BuildWizard({}) {
     const assemblyPlan = useFile(assemblyPlanId)
     const handleAssemblyPlanChange = fileName => { // TODO: add logic to see if returned from backend or not
         setAssemblyPlanId(fileName) 
-    }
-    const [buildFile, setBuildFile] = usePanelProperty(panelId, 'build', '')
-
-    const setInsertFileHandles = (fileHandles) => {
-        insertFiles = fileHandles
-    }
-
-    const formValues = usePanelProperty(panelId, 'formValues')
-
-    let showNextButton = false
-    switch (activeStep) {
-        case 0: showNextButton = !!assemblyPlanId
-        break
-        case 1: showNextButton = formValues?.buildMethod == "Automated"
-    }
-
-    useEffect(() => {
-        const setup = async () => {
-            const subdirectoryHandle = await workDir.getDirectoryHandle('builds', { create: true });
-            const handle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.build', subdirectoryHandle)
-            const file = await handle.getFile();
-            const url = URL.createObjectURL(file);
-            setFileUrl(url);
-        };
-        if (backendResponse) setup();
-        return () => { if (fileUrl) URL.revokeObjectURL(fileUrl); };
-    }, [buildFile]);
-
-    const handleBuildSubmit = async () => {
-        setBackendResponse(false)
-        setStatus(true)
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        setStatus(false)
-        setBackendResponse(true)
-        setFirstBuild(false)
-        return true
-        try {
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            const result = await submitBuild(fileHandle, assemblyPlan)
-            console.log(result)
-        } catch (error) {
-            console.error(error)
-        } finally {
-            setStatus(false)
-            setFirstBuild(false)
-        }
     }
 
     const handleFileDownload = async () => {
@@ -128,14 +67,10 @@ export default function BuildWizard({}) {
 
     return (
         <Container style={{ marginTop: 40, padding: '0 40px' }}>
-            <Stepper active={activeStep} onStepClick={setActiveStep} color="blue" size="sm" mb="md">
+            <Stepper active={activeStep} onStepClick={setActiveStep}>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 0}
-                    label="Upload Assembly Plan"
-                    description="Upload the assembly plan file.">
-                    <Title order={3} align="center" mb="md">
-                    Upload Assembly Plan
-                    </Title>
+                    allowStepSelect={true}
+                    label="Upload Assembly Plan">
                     <Dropzone
                     allowedTypes={ObjectTypes.Assembly.id}
                     item={assemblyPlan?.name}
@@ -146,32 +81,122 @@ export default function BuildWizard({}) {
                     </Dropzone>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1}
+                    allowStepSelect={true}
                     label="Build Parameters"
-                    description="Set the build parameters."
-                    loading={status}
                 >
-                    <Space h="xl" />
-                        <h2 style={{ textAlign: 'center' }}>
-                            Enter Build Parameters
-                        </h2>
-                        <BuildForm /> 
+                    <Group position="center" align="center" mb={16}>
+                        <Text weight={500}>Build Type:</Text>
+                        <SegmentedControl
+                        data={[
+                            { label: 'Automated', value: 'Automated' },
+                            { label: 'Manual', value: 'Manual' },
+                            { label: 'Cloud', value: 'Cloud'}
+                        ]}
+                        />
+                    </Group>
+                    <Group position="center" align="center" mb={16}>                
+                        <SimpleGrid cols={1} spacing={4}>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                        </SimpleGrid>
+                    </Group>
                 </Stepper.Step>
-                <Stepper.Completed
+                <Stepper.Step
                     allowStepSelect={activeStep > 2}
-                    label="Generate SBOL"
-                    loading={status}
+                    label="Chemical Transformations"
                 >
-                    <Space h='lg' />
-                </Stepper.Completed>
+                    <Group position="center" align="center" mb={16}>
+                        <Text weight={500}>Build Type:</Text>
+                        <SegmentedControl
+                        data={[
+                            { label: 'Automated', value: 'Automated' },
+                            { label: 'Manual', value: 'Manual' },
+                            { label: 'Cloud', value: 'Cloud'}
+                        ]}
+                        />
+                    </Group>
+                    <Group position="center" grow="true" align="center" mb={16}>
+                        <Autocomplete
+                            label="Chassis"
+                            placeholder="Pick value or enter anything"
+                            data={['Chassis', 'Another one', 'Just placeholders']}
+                        />
+                    </Group>
+                    <Group position="center" align="center" mb={16}>   
+                        <SimpleGrid cols={1} spacing={4}>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                        </SimpleGrid>
+                    </Group>
+                </Stepper.Step>
                 <Stepper.Step
                     allowStepSelect={activeStep > 3}
-                    label="Run Build"
-                    description="Review and submit."
-                    loading={status}>
-                    <Space h="xl" />
-                    <Space h="sm" />
-                    <BuildTable onInsertFilesReady={setInsertFileHandles}/>
+                    label="Plating"
+                >
+                    <Group position="center" align="center" mb={16}>
+                        <Text weight={500}>Build Type:</Text>
+                        <SegmentedControl
+                        data={[
+                            { label: 'Automated', value: 'Automated' },
+                            { label: 'Manual', value: 'Manual' },
+                            { label: 'Cloud', value: 'Cloud'}
+                        ]}
+                        />
+                    </Group>
+                    <Group position="center" align="center" mb={16}>   
+                        <SimpleGrid cols={1} spacing={4}>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                            <Group spacing="xs">
+                                <Text size="sm" color="dimmed">{"Volume #1: 1"}</Text>
+                            </Group>
+                        </SimpleGrid>
+                    </Group>
                 </Stepper.Step>
             </Stepper>
             <Group position="center" mt="xl">
@@ -180,27 +205,15 @@ export default function BuildWizard({}) {
                         Back
                     </Button>
                 }
-                {activeStep === numSteps - 1 ? <></> :    
-                    <Button onClick={nextStep} disabled={!showNextButton}>
-                        Next Step
+                {activeStep < 1 ? <></> :
+                    <Button color='green'>
+                        Generate Mockup
                     </Button>
                 }
-                {activeStep === numSteps - 1 && !status && (
-                    <Button onClick={handleBuildSubmit} color="blue" radius = "xl"> 
-                        {firstBuild ? "Build" : "Rebuild"}
+                {activeStep === 3 ? <></> :    
+                    <Button onClick={nextStep}>
+                        Next Step
                     </Button>
-                )}
-                {status ? <Button color='red' onClick={() => setStatus(false)}>Cancel</Button> : <></>}
-                {(!firstBuild && backendResponse && activeStep  == numSteps -1) ?
-                    <Button 
-                        gradient={{ from: "green", to: "green" }}
-                        variant="gradient"
-                        radius="xl"
-                        onClick={handleFileDownload}
-                    >
-                        <BiDownload style={{ marginRight: '5px' }} />{panelTitle}.py
-                    </Button>
-                 : null
                 }
             </Group>
         </Container>

@@ -1,4 +1,4 @@
-import { Button, NumberInput, TextInput, SegmentedControl, Tooltip, Group, Space, Center, Box, useMantineTheme } from '@mantine/core'
+import { Button, NumberInput, TextInput, SegmentedControl, Tooltip, Group, Space, Center, Box, useMantineTheme, Select } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
@@ -13,13 +13,17 @@ export const parameterMap = {
         default: "MoClo", 
         options: {
             MoClo: 'MoClo',
-            // Gibson: 'Gibson', //DEPRECATED in version 2.0.0, 
+            Gibson: 'Gibson',
+            Loop: 'Loop'
         }
     },
     restrictionEnzyme: {
         label: "Restriction Enzyme",
-        default: "BsaI"
-        // validation: resolve on backend
+        default: "Bsa1"
+    },
+    fusionSite: {
+        label: "Fusion Site",
+        default: "Automatic"
     },
 }
 
@@ -52,6 +56,10 @@ export default function AssemblyForm() {
 
     }, [debouncedFormValues])
 
+    // Track if collection has been selected
+    const [collectionSelected, setCollectionSelected] = usePanelProperty(panelId, 'collectionSelected', false)
+    const [collectionLink, setCollectionLink] = usePanelProperty(panelId, 'collectionLink', false)
+
     return (
         <form>
             <Space h="xl" />
@@ -60,31 +68,48 @@ export default function AssemblyForm() {
                     data={Object.entries(parameterMap.assemblyMethod.options).map(
                         ([value, label]) => ({ label, value })
                     )}
-                    color={theme.primaryColor}
                     {...form.getInputProps('assemblyMethod')}
                 />
             </InputWrapper>
             <Space h="xl" />
             {form.values.assemblyMethod === 'MoClo' ? (
-                 <>  
-                    {/* moclo fields */}
-                    <Group grow sx={groupStyle}>
-                        <TextInput required label={parameterMap.restrictionEnzyme.label} placeholder="" {...form.getInputProps('restrictionEnzyme')} />
-                    </Group>
-                    <Space h="lg" />
-                    <Group grow sx={groupStyle}>
-                    </Group>
-                    <Space h="lg" />
-                    <Group grow mb={40} sx={groupStyle}>
-                    </Group>
-                </>
-            ) : (
-                // gibson fields
                 <Group grow sx={groupStyle}>
-                <TextInput required label="Gibson Parameter 1" {...form.getInputProps('gibsonParam1')} />
-                <TextInput required label="Gibson Parameter 2" {...form.getInputProps('gibsonParam2')} />
+                    <TextInput
+                        required
+                        label={parameterMap.restrictionEnzyme.label}
+                        value='Bsa1'
+                        disabled
+                    />
                 </Group>
-            )}
+            ) : form.values.assemblyMethod === 'Gibson' ? (
+                <Group grow sx={groupStyle}>
+                    <TextInput
+                        required
+                        label={parameterMap.restrictionEnzyme.label}
+                        {...form.getInputProps('restrictionEnzyme')}
+                        onChange={event => form.setFieldValue('restrictionEnzyme', event.currentTarget.value)}
+                    />
+                </Group>
+            ) : form.values.assemblyMethod === 'Loop' ? (
+                <Group grow sx={groupStyle}>
+                    <Select
+                        required
+                        label={parameterMap.restrictionEnzyme.label}
+                        data={[
+                            { value: 'Bsa1', label: 'Bsa1' },
+                            { value: 'Sap1', label: 'Sap1' },
+                        ]}
+                        value={form.values.restrictionEnzyme}
+                        onChange={value => {
+                            if (value === 'Bsa1' || value === 'Sap1') {
+                                form.setFieldValue('restrictionEnzyme', value);
+                            } else {
+                                form.setFieldValue('restrictionEnzyme', 'Bsa1');
+                            }
+                        }}
+                    />
+                </Group>
+            ) : null}
         </form>
     )
 }
