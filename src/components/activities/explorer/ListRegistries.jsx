@@ -29,10 +29,8 @@ export default function ListRegistries({registry, defaultRegistry, onConfirmDele
     // right click handler, opens up delete option
     const handleRightClick = (event) => {
         event.preventDefault()
-        if (registry !== defaultRegistry){
-            setRegistryToDelete(registry)
-            setContextMenuOpen(true)
-        }
+        setRegistryToDelete(registry)
+        setContextMenuOpen(true)
     }
     
     // command list
