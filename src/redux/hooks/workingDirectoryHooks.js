@@ -54,7 +54,7 @@ export function useCreateFile() {
     return (fileName, objectType, directory = workDir) => { // Optional arg directory in which the file will be created 
         directory.getFileHandle(fileName, { create: true })
             .then(fileHandle => {
-                addFileMetadata(fileHandle, directory.name, { objectType })
+                addFileMetadata(fileHandle, directory == workDir ? null : directory.name, { objectType })
                 dispatch(actions.addFile(fileHandle))
                 openPanel(fileHandle)
             })

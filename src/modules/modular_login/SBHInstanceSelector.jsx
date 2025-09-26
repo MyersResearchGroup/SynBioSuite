@@ -41,7 +41,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         if (!showNotificationFlag) {
             showNotification({
                 title: 'Logout Successful',
-                message: 'You have successfully logged out of the registry',
+                message: 'You have successfully logged out of the repository',
                 color: 'green',
             });
         }
@@ -137,13 +137,13 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                     <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
             : ( <>
                     <Select
-                        label={`Select a SynbioHub registry`}
+                        label={`Select a SynbioHub repository`}
                         placeholder="Pick one"
                         data={instanceData}
                         onChange={(value) => {setNullSelected(false); setSelected(value)}}
                         value={selected}
                     />
-                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected registry. Please select an registry</div>}
+                    {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected repository. Please select an repository</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
                         <Button mr="md" onClick={() => {setAddingInstance(null)}}>Add</Button>
                         {selected && (

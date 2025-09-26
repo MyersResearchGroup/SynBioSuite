@@ -4,7 +4,7 @@ import GitHubView from "./components/activities/explorer/GitHubView";
 import LoginStatus from "./components/activities/explorer/LoginStatus";
 import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
-import { GiThorHammer} from "react-icons/gi";
+import { TiPipette } from "react-icons/ti";
 import { ObjectTypes } from "./objectTypes";
 import { FaGraduationCap } from "react-icons/fa";
 import { BsGraphUpArrow } from "react-icons/bs";
@@ -22,7 +22,7 @@ export const Activities = {
     },
     ResourceSelection: {
         id: "synbio.activity.resource-selection",
-        title: "Resource Selection",
+        title: "Resources",
         component: ExplorerActivityView,
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
@@ -57,13 +57,12 @@ export const Activities = {
         id: "synbio.activity.build",
         title: "Build",
         component: ExplorerActivityView,
-        icon: GiThorHammer,
+        icon: TiPipette,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
+            ObjectTypes.Strains.id,
             ObjectTypes.Assembly.id, 
             ObjectTypes.Build.id,
-            ObjectTypes.SampleDesigns.id,
-            ObjectTypes.Strains.id
         ]
     },
     Test: {
@@ -72,6 +71,7 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: BiSolidFlask,
         objectTypesToList: [
+            ObjectTypes.SampleDesigns.id,
             ObjectTypes.Experiments.id,
             ObjectTypes.Metadata.id,
             ObjectTypes.Results.id //note: not all of these have templates
