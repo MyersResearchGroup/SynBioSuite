@@ -19,7 +19,7 @@ export const ObjectTypes = {
         listTitle: "SynBioHub Repositories",
         icon: RiGitRepositoryLine,
         isRepository: true,
-        defaultRegistry: "https://synbiohub.org"
+        defaultRegistry: "https://dev2.synbiohub.org"
     },
     Chassis: {
         id: "synbio.object-type.chassis",
@@ -194,7 +194,6 @@ export const ObjectTypes = {
         listTitle: "Flapjack Repositories",
         icon: RiGitRepositoryLine,
         isRepository: true,
-        defaultRegistry: "https://ebugsfj.synbiohub.org"
     },
 }
 

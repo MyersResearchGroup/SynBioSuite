@@ -12,12 +12,12 @@ import { showNotification } from '@mantine/notifications';
 /**
  * Component to handle the creation, deletion, and containment of SynBioHub registries.
  */
-export default function Registries({defaultRegistry, typeOfRegistry, title}){
+export default function Registries({typeOfRegistry, title, defaultRegistry = null}){
     const dispatch = useDispatch()
 
     // Get default registry and additional ones from localStorage 
     const storedRegistries = JSON.parse(localStorage.getItem(typeOfRegistry)) || [];
-    const [registries, setRegistries] = useState([defaultRegistry, ...storedRegistries])
+    const [registries, setRegistries] = useState(defaultRegistry ? [defaultRegistry, ...storedRegistries] : [...storedRegistries])
     
     
     const onCreate = (inputValue) => {
