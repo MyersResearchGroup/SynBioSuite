@@ -118,11 +118,15 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             </CreateNewButton>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
-                                    {objectType.isRepository && 
+                                    {objectType.isRepository ? objectType.id == "synbio.object-type.flapjack" ? 
                                         <Registries 
-                                        defaultRegistry={objectType.defaultRegistry} 
+                                        typeOfRegistry={objectType.listTitle}
+                                        title={objectType.title}/>:
+                                        <Registries 
+                                        defaultRegistry={objectType?.defaultRegistry} 
                                         typeOfRegistry={objectType.listTitle}
                                         title={objectType.title}/>
+                                        : <></>
                                     }
                                     </Accordion.Panel>
                                 </Accordion.Item>
