@@ -10,19 +10,19 @@ export default function DownloadMetadata({ objectType}) {
         let url, fileName;
         //categorize the object type
         if (objectType?.id == "synbio.object-type.chassis") {
-            url = "/Tricahue_v11.6b_Chassis.xlsm"
+            url = "/Chassis.xlsm"
             fileName = "Chassis.xlsm"
         } else if (objectType?.id == "synbio.object-type.chemicals") {
-            url = "/Tricahue_v11.6b_Chemicals.xlsm"
+            url = "/Chemicals.xlsm"
             fileName = "Chemicals.xlsm"
         } else if (objectType?.id == "synbio.object-type.medias") {
-            url = "/Tricahue_v11.6b_Medias.xlsm"
+            url = "/Medias.xlsm"
             fileName = "Medias.xlsm"
         } else if (objectType?.id == "synbio.object-type.sample-designs") {
-            url = "/Tricahue_SampleDesign.xlsm"
+            url = "/SampleDesign.xlsm"
             fileName = "SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.strains") {
-            url = "/Tricahue_Strain.xlsm"
+            url = "/Strain.xlsm"
             fileName = "Strain.xlsm"
         } else if (objectType?.id == "synbio.object-type.parts") {
             url = "/parts.xlsm"
