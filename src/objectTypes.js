@@ -158,16 +158,6 @@ export const ObjectTypes = {
         subdirectory: "sampleDesigns",
         downloadable: true,
     },
-    Experiments: {
-        id: "synbio.object-type.experiment",
-        title: "Experiments",
-        listTitle: "Experiments",
-        fileNameMatch: /\.xdc$/,
-        icon: GrTestDesktop,
-        createable: true,
-        extension: ".xdc",
-        subdirectory: "xdc"
-    },
     Metadata: {
         id: "synbio.object-type.experimental-data",
         title: "Metadata",
@@ -187,6 +177,16 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalResults",
+    },
+    Experiments: {
+        id: "synbio.object-type.experiment",
+        title: "Experiments",
+        listTitle: "Experiments",
+        fileNameMatch: /\.xdc$/,
+        icon: GrTestDesktop,
+        createable: true,
+        extension: ".xdc",
+        subdirectory: "xdc"
     },
     Flapjack: {
         id: "synbio.object-type.flapjack",
