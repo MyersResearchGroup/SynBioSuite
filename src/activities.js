@@ -74,7 +74,8 @@ export const Activities = {
             ObjectTypes.SampleDesigns.id,
             ObjectTypes.Experiments.id,
             ObjectTypes.Metadata.id,
-            ObjectTypes.Results.id //note: not all of these have templates
+            ObjectTypes.Results.id,
+            ObjectTypes.PlateReader.id
         ]
     },
     Learn: {

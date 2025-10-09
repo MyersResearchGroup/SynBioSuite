@@ -1,10 +1,10 @@
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Modal } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 
-const login = async (instance, username, password) => {
+const login = async (instance, email, password) => {
     try {
         showNotification({
             title: 'Logging in',
@@ -12,40 +12,58 @@ const login = async (instance, username, password) => {
             color: 'blue',
             loading: true,
         });
-        const response = await axios.post(`https://${instance}/api/auth/log_in/`, {
-            "username": username,
+        const response = await axios.post(`https://${instance}/login`, {
+            "email": email,
             "password": password
         }, {
             headers: {
+                'accept': 'text/plain',
                 'Content-Type': 'application/json',
             }
         });
         if(response.data){
-            return {
-                username: response.data.username,
-                email: response.data.email,
-                authtoken: response.data.access,
-                refresh: response.data.refresh
-            }
+            let data = await getProfile(instance, response.data);
+            data.auth = response.data;
+            return data;
         }
     } catch (error) {
+        cleanNotifications();
         console.error('Error:', error);
         throw error;
     }
 };
 
-const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: [] });
+const getProfile = async (instance, auth) => {
+    try {
+        const response = await axios.get(`https://${instance}/profile`, {
+            headers: {
+                'Accept': 'text/plain; charset=UTF-8',
+                "X-authorization" : `${auth}`
+            }
+        });
+        if(response.data){
+            cleanNotifications();
+            return response.data;
+        }
+    } catch (error) {
+        cleanNotifications();
+        console.error('Error:', error);
+        throw error;
+    }
+};
+
+const SBHOnly = ({opened, onClose}) => {
+    const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
 
     const form = useForm({
         initialValues: {
-            username: '',
+            email: '',
             password: '',
         },
 
         validate: {
-            username: (value) => (value ? null : 'Username is required'),
+            email: (value) => (null),
             password: (value) => (value ? null : 'Password is required')
         },
     });
@@ -53,40 +71,41 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(selected, values.username, values.password);
+                const info = await login(selected, values.email, values.password);
+                
                 const updatedInstance = { 
                     value: selected, 
                     label: selected,
                     instance: selected, 
-                    username: values.username, 
-                    email: info.email,
-                    authtoken: info.authtoken,
-                    refresh: info.refresh 
+                    email: info.email, 
+                    authtoken: info.auth,
+                    name: info.name,
+                    username: info.username,
+                    affiliation: info.affiliation
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
                     item.instance === selected ? updatedInstance : item
                 );
+                
                 setInstanceData(updatedInstanceData);
-                cleanNotifications();
+                setSelected(updatedInstance.value);
+                
                 showNotification({
                     title: 'Login successful',
                     message: 'You have successfully logged in.',
                     color: 'green',
-                });
-                setSelected(updatedInstance.value);
-                goBack(false)
+                });                
+                onClose()
             } catch (error) {
                 console.error('Login failed:', error);
                 if(error.status === 401){
-                    cleanNotifications();
                     showNotification({
                         title: 'Login failed',
                         message: 'Please check your credentials and try again.',
                         color: 'red',
                     });
                 } else {
-                    cleanNotifications();
                     showNotification({
                         title: 'Login failed',
                         message: 'An error occurred. Please try again and make sure your repository is online.',
@@ -99,15 +118,19 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
     };
 
     return (
-        <Box sx={{ maxWidth: 300 }} mx="auto">
+        <Modal
+            opened={opened}
+            onClose={onClose}
+            title="Login to SynbioHub"
+        >
             <form
-                onSubmit={form.onSubmit((values) => {handleSubmit(values)})}
+                onSubmit={form.onSubmit((values) => { handleSubmit(values) })}
             >
                 <TextInput
-                    label={"Username"}
-                    placeholder={`Enter your username here`}
+                    label={"Email"}
+                    placeholder={`Enter your email here`}
                     mt="md"
-                    {...form.getInputProps('username')}
+                    {...form.getInputProps('email')}
                 />
                 <PasswordInput
                     label="Password"
@@ -118,12 +141,9 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                 <Button type="submit" mt="md">
                     Login
                 </Button>
-                <Button variant="outline" mt="md" ml="sm" onClick={() => {if(instanceData.length == 0) {setRepoSelection("")} else goBack(false)}}>
-                    Back
-                </Button>
             </form>
-        </Box>
+        </Modal>
     );
 };
 
-export default FJInstanceLogin;
+export default SBHOnly;
