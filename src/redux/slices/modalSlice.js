@@ -4,7 +4,14 @@ const initialState = {
     bothOpen: false,
     fjOpen: false,
     sbHOpen: false,
-    directoryOpen: false
+    directoryOpen: false,
+    addSBHrepository: false,
+    addFJrepository: false,
+    addCollections: false,
+    sbhLoginOpen: false,
+    callback: null,
+    libraryName: null,
+    libraryDescription: null,
 };
 
 export const modalSlice = createSlice({
@@ -34,8 +41,55 @@ export const modalSlice = createSlice({
         },
         closeDirectory: (state) => {
             state.directoryOpen = false;
-        }
+        },
+        openAddSBHrepository: (state) => {
+            state.addSBHrepository = true;
+        },
+        closeAddSBHrepository: (state) => {
+            state.addSBHrepository = false;
+        },
+        openAddFJrepository: (state, action) => {
+            state.addFJrepository = true;
+            state.callback = typeof action.payload.callback === 'function' ? action.payload.callback : null
+        },
+        closeAddFJrepository: (state) => {
+            state.addFJrepository = false;
+            if (state.callback && typeof state.callback === 'function') {
+                state.callback();
+                state.callback = null;
+            }
+        },
+        openCreateCollection: (state, action) => {
+            state.addCollections = true;
+            state.callback = typeof action.payload.callback === 'function' ? action.payload.callback : null
+            state.libraryName = typeof action.payload.libraryName === 'string' ? action.payload.libraryName : null
+            state.libraryDescription = typeof action.payload.libraryDescription === 'string' ? action.payload.libraryDescription : null
+        },
+        closeCreateCollection: (state) => {
+            state.addCollections = false;
+            if (state.callback && typeof state.callback === 'function') {
+                state.callback();
+                state.callback = null;
+            }
+        },
+        openSBHLogin: (state) => {
+            state.sbhLoginOpen = true;
+        },
+        closeSBHLogin: (state) => {
+            state.sbhLoginOpen = false;
+        },
     },
 });
-export const { openModal, closeModal, openSBH, closeSBH, openFJ, closeFJ, openDirectory, closeDirectory } = modalSlice.actions; 
+
+export const { 
+    openModal, closeModal,
+    openSBH, closeSBH,
+    openFJ, closeFJ,
+    openDirectory, closeDirectory,
+    openAddSBHrepository, closeAddSBHrepository,
+    openAddFJrepository, closeAddFJrepository,
+    openCreateCollection, closeCreateCollection,
+    openSBHLogin, closeSBHLogin,
+} = modalSlice.actions;
+
 export default modalSlice.reducer;
