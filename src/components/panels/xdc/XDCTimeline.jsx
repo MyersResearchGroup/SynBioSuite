@@ -11,11 +11,7 @@ import { SiMicrogenetics } from "react-icons/si";
 import { FaHourglassStart } from "react-icons/fa6";
 import { IoMdClose } from "react-icons/io"
 
-export default function XDCTimeline() {
-
-    const panelId = useContext(PanelContext)
-    const [ status, setStatus ] = usePanelProperty(panelId, "runtimeStatus", false, RuntimeStatus.WAITING)
-
+export default function XDCTimeline({status}) {
     const failureMessage = useSelector(state => state.failureMessage.message)
 
     const [running, setRunning] = useState(RuntimeStatus.running(status))
@@ -26,7 +22,6 @@ export default function XDCTimeline() {
         setRunning(RuntimeStatus.running(status))
         setSuccessful(RuntimeStatus.successful(status))
         setUnsuccessful(RuntimeStatus.unsuccessful(status))
-        console.log(status)
     }, [status])
 
     const timelineNodes = [
