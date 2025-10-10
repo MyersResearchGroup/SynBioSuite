@@ -23,33 +23,60 @@ def get_data():
 
 @app.route('/api/upload_sbs', methods = ['POST'])
 def upload_file_from_sbs_post():
+    # Check Metadata excel template
     if 'Metadata' not in request.files:
         print(request)
         return 'No file part', 400
     file = request.files['Metadata']
     if file.filename == '':
         return 'No selected file', 400
-    file_contents = file.read()
+    if not file.filename.contains('xlsx', 'xlsm'):
+        return 'Invalid Metadata file', 400
+    
+    # # Experimental results to upload to SBH
+    # if 'Attachments' in request.files:
+    #     attachments = request.files['Attachments']
+    #     # add to template somehow (?)
+    #     # attachments = result
+    # else: 
+    #     attachments = None
+
+    # # Plate reader data to upload to FJ
+    # if 'Experimental_Data' in request.files:
+    #     data = request.files['Experimental_Data']
+    #     # Run XDE to add data to template (?)
+    #     # data = result
+    # else:
+    #     data = None
+
+    # Check params from frontend
     if 'Params' not in request.files:
         return 'No Params file part', 400
     params_file = request.files['Params']
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
-    expected_params = ['fj_url', 'fj_token', 'sbh_url', 'sbh_token', 'sbh_collec', 'sbh_collec_desc', 'sbh_overwrite', 'fj_overwrite']
-    for param in expected_params:
+    required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
+                       'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
+                       'sbh_collec', 'sbh_collec_desc', 
+                       'sbh_overwrite', 'fj_overwrite']
+    for param in required_params:
         if param not in params_from_request:
             return 'Parameter ' + param + ' not found in request', 400
+    if (params_from_request['sbh_token'] is None and 
+        params_from_request['sbh_user'] is None and
+        params_from_request['sbh_pass'] is None):
+        return 'No SBH credentials provided', 400
 
     # instantiate the XDC class using the params_from_request dictionary
     print(request.files['Metadata'])
     xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
             fj_url = params_from_request['fj_url'],
-            fj_user = None, 
-            fj_pass = None, 
+            fj_user = params_from_request['fj_user'], 
+            fj_pass = params_from_request['fj_pass'], 
             sbh_url = params_from_request['sbh_url'], 
-            sbh_user = None, 
-            sbh_pass = None, 
+            sbh_user = params_from_request['sbh_user'], 
+            sbh_pass = params_from_request['sbh_pass'], 
             sbh_collection = params_from_request['sbh_collec'], 
             sbh_collection_description = params_from_request['sbh_collec_desc'],
             sbh_overwrite = params_from_request['sbh_overwrite'], 
@@ -60,13 +87,7 @@ def upload_file_from_sbs_post():
             )
 
     try:
-        xdc.initialize()
-        xdc.log_in_sbh()
-        xdc.log_in_fj()
-        xdc.convert_to_sbol()
-        xdc.generate_sbol_hash_map()
-        sbh_url = xdc.upload_to_sbh()
-        xdc.upload_to_fj()
+        sbh_url = xdc.run()
     except AttributeError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -75,62 +96,6 @@ def upload_file_from_sbs_post():
         "status": "success"
     }
     return jsonify(sbs_upload_response_dict)
-
-@app.route('/api/upload_sbs_up', methods = ['POST'])
-def upload_file_from_sbs_post_up():
-    if 'Metadata' not in request.files:
-        print(request)
-        return 'No file part', 400
-    file = request.files['Metadata']
-    if file.filename == '':
-        return 'No selected file', 400
-    file_contents = file.read()
-    if 'Params' not in request.files:
-        return 'No Params file part', 400
-    params_file = request.files['Params']
-    if params_file.filename == '':
-        return 'No selected Params file', 400
-    params_from_request = json.loads(params_file.read())
-    expected_params = ['fj_url', 'fj_user', 'fj_pass', 'sbh_url', 'sbh_user', 'sbh_pass', 'sbh_collec', 'sbh_collec_desc', 'sbh_overwrite', 'fj_overwrite']
-    for param in expected_params:
-        if param not in params_from_request:
-            return 'Parameter ' + param + ' not found in request', 400
-
-    # instantiate the XDC class using the params_from_request dictionary
-    print(request.files['Metadata'])
-    xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
-            fj_url = params_from_request['fj_url'],
-            fj_user = params_from_request['fj_user'],
-            fj_pass = params_from_request['fj_pass'], 
-            sbh_url = params_from_request['sbh_url'], 
-            sbh_user = params_from_request['sbh_user'], 
-            sbh_pass = params_from_request['sbh_pass'],
-            sbh_collection = params_from_request['sbh_collec'], 
-            sbh_collection_description = params_from_request['sbh_collec_desc'],
-            sbh_overwrite = params_from_request['sbh_overwrite'], 
-            fj_overwrite = params_from_request['fj_overwrite'], 
-            fj_token = None, 
-            sbh_token = None,
-            homespace = "https://synbiohub.org/gonza10v"
-            )            
-
-    try:
-        xdc.initialize()
-        xdc.log_in_fj()
-        xdc.log_in_sbh()
-        xdc.convert_to_sbol()
-        xdc.generate_sbol_hash_map()
-        sbh_url = xdc.upload_to_sbh()
-        xdc.upload_to_fj()
-    except AttributeError as e:
-        return jsonify({"error": str(e)}), 400
-    
-    sbs_upload_response_dict = {
-        "sbh_url": sbh_url,
-        "status": "success"
-    }
-    return jsonify(sbs_upload_response_dict)
-    
 
 
 @app.route('/sbol_2_build_golden_gate', methods=['POST'])
