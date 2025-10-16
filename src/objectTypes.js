@@ -176,6 +176,16 @@ export const ObjectTypes = {
         importable: true,
         subdirectory: "experimentalResults",
     },
+    PlateReader: {
+        id: "synbio.object-type.plate-reader",
+        title: "Plate Reader Output",
+        listTitle: "Plate Reader Output",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: VscOutput,
+        createable: false,
+        importable: true,
+        subdirectory: "plateReaderOutputs",
+    },
     Experiments: {
         id: "synbio.object-type.experiment",
         title: "Experiments",
