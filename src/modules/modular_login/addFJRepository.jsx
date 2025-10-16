@@ -70,6 +70,11 @@ function AddFJRepository({ opened, onClose }) {
         }
     };
 
+    // Helper to remove http://, https://, and www. in the input of the URL
+    const cleanUrl = (inputUrl) => {
+        return inputUrl.replace(/^(https?:\/\/)?(www\.)?/, '');
+    };
+
     return (
         <Modal opened={opened} onClose={onClose} title="Choose Repository" size="lg">
             {step === 1 && (
@@ -118,7 +123,7 @@ function AddFJRepository({ opened, onClose }) {
                         <Button variant="default" onClick={() => setStep(1)}>
                             Back
                         </Button>
-                        <Button disabled={!username || !password} onClick={() => handleSubmit(url, username, password)}>
+                        <Button disabled={!username || !password} onClick={() => handleSubmit(cleanUrl(url), username, password)}>
                             Submit
                         </Button>
                     </Group>

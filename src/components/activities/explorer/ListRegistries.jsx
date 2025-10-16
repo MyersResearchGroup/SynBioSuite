@@ -55,7 +55,7 @@ export default function ListRegistries({registry, defaultRegistry, onConfirmDele
                     onContextMenu={handleRightClick}
                     >
                         <RiGitRepositoryLine/>
-                        <Text size='sm' sx={textStyle}>{registry}</Text>
+                        <Text size='sm' sx={textStyle}>{registry.startsWith('https://') ? registry.slice(8) : registry}</Text>
                 </Group>
             </Menu.Target>
             
