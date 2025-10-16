@@ -6,25 +6,19 @@ const AddInstance = ({ goBack, repo }) => {
     const form = useForm({
         initialValues: {
             instance: '',
-        },
-
-        validate: {
-            instance: (value) => (value && !/[/]/.test(value) ? null : `${repo} instance is required and must not contain forward slashes`),
-        },
+        }
     });
 
-    const handleSubmit = async (values) => {
-        if (form.isValid()){
-            goBack(values);
-        }
+    // Helper to remove http://, https://, and www. in the input of the URL
+    const cleanUrl = (inputUrl) => {
+        return inputUrl.replace(/^(https?:\/\/)?(www\.)?/, '');
     };
 
     return (
         <Box sx={{ maxWidth: 300 }} mx="auto">
             <form
                 onSubmit={form.onSubmit((values) => {
-                    // Strip https:// and www. from the beginning of the value
-                    goBack(values.instance.replace(/^(https?:\/\/)?(www\.)?/, ''));
+                    goBack(cleanUrl(values.instance));
                 })}
             >
                 <TextInput

@@ -44,7 +44,7 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
             // Update localStorage with the new inputValue
             const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
             const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-            const selected = url.replace(/^https?:\/\//, '');
+            const selected = url.replace(/^(https?:\/\/)?(www\.)?/, '');
             const isDuplicate = storedRegistries.some(reg => reg.instance === selected);
             if (!isDuplicate) {
                 const updatedInstance = {
