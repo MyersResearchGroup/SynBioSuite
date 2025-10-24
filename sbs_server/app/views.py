@@ -30,17 +30,10 @@ def upload_file_from_sbs_post():
     file = request.files['Metadata']
     if file.filename == '':
         return 'No selected file', 400
-    if not file.filename.contains('xlsx', 'xlsm'):
-        return 'Invalid Metadata file', 400
+    root, extension = os.path.splitext(file.filename)
+    if not extension == '.xlsx' and not extension == '.xlsm':
+        return 'Invalid Metadata file format', 400
     
-    # # Experimental results to upload to SBH
-    # if 'Attachments' in request.files:
-    #     attachments = request.files['Attachments']
-    #     # add to template somehow (?)
-    #     # attachments = result
-    # else: 
-    #     attachments = None
-
     # # Plate reader data to upload to FJ
     # if 'Experimental_Data' in request.files:
     #     data = request.files['Experimental_Data']
@@ -68,6 +61,17 @@ def upload_file_from_sbs_post():
         params_from_request['sbh_pass'] is None):
         return 'No SBH credentials provided', 400
 
+    # Attachment files to upload to SBH
+    if 'Attachments' in request.files and 'attachTo' in params_from_request:
+        attachments = []
+        for file in request.files.getlist('Attachments'):
+            print(file.filename)
+            attachments.append(file)
+        attachTo = params_from_request['attachTo']
+    else:
+        attachments = None
+        attachTo = None
+
     # instantiate the XDC class using the params_from_request dictionary
     print(request.files['Metadata'])
     xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
@@ -83,7 +87,9 @@ def upload_file_from_sbs_post():
             fj_overwrite = params_from_request['fj_overwrite'], 
             fj_token = params_from_request['fj_token'], 
             sbh_token = params_from_request['sbh_token'],
-            homespace = "https://synbiohub.org/gonza10v"
+            homespace = "https://example.org/", 
+            attachments = attachments,
+            attachTo = attachTo
             )
 
     try:
