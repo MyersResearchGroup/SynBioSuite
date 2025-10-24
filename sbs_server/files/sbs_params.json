@@ -1,10 +1,16 @@
 {
-    "fj_url": "charmmefj-api.synbiohub.org",
-    "fj_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU0NDE1ODYyLCJqdGkiOiI0ZDk5NmI0MjkxMjM0YzdmOGNlNTIzMTZlMGMzZmMwNSIsInVzZXJfaWQiOjJ9.Jc3g4aHGR-OfTrA6nM6b1PDsxx0yigfZvyTPRKcgX4w",
     "sbh_url": "https://synbiohub.org",
-    "sbh_token": "3e293de1-6181-47d3-a104-4312182fb675",
-    "sbh_collec": "xdc_sbs_test_uploader_file",
-    "sbh_collec_desc": "xdc_sbs_test_uploader_file_description",
-    "fj_overwrite": false,
-    "sbh_overwrite": false
+    "sbh_token": null,
+    "sbh_user": "synbiotest",
+    "sbh_pass": "test123",
+    "fj_url": "charmmefj-api.synbiohub.org",
+    "fj_token": null,
+    "fj_user": null,
+    "fj_pass": null,
+    "sbh_collec": "sbs_backend_test",
+    "sbh_collec_desc": "Uploaded via SBS_server using XDC to SBH",
+    "sbh_overwrite": 1,
+    "fj_overwrite": 1,
+    "version": "",
+    "attachTo": "ExampleMedia"
 }
