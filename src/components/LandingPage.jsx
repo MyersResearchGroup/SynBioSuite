@@ -34,7 +34,7 @@ export default function LandingPage() {
                     Use my local file system through Chrome
                 </Button>
                 <Text align='center' sx={{ maxWidth: 500 }}>
-                    SynBio Suite can also be connected to your Google Drive. To sign in with Google and connect SynBio Suite, select the option below.
+                    SynBio Suite can also be connected to your Microsoft OneDrive. To sign in with Microsoft and connect SynBio Suite, select the option below.
                 </Text>
                 <Button>
                     Sign in with Google
