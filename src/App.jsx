@@ -11,6 +11,7 @@ import AddSBHRepository from './modules/modular_login/addSBHRepository';
 import AddFJRepository from './modules/modular_login/addFJRepository';
 import CreateCollectionModal from './modules/CreateCollectionModal';
 import SBHOnly from './modules/modular_login/SBHOnly';
+import LandingPage from './components/LandingPage';
 
 
 export default function App() {
@@ -32,7 +33,8 @@ export default function App() {
 
     return (
         <NotificationsProvider autoClose={5000} limit={8}>
-            <Activities />
+            <LandingPage />
+            {/* <Activities />
             <Panels />
             <BrowserCompatiblityCatch />
             <LoginModal
@@ -72,7 +74,7 @@ export default function App() {
             <SBHOnly
                 opened={SBHOnlyOpened}
                 onClose={() => dispatch(closeSBHLogin())}
-            />
+            /> */}
         </NotificationsProvider>
     );
 }
