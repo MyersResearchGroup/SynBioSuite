@@ -8,7 +8,7 @@ import { RiGitRepositoryLine } from "react-icons/ri";
 import { GrTestDesktop } from "react-icons/gr";
 import { MdAlignVerticalTop } from "react-icons/md";
 import { VscOutput } from "react-icons/vsc";
-import download from "browser-downloads"
+import { FaFileArchive } from "react-icons/fa";
 
 
 
@@ -64,6 +64,19 @@ export const ObjectTypes = {
         importable: true,
         subdirectory: "parts",
         downloadable: true,
+
+    },
+    Resources: {
+        id: "synbio.object-type.resources",
+        title: "Resources",
+        listTitle: "Resources",
+        fileNameMatch: /\.json$/,
+        icon: FaFileArchive,
+        createable: true,
+        importable: false,
+        extension: '.json',
+        subdirectory: "resources",
+        downloadable: false,
 
     },
     SBOL: {
