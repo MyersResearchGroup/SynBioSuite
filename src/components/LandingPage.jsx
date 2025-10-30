@@ -43,9 +43,3 @@ export default function LandingPage() {
         </Center>
     )
 }
-
-const svgStyles = {
-    filter: 'invert(100%) brightness(80%)',
-    pointerEvents: 'none',
-    opacity: 0.5,
-}
