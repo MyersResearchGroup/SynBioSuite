@@ -1,4 +1,6 @@
 import { Button, Center, Space, Stack, Text, Title, useMantineTheme } from '@mantine/core'
+import { handleLogin } from '../microsoft-utils/auth'
+import MicrosoftSignInButton from './microsoft/MicrosoftSignIn'
 
 
 export default function LandingPage() {
@@ -26,19 +28,17 @@ export default function LandingPage() {
                     the <a href="https://geneticlogiclab.org/" style={{ color: theme.colors.yellow[5] }} target="_blank">Genetic Logic Lab</a>
                 </Title>
                 <Space h={20} />
-                <Text align='center' sx={{ maxWidth: 500 }}>
+                <Text align='center' sx={{ maxWidth: 700 }}>
                     To allow SynBio Suite to use a local folder on your device as a working directory, select the option below. You can place SBOL files,
                     SBML files, and OMEX archives in the directory. Note: This functionality on works on Google Chrome.
                 </Text>
                 <Button>
                     Use my local file system through Chrome
                 </Button>
-                <Text align='center' sx={{ maxWidth: 500 }}>
+                <Text align='center' sx={{ maxWidth: 700 }}>
                     SynBio Suite can also be connected to your Microsoft OneDrive. To sign in with Microsoft and connect SynBio Suite, select the option below.
                 </Text>
-                <Button>
-                    Sign in with Google
-                </Button>
+                <MicrosoftSignInButton/>
             </Stack>
         </Center>
     )
