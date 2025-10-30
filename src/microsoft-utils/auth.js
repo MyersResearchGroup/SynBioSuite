@@ -4,6 +4,7 @@ export const handleLogin = () => {
         const url =
             `https://login.microsoftonline.com/common/oauth2/v2.0/authorize` +
             `?client_id=${client_id}` +
+            `&response_type=token` +
             `&scope=openid%20profile%20email%20User.Read` +
             `&redirect_uri=${redirect_uri}`;
 
