@@ -1,7 +1,9 @@
-export default function MicrosoftSignInButton({ onClick }) {
+import { handleLogin } from "../../microsoft-utils/auth";
+
+export default function MicrosoftSignInButton() {
   return (
     <button
-      onClick={onClick}
+      onClick={handleLogin}
       style={{
         display: "inline-flex",
         alignItems: "center",
