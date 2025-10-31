@@ -8,7 +8,6 @@ import { RiGitRepositoryLine } from "react-icons/ri";
 import { GrTestDesktop } from "react-icons/gr";
 import { MdAlignVerticalTop } from "react-icons/md";
 import { VscOutput } from "react-icons/vsc";
-import download from "browser-downloads"
 
 
 
@@ -19,7 +18,6 @@ export const ObjectTypes = {
         listTitle: "SynBioHub Repositories",
         icon: RiGitRepositoryLine,
         isRepository: true,
-        defaultRegistry: "https://dev2.synbiohub.org"
     },
     Chassis: {
         id: "synbio.object-type.chassis",
