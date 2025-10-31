@@ -17,6 +17,11 @@ resource "azuread_application" "synbio_suite" {
       type = "Scope"
     }
     resource_access {
+      # open_id
+      id   = "37f7f235-527c-4136-accd-4a02d197296e"
+      type = "Scope"
+    }
+    resource_access {
       # Files.ReadWrite
       id   = "5c28f0bf-8a70-41f1-8ab2-9032436ddb65"
       type = "Scope"
