@@ -1,4 +1,4 @@
-import { handleLogin } from "../../microsoft-utils/auth";
+import { handleLogin } from "../../microsoft-utils/handleLogin";
 import microsoftLogo from '../../icons/microsoft-logo.svg';
 
 export default function MicrosoftSignInButton() {
