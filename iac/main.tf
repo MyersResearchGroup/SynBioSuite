@@ -4,15 +4,8 @@ resource "azuread_application" "synbio_suite" {
   api {
     requested_access_token_version = 2
   }
-  web {
+  single_page_application {
     redirect_uris = ["https://synbiosuite.org/cloud-home", "http://localhost:3000/cloud-home"]
-    homepage_url  = "https://synbiosuite.org/"
-    logout_url    = "https://synbiosuite.org/cloud-logout"
-
-    implicit_grant {
-      access_token_issuance_enabled = true
-      id_token_issuance_enabled     = true
-    }
   }
 
   required_resource_access {
