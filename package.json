@@ -8,6 +8,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@azure/msal-browser": "^4.26.0",
         "@emotion/cache": "^11.9.3",
         "@emotion/react": "^11.9.3",
         "@honkhonk/vite-plugin-svgr": "^1.1.0",
@@ -16,6 +17,7 @@
         "@mantine/hooks": "^5.0.0",
         "@mantine/modals": "^5.10.5",
         "@mantine/notifications": "^5.0.0",
+        "@microsoft/microsoft-graph-client": "^3.0.7",
         "@reduxjs/toolkit": "^1.8.3",
         "@visx/glyph": "^2.10.0",
         "@visx/legend": "^2.10.0",
