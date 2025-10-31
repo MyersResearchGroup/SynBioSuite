@@ -1,5 +1,5 @@
 import { handleLogin } from "../../microsoft-utils/handleLogin";
-import microsoftLogo from '../../icons/microsoft-logo.svg';
+import { MicrosoftLogo } from "../../icons";
 
 export default function MicrosoftSignInButton() {
   return (
@@ -19,8 +19,7 @@ export default function MicrosoftSignInButton() {
         color: "#000",
       }}
     >
-      <img
-        src={microsoftLogo}
+      <MicrosoftLogo
         alt="Microsoft"
         style={{ width: 20, height: 20 }}
       />

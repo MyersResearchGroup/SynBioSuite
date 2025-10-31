@@ -1,5 +1,5 @@
 import { Button, Center, Space, Stack, Text, Title, useMantineTheme } from '@mantine/core'
-import MicrosoftSignInButton from '../components/microsoft/MicrosoftSignIn'
+import MicrosoftSignInButton from '../components/microsoft/MicrosoftSignInButton'
 import { useNavigate } from 'react-router-dom';
 
 
