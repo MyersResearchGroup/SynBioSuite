@@ -1,9 +1,7 @@
 import { msalInstance } from "./msal";
 
 export const handleLogin = async () => {
-  await msalInstance.loginRedirect({
-    scopes: [
-      "profile"
-    ],
+  msalInstance.loginRedirect({
+    scopes: ["openid", "profile", "offline_access"],
   });
 };

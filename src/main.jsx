@@ -35,6 +35,20 @@ TimeAgo.addDefaultLocale(en)
 await msalInstance.initialize();
 await msalInstance.handleRedirectPromise();
 
+const redirectResult = await msalInstance.handleRedirectPromise();
+
+if (redirectResult) {
+    msalInstance.setActiveAccount(redirectResult.account);
+} else {
+    // const acctInfo = msalInstance.getAccount();
+    // if (acctInfo) {
+    //     msalInstance.setActiveAccount(acctInfo.account);
+    // } else {
+    //     console.log("NOT LOGGED IN");
+    // }
+
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <Provider store={store}>
