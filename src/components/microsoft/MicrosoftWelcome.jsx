@@ -1,9 +1,21 @@
-import { Center, Space, Stack, Text, Title, useMantineTheme } from '@mantine/core'
+import { Center, Stack, Text, useMantineTheme, Title } from '@mantine/core'
+import { getActiveUser } from '../../microsoft-utils/getActiveUser'
+import { useEffect, useState } from 'react';
 
 
 export default function MicrosoftWelcome() {
 
     const theme = useMantineTheme()
+
+    const [userName, setUserName] = useState("");
+    // Set the user profile information when the component mounts
+    useEffect(() => {
+        async function fetchUser() {
+            let user = await getActiveUser();
+            setUserName(user?.name);
+        }
+        fetchUser();
+    }, []);
 
     return (
         <Center style={{
@@ -11,6 +23,9 @@ export default function MicrosoftWelcome() {
             background: `radial-gradient(${theme.colors.dark[6]}, ${theme.colors.dark[7]})`
         }}>
             <Stack align='center'>
+                <Title align='center'>
+                    Welcome {userName}
+                </Title>
                 <Text align='center' sx={{ maxWidth: 500 }}>
                     SynBio Suite uses a folder in your Microsoft OneDrive as a working directory. You can place SBOL files,
                     SBML files, and OMEX archives in the directory.
@@ -22,7 +37,7 @@ export default function MicrosoftWelcome() {
                     maxWidth: 150,
                 }}>
                     To get started, choose a folder in your OneDrive to open.
-                    </Text>
+                </Text>
 
                 <img src="/left-arrow-sketch.svg" style={{
                     width: 200,
