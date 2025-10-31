@@ -12,6 +12,7 @@ const initialState = {
     callback: null,
     libraryName: null,
     libraryDescription: null,
+    microsoftOpen: false,
 };
 
 export const modalSlice = createSlice({
@@ -78,6 +79,12 @@ export const modalSlice = createSlice({
         closeSBHLogin: (state) => {
             state.sbhLoginOpen = false;
         },
+        openMicrosoft: (state) => {
+            state.microsoftOpen = true;
+        },
+        closeMicrosoft: (state) => {
+            state.microsoftOpen = false;
+        },
     },
 });
 
@@ -89,7 +96,7 @@ export const {
     openAddSBHrepository, closeAddSBHrepository,
     openAddFJrepository, closeAddFJrepository,
     openCreateCollection, closeCreateCollection,
-    openSBHLogin, closeSBHLogin,
+    openSBHLogin, closeSBHLogin, openMicrosoft, closeMicrosoft,
 } = modalSlice.actions;
 
 export default modalSlice.reducer;

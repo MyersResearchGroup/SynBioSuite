@@ -2,7 +2,7 @@ import Activities from '../components/activities/Activities';
 import Panels from '../components/panels/Panels';
 import LoginModal from '../modules/modular_login/loginModal';
 import { useSelector, useDispatch } from 'react-redux';
-import { closeModal, closeSBH, closeFJ, closeAddSBHrepository, closeAddFJrepository, closeCreateCollection, closeSBHLogin } from '../redux/slices/modalSlice';
+import { closeModal, closeSBH, closeFJ, closeAddSBHrepository, closeAddFJrepository, closeCreateCollection, closeSBHLogin, closeMicrosoft } from '../redux/slices/modalSlice';
 import FJModal from '../modules/modular_login/FJModal';
 import SBHModal from '../modules/modular_login/SBHModal';
 import AddSBHRepository from '../modules/modular_login/addSBHRepository';
@@ -10,10 +10,12 @@ import AddFJRepository from '../modules/modular_login/addFJRepository';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
 import SBHOnly from '../modules/modular_login/SBHOnly';
 import MicrosoftPanels from '../components/microsoft/MicrosoftPanels';
+import MicrosoftModal from '../components/microsoft/MicrosoftModal';
 
-export default function LocalHome() {
+export default function CloudHome() {
     // msalInstance.acquireTokenSilent(); 
     const loginModalOpened = useSelector((state) => state.modal.bothOpen);
+    const microsoftModalOpened = useSelector((state) => state.modal.microsoftOpen);
     const sbhModalOpened = useSelector((state) => state.modal.sbhOpen);
     const fjModalOpened = useSelector((state) => state.modal.fjOpen);
 
@@ -32,6 +34,10 @@ export default function LocalHome() {
         <>
             <Activities />
             <MicrosoftPanels />
+            <MicrosoftModal
+                opened={microsoftModalOpened}
+                onClose={() => dispatch(closeMicrosoft())}
+            />
             <LoginModal
                 opened={loginModalOpened}
                 onClose={() => dispatch(closeModal())}

@@ -5,7 +5,7 @@ import { SVGIcon } from '../../icons'
 import SaveIndicatorDisplay from '../saveIndicatorDisplay'
 import { useEffect } from 'react'
 import { useDispatch } from 'react-redux';
-import { openModal } from '../../redux/slices/modalSlice';
+import { openMicrosoft, openModal } from '../../redux/slices/modalSlice';
 import { msalInstance } from '../../microsoft-utils/msal'
 
 export default function Activities() {
@@ -22,7 +22,7 @@ export default function Activities() {
             dispatch(openModal());
         } else if (activeActivity === "synbio.activity.microsoft-status") {
             setActiveActivity("synbio.activity.microsoft-status");
-            dispatch(openModal());
+            dispatch(openMicrosoft());
         } else {
             //dispatch(closeModal());
         }
