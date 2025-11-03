@@ -19,7 +19,6 @@ export const ObjectTypes = {
         listTitle: "SynBioHub Repositories",
         icon: RiGitRepositoryLine,
         isRepository: true,
-        defaultRegistry: "https://dev2.synbiohub.org"
     },
     Chassis: {
         id: "synbio.object-type.chassis",
