@@ -11,6 +11,7 @@ import AddSBHRepository from './modules/modular_login/addSBHRepository';
 import AddFJRepository from './modules/modular_login/addFJRepository';
 import CreateCollectionModal from './modules/CreateCollectionModal';
 import SBHOnly from './modules/modular_login/SBHOnly';
+import { LoadingOverlay } from '@mantine/core';
 
 
 export default function App() {
@@ -28,10 +29,18 @@ export default function App() {
     const libraryName = useSelector((state) => state.modal.libraryName)
     const libraryDescription = useSelector((state) => state.modal.libraryDescription)
 
+    const visible = useSelector((state) => state.overlay.loadingOverlay)
+
     const dispatch = useDispatch();
 
     return (
         <NotificationsProvider autoClose={5000} limit={8}>
+            <LoadingOverlay
+                loaderProps={{ size: 'lg', color: 'pink', variant: 'bars' }}
+                overlayOpacity={.8}
+                overlayColor="#c5c5c5"
+                visible={visible}
+            />
             <Activities />
             <Panels />
             <BrowserCompatiblityCatch />
