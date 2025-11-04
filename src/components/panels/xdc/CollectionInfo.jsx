@@ -45,8 +45,6 @@ export default function CollectionInfo() {
         if (!addSBHRepositoryOpened) {
             if (dataPrimarySBH?.length > 0) {
                 setSelectedRepo(dataPrimarySBH);
-            } else if (dataSBH?.length > 0) {
-                setSelectedRepo(dataSBH[0].value);
             } else {
                 setSelectedRepo('Please Select a Repository');
             }
@@ -136,7 +134,20 @@ export default function CollectionInfo() {
     );
 
     const handleLogout = () => {
-        const updatedInstanceData = dataSBH.filter((item) => item.instance !== selectedRepo);
+        const updatedInstanceData = dataSBH.map((item) => {
+            if (item.instance === selectedRepo) {
+                // Keep keys but set user-specific attributes to empty string
+                return {
+                    ...item,
+                    affiliation: "",
+                    authtoken: "",
+                    email: "",
+                    name: "",
+                    username: ""
+                };
+            }
+            return item;
+        });
         setDataSBH(updatedInstanceData);
         setDataPrimarySBH("")
         setSelectedRepo("Select a repository")
@@ -223,9 +234,9 @@ export default function CollectionInfo() {
             <Space h="xl" />
             <Group position="center">
                 <Button onClick={() => createCollection()} color="blue">Create Collection</Button>
-                {dataSBH.some(repo => repo.value === dataPrimarySBH) ? (
+                {dataSBH.some(repo => repo.value === dataPrimarySBH) && getAuthToken() ? (
                     <Button onClick={() => {SBHLogout(getAuthToken(), selectedRepo); handleLogout()}} color="blue">Logout</Button>
-                ) : <></>}
+                ) : <Button onClick={() => {dispatch(openSBHLogin())}} color="blue">Login</Button>}
             </Group>
         </>
     )
