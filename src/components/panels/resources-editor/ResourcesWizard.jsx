@@ -73,7 +73,7 @@ export default function ResourcesWizard() {
                     label="See past uploads"
                 >
                     <ScrollArea h={600} type="always">
-                        {uploads.length === 0 ? (
+                        {(uploads?.length ?? 0) === 0 ? (
                             <div>No uploads yet.</div>
                         ) : (
                             uploads.map((upload, idx) => (
@@ -90,7 +90,7 @@ export default function ResourcesWizard() {
                                     <div>
                                         <strong>Files:</strong>
                                         <ul>
-                                            {upload.files.map((file, fidx) => (
+                                            {(upload.files || []).map((file, fidx) => (
                                                 <li key={fidx}>{file}</li>
                                             ))}
                                         </ul>
