@@ -9,7 +9,9 @@ import { useDispatch } from 'react-redux';
 import { closeAddSBHrepository } from '../../redux/slices/modalSlice';
 
 
-function AddSBHRepository({ opened, onClose }) {    
+function AddSBHRepository({ opened, onClose }) {
+    if (!opened) return null;
+
     const dispatch = useDispatch();
 
     const [step, setStep] = useState(1);
