@@ -3,6 +3,7 @@ import { TextInput, PasswordInput, Button, Modal } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
+import { useEffect } from 'react';
 
 const login = async (instance, email, password) => {
     try {
@@ -67,6 +68,13 @@ const SBHOnly = ({opened, onClose}) => {
             password: (value) => (value ? null : 'Password is required')
         },
     });
+
+    // Reset form when modal is opened
+    useEffect(() => {
+        if (opened) {
+            form.reset();
+        }
+    }, [opened]);
 
     const handleSubmit = async (values) => {
         if (form.isValid()){
