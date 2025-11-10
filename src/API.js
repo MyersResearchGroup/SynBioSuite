@@ -240,3 +240,28 @@ export async function FJLogin(instance, username, password){
         throw error;
     }
 };
+
+export async function CheckLogin(instance, authToken){
+    try {
+        if (!authToken) {
+            return false
+        }
+
+        await axios.get(`https://${instance}/profile`, {
+            headers: {
+                "Accept": "text/plain",
+                "X-authorization": authToken
+            },
+        });
+
+        return true;
+    } catch (error) {
+        if (error.response?.status === 401) {
+            return false;
+        }
+
+        console.error("CheckLogin error:", error);
+        showErrorNotification('Login Error', error.message);
+        throw error;
+    }
+}
