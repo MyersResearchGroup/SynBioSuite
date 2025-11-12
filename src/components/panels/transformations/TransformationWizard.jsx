@@ -1,17 +1,15 @@
 import { useState } from 'react'
-import { Container, Stepper, Group, Button } from "@mantine/core"
-import { titleFromFileName, useCreateAssemblyFile } from '../../../redux/hooks/workingDirectoryHooks'
-import { useContext } from 'react'
-import { PanelContext } from './AssemblyPanel'
+import { Container } from "@mantine/core"
+import { titleFromFileName } from '../../../redux/hooks/workingDirectoryHooks'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
+import { useContext } from 'react'
 import { useSelector } from 'react-redux'
-import PanelSaver from '../PanelSaver'
+import { PanelContext } from './TransformationPanel'
+import { Button, Group, Stepper } from '@mantine/core'
 
-export default function AssemblyWizard({}) {
+
+export default function TransformationWizard({}) {
     const panelId = useContext(PanelContext)
-    PanelSaver(panelId)
-
-    const createFileClosure = useCreateAssemblyFile()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
 
     // file info
@@ -19,7 +17,6 @@ export default function AssemblyWizard({}) {
     const panelTitle = titleFromFileName(fileHandle.name)
     const [fileUrl, setFileUrl] = useState()
     
-    // stepper states
     const numSteps = 4
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
@@ -27,17 +24,17 @@ export default function AssemblyWizard({}) {
 
     return (
         <Container style={{ marginTop: 40, padding: '0 40px' }}>
-            <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
+            <Stepper active={activeStep} onStepClick={setActiveStep}>
                 <Stepper.Step
                     allowStepSelect={activeStep > 0}
-                    label="Designs"
+                    label="Plasmids"
                 >
                     <Button
                         variant="outline"
                         fullWidth
                         style={{ marginBottom: 16 }}
                     >
-                        Insert Combinatorial Design from SynBioHub
+                        Insert Plasmids from SynBioHub
                     </Button>
                 </Stepper.Step>
                 <Stepper.Step
@@ -49,31 +46,24 @@ export default function AssemblyWizard({}) {
                         fullWidth
                         style={{ marginBottom: 16 }}
                     >
-                        Insert Plasmids from SynBioHub
+                        Import Strains from SynBioHub
                     </Button>
                 </Stepper.Step>
                 <Stepper.Step
                     allowStepSelect={activeStep > 2}
-                    label="Assembly"
+                    label="Transform"
                 >
-                    Machine protocols form
+                    Machine protocol form
                     <Button
                         variant="outline"
                         fullWidth
                         style={{ marginBottom: 16 }}
                     >
-                        Select Plasmids
-                    </Button>
-                    <Button
-                        variant="outline"
-                        fullWidth
-                        style={{ marginBottom: 16 }}
-                    >
-                        Select Backbone
+                        Import Chassis from SynBioHub
                     </Button>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2}
+                    allowStepSelect={activeStep > 3}
                     label="Execute"
                 >
                     Review Placeholder
