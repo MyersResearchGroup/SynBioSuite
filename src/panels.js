@@ -3,13 +3,13 @@ import { FaFileArchive } from "react-icons/fa";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
+import TransformationPanel from "./components/panels/transformations/TransformationPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
 import { ObjectTypes } from "./objectTypes";
 import { GiSewingMachine, GiThorHammer } from "react-icons/gi";
-import BuildPanel from "./components/panels/build/BuildPanel";
 import { PiMicrosoftExcelLogoFill } from "react-icons/pi";
 import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
 
@@ -86,11 +86,11 @@ export const PanelTypes = {
             return panel.sbol;
         }
     },
-    AssemblyPlanCreator: {
-        id: "synbio.panel-type.assembly-plan-creator",
-        title: "Assembly Plan Creator",
-        component: AssemblyPanel,
-        objectTypes: [ ObjectTypes.Assembly.id ],
+    Transformations: {
+        id: "synbio.panel-type.transformations",
+        title: "Transformations",
+        component: TransformationPanel,
+        objectTypes: [ ObjectTypes.Transformations.id ],
         icon: GiSewingMachine,
 
         deserialize: content => {
@@ -107,11 +107,11 @@ export const PanelTypes = {
             return JSON.stringify(restOfPanel)
         }
     },
-    BuildEditor: {
-        id: "synbio.panel-type.build-editor",
-        title: "Build Editor",
-        component: BuildPanel,
-        objectTypes: [ ObjectTypes.Build.id ],
+    AssemblyPlanCreator: {
+        id: "synbio.panel-type.assembly-plan-creator",
+        title: "Assembly Plan Creator",
+        component: AssemblyPanel,
+        objectTypes: [ ObjectTypes.Assembly.id ],
         icon: GiThorHammer,
 
         deserialize: content => {
@@ -126,7 +126,7 @@ export const PanelTypes = {
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify(restOfPanel)
-        } 
+        }
     },
     Experiment: {
         id: "synbio.panel-type.data-collector",
