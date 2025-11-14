@@ -21,6 +21,14 @@ def pin():
 def upload_resource():
     return sbh_fj_upload(request.files)
 
+@app.route('/api/uploadAssembly', methods = ['POST'])
+def upload_assembly():
+    return 'Not implemented yet', 501
+
+@app.route('/api/uploadTransformation', methods = ['POST'])
+def upload_transformation():
+    return 'Not implemented yet', 501
+
 @app.route('/api/uploadExperiment', methods = ['POST'])
 def upload_experiment():
     return sbh_fj_upload(request.files)
