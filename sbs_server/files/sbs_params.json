@@ -12,5 +12,5 @@
     "sbh_overwrite": 1,
     "fj_overwrite": 1,
     "version": "",
-    "attachTo": "ExampleMedia"
+    "attachments": {"example.jpg":"ExampleMedia", "ExpNOTs_GFP_trans.xlsx":"LB"}
 }
