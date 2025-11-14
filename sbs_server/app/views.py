@@ -130,7 +130,26 @@ def upload_file_from_sbs_post_up():
         "status": "success"
     }
     return jsonify(sbs_upload_response_dict)
+
+@app.route('/abstract_design_2_plasmids', methods=['POST'])    
+def abstract_design_2_plasmids():
+    if 'abstract_design_uri' not in request.form:
+        return jsonify({"error": "Missing abstract design URI"}), 400
+    if 'plasmid_collection_uri' not in request.form:
+        return jsonify({"error": "Missing plasmid collection URI"}), 400
+    if 'plasmid_vector_uri' not in request.form:
+        return jsonify({"error": "Missing plasmid vector URI"}), 400
     
+    #TODO authtoken and registry errorhandling?
+    
+    abstract_design_uri = request.form.get("abstract_design_uri")
+    plasmid_collection_uri = request.form.get("plasmid_collection_uri")
+    plasmid_vector_uri = request.form.get("plasmid_vector_uri")
+    auth_token = request.form.get("auth_token")
+
+    print(abstract_design_uri, plasmid_collection_uri, plasmid_vector_uri, auth_token)
+
+    return 0
 
 
 @app.route('/sbol_2_build_golden_gate', methods=['POST'])
