@@ -5,8 +5,8 @@ numpy==1.26.1
 pandas==1.3.3
 pyflapjack @ git+https://github.com/flapjacksynbio/pyFlapjack@xdc_features2
 excel2flapjack==1.0.11
-# tricahue==0.0b5
-tricahue @ git+https://github.com/MyersResearchGroup/Tricahue
+tricahue==0.0b6
+# tricahue @ git+https://github.com/MyersResearchGroup/Tricahue/@dev
 sbol2build
 flask_swagger_ui
 xlsxwriter
