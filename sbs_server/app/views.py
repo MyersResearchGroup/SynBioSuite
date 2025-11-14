@@ -17,35 +17,41 @@ import pudu
 def pin():
     return jsonify({"status": "working"}), 200
 
-@app.route("/api/data")
-def get_data():
-    return app.send_static_file("data.json")
+@app.route('/api/uploadResource', methods = ['POST'])
+def upload_resource():
+    return sbh_fj_upload(request.files)
 
-@app.route('/api/upload_sbs', methods = ['POST'])
-def upload_file_from_sbs_post():
-    # Check Metadata excel template
-    if 'Metadata' not in request.files:
+@app.route('/api/uploadExperiment', methods = ['POST'])
+def upload_experiment():
+    return sbh_fj_upload(request.files)
+
+'''
+Helper function to upload to SynBioHub and Flapjack using XDC/XDE
+'''
+def sbh_fj_upload(files):
+    
+    if 'Metadata' not in files:
         print(request)
         return 'No file part', 400
-    file = request.files['Metadata']
-    if file.filename == '':
+    metadata_file = files['Metadata']
+    if metadata_file.filename == '':
         return 'No selected file', 400
-    root, extension = os.path.splitext(file.filename)
+    root, extension = os.path.splitext(metadata_file.filename)
     if not extension == '.xlsx' and not extension == '.xlsm':
         return 'Invalid Metadata file format', 400
     
     # # Plate reader data to upload to FJ
     # if 'Experimental_Data' in request.files:
-    #     data = request.files['Experimental_Data']
+    #     experimental = request.files['Experimental_Data']
     #     # Run XDE to add data to template (?)
-    #     # data = result
+    #     # experimental = result
     # else:
-    #     data = None
+    #     experimental = None
 
     # Check params from frontend
-    if 'Params' not in request.files:
+    if 'Params' not in files:
         return 'No Params file part', 400
-    params_file = request.files['Params']
+    params_file = files['Params']
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
@@ -62,19 +68,15 @@ def upload_file_from_sbs_post():
         return 'No SBH credentials provided', 400
 
     # Attachment files to upload to SBH
-    if 'Attachments' in request.files and 'attachTo' in params_from_request:
-        attachments = []
-        for file in request.files.getlist('Attachments'):
-            print(file.filename)
-            attachments.append(file)
-        attachTo = params_from_request['attachTo']
+    if 'Attachments' in files and 'attachments' in params_from_request:
+        attachment_files = files.getlist("Attachments")
+        attachments = {params_from_request['attachments'][file.filename] : file for file in attachment_files}
+        print(attachments)
     else:
         attachments = None
-        attachTo = None
 
     # instantiate the XDC class using the params_from_request dictionary
-    print(request.files['Metadata'])
-    xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
+    xdc = tricahue.XDC(input_excel_path = files['Metadata'],
             fj_url = params_from_request['fj_url'],
             fj_user = params_from_request['fj_user'], 
             fj_pass = params_from_request['fj_pass'], 
@@ -88,8 +90,7 @@ def upload_file_from_sbs_post():
             fj_token = params_from_request['fj_token'], 
             sbh_token = params_from_request['sbh_token'],
             homespace = "https://example.org/", 
-            attachments = attachments,
-            attachTo = attachTo
+            attachments = attachments
             )
 
     try:
