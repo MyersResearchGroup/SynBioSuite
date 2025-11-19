@@ -2,12 +2,12 @@ from __future__ import annotations
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from .main import app
+from .utils import abstract_design_2_plasmids, sbol2build_moclo
 import sys
 import os
 import json
 import xml.etree.ElementTree as ET
 
-import sbol2build
 import tricahue
 import sbol2 as sb2
 import pudu
@@ -171,16 +171,24 @@ def sbol_2_build_golden_gate():
     assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
 
     try:
-        composites = assembly_obj.run()
+        # Run abstract translator to get plasmids
+        plasmid_documents, vector_doc, design_id = abstract_design_2_plasmids(abstract_design_uri, plasmid_collection_uri, plasmid_vector_uri, sbh)
+        
+        # Run plasmids through sbol2build to generate assembly plan
+        assembly_plan_doc = sbol2build_moclo(plasmid_documents, vector_doc, design_id)
+        assembly_plan_doc.displayId = f"{design_id}_assembly"
 
-        return_string = assembly_doc.writeString()
-
-        # Return the file as a response
-        return return_string
+    
+        sbh_response = sbh.submit(
+            doc=assembly_plan_doc,
+            collection=recipient_collection_uri,
+            overwrite=2
+        )
+        return sbh_response.text, sbh_response.status_code
 
     except ValueError as e:
-        # catch sbol2build errors and return to frontend
         return jsonify({"error": str(e)}), 400
+
     except Exception as e:
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
 
