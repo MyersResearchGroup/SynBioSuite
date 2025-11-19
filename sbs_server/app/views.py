@@ -19,56 +19,106 @@ import subprocess
 def pin():
     return jsonify({"status": "working"}), 200
 
-@app.route("/api/data")
-def get_data():
-    return app.send_static_file("data.json")
+@app.route('/api/uploadResource', methods = ['POST'])
+def upload_resource():
+    return sbh_fj_upload(request.files)
 
-@app.route('/api/upload_sbs', methods = ['POST'])
-def upload_file_from_sbs_post():
-    if 'Metadata' not in request.files:
+@app.route('/api/uploadAssembly', methods = ['POST'])
+def upload_assembly():
+    return 'Not implemented yet', 501
+
+@app.route('/api/uploadTransformation', methods = ['POST'])
+def upload_transformation():
+    return 'Not implemented yet', 501
+
+@app.route('/api/uploadExperiment', methods = ['POST'])
+def upload_experiment():
+    return sbh_fj_upload(request.files)
+
+'''
+Helper function to upload to SynBioHub and Flapjack using XDC/XDE
+'''
+def sbh_fj_upload(files):
+    
+    if 'Metadata' not in files:
         print(request)
         return 'No file part', 400
-    file = request.files['Metadata']
-    if file.filename == '':
+    metadata_file = files['Metadata']
+    if metadata_file.filename == '':
         return 'No selected file', 400
-    file_contents = file.read()
-    if 'Params' not in request.files:
+    root, extension = os.path.splitext(metadata_file.filename)
+    if not extension == '.xlsx' and not extension == '.xlsm':
+        return 'Invalid Metadata file format', 400
+    
+    # # Plate reader data to upload to FJ
+    # if 'Experimental_Data' in request.files:
+    #     experimental = request.files['Experimental_Data']
+    #     # Run XDE to add data to template (?)
+    #     # experimental = result
+    # else:
+    #     experimental = None
+
+    # Check params from frontend
+    if 'Params' not in files:
         return 'No Params file part', 400
-    params_file = request.files['Params']
+    params_file = files['Params']
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
-    expected_params = ['fj_url', 'fj_token', 'sbh_url', 'sbh_token', 'sbh_collec', 'sbh_collec_desc', 'sbh_overwrite', 'fj_overwrite']
-    for param in expected_params:
+    required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
+                       'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
+                       'sbh_collec', 'sbh_collec_desc', 
+                       'sbh_overwrite', 'fj_overwrite']
+    for param in required_params:
         if param not in params_from_request:
             return 'Parameter ' + param + ' not found in request', 400
+    if (params_from_request['sbh_token'] is None and 
+        params_from_request['sbh_user'] is None and
+        params_from_request['sbh_pass'] is None):
+        return 'No SBH credentials provided', 400
+
+    # Attachment files to upload to SBH
+    attachments = None
+    if 'Attachments' in files:
+        attachment_files = files.getlist("Attachments")
+        attachment_metadata = params_from_request.get('attachments')
+
+        if attachment_metadata is None:
+            return 'Attachment metadata not provided', 400
+        if not isinstance(attachment_metadata, dict):
+            return 'Attachment metadata must be a JSON object keyed by filename', 400
+
+        attachments = {}
+        missing_metadata = [file.filename for file in attachment_files if file.filename not in attachment_metadata]
+        if missing_metadata:
+            missing_list = ', '.join(missing_metadata)
+            return f'Missing attachment metadata for files: {missing_list}', 400
+
+        for file in attachment_files:
+            attachments[attachment_metadata[file.filename]] = file
+
+        print(attachments)
 
     # instantiate the XDC class using the params_from_request dictionary
-    print(request.files['Metadata'])
-    xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
+    xdc = tricahue.XDC(input_excel_path = files['Metadata'],
             fj_url = params_from_request['fj_url'],
-            fj_user = None, 
-            fj_pass = None, 
+            fj_user = params_from_request['fj_user'], 
+            fj_pass = params_from_request['fj_pass'], 
             sbh_url = params_from_request['sbh_url'], 
-            sbh_user = None, 
-            sbh_pass = None, 
+            sbh_user = params_from_request['sbh_user'], 
+            sbh_pass = params_from_request['sbh_pass'], 
             sbh_collection = params_from_request['sbh_collec'], 
             sbh_collection_description = params_from_request['sbh_collec_desc'],
             sbh_overwrite = params_from_request['sbh_overwrite'], 
             fj_overwrite = params_from_request['fj_overwrite'], 
             fj_token = params_from_request['fj_token'], 
             sbh_token = params_from_request['sbh_token'],
-            homespace = "https://synbiohub.org/gonza10v"
+            homespace = "https://example.org/", 
+            attachments = attachments
             )
 
     try:
-        xdc.initialize()
-        xdc.log_in_sbh()
-        xdc.log_in_fj()
-        xdc.convert_to_sbol()
-        xdc.generate_sbol_hash_map()
-        sbh_url = xdc.upload_to_sbh()
-        xdc.upload_to_fj()
+        sbh_url = xdc.run()
     except AttributeError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -78,60 +128,22 @@ def upload_file_from_sbs_post():
     }
     return jsonify(sbs_upload_response_dict)
 
-@app.route('/api/upload_sbs_up', methods = ['POST'])
-def upload_file_from_sbs_post_up():
-    if 'Metadata' not in request.files:
-        print(request)
-        return 'No file part', 400
-    file = request.files['Metadata']
-    if file.filename == '':
-        return 'No selected file', 400
-    file_contents = file.read()
-    if 'Params' not in request.files:
-        return 'No Params file part', 400
-    params_file = request.files['Params']
-    if params_file.filename == '':
-        return 'No selected Params file', 400
-    params_from_request = json.loads(params_file.read())
-    expected_params = ['fj_url', 'fj_user', 'fj_pass', 'sbh_url', 'sbh_user', 'sbh_pass', 'sbh_collec', 'sbh_collec_desc', 'sbh_overwrite', 'fj_overwrite']
-    for param in expected_params:
-        if param not in params_from_request:
-            return 'Parameter ' + param + ' not found in request', 400
 
-    # instantiate the XDC class using the params_from_request dictionary
-    print(request.files['Metadata'])
-    xdc = tricahue.XDC(input_excel_path = request.files['Metadata'],
-            fj_url = params_from_request['fj_url'],
-            fj_user = params_from_request['fj_user'],
-            fj_pass = params_from_request['fj_pass'], 
-            sbh_url = params_from_request['sbh_url'], 
-            sbh_user = params_from_request['sbh_user'], 
-            sbh_pass = params_from_request['sbh_pass'],
-            sbh_collection = params_from_request['sbh_collec'], 
-            sbh_collection_description = params_from_request['sbh_collec_desc'],
-            sbh_overwrite = params_from_request['sbh_overwrite'], 
-            fj_overwrite = params_from_request['fj_overwrite'], 
-            fj_token = None, 
-            sbh_token = None,
-            homespace = "https://synbiohub.org/gonza10v"
-            )            
+@app.route('/sbol_2_build_golden_gate', methods=['POST'])
+def sbol_2_build_golden_gate():
+    # Error checking in the request
+    print("request", request.files)
 
-    try:
-        xdc.initialize()
-        xdc.log_in_fj()
-        xdc.log_in_sbh()
-        xdc.convert_to_sbol()
-        xdc.generate_sbol_hash_map()
-        sbh_url = xdc.upload_to_sbh()
-        xdc.upload_to_fj()
-    except AttributeError as e:
-        return jsonify({"error": str(e)}), 400
-    
-    sbs_upload_response_dict = {
-        "sbh_url": sbh_url,
-        "status": "success"
-    }
-    return jsonify(sbs_upload_response_dict)
+    if 'plasmid_backbone' not in request.files:
+        return jsonify({"error": "Missing plasmid backbone"}), 400
+    if 'insert_parts' not in request.files:
+        return jsonify({"error": "Missing insert parts"}), 400
+    if 'wizard_selections' not in request.form:
+        return jsonify({"error": "Missing wizard selections"}), 400
+
+    wizard_selection = request.form.get('wizard_selections')
+    plasmid_backbone = request.files.get('plasmid_backbone')
+    insert_parts = request.files.getlist('insert_parts')
 
     # Parse the json
 
