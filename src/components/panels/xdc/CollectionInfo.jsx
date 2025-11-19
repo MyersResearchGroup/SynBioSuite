@@ -4,13 +4,14 @@ import { PanelContext } from './CollectionPanel'
 import { Select, Table, Space, Button, Group, ScrollArea } from '@mantine/core'
 import { useLocalStorage } from '@mantine/hooks'
 import { useDispatch, useSelector } from 'react-redux'
-import { openAddSBHrepository, openCreateCollection, openSBHLogin } from '../../../redux/slices/modalSlice'
 import { SBHLogout, searchCollections, CheckLogin } from '../../../API'
 import { showNotification } from '@mantine/notifications'
+import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal'
 
 export default function CollectionInfo() {
     const panelId = useContext(PanelContext)
     const dispatch = useDispatch();
+    const { workflows } = useUnifiedModal();
 
     const sbhLoginOpen = useSelector(state => state.modal.sbhLoginOpen);
 
@@ -145,7 +146,9 @@ export default function CollectionInfo() {
             // Only open login if not already open
             if (!sbhLoginOpen && !loginPromptShownRef.current) {
                 loginPromptShownRef.current = true;
-                dispatch(openSBHLogin());
+                workflows.loginToSBH(() => {
+                    loginPromptShownRef.current = false;
+                });
             }
             return;
         }
@@ -154,9 +157,9 @@ export default function CollectionInfo() {
         loginPromptShownRef.current = false;
 
         // Open create collection modal with callback
-        dispatch(openCreateCollection({
-            callback: () => updateCollections(),
-        }));
+        workflows.createCollection('', '', () => {
+            updateCollections();
+        });
     }, [getAuthToken, sbhLoginOpen, dispatch, updateCollections, clearLoginSuppression]);
 
     /**
@@ -246,7 +249,7 @@ export default function CollectionInfo() {
     const handleRepoChange = useCallback((value) => {
         if (value === 'add-repository') {
             clearLoginSuppression();
-            dispatch(openAddSBHrepository());
+            workflows.addRepository('sbh');
         } else {
             if (value !== selectedRepo) {
                 // User explicitly selecting repo -> clear suppression and reset flags
@@ -260,11 +263,13 @@ export default function CollectionInfo() {
                 // Only open login if not already open and we don't have a token
                 const hasToken = dataSBH.find(repo => repo.value === value)?.authtoken;
                 if (!hasToken && !sbhLoginOpen) {
-                    dispatch(openSBHLogin());
+                    workflows.loginToSBH(() => {
+                        loginPromptShownRef.current = false;
+                    });
                 }
             }
         }
-    }, [selectedRepo, dataSBH, sbhLoginOpen, dispatch, setDataPrimarySBH, clearLoginSuppression]);
+    }, [selectedRepo, dataSBH, sbhLoginOpen, workflows, setDataPrimarySBH, clearLoginSuppression]);
 
     /**
      * Sync selectedRepo with dataPrimarySBH when modal closes or data changes
@@ -346,7 +351,9 @@ export default function CollectionInfo() {
             if (!authToken) {
                 if (!sbhLoginOpen && !loginPromptShownRef.current) {
                     loginPromptShownRef.current = true;
-                    dispatch(openSBHLogin());
+                    workflows.loginToSBH(() => {
+                        loginPromptShownRef.current = false;
+                    });
                 }
                 return;
             }
@@ -474,7 +481,7 @@ export default function CollectionInfo() {
                 <Button onClick={handleCreateCollection} color="blue">Create Collection</Button>}
                 {dataSBH.some(repo => repo.value === dataPrimarySBH) && getAuthToken() ? (
                     <Button onClick={handleLogout} color="blue">Logout</Button>
-                ) : <Button onClick={() => dispatch(openSBHLogin())} color="blue">Login</Button>}
+                ) : <Button onClick={() => workflows.loginToSBH(() => { loginPromptShownRef.current = false; })} color="blue">Login</Button>}
                 {selectedRepo !== "Select a repository" && (
                     <Button onClick={handleRemoveInstance} color="blue">Remove Instance</Button>
                 )}

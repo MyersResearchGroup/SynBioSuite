@@ -5,7 +5,7 @@ import AddInstance from './addInstance';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 
-const FJInstanceSelector = ({onClose, setRepoSelection }) => {
+const FJInstanceSelector = ({onClose, setRepoSelection, goBack, navigateTo }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [addingInstance, setAddingInstance] = useState("placeholder");
     const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });

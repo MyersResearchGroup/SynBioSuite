@@ -4,7 +4,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { createCollection } from '../API';
 
-function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription }) {    
+function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack, navigateTo }) {    
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
 
@@ -85,8 +85,15 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     placeholder="Comma separated PubMed IDs (e.g. 12345,67890)"
                 />
                 <Space h="md" />
-                <Group position="right">
-                    <Button type="submit">Create</Button>
+                <Group position="apart">
+                    {goBack && (
+                        <Button variant="default" onClick={goBack}>
+                            Back
+                        </Button>
+                    )}
+                    <Button type="submit" ml={goBack ? undefined : "auto"}>
+                        Create
+                    </Button>
                 </Group>
             </form>
         </Modal>
