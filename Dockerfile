@@ -13,7 +13,7 @@ EXPOSE 5003
 # Install requirements
 COPY requirements.txt /app/
 RUN /usr/local/bin/python -m pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt 
 
 # Create uploads directory
 RUN mkdir -p /app/uploads && \
