@@ -13,13 +13,14 @@ import { useLocalStorage } from "@mantine/hooks"
 import ExperimentalTable from "./ExperimentalTable"
 import { MdTextSnippet } from "react-icons/md"
 import CollectionInfo from "./CollectionInfo"
-import { openAddFJrepository } from "../../../redux/slices/modalSlice"
 import { useDispatch } from "react-redux"
+import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal"
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
     const dispatch = useDispatch();
+    const { workflows } = useUnifiedModal();
     
     const handleOpenFile = (file) => {
         openPanel(file)
@@ -74,7 +75,7 @@ export default function CollectionWizard() {
 
     const uploadToFlapjack = sbh => {
         if (!selectedFJ || selectedFJ == ''){
-            dispatch(openAddFJrepository({callback: () => handleUploadSequence()}))
+            workflows.addRepository('fj', () => handleUploadSequence());
         } else {
             handleUploadSequence();
         }

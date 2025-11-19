@@ -25,6 +25,9 @@ function SBHModal({ opened, onClose, repoName }) {
         setRepoSelection("");
     }, [opened]);
 
+    // Safely resolve selected instance info
+    const sbhInfo = selectedSBH ? findInstance(selectedSBH, "SBH") : null;
+
     return (
         <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
             {repoSelection === "" ? (
@@ -39,14 +42,14 @@ function SBHModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
+                                    Repository: {sbhInfo ? sbhInfo.instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
-                                    Username: {selectedSBH ? findInstance(selectedSBH, "SBH").username : "Not Logged In"}
+                                    Username: {sbhInfo ? sbhInfo.username : "Not Logged In"}
                                 </Text>
                                 <Text mt={3} fz="xs" c="dimmed">
-                                    Email: {selectedSBH ? findInstance(selectedSBH, "SBH").email : "Not Logged In"}
+                                    Email: {sbhInfo ? sbhInfo.email : "Not Logged In"}
                                 </Text>
                                 {selectedSBH ? <>
                                     <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>

@@ -6,7 +6,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { cleanNotifications, showNotification } from '@mantine/notifications';
 import axios from 'axios';
 
-const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
+const SBHInstanceSelector = ({onClose, setRepoSelection, goBack, navigateTo }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [addingInstance, setAddingInstance] = useState("placeholder");
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
