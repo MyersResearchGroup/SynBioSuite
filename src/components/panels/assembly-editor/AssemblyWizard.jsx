@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Container, Stepper, Group, Button, Tabs, Space, Select, Table, Text } from "@mantine/core"
 import { titleFromFileName, useCreateAssemblyFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
@@ -98,11 +98,29 @@ export default function AssemblyWizard({}) {
     const [selectedBackbone, setSelectedBackbone] = usePanelProperty(panelId, "selectedBackbone", false, null);
     const [selectedBackboneInfo, setSelectedBackboneInfo] = usePanelProperty(panelId, "selectedBackboneInfo", false, null);
 
+    const firstRender = useRef(true);
+
     useEffect(() => {
         if (assemblyMethod === AssemblyMethods.MOCLO && restrictionEnzyme !== RestrictionEnzymes.MOCLO.BSAI) {
             setRestrictionEnzyme(RestrictionEnzymes.MOCLO.BSAI);
         }
     }, [assemblyMethod, setRestrictionEnzyme, restrictionEnzyme]);
+
+    useEffect(() => {
+        if (firstRender.current) {
+            firstRender.current = false;
+            return;
+        }
+        setDepositCollection('');
+        setCollectionInfo(null);
+        setUserInfo(null);
+        setAbstractDesign('');
+        setAbstractDesignInfo(null);
+        setSelectedPlasmid(null);
+        setSelectedPlasmidInfo(null);
+        setSelectedBackbone(null);
+        setSelectedBackboneInfo(null);
+    }, [SBHinstance, SBHemail]);
 
     // workflow calls
     const handleBrowseCollections = () => {
@@ -176,7 +194,7 @@ export default function AssemblyWizard({}) {
                     });
                 }
             }
-        });
+        }, { multiSelect: false }); // Single selection mode
     };
 
     // Handler for Select Plasmids
@@ -213,7 +231,7 @@ export default function AssemblyWizard({}) {
                     });
                 }
             }
-        });
+        }, { multiSelect: false }); // Single selection mode
     };
 
     // Handler for Select Backbone
@@ -250,7 +268,7 @@ export default function AssemblyWizard({}) {
                     });
                 }
             }
-        });
+        }, { multiSelect: false }); // Single selection mode
     };
 
     return (

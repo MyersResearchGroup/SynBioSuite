@@ -12,6 +12,7 @@ import {
     Loader,
     Center,
     Checkbox,
+    Radio,
     Paper,
     Divider,
     ActionIcon,
@@ -25,7 +26,7 @@ import { MODAL_TYPES } from './unifiedModal';
 
 /**
  * Collection Browser Modal - Step 3 of the workflow
- * Shows hierarchical collection browsing with multi-select
+ * Shows hierarchical collection browsing with configurable selection mode
  */
 export default function CollectionBrowserModal({ 
     navigateTo, 
@@ -39,6 +40,7 @@ export default function CollectionBrowserModal({
     expectedEmail: expectedEmailFromProps,
     silentCredentialCheck: silentCredentialCheckFromProps,
     skipRepositorySelection: skipRepositorySelectionFromProps,
+    multiSelect: multiSelectFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
@@ -60,6 +62,7 @@ export default function CollectionBrowserModal({
     const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
     const silentCredentialCheck = silentCredentialCheckFromProps !== undefined ? silentCredentialCheckFromProps : modalData.silentCredentialCheck;
     const skipRepositorySelection = skipRepositorySelectionFromProps !== undefined ? skipRepositorySelectionFromProps : modalData.skipRepositorySelection;
+    const multiSelect = multiSelectFromProps !== undefined ? multiSelectFromProps : modalData.multiSelect !== undefined ? modalData.multiSelect : true; // Default to multi-select
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -117,26 +120,16 @@ export default function CollectionBrowserModal({
                         skipRepositorySelection: true,
                     }));
                 }
-                console.log('About to navigate to SBH_CREDENTIAL_CHECK with modalData:', {
-                    selectedRepo,
-                    expectedEmail,
-                    skipRepositorySelection: true,
-                });
-                console.log('navigateTo function:', typeof navigateTo, navigateTo);
                 navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
-                console.log('Navigation call completed');
                 return;
             }
 
             // Check if token is valid
             try {
-                console.log('Starting credential check with token:', authToken ? 'present' : 'missing');
                 const loginResult = await CheckLogin(selectedRepo, authToken);
-                console.log('CheckLogin result:', loginResult);
 
                 if (!loginResult.valid) {
                     // Invalid token, clear credentials and navigate to credential check
-                    console.log('Token invalid - clearing credentials and navigating to credential check');
                     clearInvalidCredentials(selectedRepo);
                     if (setModalData) {
                         setModalData(prev => ({
@@ -327,14 +320,27 @@ export default function CollectionBrowserModal({
     const toggleSelection = useCallback((collection) => {
         setSelectedCollections(prev => {
             const newMap = new Map(prev);
-            if (newMap.has(collection.uri)) {
-                newMap.delete(collection.uri);
+            
+            if (multiSelect) {
+                // Multi-select mode: toggle the selection
+                if (newMap.has(collection.uri)) {
+                    newMap.delete(collection.uri);
+                } else {
+                    newMap.set(collection.uri, collection);
+                }
             } else {
-                newMap.set(collection.uri, collection);
+                // Single-select mode: replace any existing selection
+                if (newMap.has(collection.uri)) {
+                    newMap.clear(); // Deselect if clicking the same item
+                } else {
+                    newMap.clear(); // Clear previous selection
+                    newMap.set(collection.uri, collection); // Select new item
+                }
             }
+            
             return newMap;
         });
-    }, []);
+    }, [multiSelect]);
 
     // Remove a selected collection
     const removeSelection = useCallback((uri) => {
@@ -409,7 +415,10 @@ export default function CollectionBrowserModal({
             {selectedCollections.size > 0 && (
                 <Paper p="sm" withBorder>
                     <Text size="sm" weight={500} mb="xs">
-                        Selected Collections ({selectedCollections.size})
+                        {multiSelect 
+                            ? `Selected Collections (${selectedCollections.size})` 
+                            : `Selected Collection`
+                        }
                     </Text>
                     <Group spacing="xs">
                         {Array.from(selectedCollections.values()).map(collection => (
@@ -474,10 +483,17 @@ export default function CollectionBrowserModal({
                                         style={{ cursor: 'pointer' }}
                                     >
                                         <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                            <Checkbox
-                                                checked={selectedCollections.has(collection.uri)}
-                                                onChange={() => toggleSelection(collection)}
-                                            />
+                                            {multiSelect ? (
+                                                <Checkbox
+                                                    checked={selectedCollections.has(collection.uri)}
+                                                    onChange={() => toggleSelection(collection)}
+                                                />
+                                            ) : (
+                                                <Radio
+                                                    checked={selectedCollections.has(collection.uri)}
+                                                    onChange={() => toggleSelection(collection)}
+                                                />
+                                            )}
                                         </td>
                                         <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.displayId}</td>
                                         <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.name}</td>
@@ -512,7 +528,12 @@ export default function CollectionBrowserModal({
                         onClick={handleComplete}
                         disabled={selectedCollections.size === 0}
                     >
-                        Confirm Selection ({selectedCollections.size})
+                        {multiSelect 
+                            ? `Confirm Selection (${selectedCollections.size})` 
+                            : selectedCollections.size > 0 
+                                ? 'Confirm Selection' 
+                                : 'Select Collection'
+                        }
                     </Button>
                 </Group>
             </Group>
