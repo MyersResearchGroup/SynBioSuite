@@ -190,6 +190,7 @@ export function useUnifiedModal() {
          * @param {string} expectedEmail - The email address to validate against (for cross-reference)
          * @param {function} onComplete - Callback function that receives selected collections
          * @param {object} props - Optional props for initial configuration
+         * @param {boolean} props.multiSelect - Whether to allow multiple selections (default: true)
          * 
          * The callback receives data only when the entire workflow completes:
          * {
@@ -222,6 +223,7 @@ export function useUnifiedModal() {
                     expectedEmail: expectedEmail,
                     skipRepositorySelection: true,
                     silentCredentialCheck: true,
+                    multiSelect: props.multiSelect !== undefined ? props.multiSelect : true, // Default to multi-select for backward compatibility
                 },
                 onComplete,
             });

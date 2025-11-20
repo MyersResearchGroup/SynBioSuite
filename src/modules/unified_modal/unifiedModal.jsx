@@ -93,21 +93,10 @@ function UnifiedModal({
      * Navigate to a different modal within the unified modal
      */
     const navigateTo = useCallback((modalType, data = {}) => {
-        console.log('navigateTo called:', { from: currentModal, to: modalType, data });
-        
         // Check if navigation is allowed
         const currentFlow = MODAL_FLOWS[currentModal] || [];
         const isAllowedByFlow = currentFlow.includes(modalType);
         const isAllowedByWorkflow = allowedModals.includes(modalType);
-
-        console.log('Navigation check:', { 
-            currentModal, 
-            modalType, 
-            currentFlow, 
-            isAllowedByFlow, 
-            isAllowedByWorkflow,
-            allowedModals 
-        });
 
         if (!isAllowedByFlow) {
             console.warn(`Navigation from ${currentModal} to ${modalType} not allowed by flow`);
@@ -119,7 +108,6 @@ function UnifiedModal({
             return false;
         }
 
-        console.log('Navigation successful, updating state');
         // Save current modal to history
         setModalHistory(prev => [...prev, currentModal]);
         setCurrentModal(modalType);
