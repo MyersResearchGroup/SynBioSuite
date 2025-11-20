@@ -136,7 +136,34 @@ export default function AssemblyWizard({}) {
     };
 
     const handleInsertAbstractDesign = () => {
-        workflows.browseCollections((data) => {
+        // Use the new workflow that validates against the deposit collection's email
+        if (!SBHinstance || !SBHemail) {
+            showNotification({
+                title: 'No Repository Selected',
+                message: 'Please select a deposit collection first.',
+                color: 'red',
+            });
+            return;
+        }
+
+        console.log('Calling browseCollectionsForResource with:', { SBHinstance, SBHemail });
+
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {
+            console.log('Abstract Design workflow callback data:', data);
+            
+            if (data && data.aborted) {
+                const expectedEmail = data.expectedEmail || SBHemail || 'unknown';
+                const actualEmail = data.actualEmail || 'unknown';
+                showNotification({
+                    title: data.error === 'Email mismatch' ? 'Email Mismatch' : 'Selection Aborted',
+                    message: data.error === 'Email mismatch' 
+                        ? `Expected ${expectedEmail}, but you are logged in as ${actualEmail}.`
+                        : data.error || 'The operation was aborted.',
+                    color: 'red',
+                });
+                return;
+            }
+
             if (data && data.completed) {
                 try {
                     setAbstractDesign(data.collections[0].uri);
@@ -154,19 +181,28 @@ export default function AssemblyWizard({}) {
 
     // Handler for Select Plasmids
     const handleSelectPlasmid = () => {
-        workflows.browseCollections((data) => {
+        // Use the new workflow that validates against the deposit collection's email
+        if (!SBHinstance || !SBHemail) {
+            showNotification({
+                title: 'No Repository Selected',
+                message: 'Please select a deposit collection first.',
+                color: 'red',
+            });
+            return;
+        }
+
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {
+            if (data && data.aborted) {
+                showNotification({
+                    title: 'Email Mismatch',
+                    message: `Expected ${data.expectedEmail}, but you are logged in as ${data.actualEmail}.`,
+                    color: 'red',
+                });
+                return;
+            }
+
             if (data && data.completed) {
                 try {
-                    if (
-                        !data.selectedRepo ||
-                        !data.userInfo ||
-                        !data.userInfo.email ||
-                        !data.collections ||
-                        !data.collections[0] ||
-                        !data.collections[0].uri
-                    ) {
-                        throw new Error("Missing required data.");
-                    }
                     setSelectedPlasmid(data.collections[0].uri);
                     setSelectedPlasmidInfo(data.collections[0]);
                 } catch (error) {
@@ -182,19 +218,28 @@ export default function AssemblyWizard({}) {
 
     // Handler for Select Backbone
     const handleSelectBackbone = () => {
-        workflows.browseCollections((data) => {
+        // Use the new workflow that validates against the deposit collection's email
+        if (!SBHinstance || !SBHemail) {
+            showNotification({
+                title: 'No Repository Selected',
+                message: 'Please select a deposit collection first.',
+                color: 'red',
+            });
+            return;
+        }
+
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {
+            if (data && data.aborted) {
+                showNotification({
+                    title: 'Email Mismatch',
+                    message: `Expected ${data.expectedEmail}, but you are logged in as ${data.actualEmail}.`,
+                    color: 'red',
+                });
+                return;
+            }
+
             if (data && data.completed) {
                 try {
-                    if (
-                        !data.selectedRepo ||
-                        !data.userInfo ||
-                        !data.userInfo.email ||
-                        !data.collections ||
-                        !data.collections[0] ||
-                        !data.collections[0].uri
-                    ) {
-                        throw new Error("Missing required data.");
-                    }
                     setSelectedBackbone(data.collections[0].uri);
                     setSelectedBackboneInfo(data.collections[0]);
                 } catch (error) {

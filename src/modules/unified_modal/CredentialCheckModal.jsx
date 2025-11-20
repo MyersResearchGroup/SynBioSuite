@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Stack, Button, Group, Text, Alert, Loader, Center, Paper, Avatar } from '@mantine/core';
 import { FaExclamationCircle, FaCheck, FaTimes } from 'react-icons/fa';
 import { useLocalStorage } from '@mantine/hooks';
-import { CheckLogin, SBHLogout } from '../../API';
+import { CheckLogin, SBHLogout, clearInvalidCredentials } from '../../API';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
 
@@ -24,6 +24,8 @@ export default function CredentialCheckModal({
     const [isValid, setIsValid] = useState(null);
     const [userInfo, setUserInfo] = useState(null);
     const [error, setError] = useState(null);
+    const [emailMismatch, setEmailMismatch] = useState(false);
+    const [autoNavigating, setAutoNavigating] = useState(false);
     const previousValidState = useRef(null); // Track previous valid state to detect login changes
 
     const isMountedRef = useRef(true);
@@ -36,6 +38,8 @@ export default function CredentialCheckModal({
     }, []);
 
     const selectedRepo = modalData.selectedRepo || dataPrimarySBH;
+    const expectedEmail = modalData.expectedEmail;
+    const skipRepositorySelection = modalData.skipRepositorySelection;
 
     // Get auth token and user info
     const getRepoInfo = useCallback(() => {
@@ -71,18 +75,73 @@ export default function CredentialCheckModal({
 
             // Have token, check if it's valid
             try {
-                const valid = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(selectedRepo, authToken);
 
                 if (!isMountedRef.current) return;
 
-                if (valid) {
+                if (loginResult.valid) {
+                    const actualEmail = repoInfo.email || '';
+                    const profileEmail = loginResult.profile?.email || '';
+                    
+                    console.log('Credential check - Profile email:', profileEmail, 'Stored email:', actualEmail, 'Expected:', expectedEmail);
+                    
+                    // If expectedEmail is provided (resource selection mode), validate it FIRST
+                    if (expectedEmail && skipRepositorySelection) {
+                        // Use profile email from SynbioHub for accurate comparison
+                        const emailToCheck = profileEmail || actualEmail;
+                        
+                        if (emailToCheck.toLowerCase() !== expectedEmail.toLowerCase()) {
+                            setEmailMismatch(true);
+                            setIsValid(false);
+                            setError(`Email mismatch: Expected ${expectedEmail}, but logged in as ${emailToCheck}`);
+                            setChecking(false);
+                            
+                            showNotification({
+                                title: 'Email Mismatch',
+                                message: `You must be logged in as ${expectedEmail} to select this resource. Currently logged in as ${emailToCheck}.`,
+                                color: 'red',
+                            });
+                            
+                            // Clear invalid credentials and force re-login
+                            clearInvalidCredentials(selectedRepo);
+                            
+                            // Don't abort - allow user to re-login with correct account
+                            setEmailMismatch(true);
+                            return;
+                        }
+                        
+                        // Email matches and credentials are valid
+                        // Store user info and auto-navigate to collection browser WITHOUT showing UI
+                        setAutoNavigating(true);
+                        
+                        if (setModalData) {
+                            setModalData(prev => ({ 
+                                ...prev, 
+                                userInfo: {
+                                    name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                                    username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                                    email: profileEmail || actualEmail,
+                                    affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                                },
+                                authToken: authToken,
+                                validated: true,
+                            }));
+                        }
+                        
+                        // Keep checking state true to prevent UI flash, navigate immediately
+                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER);
+                        return;
+                    }
+                    
+                    // Standard credential check (not resource selection)
                     setIsValid(true);
                     setUserInfo({
-                        name: repoInfo.name || 'Unknown',
-                        username: repoInfo.username || 'Unknown',
-                        email: repoInfo.email || 'Unknown',
-                        affiliation: repoInfo.affiliation || 'N/A',
+                        name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                        username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                        email: profileEmail || actualEmail,
+                        affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
                     });
+                    setChecking(false);
                     
                     // Show success notification if we just logged in (transitioned from invalid to valid)
                     if (previousValidState.current === false) {
@@ -94,7 +153,7 @@ export default function CredentialCheckModal({
                     }
                     previousValidState.current = true;
                 } else {
-                    // Invalid token, logout user
+                    // Invalid token, clear credentials and logout user
                     setIsValid(false);
                     setUserInfo(null);
                     previousValidState.current = false;
@@ -106,13 +165,8 @@ export default function CredentialCheckModal({
                         console.error('Logout error:', err);
                     }
 
-                    // Clear token from localStorage
-                    const updated = dataSBH.map(item => 
-                        item.value === selectedRepo 
-                            ? { ...item, authtoken: '' }
-                            : item
-                    );
-                    setDataSBH(updated);
+                    // Clear invalid credentials from localStorage
+                    clearInvalidCredentials(selectedRepo);
 
                     showNotification({
                         title: 'Session Expired',
@@ -124,20 +178,28 @@ export default function CredentialCheckModal({
                 console.error('Credential check error:', err);
                 setError(err.message || 'Failed to verify credentials');
                 setIsValid(false);
-            } finally {
-                if (isMountedRef.current) {
-                    setChecking(false);
-                }
+                setChecking(false);
             }
         };
 
         checkCredentials();
-    }, [selectedRepo, getRepoInfo, dataSBH, setDataSBH]);
+    }, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, completeWorkflow, setModalData, navigateTo]);
 
     const handleLogin = useCallback(() => {
+        // In resource selection mode with email mismatch, prevent login
+        // User must use the correct account, not switch to a different one
+        if (skipRepositorySelection && expectedEmail && emailMismatch) {
+            showNotification({
+                title: 'Cannot Change Account',
+                message: `This resource requires login as ${expectedEmail}. Please cancel and use the correct account.`,
+                color: 'red',
+            });
+            return;
+        }
+        
         // Navigate to login modal
         navigateTo(MODAL_TYPES.SBH_LOGIN);
-    }, [navigateTo]);
+    }, [navigateTo, skipRepositorySelection, expectedEmail, emailMismatch]);
 
     const handleConfirm = useCallback(() => {
         if (!isValid) return;
@@ -147,12 +209,13 @@ export default function CredentialCheckModal({
             setModalData(prev => ({ 
                 ...prev, 
                 userInfo,
-                authToken: getRepoInfo()?.authtoken 
+                authToken: getRepoInfo()?.authtoken,
+                validated: skipRepositorySelection ? true : undefined, // Mark as validated for resource selection
             }));
         }
 
         navigateTo(MODAL_TYPES.COLLECTION_BROWSER);
-    }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo]);
+    }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection]);
 
     const handleLogout = useCallback(async () => {
         const repoInfo = getRepoInfo();
@@ -182,7 +245,7 @@ export default function CredentialCheckModal({
         });
     }, [getRepoInfo, selectedRepo, dataSBH, setDataSBH]);
 
-    if (checking) {
+    if (checking || autoNavigating) {
         return (
             <Stack spacing="md">
                 <Center style={{ minHeight: 200 }}>
@@ -198,6 +261,12 @@ export default function CredentialCheckModal({
     return (
         <Stack spacing="md">
             <Text size="lg" weight={500}>Credential Verification</Text>
+            
+            {skipRepositorySelection && expectedEmail && (
+                <Alert icon={<FaExclamationCircle size={16} />} color="blue">
+                    This resource requires login as <strong>{expectedEmail}</strong>
+                </Alert>
+            )}
 
             {error && (
                 <Alert icon={<FaExclamationCircle size={16} />} color="red">
@@ -205,7 +274,13 @@ export default function CredentialCheckModal({
                 </Alert>
             )}
 
-            {isValid === false && (
+            {emailMismatch && (
+                <Alert icon={<FaTimes size={16} />} color="red">
+                    Email address does not match. Please log in with the correct account or cancel this operation.
+                </Alert>
+            )}
+
+            {isValid === false && !emailMismatch && (
                 <Alert icon={<FaTimes size={16} />} color="orange">
                     You are not logged in to <strong>{selectedRepo}</strong>. Please log in to continue.
                 </Alert>
@@ -238,9 +313,13 @@ export default function CredentialCheckModal({
             )}
 
             <Group position="apart" mt="md">
-                <Button variant="default" onClick={() => goBack()}>
-                    Back
-                </Button>
+                {!skipRepositorySelection ? (
+                    <Button variant="default" onClick={() => goBack()}>
+                        Back
+                    </Button>
+                ) : (
+                    <div></div>
+                )}
                 <Group>
                     {isValid === true && (
                         <Button variant="subtle" color="red" onClick={handleLogout}>

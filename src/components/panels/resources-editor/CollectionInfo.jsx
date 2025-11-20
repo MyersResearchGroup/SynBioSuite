@@ -4,7 +4,7 @@ import { PanelContext } from './ResourcesPanel'
 import { Select, Table, Space, Button, Group, ScrollArea } from '@mantine/core'
 import { useLocalStorage } from '@mantine/hooks'
 import { useDispatch, useSelector } from 'react-redux'
-import { SBHLogout, searchCollections, CheckLogin } from '../../../API'
+import { SBHLogout, searchCollections, CheckLogin, clearInvalidCredentials } from '../../../API'
 import { showNotification } from '@mantine/notifications'
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal'
 
@@ -192,15 +192,8 @@ export default function CollectionInfo() {
             }
         }
         
-        // Update local state
-        const updatedInstanceData = dataSBH.map((item) => {
-            if (item.value === actualRepo) {
-                return { ...item, authtoken: "" };
-            }
-            return item;
-        });
-        
-        setDataSBH(updatedInstanceData);
+        // Clear invalid credentials from localStorage
+        clearInvalidCredentials(actualRepo);
         setCollections([]);
         
         // Suppress auto re-open of login modal
@@ -360,7 +353,7 @@ export default function CollectionInfo() {
             loginPromptShownRef.current = false;
 
             try {
-                const valid = await CheckLogin(dataPrimarySBH, authToken);
+                const loginResult = await CheckLogin(dataPrimarySBH, authToken);
                 
                 // Check if aborted during async operation
                 if (abortController.signal.aborted || isLoggingOutRef.current || !isMountedRef.current) {
@@ -368,7 +361,7 @@ export default function CollectionInfo() {
                 }
 
                 // Only logout if session explicitly invalid (not network error)
-                if (!valid) {
+                if (!loginResult.valid) {
                     showNotification({
                         title: 'Session expired',
                         message: 'Your authentication session has expired.',
