@@ -139,16 +139,6 @@ export const ObjectTypes = {
         subdirectory: "strains",
         downloadable: true,
     },
-    Transformations: {
-        id: "synbio.object-type.transformations",
-        title: "Transformation",
-        listTitle: "Transformation",
-        fileNameMatch: /\.json$/,
-        icon: GiSewingMachine,
-        createable: true,
-        extension: '.json',
-        subdirectory: "transformations"
-    },
     Assembly: {
         id: "synbio.object-type.assembly-plan",
         title: "Assembly Plan",
@@ -158,6 +148,16 @@ export const ObjectTypes = {
         createable: true,
         extension: '.json',
         subdirectory: "assemblyPlans"
+    },
+    Transformations: {
+        id: "synbio.object-type.transformations",
+        title: "Transformations",
+        listTitle: "Transformations",
+        fileNameMatch: /\.json$/,
+        icon: GiSewingMachine,
+        createable: true,
+        extension: '.json',
+        subdirectory: "transformations"
     },
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
