@@ -6,7 +6,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import axios from 'axios';
 
-function AddSBHRepository({ opened, onClose, goBack, navigateTo }) {
+function AddSBHRepository({ opened, onClose, onSubmit, goBack, navigateTo }) {
     if (!opened) return null;
 
     const [step, setStep] = useState(1);
@@ -69,7 +69,12 @@ function AddSBHRepository({ opened, onClose, goBack, navigateTo }) {
                 color: 'green',
             });
 
-            if (onClose) onClose();
+            // Call onSubmit if provided (for workflow continuation), otherwise onClose
+            if (onSubmit) {
+                onSubmit();
+            } else if (onClose) {
+                onClose();
+            }
         } catch (error) {
             console.error('Login failed:', error);
             if(error.status === 401){

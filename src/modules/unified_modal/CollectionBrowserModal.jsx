@@ -81,16 +81,50 @@ export default function CollectionBrowserModal({
                 return;
             }
 
-            // If fetching subcollection, need different API call
-            // For now, using searchCollections at root level
-            const result = await searchCollections(url, authToken);
+            let result;
+            
+            if (!parentUri) {
+                result = await searchCollections(url, authToken);
+            } else {
+                // Show all objects in the collection, not just subcollections
+                const searchUrl = `https://${url}/search/collection=${encodeURIComponent(parentUri)}/?offset=0&limit=1000`;
+                
+                const response = await fetch(searchUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/plain',
+                        'X-authorization': authToken
+                    },
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // SBH returns JSON with content-type text/plain
+                result = await response.json();
+                console.log(searchUrl)
+                console.log(result); // DEBUG: log the raw API response
+            }
 
             if (abortController.signal.aborted || !isMountedRef.current) return;
 
-            const collectionList = Array.isArray(result) ? result : [];
-            
-            // Filter by parent if needed (this would need API support for subcollections)
+            // Accept both array and object (sometimes SBH returns { results: [...] })
+            let collectionList;
+            if (Array.isArray(result)) {
+                collectionList = result;
+            } else if (result && Array.isArray(result.results)) {
+                collectionList = result.results;
+            } else {
+                collectionList = [];
+            }
             setCollections(collectionList);
+            
+            // Cache the children for this parent
+            if (parentUri) {
+                setExpandedCollections(prev => new Map(prev).set(parentUri, collectionList));
+            }
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error fetching collections:', err);
@@ -132,14 +166,11 @@ export default function CollectionBrowserModal({
 
     // Handle double-click to navigate into subcollection
     const handleDoubleClick = useCallback(async (collection) => {
-        // Check if this collection has subcollections (you'd need API support)
-        // For now, we'll simulate this with a flag or API call
-        
         // Add to breadcrumb trail
-        setBreadcrumbs(prev => [...prev, { name: collection.name, uri: collection.uri }]);
+        setBreadcrumbs(prev => [...prev, { name: collection.name || collection.displayId, uri: collection.uri }]);
         setCurrentPath(prev => [...prev, collection.uri]);
         
-        // Fetch subcollections
+        // Fetch subcollections (collections that are members of this collection)
         await fetchCollections(collection.uri);
     }, [fetchCollections]);
 
@@ -233,7 +264,7 @@ export default function CollectionBrowserModal({
                     </Center>
                 ) : collections.length === 0 ? (
                     <Center style={{ height: 300 }}>
-                        <Text color="dimmed">No collections found</Text>
+                        <Text color="dimmed">No objects found</Text>
                     </Center>
                 ) : (
                     <div style={{ flex: 1, display: 'flex', minHeight: 0, alignItems: 'stretch', width: '100%' }}>
