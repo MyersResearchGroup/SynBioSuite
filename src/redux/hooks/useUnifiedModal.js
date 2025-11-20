@@ -180,6 +180,52 @@ export function useUnifiedModal() {
                 onComplete,
             });
         }, [open]),
+
+        /**
+         * Open collection browser workflow for resource selection (plasmids, backbones, etc.)
+         * This workflow skips repository selection and uses the provided repository.
+         * Silently validates credentials first - only shows UI if there's a problem.
+         * 
+         * @param {string} repositoryUrl - The repository URL to use (from previous selection)
+         * @param {string} expectedEmail - The email address to validate against (for cross-reference)
+         * @param {function} onComplete - Callback function that receives selected collections
+         * @param {object} props - Optional props for initial configuration
+         * 
+         * The callback receives data only when the entire workflow completes:
+         * {
+         *   selectedRepo: string,
+         *   userInfo: { email, username, name, ... },
+         *   collections: [{ uri, name, displayId, ... }],
+         *   count: number,
+         *   completed: true,
+         *   validated: true  // indicates email was validated
+         * }
+         * 
+         * If credentials don't match, the workflow aborts and returns:
+         * {
+         *   error: 'Email mismatch',
+         *   expectedEmail: string,
+         *   actualEmail: string,
+         *   aborted: true
+         * }
+         */
+        browseCollectionsForResource: useCallback((repositoryUrl, expectedEmail, onComplete, props = {}) => {
+            open(MODAL_TYPES.COLLECTION_BROWSER, {
+                allowedModals: [
+                    MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                    MODAL_TYPES.COLLECTION_BROWSER,
+                    MODAL_TYPES.SBH_LOGIN,
+                ],
+                props: {
+                    ...props,
+                    selectedRepo: repositoryUrl,
+                    expectedEmail: expectedEmail,
+                    skipRepositorySelection: true,
+                    silentCredentialCheck: true,
+                },
+                onComplete,
+            });
+        }, [open]),
     };
 
     return {

@@ -17,9 +17,11 @@ import {
     ActionIcon,
     Tooltip
 } from '@mantine/core';
-import { searchCollections } from '../../API';
+import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
-import {FaTimes } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
+import { showNotification } from '@mantine/notifications';
+import { MODAL_TYPES } from './unifiedModal';
 
 /**
  * Collection Browser Modal - Step 3 of the workflow
@@ -29,13 +31,21 @@ export default function CollectionBrowserModal({
     navigateTo, 
     goBack, 
     completeWorkflow,
-    onCancel 
+    onCancel,
+    modalData = {},
+    setModalData,
+    // Props from workflow
+    selectedRepo: selectedRepoFromProps,
+    expectedEmail: expectedEmailFromProps,
+    silentCredentialCheck: silentCredentialCheckFromProps,
+    skipRepositorySelection: skipRepositorySelectionFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
 
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [credentialChecking, setCredentialChecking] = useState(false);
     const [selectedCollections, setSelectedCollections] = useState(new Map()); // URI -> collection object
     const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
     const [currentPath, setCurrentPath] = useState([]);
@@ -43,6 +53,13 @@ export default function CollectionBrowserModal({
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
+    const credentialCheckDoneRef = useRef(false);
+
+    // Use props from workflow if provided, otherwise fall back to modalData or defaults
+    const selectedRepo = selectedRepoFromProps || modalData.selectedRepo || dataPrimarySBH;
+    const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
+    const silentCredentialCheck = silentCredentialCheckFromProps !== undefined ? silentCredentialCheckFromProps : modalData.silentCredentialCheck;
+    const skipRepositorySelection = skipRepositorySelectionFromProps !== undefined ? skipRepositorySelectionFromProps : modalData.skipRepositorySelection;
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -54,12 +71,176 @@ export default function CollectionBrowserModal({
         };
     }, []);
 
+    // Silent credential check for resource selection mode
+    useEffect(() => {
+        // Don't run if silent check is disabled, already done, or dataSBH is empty (not loaded yet)
+        if (!silentCredentialCheck || credentialCheckDoneRef.current || dataSBH.length === 0) {
+            return;
+        }
+
+        const checkCredentials = async () => {
+            setCredentialChecking(true);
+            credentialCheckDoneRef.current = true;
+
+            console.log('Silent credential check - selectedRepo:', selectedRepo, 'expectedEmail:', expectedEmail);
+            console.log('dataSBH array:', dataSBH);
+            console.log('dataSBH values:', dataSBH.map(r => r.value));
+
+            // Find repository info
+            const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+            
+            if (!repoInfo) {
+                console.error('Repository not found for:', selectedRepo);
+                console.error('Available repos:', dataSBH.map(r => ({ value: r.value, email: r.email })));
+                showNotification({
+                    title: 'Repository Not Found',
+                    message: 'Could not find repository information.',
+                    color: 'red',
+                });
+                completeWorkflow({ error: 'Repository not found', aborted: true });
+                return;
+            }
+
+            const authToken = repoInfo.authtoken;
+            const actualEmail = repoInfo.email || '';
+
+            console.log('Found repoInfo:', { authToken: authToken ? 'present' : 'missing', actualEmail });
+
+            // No token = not logged in
+            if (!authToken) {
+                // Navigate to credential check modal
+                if (setModalData) {
+                    setModalData(prev => ({
+                        ...prev,
+                        selectedRepo,
+                        expectedEmail,
+                        skipRepositorySelection: true,
+                    }));
+                }
+                console.log('About to navigate to SBH_CREDENTIAL_CHECK with modalData:', {
+                    selectedRepo,
+                    expectedEmail,
+                    skipRepositorySelection: true,
+                });
+                console.log('navigateTo function:', typeof navigateTo, navigateTo);
+                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                console.log('Navigation call completed');
+                return;
+            }
+
+            // Check if token is valid
+            try {
+                console.log('Starting credential check with token:', authToken ? 'present' : 'missing');
+                const loginResult = await CheckLogin(selectedRepo, authToken);
+                console.log('CheckLogin result:', loginResult);
+
+                if (!loginResult.valid) {
+                    // Invalid token, clear credentials and navigate to credential check
+                    console.log('Token invalid - clearing credentials and navigating to credential check');
+                    clearInvalidCredentials(selectedRepo);
+                    if (setModalData) {
+                        setModalData(prev => ({
+                            ...prev,
+                            selectedRepo,
+                            expectedEmail,
+                            skipRepositorySelection: true,
+                        }));
+                    }
+                    showNotification({
+                        title: 'Invalid Credentials',
+                        message: 'Your login credentials have expired or are invalid. Please log in again.',
+                        color: 'orange',
+                    });
+                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    return;
+                }
+
+                // Extract email from the profile response
+                const profileEmail = loginResult.profile?.email || '';
+                console.log('Profile email from SynbioHub:', profileEmail, 'Expected:', expectedEmail, 'Stored:', actualEmail);
+
+                // Token is valid, but check if the email from SynbioHub matches what we expect
+                if (expectedEmail && profileEmail.toLowerCase() !== expectedEmail.toLowerCase()) {
+                    // Email mismatch - the token belongs to a different user
+                    console.log('Email mismatch detected - clearing credentials and prompting re-login');
+                    clearInvalidCredentials(selectedRepo);
+                    
+                    showNotification({
+                        title: 'Account Mismatch',
+                        message: `You must be logged in as ${expectedEmail} to select this resource. The current token belongs to ${profileEmail}. Please log in with the correct account.`,
+                        color: 'red',
+                    });
+                    
+                    // Navigate to credential check with the expected email
+                    if (setModalData) {
+                        setModalData(prev => ({
+                            ...prev,
+                            selectedRepo,
+                            expectedEmail,
+                            skipRepositorySelection: true,
+                        }));
+                    }
+                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    return;
+                }
+
+                // Also check against stored email (secondary verification)
+                if (expectedEmail && actualEmail && actualEmail.toLowerCase() !== expectedEmail.toLowerCase()) {
+                    // Stored email mismatch - but profile email is correct, update stored data
+                    console.log('Stored email mismatch but profile email correct - updating local storage');
+                }
+
+                // All good! Store user info from the profile and continue
+                if (setModalData) {
+                    setModalData(prev => ({
+                        ...prev,
+                        userInfo: {
+                            name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                            username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                            email: loginResult.profile?.email || profileEmail,
+                            affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                        },
+                        authToken: authToken,
+                        validated: true,
+                    }));
+                }
+
+                setCredentialChecking(false);
+            } catch (err) {
+                console.error('Credential check error:', err);
+                
+                // Clear credentials if there's an authentication error
+                clearInvalidCredentials(selectedRepo);
+                
+                showNotification({
+                    title: 'Credential Check Failed',
+                    message: err.message || 'Failed to verify credentials. Please log in again.',
+                    color: 'red',
+                });
+                
+                // Navigate to credential check instead of completing with error
+                if (setModalData) {
+                    setModalData(prev => ({
+                        ...prev,
+                        selectedRepo,
+                        expectedEmail,
+                        skipRepositorySelection: true,
+                    }));
+                }
+                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+            }
+        };
+
+        checkCredentials();
+    }, [silentCredentialCheck, selectedRepo, expectedEmail, dataSBH, navigateTo, completeWorkflow, setModalData]);
+
     // Get auth token for current repository
     const getAuthToken = useCallback(() => {
-        if (!dataPrimarySBH || !dataSBH.length) return null;
-        const repo = dataSBH.find(r => r.value === dataPrimarySBH);
+        const repoUrl = selectedRepo || dataPrimarySBH;
+        if (!repoUrl || !dataSBH.length) return null;
+        const repo = dataSBH.find(r => r.value === repoUrl);
         return repo?.authtoken || null;
-    }, [dataPrimarySBH, dataSBH]);
+    }, [selectedRepo, dataPrimarySBH, dataSBH]);
 
     // Fetch collections at current level
     const fetchCollections = useCallback(async (parentUri = null) => {
@@ -74,7 +255,7 @@ export default function CollectionBrowserModal({
 
         try {
             const authToken = getAuthToken();
-            const url = dataPrimarySBH;
+            const url = selectedRepo || dataPrimarySBH;
 
             if (!url || url.startsWith('Select')) {
                 setCollections([]);
@@ -135,7 +316,7 @@ export default function CollectionBrowserModal({
                 setLoading(false);
             }
         }
-    }, [dataPrimarySBH, getAuthToken]);
+    }, [selectedRepo, dataPrimarySBH, getAuthToken]);
 
     // Initial fetch
     useEffect(() => {
