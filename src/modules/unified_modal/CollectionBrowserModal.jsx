@@ -1,0 +1,542 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+    Stack, 
+    Table, 
+    ScrollArea, 
+    Button, 
+    Group, 
+    Text, 
+    Breadcrumbs, 
+    Anchor,
+    Badge,
+    Loader,
+    Center,
+    Checkbox,
+    Radio,
+    Paper,
+    Divider,
+    ActionIcon,
+    Tooltip
+} from '@mantine/core';
+import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
+import { useLocalStorage } from '@mantine/hooks';
+import { FaTimes } from 'react-icons/fa';
+import { showNotification } from '@mantine/notifications';
+import { MODAL_TYPES } from './unifiedModal';
+
+/**
+ * Collection Browser Modal - Step 3 of the workflow
+ * Shows hierarchical collection browsing with configurable selection mode
+ */
+export default function CollectionBrowserModal({ 
+    navigateTo, 
+    goBack, 
+    completeWorkflow,
+    onCancel,
+    modalData = {},
+    setModalData,
+    // Props from workflow
+    selectedRepo: selectedRepoFromProps,
+    expectedEmail: expectedEmailFromProps,
+    silentCredentialCheck: silentCredentialCheckFromProps,
+    skipRepositorySelection: skipRepositorySelectionFromProps,
+    multiSelect: multiSelectFromProps,
+}) {
+    const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+
+    const [collections, setCollections] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [credentialChecking, setCredentialChecking] = useState(false);
+    const [selectedCollections, setSelectedCollections] = useState(new Map()); // URI -> collection object
+    const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
+    const [currentPath, setCurrentPath] = useState([]);
+    const [expandedCollections, setExpandedCollections] = useState(new Map()); // URI -> children
+
+    const isMountedRef = useRef(true);
+    const abortControllerRef = useRef(null);
+    const credentialCheckDoneRef = useRef(false);
+
+    // Use props from workflow if provided, otherwise fall back to modalData or defaults
+    const selectedRepo = selectedRepoFromProps || modalData.selectedRepo || dataPrimarySBH;
+    const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
+    const silentCredentialCheck = silentCredentialCheckFromProps !== undefined ? silentCredentialCheckFromProps : modalData.silentCredentialCheck;
+    const skipRepositorySelection = skipRepositorySelectionFromProps !== undefined ? skipRepositorySelectionFromProps : modalData.skipRepositorySelection;
+    const multiSelect = multiSelectFromProps !== undefined ? multiSelectFromProps : modalData.multiSelect !== undefined ? modalData.multiSelect : true; // Default to multi-select
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
+
+    // Silent credential check for resource selection mode
+    useEffect(() => {
+        // Don't run if silent check is disabled, already done, or dataSBH is empty (not loaded yet)
+        if (!silentCredentialCheck || credentialCheckDoneRef.current || dataSBH.length === 0) {
+            return;
+        }
+
+        const checkCredentials = async () => {
+            setCredentialChecking(true);
+            credentialCheckDoneRef.current = true;
+
+            console.log('Silent credential check - selectedRepo:', selectedRepo, 'expectedEmail:', expectedEmail);
+            console.log('dataSBH array:', dataSBH);
+            console.log('dataSBH values:', dataSBH.map(r => r.value));
+
+            // Find repository info
+            const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+            
+            if (!repoInfo) {
+                console.error('Repository not found for:', selectedRepo);
+                console.error('Available repos:', dataSBH.map(r => ({ value: r.value, email: r.email })));
+                showNotification({
+                    title: 'Repository Not Found',
+                    message: 'Could not find repository information.',
+                    color: 'red',
+                });
+                completeWorkflow({ error: 'Repository not found', aborted: true });
+                return;
+            }
+
+            const authToken = repoInfo.authtoken;
+            const actualEmail = repoInfo.email || '';
+
+            console.log('Found repoInfo:', { authToken: authToken ? 'present' : 'missing', actualEmail });
+
+            // No token = not logged in
+            if (!authToken) {
+                // Navigate to credential check modal
+                if (setModalData) {
+                    setModalData(prev => ({
+                        ...prev,
+                        selectedRepo,
+                        expectedEmail,
+                        skipRepositorySelection: true,
+                    }));
+                }
+                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                return;
+            }
+
+            // Check if token is valid
+            try {
+                const loginResult = await CheckLogin(selectedRepo, authToken);
+
+                if (!loginResult.valid) {
+                    // Invalid token, clear credentials and navigate to credential check
+                    clearInvalidCredentials(selectedRepo);
+                    if (setModalData) {
+                        setModalData(prev => ({
+                            ...prev,
+                            selectedRepo,
+                            expectedEmail,
+                            skipRepositorySelection: true,
+                        }));
+                    }
+                    showNotification({
+                        title: 'Invalid Credentials',
+                        message: 'Your login credentials have expired or are invalid. Please log in again.',
+                        color: 'orange',
+                    });
+                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    return;
+                }
+
+                // Extract email from the profile response
+                const profileEmail = loginResult.profile?.email || '';
+                console.log('Profile email from SynbioHub:', profileEmail, 'Expected:', expectedEmail, 'Stored:', actualEmail);
+
+                // Token is valid, but check if the email from SynbioHub matches what we expect
+                if (expectedEmail && profileEmail.toLowerCase() !== expectedEmail.toLowerCase()) {
+                    // Email mismatch - the token belongs to a different user
+                    console.log('Email mismatch detected - clearing credentials and prompting re-login');
+                    clearInvalidCredentials(selectedRepo);
+                    
+                    showNotification({
+                        title: 'Account Mismatch',
+                        message: `You must be logged in as ${expectedEmail} to select this resource. The current token belongs to ${profileEmail}. Please log in with the correct account.`,
+                        color: 'red',
+                    });
+                    
+                    // Navigate to credential check with the expected email
+                    if (setModalData) {
+                        setModalData(prev => ({
+                            ...prev,
+                            selectedRepo,
+                            expectedEmail,
+                            skipRepositorySelection: true,
+                        }));
+                    }
+                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    return;
+                }
+
+                // Also check against stored email (secondary verification)
+                if (expectedEmail && actualEmail && actualEmail.toLowerCase() !== expectedEmail.toLowerCase()) {
+                    // Stored email mismatch - but profile email is correct, update stored data
+                    console.log('Stored email mismatch but profile email correct - updating local storage');
+                }
+
+                // All good! Store user info from the profile and continue
+                if (setModalData) {
+                    setModalData(prev => ({
+                        ...prev,
+                        userInfo: {
+                            name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                            username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                            email: loginResult.profile?.email || profileEmail,
+                            affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                        },
+                        authToken: authToken,
+                        validated: true,
+                    }));
+                }
+
+                setCredentialChecking(false);
+            } catch (err) {
+                console.error('Credential check error:', err);
+                
+                // Clear credentials if there's an authentication error
+                clearInvalidCredentials(selectedRepo);
+                
+                showNotification({
+                    title: 'Credential Check Failed',
+                    message: err.message || 'Failed to verify credentials. Please log in again.',
+                    color: 'red',
+                });
+                
+                // Navigate to credential check instead of completing with error
+                if (setModalData) {
+                    setModalData(prev => ({
+                        ...prev,
+                        selectedRepo,
+                        expectedEmail,
+                        skipRepositorySelection: true,
+                    }));
+                }
+                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+            }
+        };
+
+        checkCredentials();
+    }, [silentCredentialCheck, selectedRepo, expectedEmail, dataSBH, navigateTo, completeWorkflow, setModalData]);
+
+    // Get auth token for current repository
+    const getAuthToken = useCallback(() => {
+        const repoUrl = selectedRepo || dataPrimarySBH;
+        if (!repoUrl || !dataSBH.length) return null;
+        const repo = dataSBH.find(r => r.value === repoUrl);
+        return repo?.authtoken || null;
+    }, [selectedRepo, dataPrimarySBH, dataSBH]);
+
+    // Fetch collections at current level
+    const fetchCollections = useCallback(async (parentUri = null) => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
+        setLoading(true);
+
+        try {
+            const authToken = getAuthToken();
+            const url = selectedRepo || dataPrimarySBH;
+
+            if (!url || url.startsWith('Select')) {
+                setCollections([]);
+                return;
+            }
+
+            let result;
+            
+            if (!parentUri) {
+                result = await searchCollections(url, authToken);
+            } else {
+                // Show all objects in the collection, not just subcollections
+                const searchUrl = `https://${url}/search/collection=${encodeURIComponent(parentUri)}/?offset=0&limit=1000`;
+                
+                const response = await fetch(searchUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/plain',
+                        'X-authorization': authToken
+                    },
+                    signal: abortController.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // SBH returns JSON with content-type text/plain
+                result = await response.json();
+                console.log(searchUrl)
+                console.log(result); // DEBUG: log the raw API response
+            }
+
+            if (abortController.signal.aborted || !isMountedRef.current) return;
+
+            // Accept both array and object (sometimes SBH returns { results: [...] })
+            let collectionList;
+            if (Array.isArray(result)) {
+                collectionList = result;
+            } else if (result && Array.isArray(result.results)) {
+                collectionList = result.results;
+            } else {
+                collectionList = [];
+            }
+            setCollections(collectionList);
+            
+            // Cache the children for this parent
+            if (parentUri) {
+                setExpandedCollections(prev => new Map(prev).set(parentUri, collectionList));
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Error fetching collections:', err);
+                setCollections([]);
+            }
+        } finally {
+            if (isMountedRef.current) {
+                setLoading(false);
+            }
+        }
+    }, [selectedRepo, dataPrimarySBH, getAuthToken]);
+
+    // Initial fetch
+    useEffect(() => {
+        fetchCollections();
+    }, [fetchCollections]);
+
+    // Toggle selection of a collection
+    const toggleSelection = useCallback((collection) => {
+        setSelectedCollections(prev => {
+            const newMap = new Map(prev);
+            
+            if (multiSelect) {
+                // Multi-select mode: toggle the selection
+                if (newMap.has(collection.uri)) {
+                    newMap.delete(collection.uri);
+                } else {
+                    newMap.set(collection.uri, collection);
+                }
+            } else {
+                // Single-select mode: replace any existing selection
+                if (newMap.has(collection.uri)) {
+                    newMap.clear(); // Deselect if clicking the same item
+                } else {
+                    newMap.clear(); // Clear previous selection
+                    newMap.set(collection.uri, collection); // Select new item
+                }
+            }
+            
+            return newMap;
+        });
+    }, [multiSelect]);
+
+    // Remove a selected collection
+    const removeSelection = useCallback((uri) => {
+        setSelectedCollections(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(uri);
+            return newMap;
+        });
+    }, []);
+
+    // Handle double-click to navigate into subcollection
+    const handleDoubleClick = useCallback(async (collection) => {
+        // Add to breadcrumb trail
+        setBreadcrumbs(prev => [...prev, { name: collection.name || collection.displayId, uri: collection.uri }]);
+        setCurrentPath(prev => [...prev, collection.uri]);
+        
+        // Fetch subcollections (collections that are members of this collection)
+        await fetchCollections(collection.uri);
+    }, [fetchCollections]);
+
+    // Navigate breadcrumbs
+    const navigateToBreadcrumb = useCallback((index) => {
+        const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
+        const newPath = currentPath.slice(0, index);
+        
+        setBreadcrumbs(newBreadcrumbs);
+        setCurrentPath(newPath);
+        
+        const parentUri = newPath[newPath.length - 1] || null;
+        fetchCollections(parentUri);
+    }, [breadcrumbs, currentPath, fetchCollections]);
+
+    // Complete the workflow
+    const handleComplete = useCallback(() => {
+        if (selectedCollections.size === 0) {
+            // Don't complete if nothing selected
+            return;
+        }
+
+        const selectedArray = Array.from(selectedCollections.values());
+        completeWorkflow({
+            collections: selectedArray,
+            count: selectedCollections.size,
+        });
+    }, [selectedCollections, completeWorkflow]);
+
+    // Cancel without completing
+    const handleCancel = useCallback(() => {
+        if (onCancel) {
+            onCancel();
+        } else {
+            goBack();
+        }
+    }, [onCancel, goBack]);
+
+    return (
+        <Stack spacing="md" style={{ height: '70vh', display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'stretch', padding: 0 }}>
+            {/* Breadcrumbs for navigation */}
+            <Breadcrumbs style={{ width: '100%' }}>
+                {breadcrumbs.map((crumb, index) => (
+                    <Anchor
+                        key={crumb.uri || 'root'}
+                        onClick={() => navigateToBreadcrumb(index)}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        {crumb.name}
+                    </Anchor>
+                ))}
+            </Breadcrumbs>
+
+            {/* Selected collections display */}
+            {selectedCollections.size > 0 && (
+                <Paper p="sm" withBorder>
+                    <Text size="sm" weight={500} mb="xs">
+                        {multiSelect 
+                            ? `Selected Collections (${selectedCollections.size})` 
+                            : `Selected Collection`
+                        }
+                    </Text>
+                    <Group spacing="xs">
+                        {Array.from(selectedCollections.values()).map(collection => (
+                            <Badge
+                                key={collection.uri}
+                                rightSection={
+                                    <ActionIcon
+                                        size="xs"
+                                        color="blue"
+                                        radius="xl"
+                                        variant="transparent"
+                                        onClick={() => removeSelection(collection.uri)}
+                                    >
+                                        <FaTimes size={10} />
+                                    </ActionIcon>
+                                }
+                                pr={3}
+                            >
+                                {collection.displayId}
+                            </Badge>
+                        ))}
+                    </Group>
+                </Paper>
+            )}
+
+            <Divider />
+
+            {/* Collections table */}
+            <ScrollArea style={{ flex: 1, width: '100%', overflowX: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0, alignItems: 'stretch' }} type="always">
+                {loading ? (
+                    <Center style={{ height: 300 }}>
+                        <Loader />
+                    </Center>
+                ) : collections.length === 0 ? (
+                    <Center style={{ height: 300 }}>
+                        <Text color="dimmed">No objects found</Text>
+                    </Center>
+                ) : (
+                    <div style={{ flex: 1, display: 'flex', minHeight: 0, alignItems: 'stretch', width: '100%' }}>
+                        <Table highlightOnHover withColumnBorders style={{ display: 'block', width: '100%', tableLayout: 'fixed', minWidth: '100%', flex: '1 1 auto' }}>
+                            <colgroup>
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '35%' }} />
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '25%' }} />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '8%' }}>Select</th>
+                                    <th>Display ID</th>
+                                    <th>Name</th>
+                                    <th>Version</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {collections.map((collection) => (
+                                    <tr
+                                        key={collection.uri}
+                                        onDoubleClick={() => handleDoubleClick(collection)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                            {multiSelect ? (
+                                                <Checkbox
+                                                    checked={selectedCollections.has(collection.uri)}
+                                                    onChange={() => toggleSelection(collection)}
+                                                />
+                                            ) : (
+                                                <Radio
+                                                    checked={selectedCollections.has(collection.uri)}
+                                                    onChange={() => toggleSelection(collection)}
+                                                />
+                                            )}
+                                        </td>
+                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.displayId}</td>
+                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.name}</td>
+                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.version}</td>
+                                        <td style={{ 
+                                            overflowWrap: 'break-word',
+                                            wordBreak: 'break-word',
+                                            whiteSpace: 'normal'
+                                        }}>
+                                            {collection.description}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    </div>
+                )}
+            </ScrollArea>
+
+            {/* Action buttons */}
+            <Group position="apart" mt="md">
+                <Button variant="default" onClick={handleCancel}>
+                    Cancel
+                </Button>
+                <Group>
+                    {breadcrumbs.length > 1 && (
+                        <Button variant="subtle" onClick={() => navigateToBreadcrumb(breadcrumbs.length - 2)}>
+                            Back to Parent
+                        </Button>
+                    )}
+                    <Button 
+                        onClick={handleComplete}
+                        disabled={selectedCollections.size === 0}
+                    >
+                        {multiSelect 
+                            ? `Confirm Selection (${selectedCollections.size})` 
+                            : selectedCollections.size > 0 
+                                ? 'Confirm Selection' 
+                                : 'Select Collection'
+                        }
+                    </Button>
+                </Group>
+            </Group>
+        </Stack>
+    );
+}

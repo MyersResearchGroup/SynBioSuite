@@ -144,20 +144,20 @@ export const ObjectTypes = {
         title: "Assembly Plan",
         listTitle: "Assembly Plans",
         fileNameMatch: /\.json$/,
-        icon: GiSewingMachine,
+        icon: GiThorHammer,
         createable: true,
         extension: '.json',
         subdirectory: "assemblyPlans"
     },
-    Build: {
-        id: "synbio.object-type.build",
-        title: "Build",
-        listTitle: "Builds",
+    Transformations: {
+        id: "synbio.object-type.transformations",
+        title: "Transformations",
+        listTitle: "Transformations",
         fileNameMatch: /\.json$/,
-        icon: GiThorHammer,
+        icon: GiSewingMachine,
         createable: true,
         extension: '.json',
-        subdirectory: "builds"
+        subdirectory: "transformations"
     },
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",

@@ -1,5 +1,5 @@
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Modal } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Modal, Group } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
@@ -53,7 +53,7 @@ const getProfile = async (instance, auth) => {
     }
 };
 
-const SBHOnly = ({opened, onClose}) => {
+const SBHOnly = ({opened, onClose, goBack, navigateTo}) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
 
@@ -146,9 +146,16 @@ const SBHOnly = ({opened, onClose}) => {
                     mt="md"
                     {...form.getInputProps('password')}
                 />
-                <Button type="submit" mt="md">
-                    Login
-                </Button>
+                <Group position="apart" mt="xl">
+                    {goBack && (
+                        <Button variant="default" onClick={goBack}>
+                            Back
+                        </Button>
+                    )}
+                    <Button type="submit" ml={goBack ? undefined : "auto"}>
+                        Login
+                    </Button>
+                </Group>
             </form>
         </Modal>
     );

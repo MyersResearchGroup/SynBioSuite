@@ -5,7 +5,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { FJLogin } from '../../API';
 
-function AddFJRepository({ opened, onClose }) {    
+function AddFJRepository({ opened, onClose, goBack, navigateTo }) {    
     const [step, setStep] = useState(1);
     const [url, setUrl] = useState('');
     const [username, setUsername] = useState('');
@@ -89,9 +89,14 @@ function AddFJRepository({ opened, onClose }) {
                         />
                     </Group>
                     <Space h="xl" />
-                    <Group position="center">
-                        <Button onClick={() => setStep(2)} disabled={!url}>
-                                Next
+                    <Group position="apart">
+                        {goBack && (
+                            <Button variant="default" onClick={goBack}>
+                                Back
+                            </Button>
+                        )}
+                        <Button onClick={() => setStep(2)} disabled={!url} ml={goBack ? undefined : "auto"}>
+                            Next
                         </Button>
                     </Group>
                 </>

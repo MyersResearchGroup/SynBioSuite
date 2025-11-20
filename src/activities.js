@@ -62,8 +62,8 @@ export const Activities = {
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
-            ObjectTypes.Assembly.id, 
-            ObjectTypes.Build.id,
+            ObjectTypes.Assembly.id,
+            ObjectTypes.Transformations.id, 
         ]
     },
     Test: {
