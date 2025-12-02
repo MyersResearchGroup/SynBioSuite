@@ -1,7 +1,7 @@
-import { Center, Stack, Text, useMantineTheme, Title } from '@mantine/core'
+import { Center, Stack, Text, useMantineTheme, Title, Button } from '@mantine/core'
 import { getActiveUser } from '../../microsoft-utils/getActiveUser'
 import { useEffect, useState } from 'react';
-
+import OneDrivePickerButton from './FolderPicker';
 
 export default function MicrosoftWelcome() {
 
@@ -10,11 +10,12 @@ export default function MicrosoftWelcome() {
     const [userName, setUserName] = useState("");
     // Set the user profile information when the component mounts
     useEffect(() => {
-        async function fetchUser() {
-            let user = await getActiveUser();
+        async function fetchUserInfo() {
+            const user = await getActiveUser();
             setUserName(user?.name);
+            console.log("MicrosoftWelcome: acquired token silently", token.accessToken);
         }
-        fetchUser();
+        fetchUserInfo();
     }, []);
 
     return (
@@ -38,7 +39,7 @@ export default function MicrosoftWelcome() {
                 }}>
                     To get started, choose a folder in your OneDrive to open.
                 </Text>
-
+                <OneDrivePickerButton />
                 <img src="/left-arrow-sketch.svg" style={{
                     width: 200,
                     position: 'absolute',

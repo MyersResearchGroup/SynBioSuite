@@ -12,7 +12,7 @@ import TimeAgo from "javascript-time-ago"
 import en from "javascript-time-ago/locale/en.json"
 import { ModalsProvider } from '@mantine/modals'
 import { NotificationsProvider } from '@mantine/notifications'
-import { msalInstance } from './microsoft-utils/msal'
+import { msalInstance } from './microsoft-utils/msalInit'
 
 // const canvasBlue = ["#d6daee", "#c2c8e5", "#adb5dc", "#99a3d4", "#8490cb", "#707ec2", "#5b6bb9", "#4759b1", "#3246a8", "#2d3f97"]
 const theme = {
