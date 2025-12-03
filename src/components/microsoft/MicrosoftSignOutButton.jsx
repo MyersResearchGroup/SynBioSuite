@@ -1,5 +1,5 @@
 import { Text } from "@mantine/core";
-import { handleLogout } from "../../microsoft-utils/handleLogout";
+import { handleLogout } from "../../microsoft-utils/auth/handleLogout";
 
 export default function MicrosoftSignOutButton() {
     return (
