@@ -13,7 +13,6 @@ import MicrosoftPanels from '../components/microsoft/MicrosoftPanels';
 import MicrosoftModal from '../components/microsoft/MicrosoftModal';
 
 export default function CloudHome() {
-    // msalInstance.acquireTokenSilent(); 
     const loginModalOpened = useSelector((state) => state.modal.bothOpen);
     const microsoftModalOpened = useSelector((state) => state.modal.microsoftOpen);
     const sbhModalOpened = useSelector((state) => state.modal.sbhOpen);
