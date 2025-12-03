@@ -1,14 +1,11 @@
-import { act, useEffect, useState } from 'react';
-import { Modal, Button, useMantineTheme } from '@mantine/core';
-import { Avatar, Text, Group, Grid } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
-import { getActiveUser } from '../../microsoft-utils/getActiveUser';
+import { useEffect, useState } from 'react';
+import { Modal, useMantineTheme } from '@mantine/core';
+import { Text } from '@mantine/core';
+import { getActiveUser } from '../../microsoft-utils/auth/getActiveUser';
 import MicrosoftSignOutButton from './MicrosoftSignOutButton';
 
 
 export default function MicrosoftModal({ opened, onClose }) {
-    const theme = useMantineTheme()
-
     const [activeUser, setActiveUser] = useState("");
     // Set the user profile information when the component mounts
     useEffect(() => {
@@ -18,7 +15,6 @@ export default function MicrosoftModal({ opened, onClose }) {
         }
         fetchUser();
     }, []);
-    console.log("USER:", activeUser)
 
     return (
         <Modal opened={opened} onClose={onClose} title={`Microsoft One Drive (${activeUser?.name})`} size="lg" >
