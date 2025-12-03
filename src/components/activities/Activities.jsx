@@ -6,7 +6,7 @@ import SaveIndicatorDisplay from '../saveIndicatorDisplay'
 import { useEffect } from 'react'
 import { useDispatch } from 'react-redux';
 import { openMicrosoft, openModal } from '../../redux/slices/modalSlice';
-import { msalInstance } from '../../microsoft-utils/msalInit'
+import { msalInstance } from '../../microsoft-utils/auth/msalInit'
 
 export default function Activities() {
 
