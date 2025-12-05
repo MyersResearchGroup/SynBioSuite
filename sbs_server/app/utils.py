@@ -1,6 +1,7 @@
 import sbol2
 import sbol2build as s2b
 from sbol2build import abstract_translator as at
+from sbol2build import bacterial_transformation
 
 from typing import List, Tuple
 
@@ -55,3 +56,24 @@ def sbol2build_moclo(part_documents: List[sbol2.Document], backbone_doc: sbol2.D
     composite_list = assembly_obj.run()
 
     return assembly_doc
+
+def generate_transformation_metadata(plasmid_uris: List[str], chassis_uri: str, transformation_machine: str, protocol: str, params: str, sbh: sbol2.PartShop) -> sbol2.Document:
+    plasmid_docs = []
+
+    for uri in plasmid_uris:
+        temp_doc = sbol2.Document()
+        sbh.pull(
+            uri,
+            temp_doc
+        )
+        plasmid_docs.append(temp_doc)
+
+    chassis_doc = sbol2.Document()
+    sbh.pull(
+        chassis_uri,
+        chassis_doc
+    )
+
+    return bacterial_transformation(sbol2.Document(), chassis_doc, plasmid_docs, transformation_machine, protocol, params)
+
+    
