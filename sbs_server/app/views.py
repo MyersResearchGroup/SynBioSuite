@@ -2,7 +2,7 @@ from __future__ import annotations
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from .main import app
-from .utils import abstract_design_2_plasmids, sbol2build_moclo
+from .utils import abstract_design_2_plasmids, sbol2build_moclo, generate_transformation_metadata
 import sys
 import os
 import json
@@ -181,6 +181,55 @@ def sbol_2_build_golden_gate():
     
         sbh_response = sbh.submit(
             doc=assembly_plan_doc,
+            collection=recipient_collection_uri,
+            overwrite=2
+        )
+        return sbh_response.text, sbh_response.status_code
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
+    
+@app.route('/upload_transformation', methods=['POST'])    
+def upload_transformation():
+    if 'auth_token' not in request.form:
+        return jsonify({"error": "Missing SynBioHub Authentication Token"}), 400
+    if 'registry_url' not in request.form:
+        return jsonify({"error": "Missing SynBioHub Registry URL"}), 400
+    if 'collection_uri' not in request.form:
+        return jsonify({"error": "Missing recipient SynBioHub collection URI"}), 400
+
+    if 'plasmid_uris' not in request.form:
+        return jsonify({"error": "Missing plasmid URIs"}), 400
+    if 'chassis_uri' not in request.form:
+        return jsonify({"error": "Missing chassis URI"}), 400
+    if 'machine' not in request.form:
+        return jsonify({"error": "Missing machine"}), 400
+    if 'protocol' not in request.form:
+        return jsonify({"error": "Missing protocol"}), 400
+    if 'params' not in request.form:
+        return jsonify({"error": "Missing trasnformation parameters"}), 400
+
+    auth_token = request.form.get("auth_token")
+    sbh_registry = request.form.get("registry_url")
+    recipient_collection_uri = request.form.get("collection_uri")
+
+    plasmid_uris = request.form.get("plasmid_uris")
+    chassis_uri = request.form.get("chassis_uri")
+    machine_name = request.form.get("machine")
+    protocol = request.form.get("protocol")
+    parameters = request.form.get("params")
+
+    sbh = sbol2.PartShop(sbh_registry)
+    sbh.key = auth_token
+    
+    try:
+        transformation_doc = generate_transformation_metadata(plasmid_uris, chassis_uri, machine_name, protocol, parameters, sbh)
+
+        sbh_response = sbh.submit(
+            doc=transformation_doc,
             collection=recipient_collection_uri,
             overwrite=2
         )
