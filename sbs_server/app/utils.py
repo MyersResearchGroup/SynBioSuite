@@ -74,6 +74,6 @@ def generate_transformation_metadata(plasmid_uris: List[str], chassis_uri: str, 
         chassis_doc
     )
 
-    return bacterial_transformation(sbol2.Document(), chassis_doc, plasmid_docs)
+    return bacterial_transformation(sbol2.Document(), chassis_doc, plasmid_docs, transformation_machine, protocol, params)
 
     
