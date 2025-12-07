@@ -2,9 +2,8 @@ import ExplorerActivityView from "./components/activities/explorer/ExplorerActiv
 import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
 import LoginStatus from "./components/activities/explorer/LoginStatus";
-import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite } from "./icons"
+import { FileIcon, BugReport, ProfileWhite, Pipette } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
-import { TiPipette } from "react-icons/ti";
 import { ObjectTypes } from "./objectTypes";
 import { FaGraduationCap } from "react-icons/fa";
 import { BsGraphUpArrow } from "react-icons/bs";
@@ -58,7 +57,7 @@ export const Activities = {
         id: "synbio.activity.build",
         title: "Build",
         component: ExplorerActivityView,
-        icon: TiPipette,
+        icon: Pipette,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
