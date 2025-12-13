@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { getPanelType, getPanelTypeForObject } from "../../panels"
 import { setIsSaving } from "../slices/saveIndicatorSlice"
+import microsoftCommands from "../../components/microsoft/microsoftCommands"
 const { actions, selectors } = panelsSlice
 
 
@@ -54,7 +55,8 @@ export const usePanelType = id => useSelector(
 
 export function useOpenPanel() {
     const dispatch = useDispatch()
-    return async fileHandle => {
+    // Use default local file source, but allow onedrive saving
+    return async (fileHandle, source = 'local') => {
 
         const panelTypeDef = getPanelTypeForObject(fileHandle.objectType)
 
@@ -66,39 +68,70 @@ export function useOpenPanel() {
             })
             return
         }
-
-        // read in file content
-        if(panelTypeDef?.useBuffer) {
-            // if panel type uses buffer, read file as buffer
-            const file = await fileHandle.getFile();
-            if (file.size === 0) {
-                showNotification({
-                    message: "The file is likely corrupted. Please try to reimport it",
-                    color: "red"
-                });
+        
+        if (source === 'local') {
+            // read in file content
+            if (panelTypeDef?.useBuffer) {
+                // if panel type uses buffer, read file as buffer
+                const file = await fileHandle.getFile();
+                if (file.size === 0) {
+                    showNotification({
+                        message: "The file is likely corrupted. Please try to reimport it",
+                        color: "red"
+                    });
+                    return;
+                }
+                const fileContent = await file.arrayBuffer();
+                const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {};
+                // dispatch open action
+                dispatch(actions.openPanel({
+                    ...savedProperties,
+                    id: fileHandle.id,
+                    type: panelTypeDef.id,
+                    fileHandle,
+                }));
                 return;
             }
-            const fileContent = await file.arrayBuffer();
-            const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {};
+            const fileContent = await (await fileHandle.getFile()).text()
+            const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {}
+    
             // dispatch open action
             dispatch(actions.openPanel({
                 ...savedProperties,
                 id: fileHandle.id,
                 type: panelTypeDef.id,
                 fileHandle,
-            }));
-            return;
+            }))
+        } else if (source === 'onedrive') {
+            let fileContent;
+            try {
+                const response = await fetch(fileHandle["@microsoft.graph.downloadUrl"]);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch file from OneDrive');
+                }
+                fileContent = await response.text(); // Read as text (for XML or JSON files)
+            } catch (error) {
+                showNotification({
+                    message: `Error fetching file from OneDrive: ${error.message}`,
+                    color: "red",
+                });
+                return;
+            }
+            const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {}
+    
+            // dispatch open action
+            dispatch(actions.openPanel({
+                ...savedProperties,
+                id: fileHandle.id,
+                type: panelTypeDef.id,
+                fileHandle,
+            }))
+        } else {
+            showNotification({
+                    message: 'Unknown file source.',
+                    color: "red",
+                });
         }
-        const fileContent = await (await fileHandle.getFile()).text()
-        const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {}
-
-        // dispatch open action
-        dispatch(actions.openPanel({
-            ...savedProperties,
-            id: fileHandle.id,
-            type: panelTypeDef.id,
-            fileHandle,
-        }))
     }
 }
 
@@ -123,7 +156,7 @@ export function useActivePanel() {
     ]
 }
 
-export function useAutoSavePanel(id, debounceTime) {
+export function useAutoSavePanel(id, debounceTime, source = 'local') {
     const panel = usePanel(id)
     const dispatch = useDispatch()
 
@@ -140,13 +173,22 @@ export function useAutoSavePanel(id, debounceTime) {
 
     // save when debounced serialized content changes
     useEffect(() => {
-        const save = async() =>{
+        const save = async () => {
             dispatch(setIsSaving(true))
-            await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. 
+            if (source === 'local') {
+                await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. 
+            } else if (source === 'onedrive') {
+                await microsoftCommands.FileSave.execute(id)
+            } else {
+                showNotification({
+                    message: 'Error saving file: Unknown file source.',
+                    color: "red",
+                });
+            }
             dispatch(setIsSaving(false))
         }
         save()
-        
+
     }, [debouncedPanelContent])
 }
 

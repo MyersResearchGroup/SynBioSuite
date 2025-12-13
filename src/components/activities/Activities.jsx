@@ -1,6 +1,6 @@
 import { Box, Tabs, Title, Tooltip, Text } from '@mantine/core'
 import { useActiveActivity, useActivities } from '../../redux/hooks/activityHooks'
-import { getActivity, MicrosoftStatus } from '../../activities'
+import { getActivity, MicrosoftFileExplorer, MicrosoftStatus } from '../../activities'
 import { SVGIcon } from '../../icons'
 import SaveIndicatorDisplay from '../saveIndicatorDisplay'
 import { useEffect } from 'react'
@@ -27,6 +27,8 @@ export default function Activities() {
             //dispatch(closeModal());
         }
     }, [activeActivity])
+
+
 
     // create tabs
     const tabs = Object.entries(activities).map(([activityId, activityState]) => {
@@ -80,6 +82,33 @@ export default function Activities() {
                     </Box>
                 </Tooltip>
             </Tabs.Tab>
+        )
+
+        const odPanel = MicrosoftFileExplorer;
+        tabs.unshift(
+            <Tabs.Tab
+                key={odPanel.id}
+                value={odPanel.id}
+            >
+                <Tooltip label={odPanel.title} color='gray' position="right" withArrow>
+                    <Box py={15} px={14}>
+                        <SVGIcon
+                            icon={odPanel.icon}
+                            size={30}
+                        />
+                    </Box>
+                </Tooltip>
+            </Tabs.Tab>
+        )
+
+        tabPanels.unshift(
+            <Tabs.Panel value={odPanel.id} key={odPanel.id}>
+                <Title style={{display:"inline"}} order={6}>{odPanel.title}</Title>
+                <Text style={{display:"inline"}} size={'xs'} ml={10}>
+                    <SaveIndicatorDisplay/>
+                </Text>
+                <odPanel.component {...odPanel.activityState} objectTypesToList = {odPanel.objectTypesToList} />
+            </Tabs.Panel>
         )
     }
 

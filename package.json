@@ -11,6 +11,8 @@
         "@azure/msal-browser": "^4.26.0",
         "@emotion/cache": "^11.9.3",
         "@emotion/react": "^11.9.3",
+        "@fluentui/react-icons": "^2.0.315",
+        "@fluentui/react-icons-mdl2": "^1.4.2",
         "@honkhonk/vite-plugin-svgr": "^1.1.0",
         "@mantine/core": "^5.0.0",
         "@mantine/form": "^5.0.0",
