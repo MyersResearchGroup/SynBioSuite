@@ -5,6 +5,7 @@ import activitySlice from "./slices/activitySlice"
 import saveIndicatorReducer from './slices/saveIndicatorSlice'
 import failureMessageReducer from './slices/failureMessageSlice'
 import modalReducer from './slices/modalSlice'
+import overlayReducer from './slices/loadingOverlay'
 
 export default configureStore({
     reducer: {
@@ -14,6 +15,7 @@ export default configureStore({
         saveIndicator: saveIndicatorReducer,
         failureMessage: failureMessageReducer,
         modal: modalReducer,
+        overlay: overlayReducer
     },
 
     /*  
@@ -25,4 +27,4 @@ export default configureStore({
     })
 })
 
-export { panelsSlice, workingDirectorySlice, activitySlice, saveIndicatorReducer, modalReducer }
+export { panelsSlice, workingDirectorySlice, activitySlice, saveIndicatorReducer, modalReducer, overlayReducer }

@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import { PanelContext } from './CollectionPanel'
+import { PanelContext } from './ResourcesPanel'
 import { Select, Table, Space, Button, Group, ScrollArea } from '@mantine/core'
 import { useLocalStorage } from '@mantine/hooks'
 import { useDispatch, useSelector } from 'react-redux'
