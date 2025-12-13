@@ -34,8 +34,9 @@ export const Activities = {
             ObjectTypes.Chassis.id,
             ObjectTypes.Chemicals.id,
             ObjectTypes.Medias.id,
-            ObjectTypes.Parts.id
-        ]
+            ObjectTypes.Parts.id,
+            ObjectTypes.Resources.id
+        ] 
     },
     Design: {
         id: "synbio.activity.design",

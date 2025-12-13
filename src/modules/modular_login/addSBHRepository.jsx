@@ -9,7 +9,9 @@ import { useDispatch } from 'react-redux';
 import { closeAddSBHrepository } from '../../redux/slices/modalSlice';
 
 
-function AddSBHRepository({ opened, onClose }) {    
+function AddSBHRepository({ opened, onClose }) {
+    if (!opened) return null;
+
     const dispatch = useDispatch();
 
     const [step, setStep] = useState(1);
@@ -92,6 +94,11 @@ function AddSBHRepository({ opened, onClose }) {
         }
     };
 
+    // Helper to remove http://, https://, and www. in the input of the URL
+    const cleanUrl = (inputUrl) => {
+        return inputUrl.replace(/^(https?:\/\/)?(www\.)?/, '');
+    };
+
     return (
         <Modal opened={opened} onClose={onClose} title="Choose Repository" size="lg">
             {step === 1 && (
@@ -108,7 +115,7 @@ function AddSBHRepository({ opened, onClose }) {
                     <Space h="xl" />
                     <Group position="center">
                         <Button onClick={() => setStep(2)} disabled={!url}>
-                                Next
+                            Next
                         </Button>
                     </Group>
                 </>
@@ -140,7 +147,7 @@ function AddSBHRepository({ opened, onClose }) {
                         <Button variant="default" onClick={() => setStep(1)}>
                             Back
                         </Button>
-                        <Button disabled={!email || !password} onClick={() => handleSubmit(url, email, password)}>
+                        <Button disabled={!email || !password} onClick={() => handleSubmit(cleanUrl(url), email, password)}>
                             Submit
                         </Button>
                     </Group>

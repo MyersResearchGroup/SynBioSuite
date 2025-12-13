@@ -1,8 +1,10 @@
 import { FcAddDatabase } from "react-icons/fc";
+import { FaFileArchive } from "react-icons/fa";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
+import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
 import { ObjectTypes } from "./objectTypes";
@@ -13,6 +15,27 @@ import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
 
 
 export const PanelTypes = {
+    Resources: {
+        id: "synbio.panel-type.resources",
+        title: "Uploader",
+        component: ResourcesPanel,
+        objectTypes: [ ObjectTypes.Resources.id ],
+        icon: FaFileArchive,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify(restOfPanel)
+        }
+    }, 
     Simulator: {
         id: "synbio.panel-type.simulator",
         title: "iBioSim Analysis",
@@ -61,9 +84,9 @@ export const PanelTypes = {
                 </rdf:RDF>`;
             }
             return panel.sbol;
-            }
-        },
-        AssemblyPlanCreator: {
+        }
+    },
+    AssemblyPlanCreator: {
         id: "synbio.panel-type.assembly-plan-creator",
         title: "Assembly Plan Creator",
         component: AssemblyPanel,

@@ -3,19 +3,16 @@ import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
 import { ObjectTypes } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
-import {writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import ImportFile from './ImportFile'
 import { useState} from 'react'
 import Registries from './Registries.jsx'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
-import Download from 'browser-downloads'
 import DownloadMetadata from './DownloadMetadata.jsx'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
-    let tempDirectory;
 
     const [importedFile, setImportedFile] = useState(null)
 
@@ -118,15 +115,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             </CreateNewButton>
                                         }
                                         {createListItems(filesOfType, objectType.icon)}
-                                    {objectType.isRepository ? objectType.id == "synbio.object-type.flapjack" ? 
+                                    {objectType.isRepository ?
                                         <Registries 
-                                        typeOfRegistry={objectType.listTitle}
-                                        title={objectType.title}/>:
-                                        <Registries 
-                                        defaultRegistry={objectType?.defaultRegistry} 
-                                        typeOfRegistry={objectType.listTitle}
-                                        title={objectType.title}/>
-                                        : <></>
+                                            typeOfRegistry={objectType.listTitle}
+                                            title={objectType.title}
+                                        /> : <></>
                                     }
                                     </Accordion.Panel>
                                 </Accordion.Item>
