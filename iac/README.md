@@ -1,5 +1,5 @@
 To use Terraform:
-1. Download (Azure command line interface)[https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest]
+1. Download [Azure command line interface](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 2. Run az login 
 3. Install [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 4. Run terraform validate
