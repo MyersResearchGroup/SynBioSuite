@@ -7,6 +7,7 @@ To use Terraform:
 6. Run terraform apply
 
 In the .env file, set the following variables:
-VITE_CLIENT_ID=<your-newly-created-app-client-id-from-azure>
+
+VITE_CLIENT_ID='your-newly-created-app-client-id-from-azure'
 
 Then run the app normally.
