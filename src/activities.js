@@ -12,6 +12,9 @@ import { BiSolidFlask } from "react-icons/bi";
 import { HiOutlinePuzzlePiece } from "react-icons/hi2";
 import { PiDna } from "react-icons/pi";
 import MicrosoftView from "./components/microsoft/MicrosoftView";
+import { msalInstance } from "./microsoft-utils/auth/msalInit";
+import MicrosoftExplorerActivityView from "./components/microsoft/MicrosoftExplorerActivityView";
+import { CloudWeatherIcon } from '@fluentui/react-icons-mdl2';
 
 export const Activities = {
     LocalFileExplorer: {
@@ -32,7 +35,7 @@ export const Activities = {
             ObjectTypes.Chemicals.id,
             ObjectTypes.Medias.id,
             ObjectTypes.Parts.id
-        ] 
+        ]
     },
     Design: {
         id: "synbio.activity.design",
@@ -62,7 +65,7 @@ export const Activities = {
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
-            ObjectTypes.Assembly.id, 
+            ObjectTypes.Assembly.id,
             ObjectTypes.Build.id,
         ]
     },
@@ -113,7 +116,7 @@ export const Activities = {
         id: "synbio.activity.bug-report",
         title: "Report Bug",
         component: BugReportView,
-        icon: BugReport,   
+        icon: BugReport,
     },
 }
 
@@ -122,6 +125,14 @@ export const MicrosoftStatus = {
     title: "Check Microsoft Login Status",
     component: MicrosoftView,
     icon: MicrosoftLogo
+}
+
+export const MicrosoftFileExplorer = {
+    id: "synbio.activity.microsoft-file-explorer",
+    title: "OneDrive Explorer",
+    component: MicrosoftExplorerActivityView,
+    icon: CloudWeatherIcon,
+    objectTypesToList: Object.values(ObjectTypes).map(object => object.id)
 }
 
 export function getActivity(id) {
