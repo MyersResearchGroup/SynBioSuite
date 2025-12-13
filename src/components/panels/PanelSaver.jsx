@@ -1,3 +1,5 @@
+import { use } from 'react'
+import { msalInstance } from '../../microsoft-utils/auth/msalInit'
 import { useAutoSavePanel } from '../../redux/hooks/panelsHooks'
 
 /*
@@ -6,6 +8,11 @@ import { useAutoSavePanel } from '../../redux/hooks/panelsHooks'
 */
 
 export default function PanelSaver({ id }) {
-    useAutoSavePanel(id, 4000)
+    if (msalInstance.getActiveAccount() !== null){
+        useAutoSavePanel(id, 4000, 'onedrive')
+    }
+    else {
+        useAutoSavePanel(id, 4000)
+    }
     return <></>
 }
