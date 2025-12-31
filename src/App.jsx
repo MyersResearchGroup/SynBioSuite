@@ -4,7 +4,7 @@ import { NotificationsProvider } from "@mantine/notifications";
 import BrowserCompatiblityCatch from './components/BrowserCompatiblityCatch';
 import LoginModal from './modules/modular_login/loginModal';
 import { useSelector, useDispatch } from 'react-redux';
-import { closeModal, closeSBH, closeFJ, closeAddSBHrepository, closeAddFJrepository, closeCreateCollection, closeSBHLogin } from './redux/slices/modalSlice';
+import { closeModal, closeSBH, closeFJ, closeAddSBHrepository, closeAddFJrepository, closeCreateCollection, closeSBHLogin, closeUnifiedModal } from './redux/slices/modalSlice';
 import FJModal from './modules/modular_login/FJModal';
 import SBHModal from './modules/modular_login/SBHModal';
 import AddSBHRepository from './modules/modular_login/addSBHRepository';
@@ -12,9 +12,15 @@ import AddFJRepository from './modules/modular_login/addFJRepository';
 import CreateCollectionModal from './modules/CreateCollectionModal';
 import SBHOnly from './modules/modular_login/SBHOnly';
 import { LoadingOverlay } from '@mantine/core';
+import UnifiedModal from './modules/unified_modal/unifiedModal';
 
 
 export default function App() {
+    const unifiedModalOpen = useSelector((state) => state.modal.unifiedModalOpen)
+    const unifiedModalType = useSelector((state) => state.modal.unifiedModalType)
+    const unifiedModalAllowed = useSelector((state) => state.modal.unifiedModalAllowed)
+    const unifiedModalProps = useSelector((state) => state.modal.unifiedModalProps)
+
     const loginModalOpened = useSelector((state) => state.modal.bothOpen);
     const sbhModalOpened = useSelector((state) => state.modal.sbhOpen);
     const fjModalOpened = useSelector((state) => state.modal.fjOpen);
@@ -44,6 +50,13 @@ export default function App() {
             <Activities />
             <Panels />
             <BrowserCompatiblityCatch />
+            <UnifiedModal
+                opened={unifiedModalOpen}
+                onClose={() => dispatch(closeUnifiedModal())}
+                initialModal={unifiedModalType}
+                allowedModals={unifiedModalAllowed}
+                modalProps={unifiedModalProps}
+            />
             <LoginModal
                 opened={loginModalOpened}
                 onClose={() => dispatch(closeModal())}
