@@ -1,14 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Stack, Select, Button, Group, Text, Alert, Loader, Center } from '@mantine/core';
+import { Stack, Select, Button, Group, Text, Alert } from '@mantine/core';
 import { FaExclamationCircle } from 'react-icons/fa';
 import { useLocalStorage } from '@mantine/hooks';
-import { CheckLogin } from '../../API';
 import { MODAL_TYPES } from './unifiedModal';
 
-/**
- * Repository Selector Modal - Step 1 of the workflow
- * Allows user to select a SynBioHub repository or add a new one
- */
 export default function RepositorySelectorModal({ 
     navigateTo, 
     goBack, 
@@ -21,7 +16,6 @@ export default function RepositorySelectorModal({
     const [selectedRepo, setSelectedRepo] = useState('');
     const [error, setError] = useState(null);
 
-    // Initialize with primary repo or first available
     useEffect(() => {
         if (dataPrimarySBH && dataPrimarySBH.length > 0) {
             setSelectedRepo(dataPrimarySBH);
@@ -34,7 +28,6 @@ export default function RepositorySelectorModal({
 
     const handleRepoChange = useCallback((value) => {
         if (value === 'add-repository') {
-            // Navigate to add repository modal
             navigateTo(MODAL_TYPES.ADD_SBH_REPO);
         } else {
             setSelectedRepo(value);
@@ -49,21 +42,15 @@ export default function RepositorySelectorModal({
             return;
         }
 
-        // Store selected repo and proceed to credential check
-        if (setModalData) {
-            setModalData(prev => ({ ...prev, selectedRepo }));
-        }
-
-        // Navigate to credential verification
+        setModalData?.(prev => ({ ...prev, selectedRepo }));
         navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK, { selectedRepo });
     }, [selectedRepo, navigateTo, setModalData]);
 
     const handleRemoveInstance = useCallback(() => {
         if (!selectedRepo || selectedRepo === 'add-repository' || selectedRepo.startsWith('Select')) return;
-        // Remove from local storage
-        setDataSBH((repos) => (repos || []).filter(r => r.value !== selectedRepo));
-        // If the removed repo was primary, clear it
-        setDataPrimarySBH((primary) => (primary === selectedRepo ? '' : primary));
+        
+        setDataSBH(repos => (repos || []).filter(r => r.value !== selectedRepo));
+        setDataPrimarySBH(primary => (primary === selectedRepo ? '' : primary));
         setSelectedRepo('');
     }, [selectedRepo, setDataSBH, setDataPrimarySBH]);
 
@@ -97,11 +84,11 @@ export default function RepositorySelectorModal({
                 </Alert>
             )}
 
-            {dataSBH && dataSBH.length === 0 ? (
+            {dataSBH?.length === 0 && (
                 <Alert icon={<FaExclamationCircle size={16} />} color="blue">
                     No repositories configured. Please add a repository to continue.
                 </Alert>
-            ) : null}
+            )}
 
             <Select
                 data={repoOptions}
