@@ -88,7 +88,7 @@ export default function CollectionWizard() {
                     description="Upload Experimental Data"
                     icon={<MdTextSnippet />}>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.Parts.id, ObjectTypes.Chassis.id, ObjectTypes.Chemicals.id, ObjectTypes.Medias.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id, ObjectTypes.Strains.id]}
+                        allowedTypes={[ObjectTypes.Metadata.id]}
                         item={metadataFile?.name}
                         onItemChange={handleMetadataChange}
                         link={() => handleOpenFile(metadataFile)}>

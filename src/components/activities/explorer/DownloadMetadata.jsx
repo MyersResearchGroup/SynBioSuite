@@ -1,42 +1,29 @@
-import { getObjectType } from "../../../objectTypes"
 import { Group, Text } from "@mantine/core";
+import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
-import { AiOutlineDownload, AiOutlinePlus } from "react-icons/ai";
+import { AiOutlineDownload } from "react-icons/ai";
 
-export default function DownloadMetadata({ objectType}) {
+export default function DownloadMetadata() {
     
     const handleClick = async () => {
+        const url = "/Template.xlsm";
+        const filename = "Template.xlsm";
 
-        let url, fileName;
-        //categorize the object type
-        if (objectType?.id == "synbio.object-type.chassis") {
-            url = "/Chassis.xlsm"
-            fileName = "Chassis.xlsm"
-        } else if (objectType?.id == "synbio.object-type.chemicals") {
-            url = "/Chemicals.xlsm"
-            fileName = "Chemicals.xlsm"
-        } else if (objectType?.id == "synbio.object-type.medias") {
-            url = "/Medias.xlsm"
-            fileName = "Medias.xlsm"
-        } else if (objectType?.id == "synbio.object-type.sample-designs") {
-            url = "/SampleDesign.xlsm"
-            fileName = "SampleDesign.xlsm"
-        } else if (objectType?.id == "synbio.object-type.strains") {
-            url = "/Strain.xlsm"
-            fileName = "Strain.xlsm"
-        } else if (objectType?.id == "synbio.object-type.parts") {
-            url = "/parts.xlsm"
-            fileName = "Parts.xlsm"
+        if (true) {
+            showNotification({
+                message: "No template has been made available at this time.",
+                color: "red"
+            })
+            return;
         }
 
-
-        if (url && fileName) {
-            try{
+        try {
         const response = await fetch(url);
         const blob = await response.blob();
         const link = document.createElement("a");
+        
         link.href = URL.createObjectURL(blob);
-        link.download = fileName;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -45,8 +32,6 @@ export default function DownloadMetadata({ objectType}) {
             catch(error){
                 window.open(url, '_blank');
             }
-        }
-
     }
 
     return(
