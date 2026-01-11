@@ -27,10 +27,6 @@ export const Activities = {
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
             "synbio.object-type.synbiohub",
-            ObjectTypes.Chassis.id,
-            ObjectTypes.Chemicals.id,
-            ObjectTypes.Medias.id,
-            ObjectTypes.Parts.id,
             ObjectTypes.Resources.id
         ] 
     },
@@ -61,7 +57,6 @@ export const Activities = {
         icon: TiPipette,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
-            ObjectTypes.Strains.id,
             ObjectTypes.Assembly.id, 
             ObjectTypes.Build.id,
         ]
@@ -72,7 +67,6 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: BiSolidFlask,
         objectTypesToList: [
-            ObjectTypes.SampleDesigns.id,
             ObjectTypes.Experiments.id,
             ObjectTypes.Metadata.id,
             ObjectTypes.Results.id,

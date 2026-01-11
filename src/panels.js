@@ -155,7 +155,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.excel-file",
         title: "Experimental Setup",
         component: ExcelFilePanel,
-        objectTypes: [ObjectTypes.Parts.id, ObjectTypes.Chassis.id, ObjectTypes.Chemicals.id, ObjectTypes.Medias.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id],
+        objectTypes: [ObjectTypes.Metadata.id],
         icon: PiMicrosoftExcelLogoFill,
         deserialize: content => ({
             file: content
