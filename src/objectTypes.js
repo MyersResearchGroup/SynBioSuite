@@ -20,63 +20,17 @@ export const ObjectTypes = {
         icon: RiGitRepositoryLine,
         isRepository: true,
     },
-    Chassis: {
-        id: "synbio.object-type.chassis",
-        title: "Chassis",
-        listTitle: "Chassis",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: MdAlignVerticalTop,
-        createable: false,
-        importable: true,
-        subdirectory: "chassis",
-        downloadable: true,
-    },
-    Chemicals: {
-        id: "synbio.object-type.chemicals",
-        title: "Chemicals",
-        listTitle: "Chemicals",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: MdAlignVerticalTop,
-        createable: false,
-        importable: true,
-        subdirectory: "chemicals",
-        downloadable: true,
-    },
-    Medias: {
-        id: "synbio.object-type.medias",
-        title: "Medias",
-        listTitle: "Medias",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: MdAlignVerticalTop,
-        createable: false,
-        importable: true,
-        subdirectory: "medias",
-        downloadable: true,
-    },
-    Parts: {
-        id: "synbio.object-type.parts",
-        title: "Parts",
-        listTitle: "Parts",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: MdAlignVerticalTop,
-        createable: false,
-        importable: true,
-        subdirectory: "parts",
-        downloadable: true,
-
-    },
     Resources: {
         id: "synbio.object-type.resources",
         title: "Resources",
         listTitle: "Resources",
         fileNameMatch: /\.json$/,
         icon: FaFileArchive,
-        createable: true,
-        importable: false,
+        createable: false,
+        importable: true,
         extension: '.json',
         subdirectory: "resources",
-        downloadable: false,
-
+        downloadable: true,
     },
     SBOL: {
         id: "synbio.object-type.sbol",
@@ -134,6 +88,7 @@ export const ObjectTypes = {
         listTitle: "Strains",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
+        extension: '.json',
         createable: false,
         importable: true,
         subdirectory: "strains",
@@ -165,6 +120,7 @@ export const ObjectTypes = {
         listTitle: "Sample Designs",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
+        extension: '.json',
         createable: false,
         importable: true,
         subdirectory: "sampleDesigns",
@@ -179,6 +135,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetups",
+        downloadable: true,
     },
     Results: {
         id: "synbio.object-type.experimental-results",
@@ -231,6 +188,10 @@ function getOBjectBySubdirectory(subDirectoryName) {
 }
 
 export async function classifyFile(file, subDirectoryName) {
+    if (file.isDirectory || file.type === 'directory') {
+        return null;
+    }
+
     // try to match by file name and
     const matchFromFileName = Object.values(ObjectTypes).filter(ot => !ot.subdirectory).find(
         ot => ot.fileNameMatch?.test(file.name)

@@ -27,10 +27,6 @@ export const Activities = {
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
             "synbio.object-type.synbiohub",
-            ObjectTypes.Chassis.id,
-            ObjectTypes.Chemicals.id,
-            ObjectTypes.Medias.id,
-            ObjectTypes.Parts.id,
             ObjectTypes.Resources.id
         ] 
     },
