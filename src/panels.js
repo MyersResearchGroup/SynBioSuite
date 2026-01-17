@@ -19,7 +19,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.resources",
         title: "Uploader",
         component: ResourcesPanel,
-        objectTypes: [ ObjectTypes.Resources.id ],
+        objectTypes: [ ObjectTypes.Resources.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id ],
         icon: FaFileArchive,
 
         deserialize: content => {
