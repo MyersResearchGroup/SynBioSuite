@@ -53,7 +53,7 @@ const getProfile = async (instance, auth) => {
     }
 };
 
-const SBHOnly = ({opened, onClose, goBack, navigateTo}) => {
+const SBHOnly = ({opened, onClose, goBack}) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
 

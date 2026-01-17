@@ -47,7 +47,6 @@ export default function CollectionBrowserModal({
     const [selectedCollections, setSelectedCollections] = useState(new Map());
     const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
     const [currentPath, setCurrentPath] = useState([]);
-    const [expandedCollections, setExpandedCollections] = useState(new Map());
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
@@ -56,7 +55,6 @@ export default function CollectionBrowserModal({
     const selectedRepo = selectedRepoFromProps || modalData.selectedRepo || dataPrimarySBH;
     const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
     const silentCredentialCheck = silentCredentialCheckFromProps ?? modalData.silentCredentialCheck;
-    const skipRepositorySelection = skipRepositorySelectionFromProps ?? modalData.skipRepositorySelection;
     const multiSelect = multiSelectFromProps ?? modalData.multiSelect ?? true;
 
     useEffect(() => {
@@ -238,10 +236,6 @@ export default function CollectionBrowserModal({
                     : [];
             
             setCollections(collectionList);
-            
-            if (parentUri) {
-                setExpandedCollections(prev => new Map(prev).set(parentUri, collectionList));
-            }
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('Error fetching collections:', err);
@@ -391,6 +385,12 @@ export default function CollectionBrowserModal({
                                     <tr
                                         key={collection.uri}
                                         onDoubleClick={() => handleDoubleClick(collection)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                handleDoubleClick(collection);
+                                            }
+                                        }}
                                         style={{ cursor: 'pointer' }}
                                     >
                                         <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>

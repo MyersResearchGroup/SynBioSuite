@@ -5,7 +5,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { FJLogin } from '../../API';
 
-function AddFJRepository({ opened, onClose, goBack, navigateTo }) {    
+function AddFJRepository({ opened, onClose, goBack }) {    
     const [step, setStep] = useState(1);
     const [url, setUrl] = useState('');
     const [username, setUsername] = useState('');

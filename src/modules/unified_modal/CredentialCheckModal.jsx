@@ -91,7 +91,6 @@ export default function CredentialCheckModal({
                             });
                             
                             clearInvalidCredentials(selectedRepo);
-                            setEmailMismatch(true);
                             return;
                         }
                         

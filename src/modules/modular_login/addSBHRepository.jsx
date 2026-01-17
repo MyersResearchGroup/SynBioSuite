@@ -6,7 +6,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import axios from 'axios';
 
-function AddSBHRepository({ opened, onClose, onSubmit, goBack, navigateTo }) {
+function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
     if (!opened) return null;
 
     const [step, setStep] = useState(1);

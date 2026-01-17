@@ -285,7 +285,7 @@ export function clearInvalidCredentials(instanceUrl) {
                 // Clear auth-related fields but keep the repository info
                 return {
                     ...repo,
-                    authtoken: null,
+                    authtoken: '',
                     email: '',
                     name: '',
                     username: '',
@@ -297,8 +297,6 @@ export function clearInvalidCredentials(instanceUrl) {
         
         // Save updated data back to localStorage
         localStorage.setItem('SynbioHub', JSON.stringify(updatedData));
-        
-        console.log('Cleared invalid credentials for instance:', instanceUrl);
     } catch (error) {
         console.error('Error clearing invalid credentials:', error);
     }

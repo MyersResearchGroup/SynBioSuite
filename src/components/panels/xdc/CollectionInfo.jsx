@@ -160,7 +160,7 @@ export default function CollectionInfo() {
         workflows.createCollection('', '', () => {
             updateCollections();
         });
-    }, [getAuthToken, sbhLoginOpen, dispatch, updateCollections, clearLoginSuppression]);
+    }, [getAuthToken, sbhLoginOpen, dispatch, updateCollections, clearLoginSuppression, workflows]);
 
     /**
      * Handle logout with proper cleanup
@@ -262,7 +262,7 @@ export default function CollectionInfo() {
                 }
             }
         }
-    }, [selectedRepo, dataSBH, sbhLoginOpen, workflows, setDataPrimarySBH, clearLoginSuppression]);
+    }, [selectedRepo, dataSBH, sbhLoginOpen, workflows, setDataPrimarySBH, clearLoginSuppression, dispatch]);
 
     /**
      * Sync selectedRepo with dataPrimarySBH when modal closes or data changes
