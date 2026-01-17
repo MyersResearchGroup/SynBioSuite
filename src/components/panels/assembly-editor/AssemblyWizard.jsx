@@ -1,263 +1,452 @@
-import { useState } from 'react'
-import { Container, Stepper, Group, Button, Tabs, Space, Menu, Text, Center, SimpleGrid, Box, Divider, Badge } from "@mantine/core"
-import Dropzone, { MultiDropzone } from '../../Dropzone'
-import { TbComponents } from 'react-icons/tb'
-import { IoAnalyticsSharp } from 'react-icons/io5'
-import { BiWorld, BiDownload, BiCloudUpload } from "react-icons/bi"
-import { FaCheckCircle } from 'react-icons/fa'; 
-import AssemblyForm from './AssemblyForm'
-import { ObjectTypes } from '../../../objectTypes'
-import { titleFromFileName, useFile, useCreateAssemblyFile, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
+import { useEffect } from 'react'
+import { Container, Stepper, Group, Button, Tabs, Space, Select, Table, Text } from "@mantine/core"
 import { useContext } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import AssemblyReviewTable from './AssemblyReviewTable'
-import { submitAssembly } from '../../../API'
-import { useSelector } from 'react-redux'
 import PanelSaver from '../PanelSaver'
-import { useEffect } from 'react'
+import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal';
+import { showNotification } from '@mantine/notifications'
 
-export const TabValues = {
-    PLASMID: 'plasmid',
-    INSERTS: 'inserts',
-    PARAMETERS: 'parameters',
-    INPUT: 'input'
+const tableContainerStyle = {
+    position: 'relative',
+    overflowY: 'scroll',
+    overflowX: 'auto',
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#ccc #f5f5f5',
 }
 
-// NOTES 1/22:
-/*
- * inserts are not a factor, the assembly involves many plasmids (containing desired parts), which are put together in sbolcanvas
- * create different forms for each type of assembly plan
- *      potentially have synbiohub upload details here
- * change mentions of sbol to assembly plan
- * bp011 = https://github.com/SynBioDex/SBOL-examples/tree/main/SBOL/best-practices/BP011
-*/
+const cellStyle = {
+    whiteSpace: 'nowrap',
+}
 
-export default function AssemblyWizard({handleViewResult, isResults = false}) {
+export const Machines = {
+    PUDU: {
+        OT2: 'OT2'
+    },
+}
+
+export const AssemblyMethods = {
+    MOCLO: 'Modular Cloning',
+    LOOP: 'Loop (Coming Soon)',
+    GIBSON: 'Gibson (Coming Soon)'
+}
+
+export const Compiler = {
+    MANUAL: 'Manual (Coming Soon)',
+    PUDU: 'Automated (PUDU)',
+    PYLAB: 'Automated (PyLab Robot)',
+    CLOUD: 'Cloud (Coming Soon)'
+}
+
+export const RestrictionEnzymes = {
+    MOCLO: {
+        BSAI: 'BSAI'
+    }
+}
+
+export default function AssemblyWizard() {
     const panelId = useContext(PanelContext)
+    const { workflows } = useUnifiedModal();
     PanelSaver(panelId)
-
-    const createFileClosure = useCreateAssemblyFile()
-    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-
-    // file info
-    const fileHandle = usePanelProperty(panelId, "fileHandle")
-    const panelTitle = titleFromFileName(fileHandle.name)
-    const [fileUrl, setFileUrl] = useState()
     
-    // adding file to json
-    const [assemblyPlanFile, setAssemblyPlanFile] = usePanelProperty(panelId, 'AssemblyPlan', '')
-
-    const [status, setStatus] = useState(false)
-    const [backendResponse, setBackendResponse] = useState(assemblyPlanFile ? true : false)
-
-    //creating download url on filename init from backend respose
-    useEffect(() => {
-        const setup = async () => {
-            const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
-            const handle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
-            const file = await handle.getFile();
-            const url = URL.createObjectURL(file);
-            setFileUrl(url);
-        };
-        if (backendResponse) setup();
-        return () => { if (fileUrl) URL.revokeObjectURL(fileUrl); };
-      }, [assemblyPlanFile]);
-
     // stepper states
-    const numSteps = 2
+    const numSteps = 3
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
     const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
 
-    // Step 1: select plasmid
-    const [plasmidId, setplasmidId] = usePanelProperty(panelId, 'backbone', false)
-    const acceptorPlasmid = useFile(plasmidId)
-    const handlePlasmidChange = fileNames => {
-        setplasmidId(fileNames)
-    }
+    // stepper 1
+    const [SBHinstance, setSBHinstance] = usePanelProperty(panelId, "SBHinstance", false, '')
+    const [SBHemail, setSBHemail] = usePanelProperty(panelId, "SBHemail", false, '')
+    const [depositCollection, setDepositCollection] = usePanelProperty(panelId, "finalCollection", false, '')
+    const [collectionInfo, setCollectionInfo] = usePanelProperty(panelId, "collectionInfo", false, null);
+    const [userInfo, setUserInfo] = usePanelProperty(panelId, "userInfo", false, null);
 
-    // Step 2: select part inserts
-    const [insertIDs, setInsertIDs] = usePanelProperty(panelId, 'inserts', false, []) || []
-    let insertFiles = []
-    const handleInsertChange = name => {
-        setInsertIDs([...insertIDs, name])
-    }
+    const [abstractDesign, setAbstractDesign] = usePanelProperty(panelId, "abstractDesign", false, '');
+    const [abstractDesignInfo, setAbstractDesignInfo] = usePanelProperty(panelId, "abstractDesignInfo", false, null);
 
-    const handleRemoveInsert = id => {
-        const newIDs = insertIDs.filter(item => item !== id)
-        setInsertIDs(newIDs)
-    }
+    const [selectedPlasmid, setSelectedPlasmid] = usePanelProperty(panelId, "selectedPlasmid", false, null);
+    const [selectedPlasmidInfo, setSelectedPlasmidInfo] = usePanelProperty(panelId, "selectedPlasmidInfo", false, null);
 
-    // form state
-    const formValues = usePanelProperty(panelId, "formValues")
+    // stepper 2
+    const [assemblyMethod, setAssemblyMethod] = usePanelProperty(panelId, "assemblyMethod", false, AssemblyMethods.MOCLO)
+    const [restrictionEnzyme, setRestrictionEnzyme] = usePanelProperty(panelId, "restrictionEnzyme", false, RestrictionEnzymes.MOCLO.BSAI)
+    const [compiler, setCompiler] = usePanelProperty(panelId, "compiler", false, Compiler.PUDU)
+    const [machine, setMachine] = usePanelProperty(panelId, "machine", false, Machines.PUDU.OT2)
 
-    
-    // determine if we can move to next step or not
-    let showNextButton = false
-    switch (activeStep) {
-        case 0: showNextButton = (!!plasmidId) || (!!acceptorPlasmid)
-        break
-        case 1: showNextButton = true
-    }
-    
-    const handleAssemblySubmit = async () => {
-        setStatus(true)
-        
-        try {
-            // backend call
-            const response = await submitAssembly(
-                fileHandle,
-                insertFiles,
-                acceptorPlasmid
-            )
-            //reponse handling
-            if (response.includes('xmlns:sbol="http://sbols.org/v2#"')) { 
-                setBackendResponse(true)
+    const [selectedBackbone, setSelectedBackbone] = usePanelProperty(panelId, "selectedBackbone", false, null);
+    const [selectedBackboneInfo, setSelectedBackboneInfo] = usePanelProperty(panelId, "selectedBackboneInfo", false, null);
+
+    useEffect(() => {
+        if (assemblyMethod === AssemblyMethods.MOCLO && restrictionEnzyme !== RestrictionEnzymes.MOCLO.BSAI) {
+            setRestrictionEnzyme(RestrictionEnzymes.MOCLO.BSAI);
+        }
+    }, [assemblyMethod, setRestrictionEnzyme, restrictionEnzyme]);
+
+    useEffect(() => {
+        if (!SBHinstance || !SBHemail) {
+            setDepositCollection('');
+            setCollectionInfo(null);
+            setUserInfo(null);
+            setAbstractDesign('');
+            setAbstractDesignInfo(null);
+            setSelectedPlasmid(null);
+            setSelectedPlasmidInfo(null);
+            setSelectedBackbone(null);
+            setSelectedBackboneInfo(null);
+        }
+    }, [SBHinstance, SBHemail]);
+
+    // workflow calls
+    const handleBrowseCollections = () => {
+        workflows.browseCollections((data) => {
+            if (data && data.completed) {
+                try {
+                    if (
+                        !data.selectedRepo ||
+                        !data.userInfo ||
+                        !data.userInfo.email ||
+                        !data.collections ||
+                        !data.collections[0] ||
+                        !data.collections[0].uri
+                    ) {
+                        throw new Error("Missing required data.");
+                    }
+                    setSBHinstance(data.selectedRepo);
+                    setSBHemail(data.userInfo.email);
+                    setDepositCollection(data.collections[0].uri);
+                    setUserInfo(data.userInfo);
+                    setCollectionInfo(data.collections[0]);
+                } catch (error) {
+                    showNotification({
+                        title: 'Failed to Select Collection',
+                        message: error.message,
+                        color: 'red',
+                    });
+                }
             }
-            const subdirectoryHandle = await workDir.getDirectoryHandle('assemblyPlans', { create: true });
-            const assemblyPlanFileHandle = await createFileClosure(panelTitle + '.xml', 'synbio.object-type.assembly-plan', subdirectoryHandle)
-            await writeToFileHandle(assemblyPlanFileHandle, response) //write SBOL string to file
+        });
+    };
 
-            setAssemblyPlanFile(assemblyPlanFileHandle.name)
+    const handleInsertAbstractDesign = () => {
+        // Use the new workflow that validates against the deposit collection's email
+        if (!SBHinstance || !SBHemail) {
+            showNotification({
+                title: 'No Repository Selected',
+                message: 'Please select a deposit collection first.',
+                color: 'red',
+            });
+            return;
         }
-        catch (error) {
-        } 
-        finally {
-            setStatus(false)
-        }
-    }
 
-    const setInsertFileHandles = (fileHandles) => {
-        insertFiles = fileHandles
-    }
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {            
+            if (data && data.aborted) {
+                const expectedEmail = data.expectedEmail || SBHemail || 'unknown';
+                const actualEmail = data.actualEmail || 'unknown';
+                showNotification({
+                    title: data.error === 'Email mismatch' ? 'Email Mismatch' : 'Selection Aborted',
+                    message: data.error === 'Email mismatch' 
+                        ? `Expected ${expectedEmail}, but you are logged in as ${actualEmail}.`
+                        : data.error || 'The operation was aborted.',
+                    color: 'red',
+                });
+                return;
+            }
+
+            if (data && data.completed) {
+                try {
+                    setAbstractDesign(data.collections[0].uri);
+                    setAbstractDesignInfo(data.collections[0]);
+                } catch (error) {
+                    showNotification({
+                        title: 'Failed to Insert Abstract Design',
+                        message: error.message,
+                        color: 'red',
+                    });
+                }
+            }
+        }, { multiSelect: false }); // Single selection mode
+    };
+
+    // Handler for Select Plasmids
+    const handleSelectPlasmid = () => {
+        // Use the new workflow that validates against the deposit collection's email
+        if (!SBHinstance || !SBHemail) {
+            showNotification({
+                title: 'No Repository Selected',
+                message: 'Please select a deposit collection first.',
+                color: 'red',
+            });
+            return;
+        }
+
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {
+            if (data && data.aborted) {
+                showNotification({
+                    title: 'Email Mismatch',
+                    message: `Expected ${data.expectedEmail}, but you are logged in as ${data.actualEmail}.`,
+                    color: 'red',
+                });
+                return;
+            }
+
+            if (data && data.completed) {
+                try {
+                    setSelectedPlasmid(data.collections[0].uri);
+                    setSelectedPlasmidInfo(data.collections[0]);
+                } catch (error) {
+                    showNotification({
+                        title: 'Failed to Select Plasmid',
+                        message: error.message,
+                        color: 'red',
+                    });
+                }
+            }
+        }, { multiSelect: false }); // Single selection mode
+    };
+
+    // Handler for Select Backbone
+    const handleSelectBackbone = () => {
+        // Use the new workflow that validates against the deposit collection's email
+        if (!SBHinstance || !SBHemail) {
+            showNotification({
+                title: 'No Repository Selected',
+                message: 'Please select a deposit collection first.',
+                color: 'red',
+            });
+            return;
+        }
+
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {
+            if (data && data.aborted) {
+                showNotification({
+                    title: 'Email Mismatch',
+                    message: `Expected ${data.expectedEmail}, but you are logged in as ${data.actualEmail}.`,
+                    color: 'red',
+                });
+                return;
+            }
+
+            if (data && data.completed) {
+                try {
+                    setSelectedBackbone(data.collections[0].uri);
+                    setSelectedBackboneInfo(data.collections[0]);
+                } catch (error) {
+                    showNotification({
+                        title: 'Failed to Select Backbone',
+                        message: error.message,
+                        color: 'red',
+                    });
+                }
+            }
+        }, { multiSelect: false }); // Single selection mode
+    };
 
     return (
-        <Container style={stepperContainerStyle}>
+        <Container style={{ marginTop: 40, padding: '0 40px' }}>
             <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
                 <Stepper.Step
-                    allowStepSelect={activeStep > 0 || status || backendResponse}
-                    label="Select Genetic Parts"
-                    description="SBOL Component"
-                    icon={<TbComponents />}
+                    allowStepSelect={activeStep > 0}
+                    label="Designs"
                 >
-                    <Dropzone
-                        allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]}
-                        item={acceptorPlasmid?.name}
-                        onItemChange={handlePlasmidChange}
-                        multiple={true}
+                    <Button
+                        variant="outline"
+                        fullWidth
+                        style={{ marginBottom: 16 }}
+                        onClick={handleBrowseCollections}
                     >
-                        Drag & drop a receptor backbone from the explorer
-                    </Dropzone>
-                    <Space h='xl' />
-                    <MultiDropzone
-                            allowedTypes={[ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id]} 
-                            items={insertIDs}
-                            onItemsChange={handleInsertChange}
-                            onRemoveItem={handleRemoveInsert}
-                            multiple={true}
+                        Choose Collection to Deposit in SynBioHub
+                    </Button>
+                    {SBHinstance && depositCollection && collectionInfo && userInfo && (
+                        <div style={{ marginBottom: 24, padding: 12, border: '1px solid #eee', borderRadius: 8}}>
+                            <b>Selected SynBioHub Instance:</b> {SBHinstance}<br />
+                            <b>Username:</b> {userInfo.username || '-'}<br />
+                            <b>Email:</b> {userInfo.email || '-'}<br />
+                            <b>Collection Name:</b> {collectionInfo.name || collectionInfo.displayId || '-'}<br />
+                            <b>Collection URI:</b> {depositCollection}<br />
+                            <b>Description:</b> {collectionInfo.description || '-'}<br />
+                        </div>
+                    )}
+                    {SBHinstance && depositCollection && collectionInfo && userInfo && (
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            style={{ marginBottom: 16 }}
+                            onClick={handleInsertAbstractDesign}
                         >
-                            Drag & drop parts in backbone from the explorer
-                    </MultiDropzone>
+                            Insert Abstract Design from SynBioHub
+                        </Button>
+                    )}
+                    {SBHinstance && depositCollection && collectionInfo && userInfo && abstractDesign && abstractDesignInfo && (
+                        <div style={{ marginBottom: 24, padding: 12, border: '1px solid #eee', borderRadius: 8}}>
+                            <b>Design Name:</b> {abstractDesignInfo.name || abstractDesignInfo.displayId || '-'}<br />
+                            <b>Design URI:</b> {abstractDesign}<br />
+                            <b>Description:</b> {abstractDesignInfo.description || '-'}<br />
+                        </div>
+                    )}
+                    {SBHinstance && depositCollection && collectionInfo && userInfo && abstractDesign && abstractDesignInfo && (
+                        <Button
+                            variant="outline"
+                            fullWidth
+                            style={{ marginBottom: 16 }}
+                            onClick={handleSelectPlasmid}
+                        >
+                            Select Plasmids
+                        </Button>
+                    )}
+                    {SBHinstance && depositCollection && collectionInfo && userInfo && abstractDesign && abstractDesignInfo && selectedPlasmid && selectedPlasmidInfo && (
+                        <div style={{ marginBottom: 24, padding: 12, border: '1px solid #eee', borderRadius: 8}}>
+                            <b>Plasmid Name:</b> {selectedPlasmidInfo.name || selectedPlasmidInfo.displayId || '-'}<br />
+                            <b>Plasmid URI:</b> {selectedPlasmid}<br />
+                            <b>Description:</b> {selectedPlasmidInfo.description || '-'}<br />
+                        </div>
+                    )}
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 1 || status || backendResponse}
-                    label="Enter Parameters"
-                    description="Choose assembly type"
-                    icon={<BiWorld />}
+                    allowStepSelect={activeStep > 2}
+                    label="Assembly"
                 >
+                    <Tabs position='left' value={assemblyMethod} onTabChange={setAssemblyMethod} >
+                        <Tabs.List grow>
+                            <Tabs.Tab value={AssemblyMethods.GIBSON} disabled>
+                                {AssemblyMethods.GIBSON}
+                            </Tabs.Tab>
+                            <Tabs.Tab value={AssemblyMethods.LOOP} disabled>
+                                {AssemblyMethods.LOOP}
+                            </Tabs.Tab>
+                            <Tabs.Tab value={AssemblyMethods.MOCLO}>
+                                {AssemblyMethods.MOCLO}
+                            </Tabs.Tab>
+                        </Tabs.List>
+                        <Space h='md' />
+                        <Tabs.Panel value={AssemblyMethods.MOCLO}>
+                            <Select
+                                label="Restriction Enzyme"
+                                data={Object.entries(RestrictionEnzymes.MOCLO).map(([value, label]) => ({
+                                    value,
+                                    label
+                                }))}
+                                value={restrictionEnzyme}
+                                onChange={setRestrictionEnzyme}
+                            />
+                            <Space h='lg'/>
+                            {SBHinstance && (
+                                <Button
+                                    variant="outline"
+                                    fullWidth
+                                    style={{ marginBottom: 16 }}
+                                    onClick={handleSelectBackbone}
+                                >
+                                    Select Backbone
+                                </Button>
+                            )}
+                            {SBHinstance && selectedBackbone && selectedBackboneInfo && (
+                                <div style={{ marginBottom: 24, padding: 12, border: '1px solid #eee', borderRadius: 8}}>
+                                    <b>Backbone Name:</b> {selectedBackboneInfo.name || selectedBackboneInfo.displayId || '-'}<br />
+                                    <b>Backbone URI:</b> {selectedBackbone}<br />
+                                    <b>Description:</b> {selectedBackboneInfo.description || '-'}<br />
+                                </div>
+                            )}
+                        </Tabs.Panel>
+                    </Tabs>
                     <Space h='xl' />
-                        <h2 style={{ textAlign: 'center' }}>Enter Assembly Parameters</h2>
-                            <AssemblyForm/>
+                    <Tabs position='right' value={compiler} onTabChange={setCompiler} >
+                        <Tabs.List grow>
+                            <Tabs.Tab value={Compiler.PUDU}>
+                                {Compiler.PUDU}
+                            </Tabs.Tab>
+                            <Tabs.Tab value={Compiler.PYLAB} disabled>
+                                {Compiler.PYLAB}
+                            </Tabs.Tab>
+                            <Tabs.Tab value={Compiler.CLOUD} disabled>
+                                {Compiler.CLOUD}
+                            </Tabs.Tab>
+                            <Tabs.Tab value={Compiler.MANUAL} disabled>
+                                {Compiler.MANUAL}
+                            </Tabs.Tab>
+                        </Tabs.List>
+                        <Space h='md' />
+                        <Tabs.Panel value={Compiler.PUDU}>
+                            <Select
+                                label="Machine"
+                                data={Object.entries(Machines.PUDU).map(([value, label]) => ({
+                                    value,
+                                    label
+                                }))}
+                                value={machine}
+                                onChange={setMachine}
+                            />
+                        </Tabs.Panel>
+                    </Tabs>
                 </Stepper.Step>
                 <Stepper.Step
-                    allowStepSelect={activeStep > 2 || status || backendResponse}
-                    label="Run Assembly"
-                    description="Review and submit"
-                    icon={backendResponse ? <FaCheckCircle size={45} color="2fb044"/> : <IoAnalyticsSharp />}
-                    loading={status}
+                    allowStepSelect={activeStep > 2}
+                    label="Execute"
                 >
-                    <Space h='lg' />
-                        <Group grow style={{ alignItems: 'flex-start' }}>
-                            <AssemblyReviewTable onInsertFilesReady={setInsertFileHandles}/>
-                        </Group>
+                    <Container>
+                        <div style={tableContainerStyle}>
+                            <Table horizontalSpacing={20}>
+                                <thead>
+                                    <tr>
+                                        <th style={cellStyle}></th>
+                                        <th style={cellStyle}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.entries({
+                                        SBHinstance,
+                                        SBHemail,
+                                        depositCollection,
+                                        collectionInfo,
+                                        userInfo,
+                                        abstractDesign,
+                                        abstractDesignInfo,
+                                        selectedPlasmid,
+                                        selectedPlasmidInfo,
+                                        assemblyMethod,
+                                        restrictionEnzyme,
+                                        compiler,
+                                        machine,
+                                        selectedBackbone,
+                                        selectedBackboneInfo
+                                    }).map(([key, value]) => (
+                                        <tr key={key}>
+                                            <td style={cellStyle}><Text weight={600}>{key}</Text></td>
+                                            <td style={cellStyle}>
+                                                <Group>
+                                                    <Text weight={600}>
+                                                        {typeof value === 'object' && value !== null
+                                                            ? JSON.stringify(value, null, 2)
+                                                            : String(value)}
+                                                    </Text>
+                                                </Group>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </div>
+                    </Container>
                 </Stepper.Step>
             </Stepper>
             <Group position="center" mt="xl">
-                {status ?
-                    <>
-                        <Button color='red' onClick={() => setStatus(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="default"
-                            onClick={prevStep}
-                            sx={{ display: activeStep == 0 || activeStep == 2 ? 'none' : 'block' }}
-                        >
-                            Back
-                        </Button>
-                        <Button
-                            onClick={nextStep}
-                            sx={{ display: showNextButton ? 'block' : 'none' }}
-                        >
-                                Next step
-                        </Button> <></>
-                    </> :
-                    <>
-                        <Button
-                            variant="default"
-                            onClick={prevStep}
-                            sx={{ display: activeStep == 0 ? 'none' : 'block' }}
-                        >
-                            Back
-                        </Button>
-                        {activeStep < 2 ?
-                            <Button
-                                onClick={nextStep}
-                                sx={{ display: showNextButton ? 'block' : 'none' }}
-                            >
-                                Next step
-                            </Button> :
-                            <Button
-                                type="submit"
-                                gradient={{ from: "blue", to: "indigo" }}
-                                variant="gradient"
-                                radius="xl"
-                                onClick={handleAssemblySubmit}
-                            >
-                                Run Assembly
-                            </Button>}
-                        {backendResponse && activeStep === 2 && <Menu trigger="hover" closeDelay={250}>   
-                            <Menu.Target>
-                                <Button 
-                                gradient={{ from: "green", to: "green" }}
-                                variant="gradient"
-                                radius="xl"
-                                >{panelTitle}.xml</Button>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                            <Menu.Label>Assembly Plan SBOL</Menu.Label>
-                                <Menu.Item 
-                                    component="a"
-                                    href={fileUrl}
-                                    download={`${panelTitle}.xml`}
-                                    icon={<BiDownload />}>
-                                    Download
-                                </Menu.Item>
-                                <Menu.Item icon={<BiCloudUpload/>}>
-                                    Upload to SynBioHub
-                                </Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>}                  
-                    </>}
+                {activeStep == 0 ? <></> :
+                    <Button variant="default" onClick={prevStep}>
+                        Back
+                    </Button>
+                }
+                {activeStep === numSteps - 1 ?
+                    <Button onClick={() => {alert("Exporting call placeholder\n(Not implemented yet)")}}
+                        color='green'
+                    >
+                        Export
+                    </Button>
+                :    
+                    <Button onClick={nextStep}>
+                        Next Step
+                    </Button>
+                }
             </Group>
         </Container>
     )
-}
-
-
-const stepperContainerStyle = {
-    marginTop: 40,
-    padding: '0 40px',
-    flexDirection: 'column'
 }

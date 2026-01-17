@@ -4,13 +4,14 @@ import { PanelContext } from './CollectionPanel'
 import { Select, Table, Space, Button, Group, ScrollArea } from '@mantine/core'
 import { useLocalStorage } from '@mantine/hooks'
 import { useDispatch, useSelector } from 'react-redux'
-import { openAddSBHrepository, openCreateCollection, openSBHLogin } from '../../../redux/slices/modalSlice'
-import { SBHLogout, searchCollections, CheckLogin } from '../../../API'
+import { SBHLogout, searchCollections, CheckLogin, clearInvalidCredentials } from '../../../API'
 import { showNotification } from '@mantine/notifications'
+import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal'
 
 export default function CollectionInfo() {
     const panelId = useContext(PanelContext)
     const dispatch = useDispatch();
+    const { workflows } = useUnifiedModal();
 
     const sbhLoginOpen = useSelector(state => state.modal.sbhLoginOpen);
 
@@ -145,7 +146,9 @@ export default function CollectionInfo() {
             // Only open login if not already open
             if (!sbhLoginOpen && !loginPromptShownRef.current) {
                 loginPromptShownRef.current = true;
-                dispatch(openSBHLogin());
+                workflows.loginToSBH(() => {
+                    loginPromptShownRef.current = false;
+                });
             }
             return;
         }
@@ -154,10 +157,10 @@ export default function CollectionInfo() {
         loginPromptShownRef.current = false;
 
         // Open create collection modal with callback
-        dispatch(openCreateCollection({
-            callback: () => updateCollections(),
-        }));
-    }, [getAuthToken, sbhLoginOpen, dispatch, updateCollections, clearLoginSuppression]);
+        workflows.createCollection('', '', () => {
+            updateCollections();
+        });
+    }, [getAuthToken, sbhLoginOpen, dispatch, updateCollections, clearLoginSuppression, workflows]);
 
     /**
      * Handle logout with proper cleanup
@@ -189,15 +192,8 @@ export default function CollectionInfo() {
             }
         }
         
-        // Update local state
-        const updatedInstanceData = dataSBH.map((item) => {
-            if (item.value === actualRepo) {
-                return { ...item, authtoken: "" };
-            }
-            return item;
-        });
-        
-        setDataSBH(updatedInstanceData);
+        // Clear invalid credentials from localStorage
+        clearInvalidCredentials(actualRepo);
         setCollections([]);
         
         // Suppress auto re-open of login modal
@@ -246,7 +242,7 @@ export default function CollectionInfo() {
     const handleRepoChange = useCallback((value) => {
         if (value === 'add-repository') {
             clearLoginSuppression();
-            dispatch(openAddSBHrepository());
+            workflows.addRepository('sbh');
         } else {
             if (value !== selectedRepo) {
                 // User explicitly selecting repo -> clear suppression and reset flags
@@ -260,11 +256,13 @@ export default function CollectionInfo() {
                 // Only open login if not already open and we don't have a token
                 const hasToken = dataSBH.find(repo => repo.value === value)?.authtoken;
                 if (!hasToken && !sbhLoginOpen) {
-                    dispatch(openSBHLogin());
+                    workflows.loginToSBH(() => {
+                        loginPromptShownRef.current = false;
+                    });
                 }
             }
         }
-    }, [selectedRepo, dataSBH, sbhLoginOpen, dispatch, setDataPrimarySBH, clearLoginSuppression]);
+    }, [selectedRepo, dataSBH, sbhLoginOpen, workflows, setDataPrimarySBH, clearLoginSuppression, dispatch]);
 
     /**
      * Sync selectedRepo with dataPrimarySBH when modal closes or data changes
@@ -346,7 +344,9 @@ export default function CollectionInfo() {
             if (!authToken) {
                 if (!sbhLoginOpen && !loginPromptShownRef.current) {
                     loginPromptShownRef.current = true;
-                    dispatch(openSBHLogin());
+                    workflows.loginToSBH(() => {
+                        loginPromptShownRef.current = false;
+                    });
                 }
                 return;
             }
@@ -355,7 +355,7 @@ export default function CollectionInfo() {
             loginPromptShownRef.current = false;
 
             try {
-                const valid = await CheckLogin(dataPrimarySBH, authToken);
+                const loginResult = await CheckLogin(dataPrimarySBH, authToken);
                 
                 // Check if aborted during async operation
                 if (abortController.signal.aborted || isLoggingOutRef.current || !isMountedRef.current) {
@@ -363,7 +363,7 @@ export default function CollectionInfo() {
                 }
 
                 // Only logout if session explicitly invalid (not network error)
-                if (!valid) {
+                if (!loginResult.valid) {
                     showNotification({
                         title: 'Session expired',
                         message: 'Your authentication session has expired.',
@@ -474,7 +474,7 @@ export default function CollectionInfo() {
                 <Button onClick={handleCreateCollection} color="blue">Create Collection</Button>}
                 {dataSBH.some(repo => repo.value === dataPrimarySBH) && getAuthToken() ? (
                     <Button onClick={handleLogout} color="blue">Logout</Button>
-                ) : <Button onClick={() => dispatch(openSBHLogin())} color="blue">Login</Button>}
+                ) : <Button onClick={() => workflows.loginToSBH(() => { loginPromptShownRef.current = false; })} color="blue">Login</Button>}
                 {selectedRepo !== "Select a repository" && (
                     <Button onClick={handleRemoveInstance} color="blue">Remove Instance</Button>
                 )}
