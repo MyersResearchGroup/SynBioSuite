@@ -6,8 +6,8 @@ import { AiOutlineDownload } from "react-icons/ai";
 export default function DownloadMetadata() {
     
     const handleClick = async () => {
-        const url = "/Template.xlsm";
-        const filename = "Template.xlsm";
+        let url = "/Template.xlsm";
+        let filename = "Template.xlsm";
 
         if (true) {
             showNotification({
@@ -16,6 +16,20 @@ export default function DownloadMetadata() {
             })
             return;
         }
+
+        if (objectType?.id == "synbio.object-type.sample-designs") {
+            url = "/SampleDesign.xlsm"
+            filename = "SampleDesign.xlsm"
+        } else if (objectType?.id == "synbio.object-type.strains") {
+            url = "/Strain.xlsm"
+            filename = "Strain.xlsm"
+        } else if (objectType?.id == "synbio.object-type.resources") {
+            url = "/Resources.xlsm"
+            filename = "Resources.xlsm"
+        } else if (objectType?.id == "synbio.object-type.experimental-data") {
+            url = "/Resources.xlsm"
+            filename = "Resources.xlsm"
+        } 
 
         try {
         const response = await fetch(url);

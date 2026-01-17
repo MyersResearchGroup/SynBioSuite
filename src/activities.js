@@ -57,6 +57,7 @@ export const Activities = {
         icon: TiPipette,
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
+            ObjectTypes.Strains.id,
             ObjectTypes.Assembly.id, 
             ObjectTypes.Build.id,
         ]
@@ -67,6 +68,7 @@ export const Activities = {
         component: ExplorerActivityView,
         icon: BiSolidFlask,
         objectTypesToList: [
+            ObjectTypes.SampleDesigns.id,
             ObjectTypes.Experiments.id,
             ObjectTypes.Metadata.id,
             ObjectTypes.Results.id,

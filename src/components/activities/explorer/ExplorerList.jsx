@@ -94,7 +94,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                     </Accordion.Control>
                                     <Accordion.Panel>
                                         {objectType.downloadable &&
-                                            <DownloadMetadata>
+                                            <DownloadMetadata objectType={objectType}>
                                             </DownloadMetadata>
                                         }
                                         {objectType.importable &&

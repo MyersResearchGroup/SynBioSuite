@@ -82,6 +82,18 @@ export const ObjectTypes = {
         badgeLabel: "PLASMID",
         subdirectory: "plasmids"
     },
+    Strains: {
+        id: "synbio.object-type.strains",
+        title: "Strains",
+        listTitle: "Strains",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        extension: '.json',
+        createable: false,
+        importable: true,
+        subdirectory: "strains",
+        downloadable: true,
+    },
     Assembly: {
         id: "synbio.object-type.assembly-plan",
         title: "Assembly Plan",
@@ -102,6 +114,18 @@ export const ObjectTypes = {
         extension: '.json',
         subdirectory: "builds"
     },
+    SampleDesigns: {
+        id: "synbio.object-type.sample-designs",
+        title: "Sample Designs",
+        listTitle: "Sample Designs",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: MdAlignVerticalTop,
+        extension: '.json',
+        createable: false,
+        importable: true,
+        subdirectory: "sampleDesigns",
+        downloadable: true,
+    },
     Metadata: {
         id: "synbio.object-type.experimental-data",
         title: "Metadata",
@@ -111,6 +135,7 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "experimentalSetups",
+        downloadable: true,
     },
     Results: {
         id: "synbio.object-type.experimental-results",

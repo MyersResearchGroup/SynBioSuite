@@ -28,7 +28,8 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 directoryHandle = await dirName.getDirectoryHandle(useSubdirectory, { create: false })
                     .catch(() => dirName.getDirectoryHandle(useSubdirectory, { create: true }));
 
-                if (useSubdirectory === 'resources') {
+                // TODO: Automatically generate this
+                if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns' || useSubdirectory === "experimentalSetups") {
                     directoryHandle = await directoryHandle.getDirectoryHandle("uploads", { create: false })
                         .catch(() => directoryHandle.getDirectoryHandle("uploads", { create: true }));
                 }
@@ -43,31 +44,39 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
             };
         }
 
-        async function createResourceWorkflowJSON(fileName) {
+        async function createWorkflowJSON(fileName, objectType) {
             try {
-                const resourcesDir = await dirName.getDirectoryHandle('resources', { create: true });
+                const directory = await dirName.getDirectoryHandle(objectType, { create: true });
                 const baseFileName = fileName.replace(/\.[^/.]+$/, "");
                 const jsonFileName = `${baseFileName}.json`;
                 
-                const jsonFileHandle = await resourcesDir.getFileHandle(jsonFileName, { create: true });
+                const jsonFileHandle = await directory.getFileHandle(jsonFileName, { create: true });
                 
                 const defaultWorkflow = {
                     activeStep: 0,
-                    files: [`resources/uploads/${fileName}`],
+                    files: [`${objectType}/uploads/${fileName}`],
                     collection: {},
                     uploads: []
                 };
                 
                 await writeToFileHandle(jsonFileHandle, JSON.stringify(defaultWorkflow));
                 
-                jsonFileHandle.id = `resources/${jsonFileName}`;
-                jsonFileHandle.objectType = ObjectTypes.Resources.id;
+                jsonFileHandle.id = `${objectType}/${jsonFileName}`;
+
+                // TODO: Assign programatically
+                if (useSubdirectory === 'resources') {
+                    jsonFileHandle.objectType = ObjectTypes.Resources.id;
+                } else if (useSubdirectory === 'strains') {
+                    jsonFileHandle.objectType = ObjectTypes.Strains.id;
+                } else if (useSubdirectory === 'sampleDesigns') {
+                    jsonFileHandle.objectType = ObjectTypes.SampleDesigns.id;
+                } else if (useSubdirectory === 'experimentalSetups') {
+                    jsonFileHandle.objectType = ObjectTypes.Metadata.id;
+                }
                 
                 dispatch(actions.addFile(jsonFileHandle));
                 
                 openPanel(jsonFileHandle);
-                
-                console.log(`Created workflow JSON: ${jsonFileName}`);
             } catch (err) {
                 console.error("Error creating resource workflow JSON:", err);
             }
@@ -84,8 +93,9 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const fileMetadata = await addFileMetadata(fileHandle)
                 setSelectedFile(fileMetadata)
                 
-                if (useSubdirectory === 'resources') {
-                    await createResourceWorkflowJSON(fileMetadata.name);
+                // TODO: Automatically generate this list
+                if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns' || useSubdirectory === "experimentalSetups") {
+                    await createWorkflowJSON(fileMetadata.name, useSubdirectory);
                 }
 
                 onSelect?.(fileMetadata)
