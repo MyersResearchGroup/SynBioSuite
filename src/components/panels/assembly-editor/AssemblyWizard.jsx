@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Container, Stepper, Group, Button, Tabs, Space, Select, Table, Text } from "@mantine/core"
-import { titleFromFileName, useCreateAssemblyFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useContext } from 'react'
 import { PanelContext } from './AssemblyPanel'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
-import { useSelector } from 'react-redux'
 import PanelSaver from '../PanelSaver'
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal';
 import { showNotification } from '@mantine/notifications'
@@ -19,17 +17,6 @@ const tableContainerStyle = {
 
 const cellStyle = {
     whiteSpace: 'nowrap',
-}
-
-const bounceArrowStyle = {
-    position: 'absolute',
-    top: '50%',
-    right: 8,
-    transform: 'translateY(-50%)',
-    pointerEvents: 'none',
-    borderRadius: '50%',
-    zIndex: 2,
-    animation: 'bounceArrow .4s infinite',
 }
 
 export const Machines = {
@@ -57,18 +44,10 @@ export const RestrictionEnzymes = {
     }
 }
 
-export default function AssemblyWizard({}) {
+export default function AssemblyWizard() {
     const panelId = useContext(PanelContext)
-    const { workflows, open } = useUnifiedModal();
+    const { workflows } = useUnifiedModal();
     PanelSaver(panelId)
-
-    const createFileClosure = useCreateAssemblyFile()
-    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-
-    // file info
-    const fileHandle = usePanelProperty(panelId, "fileHandle")
-    const panelTitle = titleFromFileName(fileHandle.name)
-    const [fileUrl, setFileUrl] = useState()
     
     // stepper states
     const numSteps = 3
@@ -98,8 +77,6 @@ export default function AssemblyWizard({}) {
     const [selectedBackbone, setSelectedBackbone] = usePanelProperty(panelId, "selectedBackbone", false, null);
     const [selectedBackboneInfo, setSelectedBackboneInfo] = usePanelProperty(panelId, "selectedBackboneInfo", false, null);
 
-    const firstRender = useRef(true);
-
     useEffect(() => {
         if (assemblyMethod === AssemblyMethods.MOCLO && restrictionEnzyme !== RestrictionEnzymes.MOCLO.BSAI) {
             setRestrictionEnzyme(RestrictionEnzymes.MOCLO.BSAI);
@@ -107,19 +84,17 @@ export default function AssemblyWizard({}) {
     }, [assemblyMethod, setRestrictionEnzyme, restrictionEnzyme]);
 
     useEffect(() => {
-        if (firstRender.current) {
-            firstRender.current = false;
-            return;
+        if (!SBHinstance || !SBHemail) {
+            setDepositCollection('');
+            setCollectionInfo(null);
+            setUserInfo(null);
+            setAbstractDesign('');
+            setAbstractDesignInfo(null);
+            setSelectedPlasmid(null);
+            setSelectedPlasmidInfo(null);
+            setSelectedBackbone(null);
+            setSelectedBackboneInfo(null);
         }
-        setDepositCollection('');
-        setCollectionInfo(null);
-        setUserInfo(null);
-        setAbstractDesign('');
-        setAbstractDesignInfo(null);
-        setSelectedPlasmid(null);
-        setSelectedPlasmidInfo(null);
-        setSelectedBackbone(null);
-        setSelectedBackboneInfo(null);
     }, [SBHinstance, SBHemail]);
 
     // workflow calls
@@ -164,11 +139,7 @@ export default function AssemblyWizard({}) {
             return;
         }
 
-        console.log('Calling browseCollectionsForResource with:', { SBHinstance, SBHemail });
-
-        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {
-            console.log('Abstract Design workflow callback data:', data);
-            
+        workflows.browseCollectionsForResource(SBHinstance, SBHemail, (data) => {            
             if (data && data.aborted) {
                 const expectedEmail = data.expectedEmail || SBHemail || 'unknown';
                 const actualEmail = data.actualEmail || 'unknown';
@@ -413,7 +384,7 @@ export default function AssemblyWizard({}) {
                     label="Execute"
                 >
                     <Container>
-                        <div ref={null} style={tableContainerStyle}>
+                        <div style={tableContainerStyle}>
                             <Table horizontalSpacing={20}>
                                 <thead>
                                     <tr>

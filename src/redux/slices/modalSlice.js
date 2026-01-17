@@ -1,5 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+//TODO: @Kerem-G Modify this so that this file follows Redux serialization practices (remove function typed variables)
+
 const initialState = {
     bothOpen: false,
     fjOpen: false,

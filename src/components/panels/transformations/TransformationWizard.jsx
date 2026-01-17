@@ -8,14 +8,8 @@ import { PanelContext } from './TransformationPanel'
 import { Button, Group, Stepper } from '@mantine/core'
 
 
-export default function TransformationWizard({}) {
+export default function TransformationWizard() {
     const panelId = useContext(PanelContext)
-    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-
-    // file info
-    const fileHandle = usePanelProperty(panelId, "fileHandle")
-    const panelTitle = titleFromFileName(fileHandle.name)
-    const [fileUrl, setFileUrl] = useState()
     
     const numSteps = 4
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)

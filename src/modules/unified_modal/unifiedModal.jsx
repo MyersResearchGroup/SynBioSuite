@@ -130,7 +130,7 @@ function UnifiedModal({
         const previousModal = modalHistory[modalHistory.length - 1];
         setModalHistory(prev => prev.slice(0, -1));
         setCurrentModal(previousModal);
-    }, [modalHistory]);
+    }, [modalHistory, handleClose]);
 
     const handleClose = useCallback(() => {
         dispatch(closeUnifiedModal({ modalData }));

@@ -4,7 +4,7 @@ import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { createCollection } from '../API';
 
-function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack, navigateTo }) {    
+function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack }) {    
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
 
