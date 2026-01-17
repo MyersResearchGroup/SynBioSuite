@@ -121,17 +121,6 @@ function UnifiedModal({
         return true;
     }, [currentModal, allowedModals]);
 
-    const goBack = useCallback(() => {
-        if (modalHistory.length === 0) {
-            handleClose();
-            return;
-        }
-
-        const previousModal = modalHistory[modalHistory.length - 1];
-        setModalHistory(prev => prev.slice(0, -1));
-        setCurrentModal(previousModal);
-    }, [modalHistory, handleClose]);
-
     const handleClose = useCallback(() => {
         dispatch(closeUnifiedModal({ modalData }));
         setCurrentModal(initialModal);
@@ -146,6 +135,17 @@ function UnifiedModal({
             }
         }
     }, [dispatch, modalData, initialModal, onClose]);
+
+    const goBack = useCallback(() => {
+        if (modalHistory.length === 0) {
+            handleClose();
+            return;
+        }
+
+        const previousModal = modalHistory[modalHistory.length - 1];
+        setModalHistory(prev => prev.slice(0, -1));
+        setCurrentModal(previousModal);
+    }, [modalHistory, handleClose]);
 
     const completeWorkflow = useCallback((data = {}) => {
         const merged = { ...modalData, ...data, completed: true };
