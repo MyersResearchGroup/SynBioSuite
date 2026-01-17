@@ -43,7 +43,6 @@ export default function CollectionBrowserModal({
 
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [credentialChecking, setCredentialChecking] = useState(false);
     const [selectedCollections, setSelectedCollections] = useState(new Map());
     const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
     const [currentPath, setCurrentPath] = useState([]);
@@ -73,7 +72,6 @@ export default function CollectionBrowserModal({
         }
 
         const checkCredentials = async () => {
-            setCredentialChecking(true);
             credentialCheckDoneRef.current = true;
 
             const repoInfo = dataSBH.find(r => r.value === selectedRepo);
@@ -153,8 +151,6 @@ export default function CollectionBrowserModal({
                     authToken,
                     validated: true,
                 }));
-
-                setCredentialChecking(false);
             } catch (err) {
                 console.error('Credential check error:', err);
                 clearInvalidCredentials(selectedRepo);

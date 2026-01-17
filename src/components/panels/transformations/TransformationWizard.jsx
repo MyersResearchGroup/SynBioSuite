@@ -1,9 +1,6 @@
-import { useState } from 'react'
 import { Container } from "@mantine/core"
-import { titleFromFileName } from '../../../redux/hooks/workingDirectoryHooks'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useContext } from 'react'
-import { useSelector } from 'react-redux'
 import { PanelContext } from './TransformationPanel'
 import { Button, Group, Stepper } from '@mantine/core'
 
