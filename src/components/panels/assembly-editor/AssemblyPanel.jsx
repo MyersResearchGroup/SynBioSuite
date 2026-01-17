@@ -16,45 +16,23 @@ const TabValues = {
 }
 
 export default function AssemblyPanel({ id }) {
-
-    const resultLength = useSelector(
-        createSelector(
-            state => panelsSelectors.selectById(state, id).results,
-            results => results && Object.keys(results).length
-        )
-    )
-    
     const [activeTab, setActiveTab] = useState(TabValues.SETUP);
 
-    const viewResultsTab = () => {
-        setActiveTab(TabValues.RESULTS)
-    }
-
     return (
-        <>
-         <PanelContext.Provider value={id}>
-                {/* <StatusBadge /> */}
-                <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted = {false}>
-                    <Tabs.List>
-                        <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
-                        {resultLength && <Tabs.Tab value={TabValues.RESULTS}>
-                            Results
-                            <Badge ml={10}>{resultLength}</Badge>
-                        </Tabs.Tab>}
-                    </Tabs.List>
-                    <Tabs.Panel value={TabValues.SETUP}>
-                        <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
-                            <AssemblyWizard handleViewResult = {viewResultsTab} isResults = {resultLength} />
-                            <Space h={20} />
-                        </ScrollArea>
-                    </Tabs.Panel>
-                    <Tabs.Panel value={TabValues.RESULTS}>
-                        {/* <AnalysisResults /> */}
-                    </Tabs.Panel>
-                </Tabs>
-                <PanelSaver id={id} />
-            </PanelContext.Provider>
-        </>
+        <PanelContext.Provider value={id}>
+            <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted = {false}>
+                <Tabs.List>
+                    <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
+                </Tabs.List>
+                <Tabs.Panel value={TabValues.SETUP}>
+                    <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
+                        <AssemblyWizard />
+                        <Space h={20} />
+                    </ScrollArea>
+                </Tabs.Panel>
+            </Tabs>
+            <PanelSaver id={id} />
+        </PanelContext.Provider>
     )
 }
 
