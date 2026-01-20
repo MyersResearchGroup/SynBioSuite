@@ -2,7 +2,7 @@ import ExplorerActivityView from "./components/activities/explorer/ExplorerActiv
 import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
 import LoginStatus from "./components/activities/explorer/LoginStatus";
-import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite, MicrosoftLogo } from "./icons"
+import { FileIcon, BugReport, ProfileWhite, MicrosoftLogo } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
 import { TiPipette } from "react-icons/ti";
 import { ObjectTypes } from "./objectTypes";
@@ -12,7 +12,6 @@ import { BiSolidFlask } from "react-icons/bi";
 import { HiOutlinePuzzlePiece } from "react-icons/hi2";
 import { PiDna } from "react-icons/pi";
 import MicrosoftView from "./components/microsoft/MicrosoftView";
-import { msalInstance } from "./microsoft-utils/auth/msalInit";
 import MicrosoftExplorerActivityView from "./components/microsoft/MicrosoftExplorerActivityView";
 import { CloudWeatherIcon } from '@fluentui/react-icons-mdl2';
 

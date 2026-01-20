@@ -1,7 +1,7 @@
 import { msalInstance } from '../auth/msalInit';
 
 export const updateFileInOneDrive = async (fileId, content) => {
-    // Get token from logged in user
+    // TODO: Update to include better error handling in case acquireTokenSilent fails. Do accross all utility files
     const token = await msalInstance.acquireTokenSilent({
         scopes: ['Files.ReadWrite', 'User.Read'],
     });
