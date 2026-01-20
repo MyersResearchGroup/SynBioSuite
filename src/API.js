@@ -244,24 +244,60 @@ export async function FJLogin(instance, username, password){
 export async function CheckLogin(instance, authToken){
     try {
         if (!authToken) {
-            return false
+            return { valid: false }
         }
 
-        await axios.get(`https://${instance}/profile`, {
+        const response = await axios.get(`https://${instance}/profile`, {
             headers: {
                 "Accept": "text/plain",
                 "X-authorization": authToken
             },
         });
 
-        return true;
+        // Return user profile information for email verification
+        return { 
+            valid: true, 
+            profile: response.data
+        };
     } catch (error) {
         if (error.response?.status === 401) {
-            return false;
+            return { valid: false };
         }
 
         console.error("CheckLogin error:", error);
         showErrorNotification('Login Error', error.message);
         throw error;
+    }
+}
+
+// Function to clear invalid credentials from local storage
+export function clearInvalidCredentials(instanceUrl) {
+    try {
+        // Get current SynbioHub data from localStorage
+        const storedData = localStorage.getItem('SynbioHub');
+        if (!storedData) return;
+        
+        const dataSBH = JSON.parse(storedData);
+        
+        // Find and clear the credentials for the specific instance
+        const updatedData = dataSBH.map(repo => {
+            if (repo.value === instanceUrl) {
+                // Clear auth-related fields but keep the repository info
+                return {
+                    ...repo,
+                    authtoken: '',
+                    email: '',
+                    name: '',
+                    username: '',
+                    affiliation: ''
+                };
+            }
+            return repo;
+        });
+        
+        // Save updated data back to localStorage
+        localStorage.setItem('SynbioHub', JSON.stringify(updatedData));
+    } catch (error) {
+        console.error('Error clearing invalid credentials:', error);
     }
 }

@@ -5,14 +5,9 @@ import { SBHLogin } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import axios from 'axios';
-import { useDispatch } from 'react-redux';
-import { closeAddSBHrepository } from '../../redux/slices/modalSlice';
 
-
-function AddSBHRepository({ opened, onClose }) {
+function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
     if (!opened) return null;
-
-    const dispatch = useDispatch();
 
     const [step, setStep] = useState(1);
     const [url, setUrl] = useState('');
@@ -74,7 +69,12 @@ function AddSBHRepository({ opened, onClose }) {
                 color: 'green',
             });
 
-            dispatch(closeAddSBHrepository())
+            // Call onSubmit if provided (for workflow continuation), otherwise onClose
+            if (onSubmit) {
+                onSubmit();
+            } else if (onClose) {
+                onClose();
+            }
         } catch (error) {
             console.error('Login failed:', error);
             if(error.status === 401){
@@ -90,7 +90,7 @@ function AddSBHRepository({ opened, onClose }) {
                     color: 'red',
                 });
             }
-            dispatch(closeAddSBHrepository())
+            if (onClose) onClose();
         }
     };
 
@@ -113,8 +113,13 @@ function AddSBHRepository({ opened, onClose }) {
                         />
                     </Group>
                     <Space h="xl" />
-                    <Group position="center">
-                        <Button onClick={() => setStep(2)} disabled={!url}>
+                    <Group position="apart">
+                        {goBack && (
+                            <Button variant="default" onClick={goBack}>
+                                Back
+                            </Button>
+                        )}
+                        <Button onClick={() => setStep(2)} disabled={!url} ml={goBack ? undefined : "auto"}>
                             Next
                         </Button>
                     </Group>
