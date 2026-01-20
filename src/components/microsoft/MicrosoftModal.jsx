@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, useMantineTheme } from '@mantine/core';
+import { Modal } from '@mantine/core';
 import { Text } from '@mantine/core';
 import { getActiveUser } from '../../microsoft-utils/auth/getActiveUser';
 import MicrosoftSignOutButton from './MicrosoftSignOutButton';

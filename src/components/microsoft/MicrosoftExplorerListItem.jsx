@@ -2,7 +2,7 @@ import microsoftCommands from './microsoftCommands'
 import { Menu } from '@mantine/core'
 import { useState } from 'react'
 import { useOpenPanel } from '../../redux/hooks/panelsHooks'
-import { titleFromFileName, useFile } from '../../redux/hooks/workingDirectoryHooks'
+import { titleFromFileName } from '../../redux/hooks/workingDirectoryHooks'
 import DragObject from '../../components/DragObject'
 
 

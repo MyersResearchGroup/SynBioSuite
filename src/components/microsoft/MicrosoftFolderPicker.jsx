@@ -30,7 +30,6 @@ export default function MicrosoftFolderPicker({ buttonName }) {
 
   // Handle folder selection
   const handleFolderSelect = (folderId, folderName) => {
-    console.log('Selected Folder:', folderId, folderName);
     setSelectedFolder({ id: folderId, name: folderName });
 
     // Update current folder and add to history for navigation
@@ -63,7 +62,6 @@ export default function MicrosoftFolderPicker({ buttonName }) {
 
   const handleOpenSelectedFolder = () => {
     setOneDriveFolder(selectedFolder);
-    console.log("Selected OneDrive Folder:", selectedFolder);
     close();
   }
 

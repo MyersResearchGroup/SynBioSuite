@@ -7,6 +7,7 @@ function mapOneDriveItemToObjectType(item) {
     const fileName = item.name.toLowerCase();
     const subdirectory = item.parentReference?.path; // Assuming parentReference gives folder path
 
+    // TODO: Update so that types are matched programatically
     // Example subdirectories (you can adjust this list as needed)
 
     // Check for XML extension and check for the subdirectory path
@@ -83,7 +84,6 @@ export const fetchFilesAndFoldersFromOneDrive = async (parentFolderId) => {
 
     // Flatten the files and folders structure and map them
     const flatMappedItems = await flattenAndMapItems(data.value);
-    console.log("Flattened and mapped items:", flatMappedItems); // Debugging
 
     return flatMappedItems;
 };

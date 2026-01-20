@@ -1,5 +1,4 @@
 import Activities from '../components/activities/Activities';
-import Panels from '../components/panels/Panels';
 import LoginModal from '../modules/modular_login/loginModal';
 import { useSelector, useDispatch } from 'react-redux';
 import { closeModal, closeSBH, closeFJ, closeAddSBHrepository, closeAddFJrepository, closeCreateCollection, closeSBHLogin, closeMicrosoft } from '../redux/slices/modalSlice';
@@ -12,6 +11,7 @@ import SBHOnly from '../modules/modular_login/SBHOnly';
 import MicrosoftPanels from '../components/microsoft/MicrosoftPanels';
 import MicrosoftModal from '../components/microsoft/MicrosoftModal';
 
+// TODO: Update so that this is shared with LocalHome
 export default function CloudHome() {
     const loginModalOpened = useSelector((state) => state.modal.bothOpen);
     const microsoftModalOpened = useSelector((state) => state.modal.microsoftOpen);
@@ -45,11 +45,6 @@ export default function CloudHome() {
             <SBHModal
                 opened={sbhModalOpened}
                 onClose={() => dispatch(closeSBH())}
-                repoName=""
-            />
-            <FJModal
-                opened={fjModalOpened}
-                onClose={() => dispatch(closeFJ())}
                 repoName=""
             />
             <FJModal
