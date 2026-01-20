@@ -4,7 +4,7 @@ export const msalInstance = new PublicClientApplication({
   auth: {
     clientId: import.meta.env.VITE_CLIENT_ID,
     authority: "https://login.microsoftonline.com/consumers",
-    redirectUri: "http://localhost:3000/cloud-home", 
+    redirectUri: "http://localhost:3000/onedrive", 
     postLogoutRedirectUri: "http://localhost:3000/",
     navigateToLoginRequestUrl: false,
   },
