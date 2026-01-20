@@ -33,7 +33,7 @@ export default function LandingPage() {
                     To allow SynBio Suite to use a local folder on your device as a working directory, select the option below. You can place SBOL files,
                     SBML files, and OMEX archives in the directory. Note: This functionality on works on Google Chrome.
                 </Text>
-                <Button onClick={() => navigate("/local-home")}>
+                <Button onClick={() => navigate("/local")}>
                     Use my local file system through Chrome
                 </Button>
                 <Text align='center' sx={{ maxWidth: 700 }}>

@@ -5,7 +5,7 @@ resource "azuread_application" "synbio_suite" {
     requested_access_token_version = 2
   }
   single_page_application {
-    redirect_uris = ["https://synbiosuite.org/cloud-home", "http://localhost:3000/cloud-home", "http://localhost:3000/"]
+    redirect_uris = ["https://synbiosuite.org/onedrive, "http://localhost:3000/onedrive", "http://localhost:3000/"]
   }
 
   required_resource_access {
