@@ -1,3 +1,4 @@
+import { msalInstance } from '../../microsoft-utils/auth/msalInit'
 import { useAutoSavePanel } from '../../redux/hooks/panelsHooks'
 
 /*
@@ -6,6 +7,7 @@ import { useAutoSavePanel } from '../../redux/hooks/panelsHooks'
 */
 
 export default function PanelSaver({ id }) {
-    useAutoSavePanel(id, 4000)
+    const source = msalInstance.getActiveAccount() !== null ? 'onedrive' : 'local'
+    useAutoSavePanel(id, 4000, source)
     return <></>
 }
