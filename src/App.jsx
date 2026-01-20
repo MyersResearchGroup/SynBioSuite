@@ -1,27 +1,12 @@
 import LandingPage from './pages/LandingPage';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CloudHome from './pages/CloudHome';
 import LocalHome from './pages/LocalHome';
 import { LoadingOverlay } from '@mantine/core';
+import { useSelector } from 'react-redux'
 
 export default function App() {
-    const loginModalOpened = useSelector((state) => state.modal.bothOpen);
-    const sbhModalOpened = useSelector((state) => state.modal.sbhOpen);
-    const fjModalOpened = useSelector((state) => state.modal.fjOpen);
-
-    const addSBHRepositoryOpened = useSelector((state) => state.modal.addSBHrepository);
-    const addFJRepositoryOpened = useSelector((state) => state.modal.addFJrepository)
-    
-    const collectionModalOpened = useSelector((state) => state.modal.addCollections)
-    
-    const SBHOnlyOpened = useSelector((state) => state.modal.sbhLoginOpen)
-
-    const libraryName = useSelector((state) => state.modal.libraryName)
-    const libraryDescription = useSelector((state) => state.modal.libraryDescription)
-
     const visible = useSelector((state) => state.overlay.loadingOverlay)
-
-    const dispatch = useDispatch();
 
     return (
         <BrowserRouter>
@@ -32,9 +17,10 @@ export default function App() {
                 visible={visible}
             />
             <Routes>
-                <Route path="/cloud-home" element={<CloudHome />} />
+                {/* <Route path="/onedrive" element={<CloudHome />} /> */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/local-home" element={<LocalHome />} />
+                <Route path="/local" element={<LocalHome />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     );

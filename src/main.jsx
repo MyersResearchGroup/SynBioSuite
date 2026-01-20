@@ -33,12 +33,16 @@ TimeAgo.addDefaultLocale(en)
 
 // Startup msal for logging in with Microsoft
 await msalInstance.initialize();
-await msalInstance.handleRedirectPromise();
 
-const redirectResult = await msalInstance.handleRedirectPromise();
-
-if (redirectResult) {
-    msalInstance.setActiveAccount(redirectResult.account);
+try {
+    const redirectResult = await msalInstance.handleRedirectPromise();
+    if (redirectResult) {
+        msalInstance.setActiveAccount(redirectResult.account);
+    }
+} catch (error) {
+    if (error.errorCode !== 'no_token_request_cache_error') {
+        console.error('MSAL redirect error:', error);
+    }
 } 
 
 ReactDOM.createRoot(document.getElementById('root')).render(

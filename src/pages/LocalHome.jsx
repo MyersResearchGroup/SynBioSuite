@@ -49,11 +49,6 @@ export default function LocalHome() {
                 onClose={() => dispatch(closeFJ())}
                 repoName=""
             />
-            <FJModal
-                opened={fjModalOpened}
-                onClose={() => dispatch(closeFJ())}
-                repoName=""
-            />
             <AddSBHRepository 
                 opened={addSBHRepositoryOpened}
                 onClose={() => dispatch(closeAddSBHrepository())}

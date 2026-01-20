@@ -34,7 +34,6 @@ export const uploadOneDriveFile = async (parentFolderId, fileName, objectType, c
 
     if (response.ok) {
         const fileDetails = await response.json();
-        console.log('Empty file created successfully:', fileDetails);
     } else {
         const errorDetails = await response.json();
         console.error('Error creating empty file:', errorDetails);

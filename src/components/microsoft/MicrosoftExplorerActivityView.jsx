@@ -1,19 +1,15 @@
-import FolderSelect from '../activities/explorer/FolderSelect'
 import { ActionIcon, Center, Text, Tooltip } from '@mantine/core'
-import ExplorerList from '../activities/explorer/ExplorerList'
 import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
-import { useDispatch } from 'react-redux'
 import MicrosoftFolderPicker from './MicrosoftFolderPicker'
 import MicrosoftExplorerList from './MicrosoftExplorerList'
 import { useEffect } from 'react'
 
 export default function MicrosoftExplorerActivityView({objectTypesToList }) {
-    const dispatch = useDispatch()
-
-    // handle first time visiting
     const [oneDriveFolder] = useLocalStorage({ key: 'one-drive-folder', defaultValue: null })
     const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
+    
+    // TODO: Move this to an alternate location that is shared
     useEffect(() => {
         if (oneDriveFolder !== null){
             setFirstTime(false)

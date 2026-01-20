@@ -84,16 +84,16 @@ export default function Activities() {
             </Tabs.Tab>
         )
 
-        const odPanel = MicrosoftFileExplorer;
+        const OneDrivePanel = MicrosoftFileExplorer;
         tabs.unshift(
             <Tabs.Tab
-                key={odPanel.id}
-                value={odPanel.id}
+                key={OneDrivePanel.id}
+                value={OneDrivePanel.id}
             >
-                <Tooltip label={odPanel.title} color='gray' position="right" withArrow>
+                <Tooltip label={OneDrivePanel.title} color='gray' position="right" withArrow>
                     <Box py={15} px={14}>
                         <SVGIcon
-                            icon={odPanel.icon}
+                            icon={OneDrivePanel.icon}
                             size={30}
                         />
                     </Box>
@@ -102,12 +102,12 @@ export default function Activities() {
         )
 
         tabPanels.unshift(
-            <Tabs.Panel value={odPanel.id} key={odPanel.id}>
-                <Title style={{display:"inline"}} order={6}>{odPanel.title}</Title>
+            <Tabs.Panel value={OneDrivePanel.id} key={OneDrivePanel.id}>
+                <Title style={{display:"inline"}} order={6}>{OneDrivePanel.title}</Title>
                 <Text style={{display:"inline"}} size={'xs'} ml={10}>
                     <SaveIndicatorDisplay/>
                 </Text>
-                <odPanel.component {...odPanel.activityState} objectTypesToList = {odPanel.objectTypesToList} />
+                <OneDrivePanel.component {...OneDrivePanel.activityState} objectTypesToList = {OneDrivePanel.objectTypesToList} />
             </Tabs.Panel>
         )
     }
