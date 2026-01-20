@@ -11,7 +11,7 @@ export default function LandingPage() {
     return (
         <Center style={{
             height: '100vh',
-            width: ' 100vw',
+            width: '100vw',
             background: `radial-gradient(${theme.colors.dark[6]}, ${theme.colors.dark[7]})`
         }}>
             <Stack align='center'>
@@ -30,16 +30,16 @@ export default function LandingPage() {
                 </Title>
                 <Space h={20} />
                 <Text align='center' sx={{ maxWidth: 700 }}>
-                    To allow SynBio Suite to use a local folder on your device as a working directory, select the option below. You can place SBOL files,
-                    SBML files, and OMEX archives in the directory. Note: This functionality on works on Google Chrome.
+                    SynBioSuite uses your harddrive to keep your files stored locally on your computer. Note: This functionality only exists on Google Chrome and Chromium based browsers. This means SynBioSuite is not supported on Safari or Firefox.
                 </Text>
                 <Button onClick={() => navigate("/local")}>
                     Use my local file system through Chrome
                 </Button>
+                {false && <>
                 <Text align='center' sx={{ maxWidth: 700 }}>
                     SynBio Suite can also be connected to your Microsoft OneDrive. To sign in with Microsoft and connect SynBio Suite, select the option below.
                 </Text>
-                <MicrosoftSignInButton />
+                <MicrosoftSignInButton /></>}
             </Stack>
         </Center>
     )

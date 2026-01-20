@@ -156,7 +156,7 @@ export function useActivePanel() {
     ]
 }
 
-export function useAutoSavePanel(id, debounceTime, source = 'local') {
+export function useAutoSavePanel(id, debounceTime, source) {
     const panel = usePanel(id)
     const dispatch = useDispatch()
 
@@ -173,7 +173,16 @@ export function useAutoSavePanel(id, debounceTime, source = 'local') {
 
     // save when debounced serialized content changes
     useEffect(() => {
-        const save = async () => {
+        const save = async() =>{
+        dispatch(setIsSaving(true))
+        await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. 
+        dispatch(setIsSaving(false))
+        }
+        save()
+
+        // TODO: Update and test this function to work with onedrive integration
+
+        /*
             dispatch(setIsSaving(true))
             if (source === 'local') {
                 await commands.FileSave.execute(id) // saving could be very fast, making it hard for users to see the "Saving..." text. 
@@ -188,6 +197,7 @@ export function useAutoSavePanel(id, debounceTime, source = 'local') {
             dispatch(setIsSaving(false))
         }
         save()
+        */
 
     }, [debouncedPanelContent])
 }
