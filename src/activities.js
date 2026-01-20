@@ -2,7 +2,7 @@ import ExplorerActivityView from "./components/activities/explorer/ExplorerActiv
 import BugReportView from "./components/activities/explorer/BugReportView"
 import GitHubView from "./components/activities/explorer/GitHubView";
 import LoginStatus from "./components/activities/explorer/LoginStatus";
-import { FileIcon, RemoteControlIcon, BugReport, ProfileGreen, ProfileOrange, ProfileRed, ProfileWhite } from "./icons"
+import { FileIcon, BugReport, ProfileWhite, MicrosoftLogo } from "./icons"
 import { RiGithubFill } from "react-icons/ri";
 import { TiPipette } from "react-icons/ti";
 import { ObjectTypes } from "./objectTypes";
@@ -11,6 +11,9 @@ import { BsGraphUpArrow } from "react-icons/bs";
 import { BiSolidFlask } from "react-icons/bi";
 import { HiOutlinePuzzlePiece } from "react-icons/hi2";
 import { PiDna } from "react-icons/pi";
+import MicrosoftView from "./components/microsoft/MicrosoftView";
+import MicrosoftExplorerActivityView from "./components/microsoft/MicrosoftExplorerActivityView";
+import { CloudWeatherIcon } from '@fluentui/react-icons-mdl2';
 
 export const Activities = {
     LocalFileExplorer: {
@@ -109,9 +112,25 @@ export const Activities = {
         id: "synbio.activity.bug-report",
         title: "Report Bug",
         component: BugReportView,
-        icon: BugReport,   
+        icon: BugReport,
     },
 }
+
+export const MicrosoftStatus = {
+    id: "synbio.activity.microsoft-status",
+    title: "Check Microsoft Login Status",
+    component: MicrosoftView,
+    icon: MicrosoftLogo
+}
+
+export const MicrosoftFileExplorer = {
+    id: "synbio.activity.microsoft-file-explorer",
+    title: "OneDrive Explorer",
+    component: MicrosoftExplorerActivityView,
+    icon: CloudWeatherIcon,
+    objectTypesToList: Object.values(ObjectTypes).map(object => object.id)
+}
+
 export function getActivity(id) {
     return Object.values(Activities).find(act => act.id == id)
 }

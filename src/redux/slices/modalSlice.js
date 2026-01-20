@@ -14,6 +14,7 @@ const initialState = {
     callback: null,
     libraryName: null,
     libraryDescription: null,
+    microsoftOpen: false,
     
     // Unified modal state
     unifiedModalOpen: false,
@@ -91,6 +92,12 @@ export const modalSlice = createSlice({
         closeSBHLogin: (state) => {
             state.sbhLoginOpen = false;
         },
+        openMicrosoft: (state) => {
+            state.microsoftOpen = true;
+        },
+        closeMicrosoft: (state) => {
+            state.microsoftOpen = false;
+        },
         
         // Unified modal actions
         openUnifiedModal: (state, action) => {
@@ -139,7 +146,7 @@ export const {
     openAddSBHrepository, closeAddSBHrepository,
     openAddFJrepository, closeAddFJrepository,
     openCreateCollection, closeCreateCollection,
-    openSBHLogin, closeSBHLogin,
+    openSBHLogin, closeSBHLogin, openMicrosoft, closeMicrosoft,
     openUnifiedModal, closeUnifiedModal, clearPendingCallback,
 } = modalSlice.actions;
 
