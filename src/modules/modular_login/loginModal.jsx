@@ -34,6 +34,10 @@ function LoginModal({ opened, onClose, repoName }) {
         setRepoSelection("");
     }, [opened]);
 
+    // Safely resolve selected instance info to avoid undefined property access
+    const sbhInfo = selectedSBH ? findInstance(selectedSBH, "SBH") : null;
+    const fjInfo = selectedFJ ? findInstance(selectedFJ, "FJ") : null;
+
     return (
         <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
             {repoSelection === "" ? (
@@ -48,16 +52,16 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {selectedSBH ? findInstance(selectedSBH, "SBH").instance : "Not Logged In"}
+                                    Repository: {sbhInfo ? sbhInfo.instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
-                                    Username: {selectedSBH ? findInstance(selectedSBH, "SBH").username : "Not Logged In"}
+                                    Username: {sbhInfo ? sbhInfo.username : "Not Logged In"}
                                 </Text>
     
                                 <Group noWrap spacing={10} mt={3}>
                                     <Text fz="xs" c="dimmed">
-                                        Email: {selectedSBH ? findInstance(selectedSBH, "SBH").email : "Not Logged In"}
+                                        Email: {sbhInfo ? sbhInfo.email : "Not Logged In"}
                                     </Text>
                                 </Group>
                                 {selectedSBH ? <Button mt="md" onClick={() => {handleRemoveInstance("SynbioHub"); setRepoSelection("SynbioHub")}}>
@@ -77,16 +81,16 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
+                                    Repository: {fjInfo ? fjInfo.instance : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
-                                    Username: {selectedFJ ? findInstance(selectedFJ, "FJ").username : "Not Logged In"}
+                                    Username: {fjInfo ? fjInfo.username : "Not Logged In"}
                                 </Text>
     
                                 <Group noWrap spacing={10} mt={3}>
                                     <Text fz="xs" c="dimmed">
-                                        Email: {selectedFJ ? findInstance(selectedFJ, "FJ").email : "Not Logged In"}
+                                        Email: {fjInfo ? fjInfo.email : "Not Logged In"}
                                     </Text>
                                 </Group>
                                 {selectedFJ ? <Button mt="md" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("Flapjack")}}>
