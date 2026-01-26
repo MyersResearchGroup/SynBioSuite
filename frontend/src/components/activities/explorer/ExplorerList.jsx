@@ -58,11 +58,12 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
     
     // generate DragObjects based on data
-    const createListItems = (files, Icon) => files.map((file, i) =>
+    const createListItems = (files, Icon, importable) => files.map((file, i, importable) =>
         <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
+            importable={importable}
         />
     )
 
@@ -112,7 +113,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                                 New {objectType.title}
                                             </CreateNewButton>
                                         }
-                                        {createListItems(filesOfType, objectType.icon)}
+                                        {createListItems(filesOfType, objectType.icon, objectType.importable)}
                                     {objectType.isRepository ?
                                         <Registries 
                                             typeOfRegistry={objectType.listTitle}
