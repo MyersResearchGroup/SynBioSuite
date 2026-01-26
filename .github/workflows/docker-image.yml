@@ -2,7 +2,9 @@ name: Deploy Docker Image CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [ master ]
+    paths-ignore:
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
