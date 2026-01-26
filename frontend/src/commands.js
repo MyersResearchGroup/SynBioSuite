@@ -126,7 +126,7 @@ export default {
                             let foundUpload = null;
                             
                             for await (const entry of uploadsDir.values()) {
-                                if (entry.kind === 'file' && entry.name.startsWith(baseName + '.') && entry.name !== file.name) {
+                                if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") === baseName) {
                                     foundUpload = entry;
                                     break;
                                 }
