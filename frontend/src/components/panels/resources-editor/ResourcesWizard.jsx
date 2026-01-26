@@ -1,14 +1,10 @@
-import { Container, Stepper, Group, Button, Space, ScrollArea } from "@mantine/core"
-import { MultiDropzone } from '../../Dropzone'
-import { ObjectTypes } from '../../../objectTypes'
+import { Container, Button, Space, ScrollArea } from "@mantine/core"
 import { useContext } from 'react'
 import { usePanelProperty } from "../../../redux/hooks/panelsHooks"
 import { PanelContext } from './ResourcesPanel'
 import PanelSaver from '../PanelSaver'
 import { showErrorNotification } from "../../../modules/util"
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal'
-import { MODAL_TYPES } from '../../../modules/unified_modal'
-import { showNotification } from '@mantine/notifications'
 
 
 export default function ResourcesWizard() {
@@ -17,18 +13,9 @@ export default function ResourcesWizard() {
 
     const { workflows } = useUnifiedModal()
 
-    const [files, setFiles] = usePanelProperty(panelId, 'files', false, []) || []
-    const handleFilesChange = name => {
-        setFiles([...files, name])
-    }
+    const [file, setFile] = usePanelProperty(panelId, 'file', false)
 
-    const [selectedRow, setSelectedRow] = usePanelProperty(panelId, 'collection', false, {})
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
-
-    const handleRemoveFiles = id => {
-        const newFiles = files.filter(item => item !== id)
-        setFiles( newFiles)
-    }
     
     const handleValidateAndUpload = async () => {
         workflows.browseCollections((result) => {
@@ -39,16 +26,12 @@ export default function ResourcesWizard() {
                     {
                         collectionName: collection.name || collection.displayId,
                         uri: collection.uri,
-                        files: [...files],
+                        file: file,
                         date: new Date().toLocaleString(undefined, { timeZoneName: 'short' })
                     }
                 ])
                 
-                showNotification({
-                    title: 'Upload Recorded',
-                    message: `Collection "${collection.name || collection.displayId}" selected for upload.`,
-                    color: 'green'
-                })
+                showErrorNotification("Not Implemented", "File validation and upload are currently not implemented");
             }
         }, { multiSelect: false })
     }
@@ -64,21 +47,16 @@ export default function ResourcesWizard() {
                     uploads.map((upload, idx) => (
                         <div key={idx} style={{ marginBottom: 16, padding: 8, border: '1px solid #eee', borderRadius: 4 }}>
                             <div>
-                                <strong>Collection Name:</strong> {upload.collectionName}
+                                <strong>Collection Name:</strong>{upload.collectionName}
                             </div>
                             <div>
-                                <strong>Collection URL:</strong> {upload.uri}
+                                <strong>Collection URL:</strong>{upload.uri}
                             </div>
                             <div>
-                                <strong>Date Uploaded:</strong> {upload.date}
+                                <strong>Date Uploaded:</strong>{upload.date}
                             </div>
                             <div>
-                                <strong>Files:</strong>
-                                <ul>
-                                    {(upload.files || []).map((file, fidx) => (
-                                        <li key={fidx}>{file}</li>
-                                    ))}
-                                </ul>
+                                <strong>File:</strong>{upload.file}
                             </div>
                         </div>
                     ))

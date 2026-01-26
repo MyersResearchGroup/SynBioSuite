@@ -71,6 +71,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     } catch (e) {
                     }
                 }
+
                 if (fileExists) {
                     showErrorNotification('Same Filename', "SynbioSuite currently does not support uploading multiple files of same name.");
                     return;
@@ -80,7 +81,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 
                 const defaultWorkflow = {
                     activeStep: 0,
-                    files: [`${objectType}/uploads/${fileName}`],
+                    file: `${objectType}/uploads/${fileName}`,
                     collection: {},
                     uploads: []
                 };
