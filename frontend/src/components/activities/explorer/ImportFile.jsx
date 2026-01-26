@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import { workingDirectorySlice } from "../../../redux/store";
+import { showErrorNotification } from "../../../modules/util";
 
 export const importedFile = createContext()
 
@@ -49,7 +50,32 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const directory = await dirName.getDirectoryHandle(objectType, { create: true });
                 const baseFileName = fileName.replace(/\.[^/.]+$/, "");
                 const jsonFileName = `${baseFileName}.json`;
-                
+
+                let fileExists = false;
+                for await (const entry of directory.values()) {
+                    if (entry.kind === 'file' && entry.name === jsonFileName) {
+                        fileExists = true;
+                        break;
+                    }
+                }
+
+                if (!fileExists) {
+                    try {
+                        const uploadsDir = await directory.getDirectoryHandle("uploads", { create: false });
+                        for await (const entry of uploadsDir.values()) {
+                            if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") == jsonFileName) {
+                                fileExists = true;
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                    }
+                }
+                if (fileExists) {
+                    showErrorNotification('Same Filename', "SynbioSuite currently does not support uploading multiple files of same name.");
+                    return;
+                }
+
                 const jsonFileHandle = await directory.getFileHandle(jsonFileName, { create: true });
                 
                 const defaultWorkflow = {

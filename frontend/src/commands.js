@@ -26,12 +26,23 @@ export default {
             
             // delete file from disk, try to see if in subdirectory first else delete from root
             const directory = file.id.split("/")[0]
-            try{
-                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory)
-                await tempDirectory.removeEntry(file.name)
-            }
-            catch{
-                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
+            try {
+                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory);
+                await tempDirectory.removeEntry(file.name);
+
+                try {
+                    const uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
+                    const baseName = file.name.replace(/\.[^/.]+$/, "");
+                    
+                    for await (const entry of uploadsDir.values()) {
+                        if (entry.kind === 'file' && entry.name.startsWith(baseName + '.')) {
+                            await uploadsDir.removeEntry(entry.name);
+                        }
+                    }
+                } catch (e) {
+                }
+            } catch {
+                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name);
             }
 
             // close panel if it's open
@@ -87,6 +98,7 @@ export default {
 
             const state = store.getState().workingDirectory;
             let fileData = state.entities[file.id]?.data;
+            let downloadName = file.name;
 
             if (!fileData) {
                 const dirHandle = state.directoryHandle;
@@ -94,11 +106,42 @@ export default {
                     try {
                         const parts = file.id.split('/');
                         let cur = dirHandle;
+                        
                         for (let i = 0; i < parts.length - 1; i++) {
                             cur = await cur.getDirectoryHandle(parts[i]);
                         }
-                        const fh = await cur.getFileHandle(parts[parts.length - 1]);
-                        fileData = await fh.getFile();
+
+                        let uploadsDir;
+
+                        try {
+                            uploadsDir = await cur.getDirectoryHandle('uploads');
+                        } catch (e) {
+                            uploadsDir = null;
+                        }
+                        
+                        if (uploadsDir) {
+                            const baseName = file.name.replace(/\.[^/.]+$/, "");
+                            let foundUpload = null;
+                            
+                            for await (const entry of uploadsDir.values()) {
+                                if (entry.kind === 'file' && entry.name.startsWith(baseName + '.') && entry.name !== file.name) {
+                                    foundUpload = entry;
+                                    break;
+                                }
+                            }
+                            
+                            if (foundUpload) {
+                                const fh = await uploadsDir.getFileHandle(foundUpload.name);
+                                fileData = await fh.getFile();
+                                downloadName = foundUpload.name;
+                            }
+                        }
+
+                        // If not found in uploads, fallback to original file
+                        if (!fileData) {
+                            const fh = await cur.getFileHandle(parts[parts.length - 1]);
+                            fileData = await fh.getFile();
+                        }
                     } catch (err) {
                         console.warn('Failed to read file from directoryHandle', err);
                     }
@@ -116,7 +159,7 @@ export default {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = file.name;
+            a.download = downloadName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
