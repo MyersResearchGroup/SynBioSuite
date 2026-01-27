@@ -3,32 +3,24 @@ import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { AiOutlineDownload } from "react-icons/ai";
 
-export default function DownloadMetadata() {
+export default function DownloadMetadata({ objectType }) {
     
     const handleClick = async () => {
-        let url = "/Template.xlsm";
-        let filename = "Template.xlsm";
-
-        if (true) {
-            showNotification({
-                message: "No template has been made available at this time.",
-                color: "red"
-            })
-            return;
-        }
-
+        let url;
+        let filename;
+        
         if (objectType?.id == "synbio.object-type.sample-designs") {
-            url = "/SampleDesign.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/SampleDesign.xlsm"
             filename = "SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.strains") {
-            url = "/Strain.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Strain.xlsm"
             filename = "Strain.xlsm"
         } else if (objectType?.id == "synbio.object-type.resources") {
-            url = "/Resources.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Resources.xlsm"
             filename = "Resources.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data") {
-            url = "/Resources.xlsm"
-            filename = "Resources.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/ExperimentalMetadata.xlsx"
+            filename = "ExperimentalMetadata.xlsx"
         } 
 
         try {
