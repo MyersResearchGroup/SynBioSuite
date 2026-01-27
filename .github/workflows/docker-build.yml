@@ -2,11 +2,9 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main, master ]  # Trigger on pushes to main or master branch
-    paths-ignore:
-      - '**.md'  # Ignore changes to markdown files
-  pull_request:
-    branches: [ main, master ]  # Also build on PRs to main or master
+    branches: [ master ]  # Only trigger on pushes to master branch
+    paths:
+      - 'backend/**'
   workflow_dispatch:  # Allow manual triggering
 
 env:
