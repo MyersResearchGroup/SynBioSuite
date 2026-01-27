@@ -6,7 +6,7 @@ import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirector
 import DragObject from '../../DragObject'
 
 
-export default function ExplorerListItem({ fileId, icon }) {
+export default function ExplorerListItem({ fileId, icon, importable }) {
 
     const file = useFile(fileId)
 
@@ -26,7 +26,11 @@ export default function ExplorerListItem({ fileId, icon }) {
     }
 
     // command list
-    const contextMenuCommands = [
+    const contextMenuCommands = importable ? [
+        commands.FileDownload,
+        commands.FileUpdate,
+        commands.FileDelete
+    ] : [
         commands.FileDownload,
         commands.FileDelete
     ]
