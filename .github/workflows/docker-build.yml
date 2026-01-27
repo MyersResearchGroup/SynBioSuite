@@ -3,8 +3,8 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ master ]  # Only trigger on pushes to master branch
-    paths-ignore:
-      - 'frontend/**'  # Ignore changes to frontend directory
+    paths:
+      - 'backend/**'
   workflow_dispatch:  # Allow manual triggering
 
 env:

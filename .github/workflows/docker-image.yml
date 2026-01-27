@@ -3,8 +3,8 @@ name: Deploy Docker Image CI
 on:
   push:
     branches: [ master ]
-    paths-ignore:
-      - 'frontend/**'
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 jobs:
