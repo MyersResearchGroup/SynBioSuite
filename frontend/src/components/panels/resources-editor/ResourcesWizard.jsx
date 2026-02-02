@@ -5,6 +5,8 @@ import { PanelContext } from './ResourcesPanel'
 import PanelSaver from '../PanelSaver'
 import { showErrorNotification } from "../../../modules/util"
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal'
+import { upload_resource } from "../../../API"
+import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 
 
 export default function ResourcesWizard() {
@@ -12,6 +14,7 @@ export default function ResourcesWizard() {
     PanelSaver(panelId)
 
     const { workflows } = useUnifiedModal()
+    const [workingDirectory] = useWorkingDirectory()
 
     const [file, setFile] = usePanelProperty(panelId, 'file', false)
 
@@ -30,6 +33,8 @@ export default function ResourcesWizard() {
                         date: new Date().toLocaleString(undefined, { timeZoneName: 'short' })
                     }
                 ])
+
+                upload_resource(file, result.sbh_credential_check.selectedRepo, result.authToken, collection.displayId, "", false, undefined, undefined, false, workingDirectory)
                 
                 showErrorNotification("Not Implemented", "File validation and upload are currently not implemented");
             }

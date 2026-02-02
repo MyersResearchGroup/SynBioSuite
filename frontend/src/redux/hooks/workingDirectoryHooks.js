@@ -164,6 +164,36 @@ export async function findFilesInDirectory(dirHandle) {
     return files
 }
 
+export async function readFileFromPath(dirHandle, filePath) {
+    if (!dirHandle || typeof dirHandle.getDirectoryHandle !== 'function') {
+        throw new Error('Invalid directory handle provided');
+    }
+    
+    // Split path into parts
+    const parts = filePath.split('/');
+    const fileName = parts[parts.length - 1];
+    const directories = parts.slice(0, -1);
+    
+    // Navigate through subdirectories
+    let currentDir = dirHandle;
+    for (const dirName of directories) {
+        try {
+            currentDir = await currentDir.getDirectoryHandle(dirName);
+        } catch (error) {
+            throw new Error(`Directory not found: ${dirName}`);
+        }
+    }
+    
+    // Get the file handle and return the file
+    try {
+        const fileHandle = await currentDir.getFileHandle(fileName);
+        const file = await fileHandle.getFile();
+        return file;
+    } catch (error) {
+        throw new Error(`File not found: ${fileName}`);
+    }
+}
+
 async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
     // handle.id = uuidv4()
     if (subDirectoryName === null) {
