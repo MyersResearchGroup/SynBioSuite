@@ -94,16 +94,6 @@ export const ObjectTypes = {
         subdirectory: "strains",
         downloadable: true,
     },
-    Assembly: {
-        id: "synbio.object-type.assembly-plan",
-        title: "Assembly Plan",
-        listTitle: "Assembly Plans",
-        fileNameMatch: /\.json$/,
-        icon: GiThorHammer,
-        createable: true,
-        extension: '.json',
-        subdirectory: "assemblyPlans"
-    },
     Transformations: {
         id: "synbio.object-type.transformations",
         title: "Transformations",
