@@ -2,7 +2,7 @@ from __future__ import annotations
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from .main import app
-from .utils import abstract_design_2_plasmids, sbol2build_moclo, generate_transformation_metadata
+from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
 import sys
 import os
 import json
@@ -192,7 +192,7 @@ def sbol_2_build_golden_gate():
     except Exception as e:
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
     
-@app.route('/upload_transformation', methods=['POST'])    
+"""@app.route('/upload_transformation', methods=['POST'])    
 def upload_transformation():
     if 'auth_token' not in request.form:
         return jsonify({"error": "Missing SynBioHub Authentication Token"}), 400
@@ -239,7 +239,7 @@ def upload_transformation():
         return jsonify({"error": str(e)}), 400
 
     except Exception as e:
-        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
+        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500"""
 
 @app.route('/api/build_pudu', methods=['POST'])
 def build_pudu():
