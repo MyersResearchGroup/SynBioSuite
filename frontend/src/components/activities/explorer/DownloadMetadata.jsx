@@ -13,14 +13,14 @@ export default function DownloadMetadata({ objectType }) {
             url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/SampleDesign.xlsm"
             filename = "SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.strains") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Strain.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Strains.xlsm"
             filename = "Strain.xlsm"
         } else if (objectType?.id == "synbio.object-type.resources") {
             url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Resources.xlsm"
             filename = "Resources.xlsm"
         } else if (objectType?.id == "synbio.object-type.experimental-data") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/ExperimentalMetadata.xlsx"
-            filename = "ExperimentalMetadata.xlsx"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Study.xlsm"
+            filename = "Study.xlsm"
         } 
 
         try {
