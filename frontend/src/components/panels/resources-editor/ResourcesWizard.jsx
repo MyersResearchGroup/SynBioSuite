@@ -34,7 +34,7 @@ export default function ResourcesWizard() {
                     }
                 ])
 
-                upload_resource(file, result.sbh_credential_check.selectedRepo, result.authToken, collection.displayId, "", false, undefined, undefined, false, workingDirectory)
+                upload_resource(file, result.sbh_credential_check.selectedRepo, result.authToken, collection.displayId, "", 0, workingDirectory)
                 
                 showErrorNotification("Not Implemented", "File validation and upload are currently not implemented");
             }
