@@ -35,43 +35,40 @@ export async function upload_resource(
     sbh_url,
     sbh_token,
     sbh_collec,
-    sbh_collec_desc = "",
-    sbh_overwrite = false,
+    sbh_collec_desc,
     workingDirectory = null
 ) {
     try {
         let data = new FormData();
         if (file) {
-            console.log('File parameter type:', typeof file, file);
             let fileObject;
             if (typeof file === 'string') {
                 if (!workingDirectory) {
                     throw new Error('Working directory handle is required when file is provided as a path string');
                 }
-                console.log('Reading file from path:', file);
                 fileObject = await readFileFromPath(workingDirectory, file);
             } else {
                 fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
             }
-            console.log('File object to upload:', fileObject);
             data.append('Metadata', fileObject);
         }
 
         const paramsObj = {
             sbh_url: "https://synbiohub.org",
-            sbh_token,
+            sbh_token: sbh_token,
             sbh_user: null,
             sbh_pass: null,
-            sbh_collec,
-            sbh_collec_desc,
-            sbh_overwrite,
             fj_url: "charmmefj-api.synbiohub.org",
             fj_token: null,
             fj_user: null,
             fj_pass: null,
+            sbh_collec: sbh_collec,
+            sbh_collec_desc: sbh_collec_desc,
+            sbh_overwrite: 1,
             fj_overwrite: 1,
-            version: ""
-        };
+            version: "",
+            attachments: {}
+        }
 
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
