@@ -11,7 +11,7 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
     return (
         <Modal opened={opened} onClose={onClose} title="Create Collection" size="lg">
             <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                     e.preventDefault();
                     const formData = new FormData(e.target);
                     const id = formData.get('id');
@@ -44,9 +44,28 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                         });
                         return;
                     }
-                    createCollection(id, version, name, description, citations, auth, url)
+                    
+                    try {
+                        await createCollection(id, version, name, description, citations, auth, url);
+                        
+                        showNotification({
+                            title: 'Success',
+                            message: 'Collection created successfully',
+                            color: 'green',
+                        });
 
-                    onClose();
+                        if (goBack) {
+                            goBack();
+                        } else {
+                            onClose();
+                        }
+                    } catch (error) {
+                        showNotification({
+                            title: 'Error',
+                            message: error.message || 'Failed to create collection',
+                            color: 'red',
+                        });
+                    }
                 }}
             >
                 <TextInput

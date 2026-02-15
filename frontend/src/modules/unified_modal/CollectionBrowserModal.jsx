@@ -15,11 +15,13 @@ import {
     Radio,
     Paper,
     Divider,
-    ActionIcon
+    ActionIcon,
+    Tooltip
 } from '@mantine/core';
 import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
 import { FaTimes } from 'react-icons/fa';
+import { IoMdRefresh } from 'react-icons/io';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
 
@@ -205,7 +207,7 @@ export default function CollectionBrowserModal({
             if (!parentUri) {
                 result = await searchCollections(url, authToken);
             } else {
-                const searchUrl = `https://${url}/search/collection=${encodeURIComponent(parentUri)}/?offset=0&limit=1000`;
+                const searchUrl = `https://${url}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
                 
                 const response = await fetch(searchUrl, {
                     method: 'GET',
@@ -287,6 +289,23 @@ export default function CollectionBrowserModal({
         fetchCollections(newPath[newPath.length - 1] || null);
     }, [breadcrumbs, currentPath, fetchCollections]);
 
+    const handleRefresh = useCallback(() => {
+        fetchCollections(currentPath[currentPath.length - 1] || null);
+    }, [fetchCollections, currentPath]);
+
+    const handleCreateCollection = useCallback(() => {
+        const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+        const authToken = repoInfo?.authtoken;
+
+        setModalData?.(prev => ({
+            ...prev,
+            selectedRepo,
+            authToken,
+        }));
+        
+        navigateTo(MODAL_TYPES.CREATE_COLLECTION);
+    }, [selectedRepo, dataSBH, setModalData, navigateTo]);
+
     const handleComplete = useCallback(() => {
         if (selectedCollections.size === 0) return;
 
@@ -345,6 +364,24 @@ export default function CollectionBrowserModal({
                     </Group>
                 </Paper>
             )}
+
+
+            <Group position="right" mb={0} mt="xs">
+                <Tooltip label="Refresh collections list">
+                    <ActionIcon 
+                        onClick={handleRefresh} 
+                        variant="light" 
+                        color="blue"
+                        size="lg"
+                        disabled={loading}
+                    >
+                        <IoMdRefresh size={18} />
+                    </ActionIcon>
+                </Tooltip>
+                <Button onClick={handleCreateCollection} variant="outline" color="teal">
+                    Create Collection
+                </Button>
+            </Group>
 
             <Divider />
 
