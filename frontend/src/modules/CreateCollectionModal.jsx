@@ -49,12 +49,6 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     
                     try {
                         await createCollection(id, version, name, description, citations, auth, url, overwrite);
-                        
-                        showNotification({
-                            title: 'Success',
-                            message: 'Collection created successfully',
-                            color: 'green',
-                        });
 
                         if (goBack) {
                             goBack();

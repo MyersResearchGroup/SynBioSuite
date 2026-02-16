@@ -253,7 +253,10 @@ export default {
 
                 input.oncancel = () => {
                     document.body.removeChild(input);
-                    showNotification()
+                    showNotification({
+                        title: "File update cancelled",
+                        message: "The file update was cancelled.",
+                    });
                     resolve("File update cancelled.");
                 };
 
