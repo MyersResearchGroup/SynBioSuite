@@ -1,12 +1,14 @@
 import { Modal } from '@mantine/core';
-import { TextInput, Button, Group, Space } from '@mantine/core';
+import { TextInput, Button, Group, Space, Checkbox } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { createCollection } from '../API';
+import { useState } from 'react';
 
 function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack }) {    
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const [overwrite, setOverwrite] = useState(false);
 
     return (
         <Modal opened={opened} onClose={onClose} title="Create Collection" size="lg">
@@ -46,7 +48,7 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
                     
                     try {
-                        await createCollection(id, version, name, description, citations, auth, url);
+                        await createCollection(id, version, name, description, citations, auth, url, overwrite);
                         
                         showNotification({
                             title: 'Success',
@@ -104,6 +106,13 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     placeholder="Comma separated PubMed IDs (e.g. 12345,67890)"
                 />
                 <Space h="md" />
+                <Group position="right" mt="md">
+                    <Checkbox
+                        label="Overwrite existing files in the collection"
+                        checked={overwrite}
+                        onChange={(event) => setOverwrite(event.currentTarget.checked)}
+                    />
+                </Group>
                 <Group position="apart">
                     {goBack && (
                         <Button variant="default" onClick={goBack}>

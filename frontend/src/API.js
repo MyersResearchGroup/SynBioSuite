@@ -36,7 +36,8 @@ export async function upload_resource(
     sbh_token,
     sbh_collec,
     sbh_collec_desc,
-    workingDirectory = null
+    workingDirectory = null,
+    sbh_overwrite = false
 ) {
     try {
         let data = new FormData();
@@ -64,7 +65,7 @@ export async function upload_resource(
             fj_pass: null,
             sbh_collec: sbh_collec,
             sbh_collec_desc: sbh_collec_desc,
-            sbh_overwrite: 1,
+            sbh_overwrite: sbh_overwrite ? 2 : 0,
             fj_overwrite: 1,
             version: "",
             attachments: {}
@@ -224,7 +225,7 @@ export async function searchCollections(url, auth) {
     }
 }
 
-export async function createCollection(id, version, name, description, citations, auth, url) {
+export async function createCollection(id, version, name, description, citations, auth, url, overwrite) {
     try {
         if(url == "") return;
         const formdata = new FormData();
@@ -233,6 +234,7 @@ export async function createCollection(id, version, name, description, citations
         formdata.append('name', name);
         formdata.append('description', description);
         formdata.append('citations', citations);
+        formdata.append('overwrite_merge', overwrite ? 1 : 0);
 
         const response = await axios.post(
             `https://${url}/submit`,

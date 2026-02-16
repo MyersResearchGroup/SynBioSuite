@@ -39,6 +39,7 @@ export default function CollectionBrowserModal({
     silentCredentialCheck: silentCredentialCheckFromProps,
     skipRepositorySelection: skipRepositorySelectionFromProps,
     multiSelect: multiSelectFromProps,
+    rootOnly: rootOnlyFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
@@ -48,6 +49,7 @@ export default function CollectionBrowserModal({
     const [selectedCollections, setSelectedCollections] = useState(new Map());
     const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
     const [currentPath, setCurrentPath] = useState([]);
+    const [overwrite, setOverwrite] = useState(false);
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
@@ -57,6 +59,7 @@ export default function CollectionBrowserModal({
     const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
     const silentCredentialCheck = silentCredentialCheckFromProps ?? modalData.silentCredentialCheck;
     const multiSelect = multiSelectFromProps ?? modalData.multiSelect ?? true;
+    const rootOnly = rootOnlyFromProps ?? modalData.rootOnly ?? false;
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -275,6 +278,7 @@ export default function CollectionBrowserModal({
     }, []);
 
     const handleDoubleClick = useCallback(async (collection) => {
+        if(rootOnly) return null;
         setBreadcrumbs(prev => [...prev, { name: collection.name || collection.displayId, uri: collection.uri }]);
         setCurrentPath(prev => [...prev, collection.uri]);
         await fetchCollections(collection.uri);
@@ -312,8 +316,9 @@ export default function CollectionBrowserModal({
         completeWorkflow({
             collections: Array.from(selectedCollections.values()),
             count: selectedCollections.size,
+            sbh_overwrite: overwrite,
         });
-    }, [selectedCollections, completeWorkflow]);
+    }, [selectedCollections, overwrite, completeWorkflow]);
 
     const handleCancel = useCallback(() => {
         onCancel ? onCancel() : goBack();
@@ -456,6 +461,15 @@ export default function CollectionBrowserModal({
                     </div>
                 )}
             </ScrollArea>
+
+
+            <Group position="right" mt="md">
+                <Checkbox
+                    label="Overwrite existing files in the collection"
+                    checked={overwrite}
+                    onChange={(event) => setOverwrite(event.currentTarget.checked)}
+                />
+            </Group>
 
             <Group position="apart" mt="md">
                 <Button variant="default" onClick={handleCancel}>
