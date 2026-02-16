@@ -34,9 +34,7 @@ export default function ResourcesWizard() {
                     }
                 ])
 
-                upload_resource(file, result.sbh_credential_check.selectedRepo, result.authToken, collection.displayId, collection.description, workingDirectory, result.sbh_overwrite)
-                
-                showErrorNotification("Not Implemented", "File validation and upload are currently not implemented");
+                upload_resource(file, result.sbh_credential_check.selectedRepo, result.authToken, collection.displayId, collection.description, workingDirectory, result.sbh_overwrite)                
             }
         }, { multiSelect: false, rootOnly: true })
     }

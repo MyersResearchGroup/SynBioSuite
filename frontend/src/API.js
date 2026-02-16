@@ -55,7 +55,7 @@ export async function upload_resource(
         }
 
         const paramsObj = {
-            sbh_url: "https://synbiohub.org",
+            sbh_url: sbh_url,
             sbh_token: sbh_token,
             sbh_user: null,
             sbh_pass: null,
@@ -76,7 +76,7 @@ export async function upload_resource(
         data.append('Params', paramBlob, 'parameters.json');
 
         const response = await axios.post(
-            'http://127.0.0.1:5003/api/uploadResource',
+            SBS_Server_Link + '/api/uploadResource',
             data,
             {
                 headers: {

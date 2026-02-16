@@ -58,7 +58,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
     
     // generate DragObjects based on data
-    const createListItems = (files, Icon, importable) => files.map((file, i, importable) =>
+    const createListItems = (files, Icon, importable) => files.map((file, i) =>
         <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}

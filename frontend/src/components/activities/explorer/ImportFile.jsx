@@ -63,7 +63,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     try {
                         const uploadsDir = await directory.getDirectoryHandle("uploads", { create: false });
                         for await (const entry of uploadsDir.values()) {
-                            if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") == jsonFileName) {
+                            if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") == baseFileName) {
                                 fileExists = true;
                                 break;
                             }
