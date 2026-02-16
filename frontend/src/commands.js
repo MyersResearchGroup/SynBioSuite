@@ -2,6 +2,8 @@ import store from "./redux/store"
 import { isPanelOpen, panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
 import { workDirActions, writeToFileHandle } from "./redux/hooks/workingDirectoryHooks"
 import { useOpenPanel } from "./redux/hooks/panelsHooks"
+import { showErrorNotification } from "./modules/util"
+import { showNotification } from "@mantine/notifications"
 
 
 export default {
@@ -26,12 +28,23 @@ export default {
             
             // delete file from disk, try to see if in subdirectory first else delete from root
             const directory = file.id.split("/")[0]
-            try{
-                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory)
-                await tempDirectory.removeEntry(file.name)
-            }
-            catch{
-                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name)
+            try {
+                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory);
+                await tempDirectory.removeEntry(file.name);
+
+                try {
+                    const uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
+                    const baseName = file.name.replace(/\.[^/.]+$/, "");
+                    
+                    for await (const entry of uploadsDir.values()) {
+                        if (entry.kind === 'file' && entry.name.startsWith(baseName + '.')) {
+                            await uploadsDir.removeEntry(entry.name);
+                        }
+                    }
+                } catch (e) {
+                }
+            } catch {
+                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name);
             }
 
             // close panel if it's open
@@ -87,6 +100,7 @@ export default {
 
             const state = store.getState().workingDirectory;
             let fileData = state.entities[file.id]?.data;
+            let downloadName = file.name;
 
             if (!fileData) {
                 const dirHandle = state.directoryHandle;
@@ -94,11 +108,42 @@ export default {
                     try {
                         const parts = file.id.split('/');
                         let cur = dirHandle;
+                        
                         for (let i = 0; i < parts.length - 1; i++) {
                             cur = await cur.getDirectoryHandle(parts[i]);
                         }
-                        const fh = await cur.getFileHandle(parts[parts.length - 1]);
-                        fileData = await fh.getFile();
+
+                        let uploadsDir;
+
+                        try {
+                            uploadsDir = await cur.getDirectoryHandle('uploads');
+                        } catch (e) {
+                            uploadsDir = null;
+                        }
+                        
+                        if (uploadsDir) {
+                            const baseName = file.name.replace(/\.[^/.]+$/, "");
+                            let foundUpload = null;
+                            
+                            for await (const entry of uploadsDir.values()) {
+                                if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") === baseName) {
+                                    foundUpload = entry;
+                                    break;
+                                }
+                            }
+                            
+                            if (foundUpload) {
+                                const fh = await uploadsDir.getFileHandle(foundUpload.name);
+                                fileData = await fh.getFile();
+                                downloadName = foundUpload.name;
+                            }
+                        }
+
+                        // If not found in uploads, fallback to original file
+                        if (!fileData) {
+                            const fh = await cur.getFileHandle(parts[parts.length - 1]);
+                            fileData = await fh.getFile();
+                        }
                     } catch (err) {
                         console.warn('Failed to read file from directoryHandle', err);
                     }
@@ -116,13 +161,110 @@ export default {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = file.name;
+            a.download = downloadName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
-    }
+    },
+    FileUpdate: {
+        id: createId('file-update'),
+        title: "Update File",
+        shortTitle: "Update",
+        description: "Replace a file in the uploads subdirectory with a new one",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            }
+        ],
+        execute: async fileNameOrId => {
+            const file = findFileByNameOrId(fileNameOrId);
+            if (!file) return "File doesn't exist.";
+
+            // Create a file input element
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.style.display = 'none';
+            document.body.appendChild(input);
+
+            // Return a promise that resolves when file is selected
+            return new Promise((resolve, reject) => {
+                input.onchange = async (e) => {
+                    const newFile = e.target.files[0];
+                    if (!newFile) {
+                        document.body.removeChild(input);
+                        showErrorNotification("Unable to update", "No file selected");
+                        return resolve("No file selected.");
+                    }
+
+                    // Get file extensions
+                    const getExtension = (filename) => {
+                        const match = filename.match(/\.[^/.]+$/);
+                        return match ? match[0] : '';
+                    };
+
+                    const originalExt = getExtension(file.name);
+                    const newFileExt = getExtension(newFile.name);
+
+                    // Verify extensions match
+                    if (originalExt !== newFileExt) {
+                        document.body.removeChild(input);
+                        showErrorNotification("File type mismatch", `Expected ${originalExt} but got ${newFileExt}`);
+                        return resolve(`File type mismatch. Expected ${originalExt} but got ${newFileExt}`);
+                    }
+
+                    const directory = file.id.split("/")[0];
+                    try {
+                        const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory);
+                        
+                        // Get or create uploads directory
+                        let uploadsDir;
+                        try {
+                            uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
+                        } catch {
+                            uploadsDir = await tempDirectory.getDirectoryHandle('uploads', { create: true });
+                        }
+
+                        // Remove old upload file(s) for this base name
+                        const baseName = file.name.replace(/\.[^/.]+$/, "");
+                        for await (const entry of uploadsDir.values()) {
+                            if (entry.kind === 'file' && entry.name.startsWith(baseName + '.')) {
+                                await uploadsDir.removeEntry(entry.name);
+                            }
+                        }
+
+                        // Write the new file with the original file's name
+                        const targetFileName = baseName + originalExt;
+                        const newFileHandle = await uploadsDir.getFileHandle(targetFileName, { create: true });
+                        const writable = await newFileHandle.createWritable();
+                        await writable.write(newFile);
+                        await writable.close();
+
+                        document.body.removeChild(input);
+                        resolve("File updated successfully.");
+                    } catch (e) {
+                        document.body.removeChild(input);
+                        showErrorNotification("Failed to update file", e.message);
+                        reject("Failed to update file in uploads subdirectory: " + e.message);
+                    }
+                };
+
+                input.oncancel = () => {
+                    document.body.removeChild(input);
+                    showNotification({
+                        title: "File update cancelled",
+                        message: "The file update was cancelled.",
+                    });
+                    resolve("File update cancelled.");
+                };
+
+                // Trigger the file picker
+                input.click();
+            });
+        }
+    },
 }
 
 

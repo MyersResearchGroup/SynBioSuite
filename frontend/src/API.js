@@ -2,7 +2,9 @@ import axios from 'axios'
 import commands from "./commands"
 import { showErrorNotification } from './modules/util'
 import { showNotification } from '@mantine/notifications';
+import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 
+const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
 
 //There is an issue with where the file upload is not being sent correctly to the server
 export async function upload_sbs(metadata, parameters) {
@@ -16,13 +18,76 @@ export async function upload_sbs(metadata, parameters) {
         const paramBlob = new Blob([parametersJson], { type: 'application/json' });
         formdata.append("Params", paramBlob, "parameters.json");
         
-        const response = await axios.post(import.meta.env.VITE_SYNBIOSUITE_API + "/api/upload_sbs_up",
+        const response = await axios.post(SBS_Server_Link + "/api/upload_sbs_up",
             formdata
         );
         
         return response.data;
     } catch (error) {
         console.error("Upload SBS error:", error);
+        showErrorNotification('Error', error.message);
+        throw error;
+    }
+}
+
+export async function upload_resource(
+    file,
+    sbh_url,
+    sbh_token,
+    sbh_collec,
+    sbh_collec_desc,
+    workingDirectory = null,
+    sbh_overwrite = false
+) {
+    try {
+        let data = new FormData();
+        if (file) {
+            let fileObject;
+            if (typeof file === 'string') {
+                if (!workingDirectory) {
+                    throw new Error('Working directory handle is required when file is provided as a path string');
+                }
+                fileObject = await readFileFromPath(workingDirectory, file);
+            } else {
+                fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
+            }
+            data.append('Metadata', fileObject);
+        }
+
+        const paramsObj = {
+            sbh_url: sbh_url,
+            sbh_token: sbh_token,
+            sbh_user: null,
+            sbh_pass: null,
+            fj_url: "charmmefj-api.synbiohub.org",
+            fj_token: null,
+            fj_user: null,
+            fj_pass: null,
+            sbh_collec: sbh_collec,
+            sbh_collec_desc: sbh_collec_desc,
+            sbh_overwrite: sbh_overwrite ? 2 : 0,
+            fj_overwrite: 1,
+            version: "",
+            attachments: {}
+        }
+
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/uploadResource',
+            data,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                maxBodyLength: Infinity
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Upload Resource error:", error);
         showErrorNotification('Error', error.message);
         throw error;
     }
@@ -43,7 +108,7 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
     formdata.append("wizard_selections", text)
 
     try {
-        const response = await axios.post(import.meta.env.VITE_SYNBIOSUITE_API + '/sbol_2_build_golden_gate',
+        const response = await axios.post(SBS_Server_Link + '/sbol_2_build_golden_gate',
             formdata,
             {
                 headers: {
@@ -85,7 +150,7 @@ export async function submitBuild(wizardInput, assemblyPlan) {
     formdata.append("wizard_selections", text)
 
     try {
-        const response = await axios.post(import.meta.env.VITE_SBOL2BUILD_API,
+        const response = await axios.post(SBS_Server_Link,
             formdata,
             {
                 headers: {
@@ -160,7 +225,7 @@ export async function searchCollections(url, auth) {
     }
 }
 
-export async function createCollection(id, version, name, description, citations, auth, url) {
+export async function createCollection(id, version, name, description, citations, auth, url, overwrite) {
     try {
         if(url == "") return;
         const formdata = new FormData();
@@ -169,6 +234,7 @@ export async function createCollection(id, version, name, description, citations
         formdata.append('name', name);
         formdata.append('description', description);
         formdata.append('citations', citations);
+        formdata.append('overwrite_merge', overwrite ? 1 : 0);
 
         const response = await axios.post(
             `https://${url}/submit`,
