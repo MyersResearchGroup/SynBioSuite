@@ -20,7 +20,7 @@ export default function SeqImproveFrame({}) {
                         height="100%"
                         loading="lazy"
                         ref={iframeRef}
-                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                        title="SeqImprove"
                     />
                 </div>
         </>
