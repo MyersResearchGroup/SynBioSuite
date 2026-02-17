@@ -8,6 +8,7 @@ import { useState} from 'react'
 import Registries from './Registries.jsx'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import DownloadMetadata from './DownloadMetadata.jsx'
+import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -98,7 +99,13 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             <DownloadMetadata objectType={objectType}>
                                             </DownloadMetadata>
                                         }
-                                        {objectType.importable &&
+                                        {objectType.importable && objectType.iframeImport &&
+                                            <OpenSeqImproveButton
+                                                text={`Import ${objectType.title}`}
+                                                url={objectType.iframeUrl}>
+                                            </OpenSeqImproveButton>
+                                        }
+                                        {objectType.importable && !objectType.iframeImport &&
                                             <ImportFile
                                             onSelect={finalImport}
                                             text={`Import ${objectType.title}`}
