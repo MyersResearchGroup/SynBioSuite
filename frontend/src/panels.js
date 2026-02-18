@@ -5,6 +5,7 @@ import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
 import TransformationPanel from "./components/panels/transformations/TransformationPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
+import SeqImprovePanel from "./components/panels/SeqImprovePanel";
 import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
@@ -167,6 +168,12 @@ export const PanelTypes = {
         id: "synbio.panel-type.synbiohub",
         title: "SynBioHub",
         component: SynBioHubPanel,
+        icon: SynBioHub,
+    },
+    SeqImprove: {
+        id: "synbio.panel-type.seqimprove",
+        title: "SeqImprove",
+        component: SeqImprovePanel,
         icon: SynBioHub,
     }
 }
