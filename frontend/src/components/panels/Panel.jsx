@@ -7,6 +7,7 @@ import { titleFromFileName } from '../../redux/hooks/workingDirectoryHooks'
 const Tab = forwardRef(({ id, ...props }, ref) => {
     
     const fileHandle = usePanelProperty(id, 'fileHandle')
+    const name = usePanelProperty(id, 'name')
     const panelType = usePanelType(id)
     const closePanel = useClosePanel()
 
@@ -15,7 +16,7 @@ const Tab = forwardRef(({ id, ...props }, ref) => {
 
             <MantineTabs.Tab value={id} ref={ref} {...props}>
                 <TabLabel
-                title={fileHandle ? titleFromFileName(fileHandle.name) : id}
+                title={name || (fileHandle ? titleFromFileName(fileHandle.name) : id)}
                     icon={panelType.icon}
                     id={id}
                     onClose={closePanel}
