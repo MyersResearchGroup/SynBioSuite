@@ -10,7 +10,7 @@ import { MdAlignVerticalTop } from "react-icons/md";
 import { VscOutput } from "react-icons/vsc";
 import { FaFileArchive } from "react-icons/fa";
 
-
+const SEQ_IMPROVE_LINK = import.meta.env.VITE_SEQIMPROVE_URL
 
 export const ObjectTypes = {
     SYNBIOHUB: {
@@ -76,6 +76,9 @@ export const ObjectTypes = {
         title: "Plasmid",
         listTitle: "Plasmids",
         createable: true,
+        importable: true,
+        iframeImport: true,
+        iframeUrl: SEQ_IMPROVE_LINK,
         extension: '.xml',
         icon: TbComponents,
         fileNameMatch: /\.xml$/,
