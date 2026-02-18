@@ -5,7 +5,7 @@ import { useRef } from "react"
 
 export default function SeqImproveFrame({}) {
 
-    const panelId = useContext(PanelContext)
+    const url = useContext(PanelContext)
     // iframe reference
     const iframeRef = useRef()
 
@@ -14,7 +14,7 @@ export default function SeqImproveFrame({}) {
         <>
                 <div style={containerStyle}>
                     <iframe
-                        src={panelId + '?ignoreHTTPErrors=true'}
+                        src={url + '?ignoreHTTPErrors=true'}
                         style={iframeStyle}
                         width="100%"
                         height="100%"

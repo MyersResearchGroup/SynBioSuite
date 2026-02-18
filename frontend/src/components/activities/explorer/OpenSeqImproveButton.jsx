@@ -10,9 +10,12 @@ export default function OpenSeqImproveButton({ text, url }) {
     const dispatch = useDispatch();
 
     const handleClick = () => {
+        const uniqueId = `seqimprove-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         dispatch(actions.openPanel({
-            id: url,
+            id: uniqueId,
             type: "synbio.panel-type.seqimprove",
+            url: url,
+            name: "SeqImprove",
         }));
     };
 
