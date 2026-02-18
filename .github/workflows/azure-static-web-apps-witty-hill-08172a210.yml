@@ -4,6 +4,7 @@ env:
   VITE_IBIOSIM_API: https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze
   VITE_SBOL_CANVAS_URL: https://sbolcanvas.org
   VITE_SYNBIOSUITE_API: https://synbiosuite-api.victoriouswater-326a4bf8.westcentralus.azurecontainerapps.io
+  VITE_SEQIMPROVE_URL: https://seqimprove.synbiohub.org
 
 on:
   push:
@@ -62,3 +63,4 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WITTY_HILL_08172A210 }}
           action: "close"
           app_location: "/"
+
