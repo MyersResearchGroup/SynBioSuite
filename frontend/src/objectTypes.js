@@ -130,9 +130,9 @@ export const ObjectTypes = {
         downloadable: true,
     },
     Metadata: {
-        id: "synbio.object-type.experimental-data",
+        id: "synbio.object-type.study-data",
         title: "Metadata",
-        listTitle: "Experimental Metadata",
+        listTitle: "Study Metadata",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
@@ -160,10 +160,10 @@ export const ObjectTypes = {
         importable: true,
         subdirectory: "plateReaderOutputs",
     },
-    Experiments: {
+    Studies: {
         id: "synbio.object-type.experiment",
-        title: "Experiments",
-        listTitle: "Experiments",
+        title: "Studies",
+        listTitle: "Studies",
         fileNameMatch: /\.xdc$/,
         icon: GrTestDesktop,
         createable: true,
