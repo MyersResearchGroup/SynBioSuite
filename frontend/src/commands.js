@@ -3,6 +3,9 @@ import { isPanelOpen, panelsActions, serializePanel } from "./redux/hooks/panels
 import { workDirActions, writeToFileHandle, readFileFromPath } from "./redux/hooks/workingDirectoryHooks"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
+import { openUnifiedModal } from "./redux/slices/modalSlice"
+import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
+import { upload_resource, CheckLogin } from "./API"
 
 
 export default {
@@ -183,83 +186,210 @@ export default {
             const file = findFileByNameOrId(fileNameOrId);
             if (!file) return "File doesn't exist.";
 
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.style.display = 'none';
-            document.body.appendChild(input);
+            const dirHandle = store.getState().workingDirectory.directoryHandle;
+            const directory = file.id.split("/")[0];
 
-            return new Promise((resolve, reject) => {
-                input.onchange = async (e) => {
-                    const newFile = e.target.files[0];
-                    if (!newFile) {
+            let jsonData = null;
+            let tempDirectory = null;
+
+            try {
+                tempDirectory = await dirHandle.getDirectoryHandle(directory);
+                const jsonFH = await tempDirectory.getFileHandle(file.name);
+                const jsonText = await (await jsonFH.getFile()).text();
+                jsonData = JSON.parse(jsonText);
+            } catch (e) {
+                showErrorNotification("Failed to read workflow file", e.message);
+                return "Failed to read workflow file.";
+            }
+
+            const lastUpload = jsonData.uploads?.length
+                ? jsonData.uploads[jsonData.uploads.length - 1]
+                : null;
+
+            if (!lastUpload?.selectedRepo || !lastUpload?.uri) {
+                showErrorNotification("Cannot update", "No prior upload record with repository information found.");
+                return "No prior upload record found.";
+            }
+
+            const selectedRepo = lastUpload.selectedRepo;
+            const expectedEmail = lastUpload.userEmail || null;
+            const collectionDisplayId = lastUpload.uri.split('/').slice(-2, -1)[0] || lastUpload.collectionName;
+            const collectionName = lastUpload.collectionName;
+            const collectionUri = lastUpload.uri;
+
+            function getStoredToken() {
+                try {
+                    const stored = localStorage.getItem('SynbioHub');
+                    if (!stored) return null;
+                    const repos = JSON.parse(stored);
+                    const entry = repos.find(r => r.value === selectedRepo);
+                    return entry?.authtoken || null;
+                } catch { return null; }
+            }
+
+            async function performUpdate(authToken) {
+                return new Promise((resolve) => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+
+                    input.oncancel = () => {
                         document.body.removeChild(input);
-                        showErrorNotification("Unable to update", "No file selected");
-                        return resolve("No file selected.");
-                    }
-
-                    const getExtension = (filename) => {
-                        const match = filename.match(/\.[^/.]+$/);
-                        return match ? match[0] : '';
+                        showNotification({ title: "File update cancelled", message: "The file update was cancelled." });
+                        resolve("File update cancelled.");
                     };
 
-                    const directory = file.id.split("/")[0];
-                    try {
-                        const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory);
+                    input.onchange = async (e) => {
+                        const newFile = e.target.files[0];
+                        document.body.removeChild(input);
 
-                        let existingFileName = null;
-                        try {
-                            const jsonFH = await tempDirectory.getFileHandle(file.name);
-                            const jsonText = await (await jsonFH.getFile()).text();
-                            const jsonData = JSON.parse(jsonText);
-                            existingFileName = jsonData.file ? jsonData.file.split('/').pop() : null;
-                        } catch (e) {}
-
-                        let uploadsDir;
-                        try {
-                            uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
-                        } catch {
-                            uploadsDir = await tempDirectory.getDirectoryHandle('uploads', { create: true });
+                        if (!newFile) {
+                            showErrorNotification("Unable to update", "No file selected");
+                            return resolve("No file selected.");
                         }
 
+                        const getExtension = (n) => { const m = n.match(/\.[^/.]+$/); return m ? m[0] : ''; };
+                        const existingFileName = jsonData.file ? jsonData.file.split('/').pop() : null;
+
                         if (existingFileName) {
-                            const getExtension = (n) => { const m = n.match(/\.[^/.]+$/); return m ? m[0] : ''; };
                             const originalExt = getExtension(existingFileName);
                             const newFileExt = getExtension(newFile.name);
-
                             if (originalExt !== newFileExt) {
-                                document.body.removeChild(input);
                                 showErrorNotification("File type mismatch", `Expected ${originalExt} but got ${newFileExt}`);
                                 return resolve(`File type mismatch. Expected ${originalExt} but got ${newFileExt}`);
                             }
+                        }
 
-                            try { await uploadsDir.removeEntry(existingFileName); } catch {}
+                        try {
+                            const uploadsDir = await tempDirectory.getDirectoryHandle('uploads', { create: true });
 
-                            const newFileHandle = await uploadsDir.getFileHandle(existingFileName, { create: true });
-                            const writable = await newFileHandle.createWritable();
+                            const newFileName = newFile.name;
+                            const sameFilename = existingFileName && existingFileName === newFileName;
+
+                            const stagingName = sameFilename ? `__tmp__${newFileName}` : newFileName;
+                            const stagingFH = await uploadsDir.getFileHandle(stagingName, { create: true });
+                            const writable = await stagingFH.createWritable();
                             await writable.write(newFile);
                             await writable.close();
 
-                            document.body.removeChild(input);
+                            const newFilePath = `${directory}/uploads/${newFileName}`;
+
+                            // TODO: Remove once SBS Server implementation works correctly
+                            try{ await upload_resource(
+                                newFilePath,
+                                selectedRepo,
+                                authToken,
+                                collectionDisplayId,
+                                "",
+                                dirHandle,
+                                3
+                            );} catch (e) {
+                            }
+
+                            if (sameFilename) {
+                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
+                                const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
+                                const finalWritable = await finalFH.createWritable();
+                                await finalWritable.write(newFile);
+                                await finalWritable.close();
+                                try { await uploadsDir.removeEntry(stagingName); } catch {}
+                            } else if (existingFileName) {
+                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
+                            }
+
+                            const updateEntry = {
+                                collectionName,
+                                uri: collectionUri,
+                                file: newFilePath,
+                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                                selectedRepo,
+                                userEmail: expectedEmail,
+                                type: 'update',
+                            };
+
+                            const updatedJson = {
+                                ...jsonData,
+                                file: newFilePath,
+                                uploads: [...(jsonData.uploads ?? []), updateEntry],
+                            };
+
+                            const jsonFH = await tempDirectory.getFileHandle(file.name);
+                            await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
+
+                            // Sync Redux panel state so PanelSaver doesn't overwrite with stale data
+                            if (isPanelOpen(file.id)) {
+                                store.dispatch(panelsActions.updateOne({
+                                    id: file.id,
+                                    changes: {
+                                        file: newFilePath,
+                                        uploads: updatedJson.uploads,
+                                    }
+                                }))
+                            }
+
+                            showNotification({
+                                title: "File updated",
+                                message: `${newFileName} uploaded successfully to ${collectionName}.`,
+                                color: "green",
+                            });
+
                             resolve("File updated successfully.");
-                            return;
+                        } catch (err) {
+                            showErrorNotification("Failed to update file", err.message);
+                            resolve("Failed to update file: " + err.message);
                         }
-                    } catch (e) {
-                        document.body.removeChild(input);
-                        showErrorNotification("Failed to update file", e.message);
-                        reject("Failed to update file in uploads subdirectory: " + e.message);
+                    };
+
+                    input.click();
+                });
+            }
+
+            const storedToken = getStoredToken();
+            if (storedToken) {
+                try {
+                    const loginResult = await CheckLogin(selectedRepo, storedToken);
+                    if (loginResult.valid) {
+                        const actualEmail = loginResult.profile?.email || '';
+                        if (!expectedEmail || actualEmail.toLowerCase() === expectedEmail.toLowerCase()) {
+                            return await performUpdate(storedToken);
+                        }
                     }
-                };
+                } catch {}
+            }
 
-                input.oncancel = () => {
-                    document.body.removeChild(input);
-                    showNotification({
-                        title: "File update cancelled",
-                        message: "The file update was cancelled.",
-                    });
-                    resolve("File update cancelled.");
-                };
+            return new Promise((resolve) => {
+                store.dispatch(openUnifiedModal({
+                    modalType: MODAL_TYPES.COLLECTION_BROWSER,
+                    allowedModals: [
+                        MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                        MODAL_TYPES.COLLECTION_BROWSER,
+                        MODAL_TYPES.SBH_LOGIN,
+                        MODAL_TYPES.CREATE_COLLECTION,
+                    ],
+                    props: {
+                        selectedRepo,
+                        expectedEmail,
+                        skipRepositorySelection: true,
+                        silentCredentialCheck: true,
+                        multiSelect: false,
+                        rootOnly: true,
+                    },
+                    callback: async (result) => {
+                        if (!result?.completed) {
+                            showNotification({ title: "Update cancelled", message: "Authentication was cancelled." });
+                            return resolve("Update cancelled.");
+                        }
 
-                input.click();
+                        const authToken = result.authToken;
+                        if (!authToken) {
+                            showErrorNotification("Authentication failed", "Could not obtain a valid auth token.");
+                            return resolve("Authentication failed.");
+                        }
+
+                        resolve(await performUpdate(authToken));
+                    },
+                }));
             });
         }
     },

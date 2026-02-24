@@ -125,7 +125,9 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                                 collectionName: collection.name || collection.displayId,
                                 uri: collection.uri,
                                 file: filePath,
-                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' })
+                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                                selectedRepo: result.sbh_credential_check?.selectedRepo,
+                                userEmail: result.sbh_credential_check?.userInfo?.email
                             };
 
                             await createWorkflowJSON(availableBaseName, useSubdirectory, filePath, uploadEntry);
@@ -148,7 +150,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     onSelect?.(fileMetadata)
                 }
             } catch (err) {
-                console.error("File selection canceled or failed", err)
+                console.warn("File selection canceled or failed", err)
             }
         }
             
