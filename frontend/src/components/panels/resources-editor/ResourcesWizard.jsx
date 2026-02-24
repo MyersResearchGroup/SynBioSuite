@@ -19,29 +19,9 @@ export default function ResourcesWizard() {
     const [file, setFile] = usePanelProperty(panelId, 'file', false)
 
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
-    
-    const handleValidateAndUpload = async () => {
-        workflows.browseCollections((result) => {
-            if (result?.completed && result?.collections && result.collections.length > 0) {
-                const collection = result.collections[0]
-                setUploads([
-                    ...uploads,
-                    {
-                        collectionName: collection.name || collection.displayId,
-                        uri: collection.uri,
-                        file: file,
-                        date: new Date().toLocaleString(undefined, { timeZoneName: 'short' })
-                    }
-                ])
-
-                upload_resource(file, result.sbh_credential_check.selectedRepo, result.authToken, collection.displayId, collection.description, workingDirectory, result.sbh_overwrite)                
-            }
-        }, { multiSelect: false, rootOnly: true })
-    }
 
     return (
         <Container style={stepperContainerStyle}>
-            <Button onClick={handleValidateAndUpload}>Validate and Upload to SynBioHub</Button>
             <Space h="md" />
             <ScrollArea h={600} type="always">
                 {(uploads?.length ?? 0) === 0 ? (
