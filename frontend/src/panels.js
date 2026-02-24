@@ -133,7 +133,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",
         component: CollectionPanel,
-        objectTypes: [ ObjectTypes.Experiments.id ],
+        objectTypes: [ ObjectTypes.Studies.id ],
         icon: FcAddDatabase,
 
         //To be implemented
