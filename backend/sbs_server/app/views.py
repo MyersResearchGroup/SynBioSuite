@@ -67,8 +67,7 @@ def sbh_fj_upload(files):
     params_from_request = json.loads(params_file.read())
     if not (params_from_request['sbh_url'].startswith('http://') or params_from_request['sbh_url'].startswith('https://')):
         params_from_request['sbh_url'] = 'https://' + params_from_request['sbh_url']
-    params_from_request['sbh_user'] = None
-    params_from_request['sbh_pass'] = None
+
     required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
                        'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
                        'sbh_collec', 'sbh_collec_desc', 
@@ -82,26 +81,12 @@ def sbh_fj_upload(files):
         return 'No SBH credentials provided', 400
 
     # Attachment files to upload to SBH
-    attachments = None
-    if 'Attachments' in files:
+    if 'Attachments' in files and 'attachments' in params_from_request:
         attachment_files = files.getlist("Attachments")
-        attachment_metadata = params_from_request.get('attachments')
-
-        if attachment_metadata is None:
-            return 'Attachment metadata not provided', 400
-        if not isinstance(attachment_metadata, dict):
-            return 'Attachment metadata must be a JSON object keyed by filename', 400
-
-        attachments = {}
-        missing_metadata = [file.filename for file in attachment_files if file.filename not in attachment_metadata]
-        if missing_metadata:
-            missing_list = ', '.join(missing_metadata)
-            return f'Missing attachment metadata for files: {missing_list}', 400
-
-        for file in attachment_files:
-            attachments[attachment_metadata[file.filename]] = file
-
+        attachments = {params_from_request['attachments'][file.filename] : file for file in attachment_files}
         print(attachments)
+    else:
+        attachments = None
 
     # instantiate the XDC class using the params_from_request dictionary
     xdc = tricahue.XDC(input_excel_path = files['Metadata'],
