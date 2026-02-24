@@ -65,6 +65,10 @@ def sbh_fj_upload(files):
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
+    if not (params_from_request['sbh_url'].startswith('http://') or params_from_request['sbh_url'].startswith('https://')):
+        params_from_request['sbh_url'] = 'https://' + params_from_request['sbh_url']
+    params_from_request['sbh_user'] = None
+    params_from_request['sbh_pass'] = None
     required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
                        'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
                        'sbh_collec', 'sbh_collec_desc', 
@@ -114,7 +118,6 @@ def sbh_fj_upload(files):
             fj_token = params_from_request['fj_token'], 
             sbh_token = params_from_request['sbh_token'],
             homespace = "https://example.org/", 
-            attachments = attachments
             )
 
     try:
