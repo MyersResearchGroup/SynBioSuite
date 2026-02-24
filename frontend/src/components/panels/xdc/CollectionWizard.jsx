@@ -93,7 +93,7 @@ export default function CollectionWizard() {
                         item={metadataFile?.name}
                         onItemChange={handleMetadataChange}
                         link={() => handleOpenFile(metadataFile)}>
-                        Drag & drop Experimental Metadata from the explorer
+                        Drag & drop Study Metadata from the explorer
                     </Dropzone>
                     <Space h='lg' />
                     <Dropzone
