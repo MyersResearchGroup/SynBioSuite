@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "/",
+      "url": "/api",
       "description": "Relative to current host (works for local, container, and deployed environments)"
     }
   ],
