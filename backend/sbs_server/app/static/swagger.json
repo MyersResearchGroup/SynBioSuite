@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5003",
-      "description": "Local development server (port 5003)"
+      "url": "/",
+      "description": "Relative to current host (works for local, container, and deployed environments)"
     }
   ],
   "tags": [
