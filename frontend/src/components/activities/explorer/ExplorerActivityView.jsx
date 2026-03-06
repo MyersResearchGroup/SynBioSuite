@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import FolderSelect from './FolderSelect'
 import { ActionIcon, Center, Text, Tooltip } from '@mantine/core'
 import ExplorerList from './ExplorerList'
@@ -6,22 +7,25 @@ import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 import { openDirectory } from '../../../redux/slices/modalSlice'
 import { useDispatch } from 'react-redux'
+import { checkAndClearOnVersionMismatch } from '../../../version'
 
 function checkDirectoryVersion(dispatch) {
-    //To be implemented with a scan of the various folders in the directory to see if renaming is required
     dispatch(openDirectory())
 }
 
 export default function ExplorerActivityView({objectTypesToList }) {
     const dispatch = useDispatch()
 
-    // handle first time visiting
-    const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
+    useEffect(() => {
+        checkAndClearOnVersionMismatch()
+    }, [])
+
+    const [, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
 
     // handle directory selection
         const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
         const handleDirectorySelection = dirHandle => {
-            firstTime && setFirstTime(false)
+            setFirstTime(false)
             setWorkingDirectory(dirHandle)
             checkDirectoryVersion(dispatch)
         }
