@@ -122,18 +122,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
                             await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName);
 
-                            const uploadEntry = {
-                                collectionName: collection.name || collection.displayId,
-                                uri: collection.uri,
-                                file: filePath,
-                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
-                                selectedRepo: result.sbh_credential_check?.selectedRepo,
-                                userEmail: result.sbh_credential_check?.userInfo?.email
-                            };
-
-                            await createWorkflowJSON(availableBaseName, useSubdirectory, filePath, uploadEntry);
-
-                            await upload_resource(
+                            const response = await upload_resource(
                                 filePath,
                                 result.sbh_credential_check?.selectedRepo,
                                 result.authToken,
@@ -142,6 +131,19 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                                 dirName,
                                 result.sbh_overwrite
                             );
+
+                            const uploadEntry = {
+                                collectionName: collection.name || collection.displayId,
+                                uri: response.sbh_url,
+                                file: filePath,
+                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                                selectedRepo: result.sbh_credential_check?.selectedRepo,
+                                userEmail: result.sbh_credential_check?.userInfo?.email
+                            };
+
+                            console.log(response)
+
+                            await createWorkflowJSON(availableBaseName, useSubdirectory, filePath, uploadEntry);
                         } catch (err) {
                             console.error("Error saving file or creating workflow:", err);
                             showErrorNotification("Import Failed", err.message);

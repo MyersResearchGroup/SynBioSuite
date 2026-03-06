@@ -88,7 +88,6 @@ export async function upload_resource(
         return response.data;
     } catch (error) {
         console.error("Upload Resource error:", error);
-        showErrorNotification('Error', error.message);
         throw error;
     }
 }
