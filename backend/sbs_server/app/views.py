@@ -65,8 +65,9 @@ def sbh_fj_upload(files):
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
-    if not (params_from_request['sbh_url'].startswith('http://') or params_from_request['sbh_url'].startswith('https://')):
-        params_from_request['sbh_url'] = 'https://' + params_from_request['sbh_url']
+    sbh_url = params_from_request.get('sbh_url')
+    if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
+        params_from_request['sbh_url'] = 'https://' + sbh_url
 
     required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
                        'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
@@ -83,7 +84,14 @@ def sbh_fj_upload(files):
     # Attachment files to upload to SBH
     if 'Attachments' in files and 'attachments' in params_from_request:
         attachment_files = files.getlist("Attachments")
-        attachments = {params_from_request['attachments'][file.filename] : file for file in attachment_files}
+        attachments = {}
+        for file in attachment_files:
+            if file.filename not in params_from_request['attachments']:
+                return (
+                    f"Attachment metadata for file '{file.filename}' not found in request",
+                    400,
+                )
+            attachments[params_from_request['attachments'][file.filename]] = file
         print(attachments)
     else:
         attachments = None
@@ -102,6 +110,7 @@ def sbh_fj_upload(files):
             fj_overwrite = params_from_request['fj_overwrite'], 
             fj_token = params_from_request['fj_token'], 
             sbh_token = params_from_request['sbh_token'],
+            attachments = attachments,
             homespace = "https://example.org/", 
             )
 
