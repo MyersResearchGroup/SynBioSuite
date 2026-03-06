@@ -7,7 +7,6 @@ import sys
 import os
 import json
 import xml.etree.ElementTree as ET
-
 import tricahue
 import sbol2 as sb2
 import pudu
@@ -39,9 +38,7 @@ def upload_experiment():
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE
 '''
 def sbh_fj_upload(files):
-    
     if 'Metadata' not in files:
-        print(request)
         return 'No file part', 400
     metadata_file = files['Metadata']
     if metadata_file.filename == '':
@@ -92,7 +89,6 @@ def sbh_fj_upload(files):
                     400,
                 )
             attachments[params_from_request['attachments'][file.filename]] = file
-        print(attachments)
     else:
         attachments = None
 

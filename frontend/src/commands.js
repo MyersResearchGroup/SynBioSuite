@@ -334,6 +334,7 @@ export default {
 
                             resolve("File updated successfully.");
                         } catch (err) {
+                            try { await uploadsDir.removeEntry(stagingName); } catch {}
                             showErrorNotification("Failed to update file", err.message);
                             resolve("Failed to update file: " + err.message);
                         }
