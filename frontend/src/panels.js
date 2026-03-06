@@ -1,5 +1,6 @@
 import { FcAddDatabase } from "react-icons/fc";
 import { FaFileArchive } from "react-icons/fa";
+import { APP_VERSION } from "./version";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
@@ -34,7 +35,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     }, 
     Simulator: {
@@ -55,7 +56,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     }, 
     SBOLEditor: {
@@ -105,7 +106,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
     AssemblyPlanCreator: {
@@ -126,7 +127,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
     Experiment: {
@@ -149,7 +150,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
     ExcelFile: {
