@@ -16,10 +16,10 @@ export const importedFile = createContext()
 
 const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns', 'experimentalSetups']
 
-async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext) {
+async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, maxAttempts = 1000) {
     let candidate = baseName;
     let counter = 1;
-    while (true) {
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
         let jsonExists = false;
         let fileExists = false;
         try { await objectTypeDir.getFileHandle(`${candidate}.json`); jsonExists = true; } catch {}
@@ -28,6 +28,7 @@ async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext) {
         candidate = `${baseName} (${counter})`;
         counter++;
     }
+    throw new Error(`Unable to find available base name after ${maxAttempts} attempts.`);
 }
 
 export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
@@ -132,7 +133,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
                             await createWorkflowJSON(availableBaseName, useSubdirectory, filePath, uploadEntry);
 
-                            upload_resource(
+                            await upload_resource(
                                 filePath,
                                 result.sbh_credential_check?.selectedRepo,
                                 result.authToken,

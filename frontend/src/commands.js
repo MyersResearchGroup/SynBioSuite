@@ -275,8 +275,7 @@ export default {
 
                             const newFilePath = `${directory}/uploads/${newFileName}`;
 
-                            // TODO: Remove once SBS Server implementation works correctly
-                            try{ await upload_resource(
+                            await upload_resource(
                                 newFilePath,
                                 selectedRepo,
                                 authToken,
@@ -284,15 +283,14 @@ export default {
                                 "",
                                 dirHandle,
                                 3
-                            );} catch (e) {
-                            }
+                            );
 
                             if (sameFilename) {
-                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
                                 const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
                                 const finalWritable = await finalFH.createWritable();
                                 await finalWritable.write(newFile);
                                 await finalWritable.close();
+                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
                                 try { await uploadsDir.removeEntry(stagingName); } catch {}
                             } else if (existingFileName) {
                                 try { await uploadsDir.removeEntry(existingFileName); } catch {}
