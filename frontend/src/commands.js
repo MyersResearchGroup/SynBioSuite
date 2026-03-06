@@ -215,7 +215,6 @@ export default {
             const expectedEmail = lastUpload.userEmail || null;
             const collectionDisplayId = lastUpload.uri.split('/').slice(-2, -1)[0] || lastUpload.collectionName;
             const collectionName = lastUpload.collectionName;
-            const collectionUri = lastUpload.uri;
 
             function getStoredToken() {
                 try {
@@ -275,7 +274,7 @@ export default {
 
                             const newFilePath = `${directory}/uploads/${newFileName}`;
 
-                            await upload_resource(
+                            const response = await upload_resource(
                                 newFilePath,
                                 selectedRepo,
                                 authToken,
@@ -298,7 +297,7 @@ export default {
 
                             const updateEntry = {
                                 collectionName,
-                                uri: collectionUri,
+                                uri: response.sbh_url,
                                 file: newFilePath,
                                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                                 selectedRepo,
