@@ -45,7 +45,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 fileobj: file,
                 name: file.name,
                 fileHandle: fileHandle,
-                directoryHandle: null,
+                directoryHandle: useSubdirectory ? await dirName.getDirectoryHandle(useSubdirectory, { create: true }) : null,
                 objectType: await classifyFile(fileHandle)
             };
         }

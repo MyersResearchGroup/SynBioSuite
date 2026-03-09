@@ -273,9 +273,10 @@ export default {
                             await writable.close();
 
                             const newFilePath = `${directory}/uploads/${newFileName}`;
+                            const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
 
                             const response = await upload_resource(
-                                newFilePath,
+                                uploadPath,
                                 selectedRepo,
                                 authToken,
                                 collectionDisplayId,
@@ -289,7 +290,6 @@ export default {
                                 const finalWritable = await finalFH.createWritable();
                                 await finalWritable.write(newFile);
                                 await finalWritable.close();
-                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
                                 try { await uploadsDir.removeEntry(stagingName); } catch {}
                             } else if (existingFileName) {
                                 try { await uploadsDir.removeEntry(existingFileName); } catch {}
