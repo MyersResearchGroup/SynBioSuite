@@ -1,11 +1,12 @@
-import {Accordion} from '@mantine/core'
+import {Accordion, Group, Text} from '@mantine/core'
 import {panelsSlice} from "../../../redux/store.js"
 const { actions } = panelsSlice
 import {useDispatch} from "react-redux";
 import { useState } from 'react'
-import CreateNewButton from './CreateNewButton.jsx';
 import ListRegistries from './ListRegistries.jsx';
-import { showNotification } from '@mantine/notifications';
+import AddRegistryModal from './AddRegistryModal.jsx';
+import { AiOutlinePlus } from 'react-icons/ai';
+import { getPrimaryColor } from '../../../modules/colorScheme';
 
 /**
  * Component to handle the creation, deletion, and containment of SynBioHub registries.
@@ -20,57 +21,34 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
 
     // Now set state
     const [registries, setRegistries] = useState(cleanedRegistries);
+    const [modalOpen, setModalOpen] = useState(false);
 
-    const normalizeUrl = (url) => {
-        let normalized = url.trim();
-        if (!/^https?:\/\//i.test(normalized)) {
-            normalized = normalized.replace(/^www\./i, '');
-            normalized = `https://${normalized}`;
+    const onCreate = ({ frontendURL, backendURL, URI }) => {
+        dispatch(actions.openPanel({
+            id: frontendURL,
+            type: "synbio.panel-type.synbiohub",
+        }));
+        setRegistries((prev) => [...prev, frontendURL]);
+
+        // Update localStorage with the new registry entry
+        const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
+        const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
+        const isDuplicate = storedRegistries.some(reg => reg.frontendURL === frontendURL);
+        if (!isDuplicate) {
+            const updatedInstance = {
+                ...(storageKey === 'SynbioHub' && { affiliation: "" }),
+                authtoken: "",
+                email: "",
+                frontendURL,
+                backendURL,
+                URI,
+                ...(storageKey === 'SynbioHub' && { name: "" }),
+                ...(storageKey === 'Flapjack' && { refresh: "" }),
+                username: "",
+            };
+            storedRegistries.push(updatedInstance);
         }
-        return normalized;
-    };
-
-    const onCreate = (inputValue) => {
-        const URLexpression = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/i
-        const URLRegex = new RegExp(URLexpression)
-
-        let url = normalizeUrl(inputValue);
-        if (url.match(URLRegex)) {
-            dispatch(actions.openPanel({
-                id: url,
-                type: "synbio.panel-type.synbiohub",
-            }));
-            setRegistries((prev) => {
-                const updatedRegistries = [...prev, url]
-                return updatedRegistries
-            })
-
-            // Update localStorage with the new inputValue
-            const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
-            const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-            const isDuplicate = storedRegistries.some(reg => reg.frontendURL === url);
-            if (!isDuplicate) {
-                const updatedInstance = {
-                    ...(storageKey === 'SynbioHub' && { affiliation: "" }),
-                    authtoken: "",
-                    email: "",
-                    frontendURL: url,
-                    backendURL: url,
-                    URI: url,
-                    ...(storageKey === 'SynbioHub' && { name: "" }),
-                    ...(storageKey === 'Flapjack' && { refresh: "" }),
-                    username: "",
-                };
-                storedRegistries.push(updatedInstance);
-            }
-            localStorage.setItem(storageKey, JSON.stringify(storedRegistries));
-        }
-        else{
-            showNotification({
-                message: "Enter a valid URL",
-                color: "red"
-            })
-        }
+        localStorage.setItem(storageKey, JSON.stringify(storedRegistries));
     }
        
     const onConfirmDelete = (registryToDelete) => {
@@ -90,9 +68,20 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
     
     return(
         <Accordion.Panel>
-                <CreateNewButton onCreate={onCreate}>
-                    New {title}
-                </CreateNewButton>
+                <AddRegistryModal
+                    opened={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                    onAdd={onCreate}
+                    title={title}
+                    existingRegistries={registries}
+                />
+                <Group
+                    sx={groupStyle}
+                    onClick={() => setModalOpen(true)}
+                >
+                    <AiOutlinePlus />
+                    <Text size='sm' sx={textStyle}>New {title}</Text>
+                </Group>
                 {
                     registries.map((registry) => {
                         return <ListRegistries 
@@ -106,4 +95,22 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
     )
 }
 
+const groupStyle = theme => ({
+    padding: '3px 0 3px 8px',
+    borderRadius: 3,
+    cursor: 'pointer',
+    color: getPrimaryColor(theme, 5),
+    '&:hover': {
+        backgroundColor: theme.colors.dark[5]
+    }
+})
+
+const textStyle = theme => ({
+    flexGrow: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+    color: getPrimaryColor(theme, 5),
+    fontWeight: 500,
+})
 
