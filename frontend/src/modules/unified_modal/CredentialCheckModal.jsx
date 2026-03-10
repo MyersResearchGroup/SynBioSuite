@@ -40,7 +40,7 @@ export default function CredentialCheckModal({
 
     const getRepoInfo = useCallback(() => {
         if (!selectedRepo || !dataSBH.length) return null;
-        return dataSBH.find(r => r.frontendURL === selectedRepo);
+        return dataSBH.find(r => r.registryURL === selectedRepo);
     }, [selectedRepo, dataSBH]);
 
     useEffect(() => {
@@ -137,7 +137,7 @@ export default function CredentialCheckModal({
                     
                     try {
                         const repoForLogout = getRepoInfo();
-                        await SBHLogout(authToken, repoForLogout?.backendURL || selectedRepo);
+                        await SBHLogout(authToken, repoForLogout?.registryAPI || selectedRepo);
                     } catch (err) {
                         console.error('Logout error:', err);
                     }
@@ -192,13 +192,13 @@ export default function CredentialCheckModal({
         if (!repoInfo?.authtoken) return;
 
         try {
-            await SBHLogout(repoInfo.authtoken, repoInfo.backendURL || selectedRepo);
+            await SBHLogout(repoInfo.authtoken, repoInfo.registryAPI || selectedRepo);
         } catch (err) {
             console.error('Logout error:', err);
         }
 
         setDataSBH(dataSBH.map(item => 
-            item.frontendURL === selectedRepo ? { ...item, authtoken: '' } : item
+            item.registryURL === selectedRepo ? { ...item, authtoken: '' } : item
         ));
 
         setIsValid(false);

@@ -18,19 +18,19 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
     
     const findInstance = (uri) => {
-        return instanceData.find((element) => element.frontendURL === uri);
+        return instanceData.find((element) => element.registryURL === uri);
     }
 
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => instance.frontendURL !== selected));
+        setInstanceData(instanceData.filter(instance => instance.registryURL !== selected));
         setSelected(null);
     };
 
     const stripData = (uri, showNotificationFlag = false) => {
         const updatedInstance = {
-            frontendURL: uri,
-            backendURL: uri,
-            URI: uri,
+            registryURL: uri,
+            registryAPI: uri,
+            registryPrefix: uri,
             email: '',
             authtoken: '',
             name: '',
@@ -38,7 +38,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
             affiliation: ''
         };
         const updatedInstanceData = instanceData.map((item) =>
-            item.frontendURL === uri ? updatedInstance : item
+            item.registryURL === uri ? updatedInstance : item
         );
         setInstanceData(updatedInstanceData);
         
@@ -53,9 +53,9 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
 
     const login = async (uri, auth) => {
         const instance = findInstance(uri);
-        const backendURL = instance?.backendURL || uri;
+        const registryAPI = instance?.registryAPI || uri;
         try {
-            const response = await axios.get(`${backendURL}/profile`, {
+            const response = await axios.get(`${registryAPI}/profile`, {
                 headers: {
                     'Accept': 'text/plain; charset=UTF-8',
                     "X-authorization" : `${auth}`
@@ -79,7 +79,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
 
     const logout = async (uri, auth) => {
         const instance = findInstance(uri);
-        const backendURL = instance?.backendURL || uri;
+        const registryAPI = instance?.registryAPI || uri;
         try {
             cleanNotifications();
             showNotification({
@@ -88,7 +88,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 color: 'blue',
                 loading: true,
             });
-            const response = await axios.post(`${backendURL}/logout`, null, {
+            const response = await axios.post(`${registryAPI}/logout`, null, {
                 headers: {
                     'Accept': 'text/plain; charset=UTF-8',
                     "X-authorization" : `${auth}`
@@ -123,16 +123,16 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         if (addingInstance != null && addingInstance != "placeholder") {
             const uri = normalizeUrl(addingInstance);
             const newInstance = { 
-                frontendURL: uri,
-                backendURL: uri,
-                URI: uri,
+                registryURL: uri,
+                registryAPI: uri,
+                registryPrefix: uri,
                 email: '', 
                 authtoken: '',
                 name: '',
                 username: '',
                 affiliation: ''
             };
-            if (!instanceData.some(instance => instance.frontendURL === newInstance.frontendURL)) {
+            if (!instanceData.some(instance => instance.registryURL === newInstance.registryURL)) {
                 setInstanceData([...instanceData, newInstance]);
                 setSelected(uri);
             } else {
@@ -146,8 +146,8 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     }, [addingInstance]);
 
     const selectData = instanceData.map(inst => ({
-        value: inst.frontendURL,
-        label: inst.frontendURL,
+        value: inst.registryURL,
+        label: inst.registryURL,
     }));
 
     return (

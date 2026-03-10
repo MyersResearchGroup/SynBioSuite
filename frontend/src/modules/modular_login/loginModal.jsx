@@ -21,9 +21,9 @@ function LoginModal({ opened, onClose, repoName }) {
     
     const findInstance = (uri, repo) => {
         if (repo == "SBH")
-            return dataSBH.find((element) => element.frontendURL === uri);
+            return dataSBH.find((element) => element.registryURL === uri);
         else if (repo == "FJ")
-            return dataFJ.find((element) => element.frontendURL === uri);
+            return dataFJ.find((element) => element.registryURL === uri);
     }
 
     const handleRemoveInstance = (repo) => {
@@ -57,7 +57,7 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {sbhInfo ? sbhInfo.frontendURL : "Not Logged In"}
+                                    Repository: {sbhInfo ? sbhInfo.registryURL : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
@@ -86,7 +86,7 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {fjInfo ? fjInfo.frontendURL : "Not Logged In"}
+                                    Repository: {fjInfo ? fjInfo.registryURL : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>

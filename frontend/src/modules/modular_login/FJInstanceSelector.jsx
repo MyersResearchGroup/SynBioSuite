@@ -17,11 +17,11 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     const setSelected = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selected) : value));
     
     const findInstance = (uri) => {
-        return instanceData.find((element) => element.frontendURL === uri);
+        return instanceData.find((element) => element.registryURL === uri);
     }
 
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => instance.frontendURL !== selected));
+        setInstanceData(instanceData.filter(instance => instance.registryURL !== selected));
         setSelected(null);
     };
 
@@ -29,14 +29,14 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
         const updatedInstance = {
             authtoken:"",
             email:"",
-            frontendURL: uri,
-            backendURL: uri,
-            URI: uri,
+            registryURL: uri,
+            registryAPI: uri,
+            registryPrefix: uri,
             refresh:"",
             username:"",
         };
         const updatedInstanceData = instanceData.map((item) =>
-            item.frontendURL === uri ? updatedInstance : item
+            item.registryURL === uri ? updatedInstance : item
         );
         setInstanceData(updatedInstanceData);
 
@@ -53,9 +53,9 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     //Throws CORS error
     const login = async (uri, refresh) => {
         const instance = findInstance(uri);
-        const backendURL = instance?.backendURL || uri;
+        const registryAPI = instance?.registryAPI || uri;
         try {
-            const response = await fetch(`${backendURL}/api/auth/refresh/`, {
+            const response = await fetch(`${registryAPI}/api/auth/refresh/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
             };
 
             const updatedInstanceData = instanceData.map((item) =>
-                item.frontendURL === uri ? updatedInstance : item
+                item.registryURL === uri ? updatedInstance : item
             );
 
             setInstanceData(updatedInstanceData);
@@ -112,13 +112,13 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
                 const newInstance = { 
                     authtoken:"",
                     email:"",
-                    frontendURL: uri,
-                    backendURL: uri,
-                    URI: uri,
+                    registryURL: uri,
+                    registryAPI: uri,
+                    registryPrefix: uri,
                     refresh:"",
                     username:"",
                 };
-                if (!instanceData.some(instance => instance.frontendURL === newInstance.frontendURL)) {
+                if (!instanceData.some(instance => instance.registryURL === newInstance.registryURL)) {
                     setInstanceData([...instanceData, newInstance]);
                     setSelected(uri);
                 } else {
@@ -132,8 +132,8 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
         }, [addingInstance]);
 
     const selectData = instanceData.map(inst => ({
-        value: inst.frontendURL,
-        label: inst.frontendURL,
+        value: inst.registryURL,
+        label: inst.registryURL,
     }));
 
     return (

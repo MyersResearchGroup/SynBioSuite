@@ -37,9 +37,9 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
 
                     const url = selected && selected.trim() !== "" ? selected : null;
-                    const instance = instanceData.find((inst) => inst.frontendURL === url);
+                    const instance = instanceData.find((inst) => inst.registryURL === url);
                     const auth = instance ? instance.authtoken : null;
-                    const backendURL = instance?.backendURL || url;
+                    const registryAPI = instance?.registryAPI || url;
                     if (!url) {
                         showNotification({
                             title: 'No Instance Selected',
@@ -50,7 +50,7 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
                     
                     try {
-                        await createCollection(id, version, name, description, citations, auth, backendURL, overwrite);
+                        await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
 
                         if (goBack) {
                             goBack();

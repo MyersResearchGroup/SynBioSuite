@@ -17,7 +17,7 @@ function SBHModal({ opened, onClose, repoName }) {
     const setSelectedSBH = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selectedSBH) : value));
     
     const findInstance = (instance, repo) => {
-        return dataSBH.find((element) => element.frontendURL === instance);
+        return dataSBH.find((element) => element.registryURL === instance);
     }
 
     const handleRemoveInstance = (repo) => {
@@ -46,7 +46,7 @@ function SBHModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {sbhInfo ? sbhInfo.frontendURL : "Not Logged In"}
+                                    Repository: {sbhInfo ? sbhInfo.registryURL : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>

@@ -17,31 +17,31 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
     // When initializing registries state
     const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
     const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-    const cleanedRegistries = storedRegistries.map(reg => reg.frontendURL);
+    const cleanedRegistries = storedRegistries.map(reg => reg.registryURL);
 
     // Now set state
     const [registries, setRegistries] = useState(cleanedRegistries);
     const [modalOpen, setModalOpen] = useState(false);
 
-    const onCreate = ({ frontendURL, backendURL, URI }) => {
+    const onCreate = ({ registryURL, registryAPI, registryPrefix }) => {
         dispatch(actions.openPanel({
-            id: frontendURL,
+            id: registryURL,
             type: "synbio.panel-type.synbiohub",
         }));
-        setRegistries((prev) => [...prev, frontendURL]);
+        setRegistries((prev) => [...prev, registryURL]);
 
         // Update localStorage with the new registry entry
         const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
         const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-        const isDuplicate = storedRegistries.some(reg => reg.frontendURL === frontendURL);
+        const isDuplicate = storedRegistries.some(reg => reg.registryURL === registryURL);
         if (!isDuplicate) {
             const updatedInstance = {
                 ...(storageKey === 'SynbioHub' && { affiliation: "" }),
                 authtoken: "",
                 email: "",
-                frontendURL,
-                backendURL,
-                URI,
+                registryURL,
+                registryAPI,
+                registryPrefix,
                 ...(storageKey === 'SynbioHub' && { name: "" }),
                 ...(storageKey === 'Flapjack' && { refresh: "" }),
                 username: "",
@@ -62,7 +62,7 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
         // Remove the deleted registry from localStorage (SynbioHub/Flapjack)
         const storageKey = typeOfRegistry === 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
         const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-        const updatedRegistries = storedRegistries.filter(reg => reg.frontendURL !== registryToDelete);
+        const updatedRegistries = storedRegistries.filter(reg => reg.registryURL !== registryToDelete);
         localStorage.setItem(storageKey, JSON.stringify(updatedRegistries));
     }
     
