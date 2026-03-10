@@ -9,16 +9,21 @@ const AddInstance = ({ goBack, repo }) => {
         }
     });
 
-    // Helper to remove http://, https://, and www. in the input of the URL
-    const cleanUrl = (inputUrl) => {
-        return inputUrl.replace(/^(https?:\/\/)?(www\.)?/, '');
+    // Helper to normalize URL: ensure it has http:// or https:// prefix
+    const normalizeUrl = (inputUrl) => {
+        let url = inputUrl.trim();
+        if (!/^https?:\/\//i.test(url)) {
+            url = url.replace(/^www\./i, '');
+            url = `https://${url}`;
+        }
+        return url;
     };
 
     return (
         <Box sx={{ maxWidth: 300 }} mx="auto">
             <form
                 onSubmit={form.onSubmit((values) => {
-                    goBack(cleanUrl(values.instance));
+                    goBack(normalizeUrl(values.instance));
                 })}
             >
                 <TextInput

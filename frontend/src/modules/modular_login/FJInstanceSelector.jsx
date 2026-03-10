@@ -4,35 +4,39 @@ import FJInstanceLogin from './FJLogin';
 import AddInstance from './addInstance';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [addingInstance, setAddingInstance] = useState("placeholder");
     const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const [nullSelected, setNullSelected] = useState(false);
-    const [selected, setSelected] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: [] });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.fjPrimary);
+    const setSelected = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selected) : value));
     
-    const findInstance = (instance) => {
-        return instanceData.find((element) => element.value === instance);
+    const findInstance = (uri) => {
+        return instanceData.find((element) => element.frontendURL === uri);
     }
 
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => instance.value !== selected));
+        setInstanceData(instanceData.filter(instance => instance.frontendURL !== selected));
         setSelected(null);
     };
 
-    const stripData = (selected, showNotificationFlag = false) => {
+    const stripData = (uri, showNotificationFlag = false) => {
         const updatedInstance = {
             authtoken:"",
             email:"",
-            instance:selected,
-            label:selected, 
+            frontendURL: uri,
+            backendURL: uri,
+            URI: uri,
             refresh:"",
             username:"",
-            value:selected
         };
         const updatedInstanceData = instanceData.map((item) =>
-            item.instance === selected ? updatedInstance : item
+            item.frontendURL === uri ? updatedInstance : item
         );
         setInstanceData(updatedInstanceData);
 
@@ -47,9 +51,11 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
 
     //Does not work as intended
     //Throws CORS error
-    const login = async (instance, refresh) => {
+    const login = async (uri, refresh) => {
+        const instance = findInstance(uri);
+        const backendURL = instance?.backendURL || uri;
         try {
-            const response = await fetch(`http://${instance}/api/auth/refresh/`, {
+            const response = await fetch(`${backendURL}/api/auth/refresh/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -63,13 +69,13 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
 
             const data = await response.json();
             const updatedInstance = {
-                ...findInstance(instance),
+                ...findInstance(uri),
                 authtoken: data.access,
                 refresh: data.refresh,
             };
 
             const updatedInstanceData = instanceData.map((item) =>
-                item.instance === instance ? updatedInstance : item
+                item.frontendURL === uri ? updatedInstance : item
             );
 
             setInstanceData(updatedInstanceData);
@@ -82,7 +88,7 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
             
             setRepoSelection("")
         } catch (error) {
-            stripData(instance, true);
+            stripData(uri, true);
             showNotification({
                 title: 'Login Failed',
                 message: 'Unable to log into the Flapjack. Please try again.',
@@ -91,20 +97,30 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
+    const normalizeUrl = (inputUrl) => {
+        let url = inputUrl.trim();
+        if (!/^https?:\/\//i.test(url)) {
+            url = url.replace(/^www\./i, '');
+            url = `https://${url}`;
+        }
+        return url;
+    };
+
     useEffect(() => {
             if (addingInstance != null && addingInstance != "placeholder") {
+                const uri = normalizeUrl(addingInstance);
                 const newInstance = { 
                     authtoken:"",
                     email:"",
-                    instance:addingInstance,
-                    label:addingInstance, 
+                    frontendURL: uri,
+                    backendURL: uri,
+                    URI: uri,
                     refresh:"",
                     username:"",
-                    value:addingInstance
                 };
-                if (!instanceData.some(instance => instance.value === newInstance.value)) {
+                if (!instanceData.some(instance => instance.frontendURL === newInstance.frontendURL)) {
                     setInstanceData([...instanceData, newInstance]);
-                    setSelected(addingInstance);
+                    setSelected(uri);
                 } else {
                     showNotification({
                         title: 'Login exists',
@@ -114,6 +130,11 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
                 }
             }
         }, [addingInstance]);
+
+    const selectData = instanceData.map(inst => ({
+        value: inst.frontendURL,
+        label: inst.frontendURL,
+    }));
 
     return (
         <>
@@ -127,7 +148,7 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
                     <Select
                         label={`Select a Flapjack repository`}
                         placeholder="Pick one"
-                        data={instanceData}
+                        data={selectData}
                         onChange={(value) => {setNullSelected(false); setSelected(value)}}
                         value={selected}
                     />

@@ -5,28 +5,32 @@ import AddInstance from './addInstance';
 import { useLocalStorage } from '@mantine/hooks';
 import { cleanNotifications, showNotification } from '@mantine/notifications';
 import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [addingInstance, setAddingInstance] = useState("placeholder");
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [nullSelected, setNullSelected] = useState(false);
-    const [selected, setSelected] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: [] });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
     
-    const findInstance = (instance) => {
-        return instanceData.find((element) => element.value === instance);
+    const findInstance = (uri) => {
+        return instanceData.find((element) => element.frontendURL === uri);
     }
 
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => instance.value !== selected));
+        setInstanceData(instanceData.filter(instance => instance.frontendURL !== selected));
         setSelected(null);
     };
 
-    const stripData = (selected, showNotificationFlag = false) => {
+    const stripData = (uri, showNotificationFlag = false) => {
         const updatedInstance = {
-            value: selected,
-            label: selected,
-            instance: selected,
+            frontendURL: uri,
+            backendURL: uri,
+            URI: uri,
             email: '',
             authtoken: '',
             name: '',
@@ -34,7 +38,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
             affiliation: ''
         };
         const updatedInstanceData = instanceData.map((item) =>
-            item.instance === selected ? updatedInstance : item
+            item.frontendURL === uri ? updatedInstance : item
         );
         setInstanceData(updatedInstanceData);
         
@@ -47,9 +51,11 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     }
 
-    const login = async (instance, auth) => {
+    const login = async (uri, auth) => {
+        const instance = findInstance(uri);
+        const backendURL = instance?.backendURL || uri;
         try {
-            const response = await axios.get(`https://${instance}/profile`, {
+            const response = await axios.get(`${backendURL}/profile`, {
                 headers: {
                     'Accept': 'text/plain; charset=UTF-8',
                     "X-authorization" : `${auth}`
@@ -60,7 +66,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 return;
             }
         } catch (error) {
-            stripData(instance, true);
+            stripData(uri, true);
             showNotification({
                 title: 'Login Failed',
                 message: 'Unable to login. Try logging in again.',
@@ -71,7 +77,9 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
-    const logout = async (instance, auth) => {
+    const logout = async (uri, auth) => {
+        const instance = findInstance(uri);
+        const backendURL = instance?.backendURL || uri;
         try {
             cleanNotifications();
             showNotification({
@@ -80,18 +88,18 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 color: 'blue',
                 loading: true,
             });
-            const response = await axios.post(`https://${instance}/logout`, null, {
+            const response = await axios.post(`${backendURL}/logout`, null, {
                 headers: {
                     'Accept': 'text/plain; charset=UTF-8',
                     "X-authorization" : `${auth}`
                 }
             });
             cleanNotifications();
-            stripData(instance);
+            stripData(uri);
 
         } catch (error) {
             cleanNotifications();
-            stripData(instance, true);
+            stripData(uri, true);
             showNotification({
                 title: 'Logout Failed',
                 message: 'Unable to logout from SynbioHub correctly. Credentials on SynbioSuite have been reset. If this is happening consistently please reach out to the SynbioSuite team.',
@@ -102,22 +110,31 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
+    const normalizeUrl = (inputUrl) => {
+        let url = inputUrl.trim();
+        if (!/^https?:\/\//i.test(url)) {
+            url = url.replace(/^www\./i, '');
+            url = `https://${url}`;
+        }
+        return url;
+    };
+
     useEffect(() => {
         if (addingInstance != null && addingInstance != "placeholder") {
+            const uri = normalizeUrl(addingInstance);
             const newInstance = { 
-                value: addingInstance, 
-                label: addingInstance,
-                instance: addingInstance, 
+                frontendURL: uri,
+                backendURL: uri,
+                URI: uri,
                 email: '', 
                 authtoken: '',
                 name: '',
                 username: '',
                 affiliation: ''
-
             };
-            if (!instanceData.some(instance => instance.value === newInstance.value)) {
+            if (!instanceData.some(instance => instance.frontendURL === newInstance.frontendURL)) {
                 setInstanceData([...instanceData, newInstance]);
-                setSelected(addingInstance);
+                setSelected(uri);
             } else {
                 showNotification({
                     title: 'Login exists',
@@ -127,6 +144,11 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
             }
         }
     }, [addingInstance]);
+
+    const selectData = instanceData.map(inst => ({
+        value: inst.frontendURL,
+        label: inst.frontendURL,
+    }));
 
     return (
         <>
@@ -139,7 +161,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                     <Select
                         label={`Select a SynbioHub repository`}
                         placeholder="Pick one"
-                        data={instanceData}
+                        data={selectData}
                         onChange={(value) => {setNullSelected(false); setSelected(value)}}
                         value={selected}
                     />

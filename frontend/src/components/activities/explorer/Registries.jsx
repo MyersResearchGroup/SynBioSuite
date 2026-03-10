@@ -16,22 +16,26 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
     // When initializing registries state
     const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
     const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-    const cleanedRegistries = storedRegistries.map(reg => `https://${reg.instance}`);
+    const cleanedRegistries = storedRegistries.map(reg => reg.frontendURL);
 
     // Now set state
     const [registries, setRegistries] = useState(cleanedRegistries);
-    
+
+    const normalizeUrl = (url) => {
+        let normalized = url.trim();
+        if (!/^https?:\/\//i.test(normalized)) {
+            normalized = normalized.replace(/^www\./i, '');
+            normalized = `https://${normalized}`;
+        }
+        return normalized;
+    };
+
     const onCreate = (inputValue) => {
         const URLexpression = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/i
         const URLRegex = new RegExp(URLexpression)
 
-        let url = inputValue.trim();
+        let url = normalizeUrl(inputValue);
         if (url.match(URLRegex)) {
-            // If missing protocol, add https:// and strip www.
-            if (!/^https?:\/\//i.test(url)) {
-            url = url.replace(/^www\./i, '');
-            url = `https://${url}`;
-            }
             dispatch(actions.openPanel({
                 id: url,
                 type: "synbio.panel-type.synbiohub",
@@ -44,19 +48,18 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
             // Update localStorage with the new inputValue
             const storageKey = typeOfRegistry == 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
             const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-            const selected = url.replace(/^(https?:\/\/)?(www\.)?/, '');
-            const isDuplicate = storedRegistries.some(reg => reg.instance === selected);
+            const isDuplicate = storedRegistries.some(reg => reg.frontendURL === url);
             if (!isDuplicate) {
                 const updatedInstance = {
                     ...(storageKey === 'SynbioHub' && { affiliation: "" }),
                     authtoken: "",
                     email: "",
-                    instance: selected,
-                    label: selected,
+                    frontendURL: url,
+                    backendURL: url,
+                    URI: url,
                     ...(storageKey === 'SynbioHub' && { name: "" }),
                     ...(storageKey === 'Flapjack' && { refresh: "" }),
                     username: "",
-                    value: selected
                 };
                 storedRegistries.push(updatedInstance);
             }
@@ -81,9 +84,7 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
         // Remove the deleted registry from localStorage (SynbioHub/Flapjack)
         const storageKey = typeOfRegistry === 'SynBioHub Repositories' ? 'SynbioHub' : 'Flapjack';
         const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
-        const registryKey = registryToDelete.replace(/^https?:\/\//, '');
-        console.log(registryKey)
-        const updatedRegistries = storedRegistries.filter(reg => reg.instance !== registryKey && reg.instance !== registryToDelete);
+        const updatedRegistries = storedRegistries.filter(reg => reg.frontendURL !== registryToDelete);
         localStorage.setItem(storageKey, JSON.stringify(updatedRegistries));
     }
     

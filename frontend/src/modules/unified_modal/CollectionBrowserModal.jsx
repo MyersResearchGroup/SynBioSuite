@@ -20,6 +20,7 @@ import {
 } from '@mantine/core';
 import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
+import { useSelector } from 'react-redux';
 import { FaTimes } from 'react-icons/fa';
 import { IoMdRefresh } from 'react-icons/io';
 import { showNotification } from '@mantine/notifications';
@@ -42,7 +43,7 @@ export default function CollectionBrowserModal({
     rootOnly: rootOnlyFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
 
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -79,7 +80,7 @@ export default function CollectionBrowserModal({
         const checkCredentials = async () => {
             credentialCheckDoneRef.current = true;
 
-            const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+            const repoInfo = dataSBH.find(r => r.frontendURL === selectedRepo);
             
             if (!repoInfo) {
                 showNotification({
@@ -182,7 +183,7 @@ export default function CollectionBrowserModal({
     const getAuthToken = useCallback(() => {
         const repoUrl = selectedRepo || dataPrimarySBH;
         if (!repoUrl || !dataSBH.length) return null;
-        const repo = dataSBH.find(r => r.value === repoUrl);
+        const repo = dataSBH.find(r => r.frontendURL === repoUrl);
         return repo?.authtoken || null;
     }, [selectedRepo, dataPrimarySBH, dataSBH]);
 
@@ -210,7 +211,9 @@ export default function CollectionBrowserModal({
             if (!parentUri) {
                 result = await searchCollections(url, authToken);
             } else {
-                const searchUrl = `https://${url}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
+                const repoInfo = dataSBH.find(r => r.frontendURL === url);
+                const backendURL = repoInfo?.backendURL || url;
+                const searchUrl = `${backendURL}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
                 
                 const response = await fetch(searchUrl, {
                     method: 'GET',
@@ -298,7 +301,7 @@ export default function CollectionBrowserModal({
     }, [fetchCollections, currentPath]);
 
     const handleCreateCollection = useCallback(() => {
-        const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+        const repoInfo = dataSBH.find(r => r.frontendURL === selectedRepo);
         const authToken = repoInfo?.authtoken;
 
         setModalData?.(prev => ({

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Stack, Select, Button, Group, Text, Alert } from '@mantine/core';
 import { FaExclamationCircle } from 'react-icons/fa';
 import { useLocalStorage } from '@mantine/hooks';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 import { MODAL_TYPES } from './unifiedModal';
 
 export default function RepositorySelectorModal({ 
@@ -11,7 +13,9 @@ export default function RepositorySelectorModal({
     setModalData 
 }) {
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [dataPrimarySBH, setDataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const dispatch = useDispatch();
+    const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setDataPrimarySBH = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(dataPrimarySBH) : value));
     
     const [selectedRepo, setSelectedRepo] = useState('');
     const [error, setError] = useState(null);
@@ -20,7 +24,7 @@ export default function RepositorySelectorModal({
         if (dataPrimarySBH && dataPrimarySBH.length > 0) {
             setSelectedRepo(dataPrimarySBH);
         } else if (dataSBH && dataSBH.length > 0) {
-            setSelectedRepo(dataSBH[0].value);
+            setSelectedRepo(dataSBH[0].frontendURL);
         } else {
             setSelectedRepo('');
         }
@@ -49,7 +53,7 @@ export default function RepositorySelectorModal({
     const handleRemoveInstance = useCallback(() => {
         if (!selectedRepo || selectedRepo === 'add-repository' || selectedRepo.startsWith('Select')) return;
         
-        setDataSBH(repos => (repos || []).filter(r => r.value !== selectedRepo));
+        setDataSBH(repos => (repos || []).filter(r => r.frontendURL !== selectedRepo));
         setDataPrimarySBH(primary => (primary === selectedRepo ? '' : primary));
         setSelectedRepo('');
     }, [selectedRepo, setDataSBH, setDataPrimarySBH]);
@@ -61,8 +65,8 @@ export default function RepositorySelectorModal({
             disabled: true
         },
         ...(dataSBH || []).map((sbh) => ({
-            value: sbh.value,
-            label: sbh.label,
+            value: sbh.frontendURL,
+            label: sbh.frontendURL,
         })),
         {
             value: 'add-repository',
