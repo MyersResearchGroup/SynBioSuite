@@ -12,8 +12,8 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
     if (!opened) return null;
 
     const [step, setStep] = useState(1);
-    const [frontendURL, setFrontendURL] = useState('');
-    const [backendURL, setBackendURL] = useState('');
+    const [registryURL, setFrontendURL] = useState('');
+    const [registryAPI, setBackendURL] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -31,13 +31,13 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
         return url;
     };
 
-    const handleSubmit = async (frontendURL, backendURL, email, password) => {
+    const handleSubmit = async (registryURL, registryAPI, email, password) => {
         try {
-            const response = await SBHLogin(backendURL, email, password);
+            const response = await SBHLogin(registryAPI, email, password);
             let info;
 
             if (response) {
-                info = await axios.get(`${backendURL}/profile`, {
+                info = await axios.get(`${registryAPI}/profile`, {
                     headers: {
                         'Accept': 'text/plain; charset=UTF-8',
                         "X-authorization" : `${response}`
@@ -52,11 +52,11 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                 return
             }
 
-            const uri = frontendURL;
+            const uri = registryURL;
             const updatedInstance = {
-                frontendURL,
-                backendURL,
-                URI: uri,
+                registryURL,
+                registryAPI,
+                registryPrefix: uri,
                 email: info.data.email, 
                 authtoken: response,
                 name: info.data.name,
@@ -64,12 +64,12 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                 affiliation: info.data.affiliation
             };
 
-            const exists = instanceData.some(item => item.frontendURL === uri);
+            const exists = instanceData.some(item => item.registryURL === uri);
 
             let updatedInstanceData;
             if (exists) {
                 updatedInstanceData = instanceData.map((item) =>
-                    item.frontendURL === uri ? updatedInstance : item
+                    item.registryURL === uri ? updatedInstance : item
                 );
             } else {
                 updatedInstanceData = [...instanceData, { ...updatedInstance }];
@@ -117,7 +117,7 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                         <TextInput
                             label="Frontend URL"
                             placeholder="https://synbiohub.org"
-                            value={frontendURL}
+                            value={registryURL}
                             onChange={(e) => setFrontendURL(e.currentTarget.value)}
                             required
                         />
@@ -127,7 +127,7 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                         <TextInput
                             label="Backend URL"
                             placeholder="https://synbiohub.org"
-                            value={backendURL}
+                            value={registryAPI}
                             onChange={(e) => setBackendURL(e.currentTarget.value)}
                             required
                         />
@@ -139,7 +139,7 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                                 Back
                             </Button>
                         )}
-                        <Button onClick={() => setStep(2)} disabled={!frontendURL || !backendURL} ml={goBack ? undefined : "auto"}>
+                        <Button onClick={() => setStep(2)} disabled={!registryURL || !registryAPI} ml={goBack ? undefined : "auto"}>
                             Next
                         </Button>
                     </Group>
@@ -172,7 +172,7 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                         <Button variant="default" onClick={() => setStep(1)}>
                             Back
                         </Button>
-                        <Button disabled={!email || !password} onClick={() => handleSubmit(normalizeUrl(frontendURL), normalizeUrl(backendURL), email, password)}>
+                        <Button disabled={!email || !password} onClick={() => handleSubmit(normalizeUrl(registryURL), normalizeUrl(registryAPI), email, password)}>
                             Submit
                         </Button>
                     </Group>

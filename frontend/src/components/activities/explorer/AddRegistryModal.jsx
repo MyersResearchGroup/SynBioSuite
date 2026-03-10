@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { showNotification } from '@mantine/notifications';
 import { AiOutlinePlus, AiOutlineMinus } from 'react-icons/ai';
 
-const URLexpression = /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/i;
+const URLexpression = /^(localhost|\d{1,3}(\.\d{1,3}){3}|[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]+)(:\d+)?(\/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$/i;
 const URLRegex = new RegExp(URLexpression);
 
 const SCHEMES = [
@@ -11,7 +11,7 @@ const SCHEMES = [
     { value: 'http', label: 'http://' },
 ];
 
-function UrlField({ label, scheme, onSchemeChange, value, onChange }) {
+function UrlField({ label, scheme, onSchemeChange, value, onChange, placeholder }) {
     return (
         <Group spacing={0} align="flex-end" noWrap>
             <Select
@@ -28,7 +28,7 @@ function UrlField({ label, scheme, onSchemeChange, value, onChange }) {
                 label={label}
                 value={value}
                 onChange={(e) => onChange(e.currentTarget.value)}
-                placeholder="example.com"
+                placeholder={placeholder}
                 style={{ flex: 1 }}
                 styles={{ input: { borderRadius: '0 4px 4px 0' } }}
             />
@@ -40,7 +40,6 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
     const [frontendScheme, setFrontendScheme] = useState('https');
     const [frontendHost, setFrontendHost] = useState('');
 
-    const [showBackend, setShowBackend] = useState(false);
     const [backendScheme, setBackendScheme] = useState('https');
     const [backendHost, setBackendHost] = useState('');
 
@@ -51,7 +50,6 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
     const resetState = () => {
         setFrontendScheme('https');
         setFrontendHost('');
-        setShowBackend(false);
         setBackendScheme('https');
         setBackendHost('');
         setShowURI(false);
@@ -67,38 +65,35 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
     const handleSubmit = () => {
         const trimmedFrontend = frontendHost.trim();
         if (!trimmedFrontend || !URLRegex.test(trimmedFrontend)) {
-            showNotification({ message: 'Enter a valid frontend URL', color: 'red' });
+            showNotification({ message: 'Enter a valid Registry URL', color: 'red' });
             return;
         }
 
-        const frontendURL = `${frontendScheme}://${trimmedFrontend}`;
+        const registryURL = `${frontendScheme}://${trimmedFrontend}`;
 
-        if (existingRegistries.includes(frontendURL)) {
+        if (existingRegistries.includes(registryURL)) {
             showNotification({ message: 'A repository with this frontend URL already exists', color: 'red' });
             return;
         }
 
-        let backendURL = frontendURL;
-        if (showBackend) {
-            const trimmedBackend = backendHost.trim();
-            if (!trimmedBackend || !URLRegex.test(trimmedBackend)) {
-                showNotification({ message: 'Enter a valid backend URL', color: 'red' });
-                return;
-            }
-            backendURL = `${backendScheme}://${trimmedBackend}`;
+        const trimmedBackend = backendHost.trim();
+        if (!trimmedBackend || !URLRegex.test(trimmedBackend)) {
+            showNotification({ message: 'Enter a valid Registry API URL', color: 'red' });
+            return;
         }
+        const registryAPI = `${backendScheme}://${trimmedBackend}`;
 
-        let URI = frontendURL;
+        let registryPrefix = registryURL;
         if (showURI) {
             const trimmedURI = uriHost.trim();
             if (!trimmedURI || !URLRegex.test(trimmedURI)) {
-                showNotification({ message: 'Enter a valid URI', color: 'red' });
+                showNotification({ message: 'Enter a valid Registry Prefix', color: 'red' });
                 return;
             }
-            URI = `${uriScheme}://${trimmedURI}`;
+            registryPrefix = `${uriScheme}://${trimmedURI}`;
         }
 
-        onAdd({ frontendURL, backendURL, URI });
+        onAdd({ registryURL, registryAPI, registryPrefix });
         handleClose();
     };
 
@@ -111,12 +106,24 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
         >
             <Stack spacing="md">
                 <div>
-                    <Text size="sm" weight={500} mb={4}>Frontend URL</Text>
+                    <Text size="sm" weight={500} mb={4}>Registry URL</Text>
                     <UrlField
                         scheme={frontendScheme}
                         onSchemeChange={setFrontendScheme}
                         value={frontendHost}
                         onChange={setFrontendHost}
+                        placeholder="synbiohub.org"
+                    />
+                </div>
+
+                <div>
+                    <Text size="sm" weight={500} mb={4}>Registry API</Text>
+                    <UrlField
+                        scheme={backendScheme}
+                        onSchemeChange={setBackendScheme}
+                        value={backendHost}
+                        onChange={setBackendHost}
+                        placeholder="api.synbiohub.org"
                     />
                 </div>
 
@@ -124,41 +131,28 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
                     <Button
                         variant="subtle"
                         size="xs"
-                        leftIcon={showBackend ? <AiOutlineMinus /> : <AiOutlinePlus />}
-                        onClick={() => setShowBackend(v => !v)}
-                    >
-                        {showBackend ? 'Remove Backend URL' : 'Modify Backend URL'}
-                    </Button>
-                    <Button
-                        variant="subtle"
-                        size="xs"
                         leftIcon={showURI ? <AiOutlineMinus /> : <AiOutlinePlus />}
-                        onClick={() => setShowURI(v => !v)}
+                        onClick={() => setShowURI(v => {
+                            if (!v) {
+                                setURIScheme(frontendScheme);
+                                setURIHost(frontendHost);
+                            }
+                            return !v;
+                        })}
                     >
-                        {showURI ? 'Remove URI' : 'Modify URI'}
+                        {showURI ? 'Use Registry URL as Registry Prefix' : 'Modify Registry Prefix'}
                     </Button>
                 </Group>
 
-                {showBackend && (
-                    <div>
-                        <Text size="sm" weight={500} mb={4}>Backend URL</Text>
-                        <UrlField
-                            scheme={backendScheme}
-                            onSchemeChange={setBackendScheme}
-                            value={backendHost}
-                            onChange={setBackendHost}
-                        />
-                    </div>
-                )}
-
                 {showURI && (
                     <div>
-                        <Text size="sm" weight={500} mb={4}>URI</Text>
+                        <Text size="sm" weight={500} mb={4}>Registry Prefix</Text>
                         <UrlField
                             scheme={uriScheme}
                             onSchemeChange={setURIScheme}
                             value={uriHost}
                             onChange={setURIHost}
+                            placeholder="synbiohub.org"
                         />
                     </div>
                 )}

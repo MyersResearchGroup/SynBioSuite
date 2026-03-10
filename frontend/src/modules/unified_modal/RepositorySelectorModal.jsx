@@ -24,7 +24,7 @@ export default function RepositorySelectorModal({
         if (dataPrimarySBH && dataPrimarySBH.length > 0) {
             setSelectedRepo(dataPrimarySBH);
         } else if (dataSBH && dataSBH.length > 0) {
-            setSelectedRepo(dataSBH[0].frontendURL);
+            setSelectedRepo(dataSBH[0].registryURL);
         } else {
             setSelectedRepo('');
         }
@@ -53,7 +53,7 @@ export default function RepositorySelectorModal({
     const handleRemoveInstance = useCallback(() => {
         if (!selectedRepo || selectedRepo === 'add-repository' || selectedRepo.startsWith('Select')) return;
         
-        setDataSBH(repos => (repos || []).filter(r => r.frontendURL !== selectedRepo));
+        setDataSBH(repos => (repos || []).filter(r => r.registryURL !== selectedRepo));
         setDataPrimarySBH(primary => (primary === selectedRepo ? '' : primary));
         setSelectedRepo('');
     }, [selectedRepo, setDataSBH, setDataPrimarySBH]);
@@ -65,8 +65,8 @@ export default function RepositorySelectorModal({
             disabled: true
         },
         ...(dataSBH || []).map((sbh) => ({
-            value: sbh.frontendURL,
-            label: sbh.frontendURL,
+            value: sbh.registryURL,
+            label: sbh.registryURL,
         })),
         {
             value: 'add-repository',

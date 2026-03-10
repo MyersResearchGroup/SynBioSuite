@@ -80,7 +80,7 @@ export default function CollectionBrowserModal({
         const checkCredentials = async () => {
             credentialCheckDoneRef.current = true;
 
-            const repoInfo = dataSBH.find(r => r.frontendURL === selectedRepo);
+            const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo);
             
             if (!repoInfo) {
                 showNotification({
@@ -183,7 +183,7 @@ export default function CollectionBrowserModal({
     const getAuthToken = useCallback(() => {
         const repoUrl = selectedRepo || dataPrimarySBH;
         if (!repoUrl || !dataSBH.length) return null;
-        const repo = dataSBH.find(r => r.frontendURL === repoUrl);
+        const repo = dataSBH.find(r => r.registryURL === repoUrl);
         return repo?.authtoken || null;
     }, [selectedRepo, dataPrimarySBH, dataSBH]);
 
@@ -211,9 +211,9 @@ export default function CollectionBrowserModal({
             if (!parentUri) {
                 result = await searchCollections(url, authToken);
             } else {
-                const repoInfo = dataSBH.find(r => r.frontendURL === url);
-                const backendURL = repoInfo?.backendURL || url;
-                const searchUrl = `${backendURL}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
+                const repoInfo = dataSBH.find(r => r.registryURL === url);
+                const registryAPI = repoInfo?.registryAPI || url;
+                const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
                 
                 const response = await fetch(searchUrl, {
                     method: 'GET',
@@ -301,7 +301,7 @@ export default function CollectionBrowserModal({
     }, [fetchCollections, currentPath]);
 
     const handleCreateCollection = useCallback(() => {
-        const repoInfo = dataSBH.find(r => r.frontendURL === selectedRepo);
+        const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo);
         const authToken = repoInfo?.authtoken;
 
         setModalData?.(prev => ({

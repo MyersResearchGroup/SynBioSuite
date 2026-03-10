@@ -79,9 +79,9 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
                 const info = await login(selected, values.email, values.password);
                 
                 const updatedInstance = { 
-                    frontendURL: selected, 
-                    backendURL: selected,
-                    URI: selected,
+                    registryURL: selected, 
+                    registryAPI: selected,
+                    registryPrefix: selected,
                     email: info.email, 
                     authtoken: info.auth,
                     name: info.name,
@@ -90,7 +90,7 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.frontendURL === selected ? updatedInstance : item
+                    item.registryURL === selected ? updatedInstance : item
                 );
                 
                 setInstanceData(updatedInstanceData);

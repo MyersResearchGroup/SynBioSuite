@@ -59,9 +59,9 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
             try {
                 const info = await login(selected, values.username, values.password);
                 const updatedInstance = { 
-                    frontendURL: selected, 
-                    backendURL: selected,
-                    URI: selected,
+                    registryURL: selected, 
+                    registryAPI: selected,
+                    registryPrefix: selected,
                     username: values.username, 
                     email: info.email,
                     authtoken: info.authtoken,
@@ -69,7 +69,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.frontendURL === selected ? updatedInstance : item
+                    item.registryURL === selected ? updatedInstance : item
                 );
                 setInstanceData(updatedInstanceData);
                 cleanNotifications();
@@ -78,7 +78,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                     message: 'You have successfully logged in.',
                     color: 'green',
                 });
-                setSelected(updatedInstance.frontendURL);
+                setSelected(updatedInstance.registryURL);
                 goBack(false)
             } catch (error) {
                 console.error('Login failed:', error);

@@ -9,8 +9,8 @@ import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 function AddFJRepository({ opened, onClose, goBack }) {    
     const [step, setStep] = useState(1);
-    const [frontendURL, setFrontendURL] = useState('');
-    const [backendURL, setBackendURL] = useState('');
+    const [registryURL, setFrontendURL] = useState('');
+    const [registryAPI, setBackendURL] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
@@ -28,19 +28,19 @@ function AddFJRepository({ opened, onClose, goBack }) {
         return url;
     };
 
-    const handleSubmit = async (frontendURL, backendURL, username, password) => {
+    const handleSubmit = async (registryURL, registryAPI, username, password) => {
         try {
-            const instanceInfo = await FJLogin(backendURL, username, password)
+            const instanceInfo = await FJLogin(registryAPI, username, password)
             if(!instanceInfo.authtoken){
                 throw new Error("Invalid login. Please try again")
             }
-            const uri = frontendURL;
-            const exists = instanceData.some(item => item.frontendURL === uri);
+            const uri = registryURL;
+            const exists = instanceData.some(item => item.registryURL === uri);
 
             const updatedInstance = {
-                frontendURL,
-                backendURL,
-                URI: uri,
+                registryURL,
+                registryAPI,
+                registryPrefix: uri,
                 username: username, 
                 email: instanceInfo.email,
                 authtoken: instanceInfo.authtoken,
@@ -50,7 +50,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
             let updatedInstanceData;
             if (exists) {
                 updatedInstanceData = instanceData.map((item) =>
-                    item.frontendURL === uri ? updatedInstance : item
+                    item.registryURL === uri ? updatedInstance : item
                 );
             } else {
                 updatedInstanceData = [...instanceData, { ...updatedInstance }];
@@ -93,7 +93,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
                         <TextInput
                             label="Frontend URL"
                             placeholder="https://flapjack.org"
-                            value={frontendURL}
+                            value={registryURL}
                             onChange={(e) => setFrontendURL(e.currentTarget.value)}
                             required
                         />
@@ -103,7 +103,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
                         <TextInput
                             label="Backend URL"
                             placeholder="https://flapjack.org"
-                            value={backendURL}
+                            value={registryAPI}
                             onChange={(e) => setBackendURL(e.currentTarget.value)}
                             required
                         />
@@ -115,7 +115,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
                                 Back
                             </Button>
                         )}
-                        <Button onClick={() => setStep(2)} disabled={!frontendURL || !backendURL} ml={goBack ? undefined : "auto"}>
+                        <Button onClick={() => setStep(2)} disabled={!registryURL || !registryAPI} ml={goBack ? undefined : "auto"}>
                             Next
                         </Button>
                     </Group>
@@ -148,7 +148,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
                         <Button variant="default" onClick={() => setStep(1)}>
                             Back
                         </Button>
-                        <Button disabled={!username || !password} onClick={() => handleSubmit(normalizeUrl(frontendURL), normalizeUrl(backendURL), username, password)}>
+                        <Button disabled={!username || !password} onClick={() => handleSubmit(normalizeUrl(registryURL), normalizeUrl(registryAPI), username, password)}>
                             Submit
                         </Button>
                     </Group>

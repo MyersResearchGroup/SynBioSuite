@@ -347,7 +347,7 @@ export function clearInvalidCredentials(instanceUrl) {
         
         // Find and clear the credentials for the specific instance
         const updatedData = dataSBH.map(repo => {
-            if (repo.frontendURL === instanceUrl) {
+            if (repo.registryURL === instanceUrl) {
                 // Clear auth-related fields but keep the repository info
                 return {
                     ...repo,

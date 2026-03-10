@@ -48,7 +48,7 @@ export default function CollectionInfo() {
         if (!Array.isArray(dataSBH) || dataSBH.length === 0) {
             return null;
         }
-        const matchedRepo = dataSBH.find((repo) => repo.frontendURL === dataPrimarySBH);
+        const matchedRepo = dataSBH.find((repo) => repo.registryURL === dataPrimarySBH);
         return matchedRepo?.authtoken || null;
     }, [dataPrimarySBH, dataSBH]);
 
@@ -184,13 +184,13 @@ export default function CollectionInfo() {
 
         const authToken = getAuthToken();
         const actualRepo = dataPrimarySBH;
-        const repoInfo = Array.isArray(dataSBH) ? dataSBH.find(r => r.frontendURL === actualRepo) : null;
-        const backendURL = repoInfo?.backendURL || actualRepo;
+        const repoInfo = Array.isArray(dataSBH) ? dataSBH.find(r => r.registryURL === actualRepo) : null;
+        const registryAPI = repoInfo?.registryAPI || actualRepo;
         
         // Perform logout API call
         if (authToken && actualRepo && actualRepo !== "Select a repository") {
             try {
-                SBHLogout(authToken, backendURL);
+                SBHLogout(authToken, registryAPI);
             } catch (err) {
                 console.error('Logout API error:', err);
             }
@@ -227,7 +227,7 @@ export default function CollectionInfo() {
             fetchAbortControllerRef.current = null;
         }
 
-        const updatedInstanceData = dataSBH.filter((item) => item.frontendURL !== dataPrimarySBH);
+        const updatedInstanceData = dataSBH.filter((item) => item.registryURL !== dataPrimarySBH);
         setDataSBH(updatedInstanceData);
         setDataPrimarySBH("");
         setSelectedRepo("Select a repository");
@@ -258,7 +258,7 @@ export default function CollectionInfo() {
                 setDataPrimarySBH(value);
                 
                 // Only open login if not already open and we don't have a token
-                const hasToken = dataSBH.find(repo => repo.frontendURL === value)?.authtoken;
+                const hasToken = dataSBH.find(repo => repo.registryURL === value)?.authtoken;
                 if (!hasToken && !sbhLoginOpen) {
                     workflows.loginToSBH(() => {
                         loginPromptShownRef.current = false;
@@ -277,7 +277,7 @@ export default function CollectionInfo() {
         if (dataPrimarySBH?.length > 0) {
             setSelectedRepo(dataPrimarySBH);
         } else if (dataSBH?.length > 0) {
-            setSelectedRepo(dataSBH[0].frontendURL);
+            setSelectedRepo(dataSBH[0].registryURL);
         } else {
             setSelectedRepo('Select a repository');
         }
@@ -420,8 +420,8 @@ export default function CollectionInfo() {
                         disabled: true
                     },
                     ...dataSBH.map((sbh) => ({
-                        value: sbh.frontendURL,
-                        label: sbh.frontendURL,
+                        value: sbh.registryURL,
+                        label: sbh.registryURL,
                     })),
                     {
                         value: 'add-repository',
@@ -474,9 +474,9 @@ export default function CollectionInfo() {
 
             <Space h="xl" />
             <Group position="center">
-                {dataSBH.some(repo => repo.frontendURL === dataPrimarySBH) &&
+                {dataSBH.some(repo => repo.registryURL === dataPrimarySBH) &&
                 <Button onClick={handleCreateCollection} color="blue">Create Collection</Button>}
-                {dataSBH.some(repo => repo.frontendURL === dataPrimarySBH) && getAuthToken() ? (
+                {dataSBH.some(repo => repo.registryURL === dataPrimarySBH) && getAuthToken() ? (
                     <Button onClick={handleLogout} color="blue">Logout</Button>
                 ) : <Button onClick={() => workflows.loginToSBH(() => { loginPromptShownRef.current = false; })} color="blue">Login</Button>}
                 {selectedRepo !== "Select a repository" && (
