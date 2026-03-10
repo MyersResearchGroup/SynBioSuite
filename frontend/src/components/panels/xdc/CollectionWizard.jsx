@@ -10,6 +10,7 @@ import { IoIosCloudUpload } from "react-icons/io";
 import { TbStatusChange } from "react-icons/tb";
 import { RuntimeStatus } from "../../../runtimeStatus"
 import { useLocalStorage } from "@mantine/hooks"
+import { useSelector } from 'react-redux'
 import ExperimentalTable from "./ExperimentalTable"
 import { MdTextSnippet } from "react-icons/md"
 import CollectionInfo from "./CollectionInfo"
@@ -26,8 +27,8 @@ export default function CollectionWizard() {
         openPanel(file)
     }
 
-    const [selectedSBH, setSelectedSBH] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
-    const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
+    const selectedSBH = useSelector(state => state.primaryRepository.sbhPrimary);
+    const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     
     // stepper states
     const numSteps = 3

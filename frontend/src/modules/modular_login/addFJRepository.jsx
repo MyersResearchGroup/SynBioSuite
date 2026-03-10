@@ -4,28 +4,43 @@ import { TextInput, Button, Group, Space } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
 import { FJLogin } from '../../API';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 function AddFJRepository({ opened, onClose, goBack }) {    
     const [step, setStep] = useState(1);
-    const [url, setUrl] = useState('');
+    const [frontendURL, setFrontendURL] = useState('');
+    const [backendURL, setBackendURL] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
     const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: "Flapjack-Primary", defaultValue: "" });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.fjPrimary);
+    const setSelected = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selected) : value));
 
-    const handleSubmit = async (url, username, password) => {
+    const normalizeUrl = (inputUrl) => {
+        let url = inputUrl.trim();
+        if (!/^https?:\/\//i.test(url)) {
+            url = url.replace(/^www\./i, '');
+            url = `https://${url}`;
+        }
+        return url;
+    };
+
+    const handleSubmit = async (frontendURL, backendURL, username, password) => {
         try {
-            const instanceInfo = await FJLogin(url, username, password)
+            const instanceInfo = await FJLogin(backendURL, username, password)
             if(!instanceInfo.authtoken){
                 throw new Error("Invalid login. Please try again")
             }
-            const exists = instanceData.some(item => item.instance === url);
+            const uri = frontendURL;
+            const exists = instanceData.some(item => item.frontendURL === uri);
 
-            const updatedInstance = { 
-                value: url, 
-                label: url,
-                instance: url, 
+            const updatedInstance = {
+                frontendURL,
+                backendURL,
+                URI: uri,
                 username: username, 
                 email: instanceInfo.email,
                 authtoken: instanceInfo.authtoken,
@@ -35,14 +50,14 @@ function AddFJRepository({ opened, onClose, goBack }) {
             let updatedInstanceData;
             if (exists) {
                 updatedInstanceData = instanceData.map((item) =>
-                    item.instance === url ? updatedInstance : item
+                    item.frontendURL === uri ? updatedInstance : item
                 );
             } else {
                 updatedInstanceData = [...instanceData, { ...updatedInstance }];
             }
 
             setInstanceData(updatedInstanceData);
-            setSelected(url);
+            setSelected(uri);
 
             showNotification({
                 title: 'Login successful',
@@ -70,21 +85,26 @@ function AddFJRepository({ opened, onClose, goBack }) {
         }
     };
 
-    // Helper to remove http://, https://, and www. in the input of the URL
-    const cleanUrl = (inputUrl) => {
-        return inputUrl.replace(/^(https?:\/\/)?(www\.)?/, '');
-    };
-
     return (
         <Modal opened={opened} onClose={onClose} title="Choose Repository" size="lg">
             {step === 1 && (
                 <>
                     <Group grow spacing="md">
                         <TextInput
-                            label="Repository URL"
-                            placeholder="Enter repository URL"
-                            value={url}
-                            onChange={(e) => setUrl(e.currentTarget.value)}
+                            label="Frontend URL"
+                            placeholder="https://flapjack.org"
+                            value={frontendURL}
+                            onChange={(e) => setFrontendURL(e.currentTarget.value)}
+                            required
+                        />
+                    </Group>
+                    <Space h="md" />
+                    <Group grow spacing="md">
+                        <TextInput
+                            label="Backend URL"
+                            placeholder="https://flapjack.org"
+                            value={backendURL}
+                            onChange={(e) => setBackendURL(e.currentTarget.value)}
                             required
                         />
                     </Group>
@@ -95,7 +115,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
                                 Back
                             </Button>
                         )}
-                        <Button onClick={() => setStep(2)} disabled={!url} ml={goBack ? undefined : "auto"}>
+                        <Button onClick={() => setStep(2)} disabled={!frontendURL || !backendURL} ml={goBack ? undefined : "auto"}>
                             Next
                         </Button>
                     </Group>
@@ -128,7 +148,7 @@ function AddFJRepository({ opened, onClose, goBack }) {
                         <Button variant="default" onClick={() => setStep(1)}>
                             Back
                         </Button>
-                        <Button disabled={!username || !password} onClick={() => handleSubmit(cleanUrl(url), username, password)}>
+                        <Button disabled={!username || !password} onClick={() => handleSubmit(normalizeUrl(frontendURL), normalizeUrl(backendURL), username, password)}>
                             Submit
                         </Button>
                     </Group>

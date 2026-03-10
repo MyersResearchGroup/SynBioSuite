@@ -5,25 +5,39 @@ import { SBHLogin } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
     if (!opened) return null;
 
     const [step, setStep] = useState(1);
-    const [url, setUrl] = useState('');
+    const [frontendURL, setFrontendURL] = useState('');
+    const [backendURL, setBackendURL] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
 
-    const handleSubmit = async (url, email, password) => {
+    const normalizeUrl = (inputUrl) => {
+        let url = inputUrl.trim();
+        if (!/^https?:\/\//i.test(url)) {
+            url = url.replace(/^www\./i, '');
+            url = `https://${url}`;
+        }
+        return url;
+    };
+
+    const handleSubmit = async (frontendURL, backendURL, email, password) => {
         try {
-            const response = await SBHLogin(url, email, password);
+            const response = await SBHLogin(backendURL, email, password);
             let info;
 
             if (response) {
-                info = await axios.get(`https://${url}/profile`, {
+                info = await axios.get(`${backendURL}/profile`, {
                     headers: {
                         'Accept': 'text/plain; charset=UTF-8',
                         "X-authorization" : `${response}`
@@ -38,10 +52,11 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                 return
             }
 
-            const updatedInstance = { 
-                value: url, 
-                label: url,
-                instance: url, 
+            const uri = frontendURL;
+            const updatedInstance = {
+                frontendURL,
+                backendURL,
+                URI: uri,
                 email: info.data.email, 
                 authtoken: response,
                 name: info.data.name,
@@ -49,19 +64,19 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                 affiliation: info.data.affiliation
             };
 
-            const exists = instanceData.some(item => item.instance === url);
+            const exists = instanceData.some(item => item.frontendURL === uri);
 
             let updatedInstanceData;
             if (exists) {
                 updatedInstanceData = instanceData.map((item) =>
-                    item.instance === url ? updatedInstance : item
+                    item.frontendURL === uri ? updatedInstance : item
                 );
             } else {
                 updatedInstanceData = [...instanceData, { ...updatedInstance }];
             }
 
             setInstanceData(updatedInstanceData);
-            setSelected(url);
+            setSelected(uri);
 
             showNotification({
                 title: 'Login successful',
@@ -94,21 +109,26 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
         }
     };
 
-    // Helper to remove http://, https://, and www. in the input of the URL
-    const cleanUrl = (inputUrl) => {
-        return inputUrl.replace(/^(https?:\/\/)?(www\.)?/, '');
-    };
-
     return (
         <Modal opened={opened} onClose={onClose} title="Choose Repository" size="lg">
             {step === 1 && (
                 <>
                     <Group grow spacing="md">
                         <TextInput
-                            label="Repository URL"
-                            placeholder="Enter repository URL"
-                            value={url}
-                            onChange={(e) => setUrl(e.currentTarget.value)}
+                            label="Frontend URL"
+                            placeholder="https://synbiohub.org"
+                            value={frontendURL}
+                            onChange={(e) => setFrontendURL(e.currentTarget.value)}
+                            required
+                        />
+                    </Group>
+                    <Space h="md" />
+                    <Group grow spacing="md">
+                        <TextInput
+                            label="Backend URL"
+                            placeholder="https://synbiohub.org"
+                            value={backendURL}
+                            onChange={(e) => setBackendURL(e.currentTarget.value)}
                             required
                         />
                     </Group>
@@ -119,7 +139,7 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                                 Back
                             </Button>
                         )}
-                        <Button onClick={() => setStep(2)} disabled={!url} ml={goBack ? undefined : "auto"}>
+                        <Button onClick={() => setStep(2)} disabled={!frontendURL || !backendURL} ml={goBack ? undefined : "auto"}>
                             Next
                         </Button>
                     </Group>
@@ -152,7 +172,7 @@ function AddSBHRepository({ opened, onClose, onSubmit, goBack }) {
                         <Button variant="default" onClick={() => setStep(1)}>
                             Back
                         </Button>
-                        <Button disabled={!email || !password} onClick={() => handleSubmit(cleanUrl(url), email, password)}>
+                        <Button disabled={!email || !password} onClick={() => handleSubmit(normalizeUrl(frontendURL), normalizeUrl(backendURL), email, password)}>
                             Submit
                         </Button>
                     </Group>

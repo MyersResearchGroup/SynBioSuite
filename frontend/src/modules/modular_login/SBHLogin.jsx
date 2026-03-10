@@ -4,6 +4,8 @@ import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 const login = async (instance, email, password) => {
     try {
@@ -13,7 +15,7 @@ const login = async (instance, email, password) => {
             color: 'blue',
             loading: true,
         });
-        const response = await axios.post(`https://${instance}/login`, {
+        const response = await axios.post(`${instance}/login`, {
             "email": email,
             "password": password
         }, {
@@ -36,7 +38,7 @@ const login = async (instance, email, password) => {
 
 const getProfile = async (instance, auth) => {
     try {
-        const response = await axios.get(`https://${instance}/profile`, {
+        const response = await axios.get(`${instance}/profile`, {
             headers: {
                 'Accept': 'text/plain; charset=UTF-8',
                 "X-authorization" : `${auth}`
@@ -55,7 +57,9 @@ const getProfile = async (instance, auth) => {
 
 const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
 
     const form = useForm({
         initialValues: {
@@ -75,9 +79,9 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
                 const info = await login(selected, values.email, values.password);
                 
                 const updatedInstance = { 
-                    value: selected, 
-                    label: selected,
-                    instance: selected, 
+                    frontendURL: selected, 
+                    backendURL: selected,
+                    URI: selected,
                     email: info.email, 
                     authtoken: info.auth,
                     name: info.name,
@@ -86,7 +90,7 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.instance === selected ? updatedInstance : item
+                    item.frontendURL === selected ? updatedInstance : item
                 );
                 
                 setInstanceData(updatedInstanceData);

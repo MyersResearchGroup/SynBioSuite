@@ -181,7 +181,7 @@ export async function SBHLogin(url, username, password) {
         formdata.append('email', username);
         formdata.append('password', password);
 
-        const response = await axios.post(`https://${url}/login`, {
+        const response = await axios.post(`${url}/login`, {
             "email": username,
             "password": password
         }, {
@@ -202,7 +202,7 @@ export async function SBHLogin(url, username, password) {
 export async function searchCollections(url, auth) {
     try {
         if (typeof url !== "string" || url.trim() === "") return null;
-        const response = await axios.get(`https://${url}/rootCollections`, {
+        const response = await axios.get(`${url}/rootCollections`, {
             headers: {
                 "Content-Type": "text/plain",
                 "X-authorization": auth
@@ -237,7 +237,7 @@ export async function createCollection(id, version, name, description, citations
         formdata.append('overwrite_merge', overwrite ? 1 : 0);
 
         const response = await axios.post(
-            `https://${url}/submit`,
+            `${url}/submit`,
             formdata,
             {
                 headers: {
@@ -265,7 +265,7 @@ export async function createCollection(id, version, name, description, citations
 export async function SBHLogout(auth, url) {
     try {
         const response = await axios.post(
-            `https://${url}/logout`,
+            `${url}/logout`,
             null,
             {
                 headers: {
@@ -284,7 +284,7 @@ export async function SBHLogout(auth, url) {
 
 export async function FJLogin(instance, username, password){
     try {
-        const response = await axios.post(`https://${instance}/api/auth/log_in/`, {
+        const response = await axios.post(`${instance}/api/auth/log_in/`, {
             "username": username,
             "password": password
         }, {
@@ -313,7 +313,7 @@ export async function CheckLogin(instance, authToken){
             return { valid: false }
         }
 
-        const response = await axios.get(`https://${instance}/profile`, {
+        const response = await axios.get(`${instance}/profile`, {
             headers: {
                 "Accept": "text/plain",
                 "X-authorization": authToken
@@ -347,7 +347,7 @@ export function clearInvalidCredentials(instanceUrl) {
         
         // Find and clear the credentials for the specific instance
         const updatedData = dataSBH.map(repo => {
-            if (repo.value === instanceUrl) {
+            if (repo.frontendURL === instanceUrl) {
                 // Clear auth-related fields but keep the repository info
                 return {
                     ...repo,

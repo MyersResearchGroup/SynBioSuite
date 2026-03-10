@@ -4,21 +4,26 @@ import FJInstanceSelector from './FJInstanceSelector';
 import SBHInstanceSelector from './SBHInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary, setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 
 function LoginModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
     
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [selectedSBH, setSelectedSBH] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: "" });
+    const dispatch = useDispatch();
+    const selectedSBH = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setSelectedSBH = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selectedSBH) : value));
     const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
-    const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
+    const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
+    const setSelectedFJ = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selectedFJ) : value));
     
-    const findInstance = (instance, repo) => {
+    const findInstance = (uri, repo) => {
         if (repo == "SBH")
-            return dataSBH.find((element) => element.value === instance);
+            return dataSBH.find((element) => element.frontendURL === uri);
         else if (repo == "FJ")
-            return dataFJ.find((element) => element.value === instance);
+            return dataFJ.find((element) => element.frontendURL === uri);
     }
 
     const handleRemoveInstance = (repo) => {
@@ -52,7 +57,7 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {sbhInfo ? sbhInfo.instance : "Not Logged In"}
+                                    Repository: {sbhInfo ? sbhInfo.frontendURL : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
@@ -81,7 +86,7 @@ function LoginModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {fjInfo ? fjInfo.instance : "Not Logged In"}
+                                    Repository: {fjInfo ? fjInfo.frontendURL : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>
