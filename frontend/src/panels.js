@@ -9,7 +9,7 @@ import SeqImprovePanel from "./components/panels/SeqImprovePanel";
 import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
-import { ObjectTypes } from "./objectTypes";
+import { ObjectTypes, BLANK_SBOL } from "./objectTypes";
 import { GiSewingMachine, GiThorHammer } from "react-icons/gi";
 import { PiMicrosoftExcelLogoFill } from "react-icons/pi";
 import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
@@ -41,10 +41,14 @@ export const PanelTypes = {
         id: "synbio.panel-type.simulator",
         title: "iBioSim Analysis",
         component: SimulatorPanel,
-        objectTypes: [ ObjectTypes.Analysis.id ],
+        objectTypes: [ ObjectTypes.Analysis.id, ObjectTypes.SBML.id ],
         icon: SimulationIcon,
 
         deserialize: content => {
+            const trimmed = content.trimStart()
+            if (trimmed.includes('sbml.org/sbml')) {
+                return { sbml: content }
+            }
             try {
                 return JSON.parse(content)
             }
@@ -54,10 +58,13 @@ export const PanelTypes = {
         },
 
         serialize: panel => {
+            if (panel.sbml && panel.fileHandle?.objectType === ObjectTypes.SBML.id) {
+                return panel.sbml
+            }
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify(restOfPanel)
         }
-    }, 
+    },
     SBOLEditor: {
         id: "synbio.panel-type.sbol-editor",
         title: "SBOL Canvas",
@@ -71,18 +78,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             if (!panel.sbol || panel.sbol.trim() === "") {
-            return `<?xml version="1.0" ?>
-                <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:om="http://www.ontology-of-units-of-measure.org/resource/om-2/" xmlns:SBOLCanvas="https://sbolcanvas.org/">
-                <sbol:ModuleDefinition rdf:about="https://sbolcanvas.org/module1">
-                    <sbol:persistentIdentity rdf:resource="https://sbolcanvas.org/module1"/>
-                    <sbol:displayId>module1</sbol:displayId>
-                </sbol:ModuleDefinition>
-                <SBOLCanvas:Layout rdf:about="https://sbolcanvas.org/module1_Layout">
-                    <sbol:persistentIdentity rdf:resource="https://sbolcanvas.org/module1_Layout"/>
-                    <sbol:displayId>module1_Layout</sbol:displayId>
-                    <SBOLCanvas:objectRef rdf:resource="https://sbolcanvas.org/module1"/>
-                </SBOLCanvas:Layout>
-                </rdf:RDF>`;
+                return BLANK_SBOL
             }
             return panel.sbol;
         }
