@@ -1,7 +1,8 @@
-import { useCreateFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
+import { useCreateFile, useFiles, createFileInDirectory, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
+import { useDispatch } from 'react-redux'
 import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
-import { ObjectTypes } from '../../../objectTypes'
+import { ObjectTypes, BLANK_SBML } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import ImportFile from './ImportFile'
 import { useState} from 'react'
@@ -50,6 +51,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
     // handle creation
     const createFile = useCreateFile()
+    const dispatch = useDispatch()
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         if(objectType.subdirectory){
@@ -59,7 +61,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         if (objectType.id === ObjectTypes.SBOL.id) {
             const directory = tempDirectory || workDir
             createFile(fileName + "_sbol.xml", objectType.id, directory)
-            createFile(fileName + "_sbml.xml", ObjectTypes.SBML.id, directory, false)
+            const sbmlHandle = await createFileInDirectory(directory, fileName + "_sbml.xml", ObjectTypes.SBML.id, dispatch)
+            await writeToFileHandle(sbmlHandle, BLANK_SBML)
         } else {
             createFile(fileName + objectType.extension, objectType.id, tempDirectory)
         }

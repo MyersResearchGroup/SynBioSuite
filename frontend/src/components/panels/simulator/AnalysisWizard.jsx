@@ -60,7 +60,7 @@ export default function AnalysisWizard({handleViewResult, isResults}) {
     const sbml = usePanelProperty(panelId, "sbml")
     useEffect(() => {
         if (sbml && !componentId && fileHandle) {
-            setComponentId(fileHandle.name)
+            setComponentId(fileHandle.id)
         }
     }, [sbml, componentId, fileHandle])
 
