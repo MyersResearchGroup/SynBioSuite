@@ -1,6 +1,6 @@
 import Activities from '../components/activities/Activities';
 import Panels from '../components/panels/Panels';
-import BrowserCompatiblityCatch from '../components/BrowserCompatiblityCatch';
+import BrowserCompatibilityCatch from '../components/BrowserCompatibilityCatch';
 import LoginModal from '../modules/modular_login/loginModal';
 import { useSelector, useDispatch } from 'react-redux';
 import { closeModal, closeSBH, closeFJ, closeAddSBHrepository, closeAddFJrepository, closeCreateCollection, closeSBHLogin } from '../redux/slices/modalSlice';
@@ -41,7 +41,7 @@ export default function LocalHome() {
         <>
             <Activities />
             <Panels />
-            <BrowserCompatiblityCatch />
+            <BrowserCompatibilityCatch />
             <LoginModal
                 opened={loginModalOpened}
                 onClose={() => dispatch(closeModal())}
