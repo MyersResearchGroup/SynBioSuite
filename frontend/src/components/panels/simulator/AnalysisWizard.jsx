@@ -36,7 +36,7 @@ export default function AnalysisWizard({handleViewResult, isResults}) {
 
     // file info
     const fileHandle = usePanelProperty(panelId, "fileHandle")
-    const panelTitle = titleFromFileName(fileHandle.name)
+    const panelTitle = titleFromFileName(fileHandle?.name)
 
     const [status, setStatus] = usePanelProperty(panelId, "runtimeStatus", false)
     const running = RuntimeStatus.running(status)
@@ -55,6 +55,14 @@ export default function AnalysisWizard({handleViewResult, isResults}) {
         setComponentId(name)
     }
     const isComponentOMEX = component?.objectType == ObjectTypes.OMEX.id
+
+    // Pre-loaded SBML: auto-select this file as the component in step 0
+    const sbml = usePanelProperty(panelId, "sbml")
+    useEffect(() => {
+        if (sbml && !componentId && fileHandle) {
+            setComponentId(fileHandle.name)
+        }
+    }, [sbml, componentId, fileHandle])
 
     // Step 2: select parameter source
     const [parameterSource, setParameterSource] = usePanelProperty(panelId, 'parameterSource', false, TabValues.ENVIRONMENT)
