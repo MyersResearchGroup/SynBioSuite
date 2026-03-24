@@ -1,8 +1,11 @@
 
 import { Loader, LoadingOverlay, Progress } from '@mantine/core'
+import { showNotification } from '@mantine/notifications'
 import { useState, useEffect, useRef, useContext } from 'react'
 import { PanelContext } from './SBOLEditorPanel'
 import { usePanelProperty } from "../../../redux/hooks/panelsHooks"
+
+const expectedOrigin = new URL(import.meta.env.VITE_SBOL_CANVAS_URL).origin
 
 
 export default function CanvasFrame({fileTypeObjectId}) {
@@ -10,6 +13,7 @@ export default function CanvasFrame({fileTypeObjectId}) {
     const panelId = useContext(PanelContext)
     // state containing full SBOL content
     const [sbolContent, setSBOLContent] = usePanelProperty(panelId, "sbol", false)
+    const [, setSBMLContent] = usePanelProperty(panelId, "sbml", false)
 
     // iframe reference
     const iframeRef = useRef()
@@ -20,7 +24,8 @@ export default function CanvasFrame({fileTypeObjectId}) {
     const loadProgress = 10 + (iframeLoaded + sbolContentLoaded) * 45
 
     // handle incoming messages from iframe
-    const messageListener = ({ data }) => {
+    const messageListener = ({ data, origin }) => {
+        if (origin !== expectedOrigin) return
 
         // handle simple string messages
         switch (data) {
@@ -33,6 +38,20 @@ export default function CanvasFrame({fileTypeObjectId}) {
         if (data?.sbol) {
             console.debug('Received SBOL from child:', data.sbol.substring(0, 100))
             setSBOLContent(data.sbol)
+        }
+
+        if (data?.sbml) {
+            console.debug('Received SBML from child:', data.sbml.substring(0, 100))
+            setSBMLContent(data.sbml)
+        }
+
+        if (data?.error) {
+            console.error('SBOLCanvas error:', data.error)
+            showNotification({
+                title: 'SBOLCanvas Export Error',
+                message: data.error.message || 'An unknown export error occurred.',
+                color: 'red',
+            })
         }
     }
 
