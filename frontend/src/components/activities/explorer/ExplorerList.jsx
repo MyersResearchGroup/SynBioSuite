@@ -55,7 +55,14 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         if(objectType.subdirectory){
             tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
-        createFile(fileName + objectType.extension, objectType.id, tempDirectory)
+
+        if (objectType.id === ObjectTypes.SBOL.id) {
+            const directory = tempDirectory || workDir
+            createFile(fileName + "_sbol.xml", objectType.id, directory)
+            createFile(fileName + "_sbml.xml", ObjectTypes.SBML.id, directory, false)
+        } else {
+            createFile(fileName + objectType.extension, objectType.id, tempDirectory)
+        }
     }
     
     // generate DragObjects based on data
