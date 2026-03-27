@@ -4,7 +4,7 @@ const { actions } = panelsSlice
 import {useDispatch} from "react-redux";
 import { useState } from 'react'
 import ListRegistries from './ListRegistries.jsx';
-import AddRegistryModal from './AddRegistryModal.jsx';
+import AddRegistryModal from '../../../modules/unified_modal/AddRegistryModal.jsx';
 import { AiOutlinePlus } from 'react-icons/ai';
 import { getPrimaryColor } from '../../../modules/colorScheme';
 

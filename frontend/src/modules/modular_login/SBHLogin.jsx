@@ -1,4 +1,3 @@
-import React from 'react';
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
@@ -15,23 +14,23 @@ const login = async (instance, email, password) => {
             color: 'blue',
             loading: true,
         });
+
         const response = await axios.post(`${instance}/login`, {
-            "email": email,
-            "password": password
+            email,
+            password,
         }, {
             headers: {
-                'accept': 'text/plain',
+                accept: 'text/plain',
                 'Content-Type': 'application/json',
-            }
+            },
         });
-        if(response.data){
-            let data = await getProfile(instance, response.data);
-            data.auth = response.data;
-            return data;
+
+        if (response.data) {
+            const profile = await getProfile(instance, response.data);
+            return { ...profile, authtoken: response.data };
         }
     } catch (error) {
         cleanNotifications();
-        console.error('Error:', error);
         throw error;
     }
 };
@@ -40,23 +39,23 @@ const getProfile = async (instance, auth) => {
     try {
         const response = await axios.get(`${instance}/profile`, {
             headers: {
-                'Accept': 'text/plain; charset=UTF-8',
-                "X-authorization" : `${auth}`
-            }
+                Accept: 'text/plain; charset=UTF-8',
+                'X-authorization': `${auth}`,
+            },
         });
-        if(response.data){
+
+        if (response.data) {
             cleanNotifications();
             return response.data;
         }
     } catch (error) {
         cleanNotifications();
-        console.error('Error:', error);
         throw error;
     }
 };
 
 const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [instanceData, setInstanceData] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] });
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
@@ -66,72 +65,69 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
             email: '',
             password: '',
         },
-
         validate: {
-            email: (value) => (null),
-            password: (value) => (value ? null : 'Password is required')
+            email: () => null,
+            password: (value) => (value ? null : 'Password is required'),
         },
     });
 
     const handleSubmit = async (values) => {
-        if (form.isValid()){
-            try {
-                const info = await login(selected, values.email, values.password);
-                
-                const updatedInstance = { 
-                    registryURL: selected, 
-                    registryAPI: selected,
-                    registryPrefix: selected,
-                    email: info.email, 
-                    authtoken: info.auth,
-                    name: info.name,
-                    username: info.username,
-                    affiliation: info.affiliation
-                };
+        if (!form.isValid()) {
+            return;
+        }
 
-                const updatedInstanceData = instanceData.map((item) =>
-                    item.registryURL === selected ? updatedInstance : item
-                );
-                
-                setInstanceData(updatedInstanceData);
-                
+        try {
+            const info = await login(selected, values.email, values.password);
+            const existing = instanceData.find(item => item.registryURL === selected) || {};
+            const updatedInstance = {
+                ...existing,
+                registryURL: selected,
+                registryAPI: existing.registryAPI || selected,
+                registryPrefix: existing.registryPrefix || selected,
+                email: info.email,
+                authtoken: info.authtoken,
+                name: info.name,
+                username: info.username,
+                affiliation: info.affiliation,
+            };
+
+            const updatedInstanceData = instanceData.map((item) =>
+                item.registryURL === selected ? updatedInstance : item
+            );
+
+            setInstanceData(updatedInstanceData);
+            cleanNotifications();
+            showNotification({
+                title: 'Login successful',
+                message: 'You have successfully logged in.',
+                color: 'green',
+            });
+            setSelected(updatedInstance.registryURL);
+            goBack(false);
+        } catch (error) {
+            cleanNotifications();
+            if (error.status === 401) {
                 showNotification({
-                    title: 'Login successful',
-                    message: 'You have successfully logged in.',
-                    color: 'green',
+                    title: 'Login failed',
+                    message: 'Please check your credentials and try again.',
+                    color: 'red',
                 });
-                
-                setSelected(updatedInstance.value);
-                
-                goBack(false)
-            } catch (error) {
-                console.error('Login failed:', error);
-                if(error.status === 401){
-                    showNotification({
-                        title: 'Login failed',
-                        message: 'Please check your credentials and try again.',
-                        color: 'red',
-                    });
-                } else {
-                    showNotification({
-                        title: 'Login failed',
-                        message: 'An error occurred. Please try again and make sure your repository is online.',
-                        color: 'red',
-                    });
-                }
+            } else {
+                showNotification({
+                    title: 'Login failed',
+                    message: 'An error occurred. Please try again and make sure your repository is online.',
+                    color: 'red',
+                });
             }
-            
         }
     };
 
     return (
         <Box sx={{ maxWidth: 300 }} mx="auto">
-            <form
-                onSubmit={form.onSubmit((values) => {handleSubmit(values)})}
-            >
+            <form onSubmit={form.onSubmit((values) => { handleSubmit(values); })}>
                 <TextInput
-                    label={"Email or Username"}
-                    placeholder={`Enter your email or username here`}
+                    label="Email"
+                    placeholder="Enter your email here"
                     mt="md"
                     {...form.getInputProps('email')}
                 />
@@ -144,7 +140,18 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
                 <Button type="submit" mt="md">
                     Login
                 </Button>
-                <Button variant="outline" mt="md" ml="sm" onClick={() => {if(instanceData.length == 0) {setRepoSelection("")} else goBack(false)}}>
+                <Button
+                    variant="outline"
+                    mt="md"
+                    ml="sm"
+                    onClick={() => {
+                        if (instanceData.length === 0) {
+                            setRepoSelection('');
+                        } else {
+                            goBack(false);
+                        }
+                    }}
+                >
                     Back
                 </Button>
             </form>

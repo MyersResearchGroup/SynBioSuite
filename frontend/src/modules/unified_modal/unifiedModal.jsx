@@ -2,17 +2,17 @@ import { Modal, Button, Stack, Group } from '@mantine/core';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { closeUnifiedModal } from '../../redux/slices/modalSlice';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 // Todo: Modernize the following legacy modals
 import SBHLogin from '../modular_login/SBHOnly';
-import AddSBHRepository from '../modular_login/addSBHRepository';
-import AddFJRepository from '../modular_login/addFJRepository';
 import CreateCollectionModal from '../CreateCollectionModal';
 import SBHInstanceSelector from '../modular_login/SBHInstanceSelector';
 import FJInstanceSelector from '../modular_login/FJInstanceSelector';
 import RepositorySelectorModal from './RepositorySelectorModal';
 import CredentialCheckModal from './CredentialCheckModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
+import AddRegistryModal from './AddRegistryModal';
 
 export const MODAL_TYPES = {
     SBH_LOGIN: 'sbh_login',
@@ -29,9 +29,9 @@ export const MODAL_TYPES = {
 };
 
 const MODAL_FLOWS = {
-    [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO],
+    [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
     [MODAL_TYPES.FJ_LOGIN]: [MODAL_TYPES.ADD_FJ_REPO],
-    [MODAL_TYPES.ADD_SBH_REPO]: [],
+    [MODAL_TYPES.ADD_SBH_REPO]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.ADD_FJ_REPO]: [],
     [MODAL_TYPES.CREATE_COLLECTION]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
@@ -101,6 +101,21 @@ function UnifiedModal({
             completedRef.current = false;
         }
     }, [opened, initialModal]);
+
+    useEffect(() => {
+        if (currentModal !== MODAL_TYPES.SBH_LOGIN) {
+            return;
+        }
+
+        const selectedRepo =
+            modalData[MODAL_TYPES.SBH_LOGIN]?.selectedRepo
+            || modalData.selectedRepo
+            || modalProps.selectedRepo;
+
+        if (selectedRepo) {
+            dispatch(setSBHPrimary(selectedRepo));
+        }
+    }, [currentModal, modalData, modalProps.selectedRepo, dispatch]);
 
     const navigateTo = useCallback((modalType, data = {}) => {
         const currentFlow = MODAL_FLOWS[currentModal] || [];
@@ -191,13 +206,60 @@ function UnifiedModal({
             ...modalProps,
         };
 
+        const addRegistryToStorage = (key, data) => {
+            const stored = JSON.parse(localStorage.getItem(key)) || [];
+            if (stored.some(item => item.registryURL === data.registryURL)) {
+                return;
+            }
+
+            const base = {
+                authtoken: '',
+                email: '',
+                registryURL: data.registryURL,
+                registryAPI: data.registryAPI,
+                registryPrefix: data.registryPrefix,
+                username: '',
+            };
+
+            const instance = key === 'SynbioHub'
+                ? { ...base, name: '', affiliation: '' }
+                : { ...base, refresh: '' };
+
+            localStorage.setItem(key, JSON.stringify([...stored, instance]));
+        };
+
         switch (currentModal) {
             case MODAL_TYPES.SBH_LOGIN:
                 const shouldReturnToCredentialCheck = modalHistory.includes(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                const loginModalData = modalData[MODAL_TYPES.SBH_LOGIN] || {};
+                const shouldNavigateToValidator =
+                    loginModalData.returnTo === MODAL_TYPES.SBH_CREDENTIAL_CHECK
+                    && allowedModals.includes(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+
                 return (
                     <SBHLogin
                         opened={true}
-                        onClose={() => shouldReturnToCredentialCheck ? goBack() : completeWorkflow()}
+                        onClose={() => {
+                            if (shouldNavigateToValidator) {
+                                const nextSelectedRepo = loginModalData.selectedRepo || modalData.selectedRepo;
+                                if (nextSelectedRepo) {
+                                    dispatch(setSBHPrimary(nextSelectedRepo));
+                                }
+                                setModalData(prev => ({
+                                    ...prev,
+                                    selectedRepo: nextSelectedRepo,
+                                }));
+
+                                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK, {
+                                    selectedRepo: nextSelectedRepo,
+                                    expectedEmail: modalData.expectedEmail,
+                                    skipRepositorySelection: modalData.skipRepositorySelection,
+                                });
+                                return;
+                            }
+
+                            shouldReturnToCredentialCheck ? goBack() : completeWorkflow();
+                        }}
                         {...commonProps}
                     />
                 );
@@ -205,17 +267,47 @@ function UnifiedModal({
             case MODAL_TYPES.ADD_SBH_REPO:
                 const hasCredentialCheckInHistory = modalHistory.includes(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
                 const hasRepoSelectorInHistory = modalHistory.includes(MODAL_TYPES.REPOSITORY_SELECTOR);
+                const shouldReturnToValidator = hasCredentialCheckInHistory || hasRepoSelectorInHistory;
                 return (
-                    <AddSBHRepository
+                    <AddRegistryModal
                         opened={true}
                         onClose={handleClose}
-                        onSubmit={() => (hasCredentialCheckInHistory || hasRepoSelectorInHistory) ? goBack() : completeWorkflow()}
-                        {...commonProps}
+                        closeOnSubmit={false}
+                        onAdd={(data) => {
+                            addRegistryToStorage('SynbioHub', data);
+                            dispatch(setSBHPrimary(data.registryURL));
+                            setModalData(prev => ({ ...prev, selectedRepo: data.registryURL }));
+
+                            if (shouldReturnToValidator) {
+                                navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                                    selectedRepo: data.registryURL,
+                                    returnTo: MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                                });
+                                return;
+                            }
+
+                            completeWorkflow({ selectedRepo: data.registryURL });
+                        }}
+                        title="SynBioHub Repository"
+                        existingRegistries={(JSON.parse(localStorage.getItem('SynbioHub')) || []).map(item => item.registryURL)}
                     />
                 );
 
             case MODAL_TYPES.ADD_FJ_REPO:
-                return <AddFJRepository opened={true} onClose={completeWorkflow} {...commonProps} />;
+                return (
+                    <AddRegistryModal
+                        opened={true}
+                        onClose={handleClose}
+                        closeOnSubmit={false}
+                        onAdd={(data) => {
+                            addRegistryToStorage('Flapjack', data);
+                            setModalData(prev => ({ ...prev, selectedRepo: data.registryURL }));
+                            completeWorkflow({ selectedRepo: data.registryURL });
+                        }}
+                        title="Flapjack Repository"
+                        existingRegistries={(JSON.parse(localStorage.getItem('Flapjack')) || []).map(item => item.registryURL)}
+                    />
+                );
 
             case MODAL_TYPES.CREATE_COLLECTION:
                 return (
