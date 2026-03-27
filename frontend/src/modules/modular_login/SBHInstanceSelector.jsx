@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Select, Button } from '@mantine/core';
 import SBHInstanceLogin from './SBHLogin';
-import AddInstance from './addInstance';
+import AddRegistryModal from '../unified_modal/AddRegistryModal';
 import { useLocalStorage } from '@mantine/hooks';
 import { cleanNotifications, showNotification } from '@mantine/notifications';
 import axios from 'axios';
@@ -10,7 +10,7 @@ import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
-    const [addingInstance, setAddingInstance] = useState("placeholder");
+    const [addRegistryOpen, setAddRegistryOpen] = useState(false);
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [nullSelected, setNullSelected] = useState(false);
     const dispatch = useDispatch();
@@ -110,40 +110,30 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
-    const normalizeUrl = (inputUrl) => {
-        let url = inputUrl.trim();
-        if (!/^https?:\/\//i.test(url)) {
-            url = url.replace(/^www\./i, '');
-            url = `https://${url}`;
+    const handleAddRegistry = ({ registryURL, registryAPI, registryPrefix }) => {
+        if (instanceData.some(instance => instance.registryURL === registryURL)) {
+            showNotification({
+                title: 'Login exists',
+                message: 'This repository has already been added. Please add a different repository.',
+                color: 'yellow',
+            });
+            return;
         }
-        return url;
-    };
 
-    useEffect(() => {
-        if (addingInstance != null && addingInstance != "placeholder") {
-            const uri = normalizeUrl(addingInstance);
-            const newInstance = { 
-                registryURL: uri,
-                registryAPI: uri,
-                registryPrefix: uri,
-                email: '', 
-                authtoken: '',
-                name: '',
-                username: '',
-                affiliation: ''
-            };
-            if (!instanceData.some(instance => instance.registryURL === newInstance.registryURL)) {
-                setInstanceData([...instanceData, newInstance]);
-                setSelected(uri);
-            } else {
-                showNotification({
-                    title: 'Login exists',
-                    message: 'This repository has already been added. Please add a different repository.',
-                    color: 'yellow',
-                })
-            }
-        }
-    }, [addingInstance]);
+        const newInstance = {
+            registryURL,
+            registryAPI,
+            registryPrefix,
+            email: '',
+            authtoken: '',
+            name: '',
+            username: '',
+            affiliation: ''
+        };
+
+        setInstanceData([...instanceData, newInstance]);
+        setSelected(registryURL);
+    };
 
     const selectData = instanceData.map(inst => ({
         value: inst.registryURL,
@@ -152,12 +142,16 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
 
     return (
         <>
-            {!addingInstance ? 
-                <AddInstance goBack={setAddingInstance} repo={"SynbioHub"}/>
-            :
-                showLogin ?
-                    <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
+            {showLogin ?
+                <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
             : ( <>
+                    <AddRegistryModal
+                        opened={addRegistryOpen}
+                        onClose={() => setAddRegistryOpen(false)}
+                        onAdd={handleAddRegistry}
+                        title="SynbioHub Repository"
+                        existingRegistries={instanceData.map(inst => inst.registryURL)}
+                    />
                     <Select
                         label={`Select a SynbioHub repository`}
                         placeholder="Pick one"
@@ -167,7 +161,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                     />
                     {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected repository. Please select an repository</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
-                        <Button mr="md" onClick={() => {setAddingInstance(null)}}>Add</Button>
+                        <Button mr="md" onClick={() => setAddRegistryOpen(true)}>Add</Button>
                         {selected && (
                         <>
                             <Button mr="md" onClick={() => 

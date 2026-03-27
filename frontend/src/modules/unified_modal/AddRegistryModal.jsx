@@ -36,7 +36,7 @@ function UrlField({ label, scheme, onSchemeChange, value, onChange, placeholder 
     );
 }
 
-export default function AddRegistryModal({ opened, onClose, onAdd, title, existingRegistries = [] }) {
+export default function AddRegistryModal({ opened, onClose, onAdd, title, existingRegistries = [], closeOnSubmit = true }) {
     const [frontendScheme, setFrontendScheme] = useState('https');
     const [frontendHost, setFrontendHost] = useState('');
 
@@ -94,7 +94,9 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
         }
 
         onAdd({ registryURL, registryAPI, registryPrefix });
-        handleClose();
+        if (closeOnSubmit) {
+            handleClose();
+        }
     };
 
     return (

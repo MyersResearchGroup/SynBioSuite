@@ -61,6 +61,10 @@ const SBHOnly = ({opened, onClose, goBack}) => {
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
 
+    const getSelectedInstance = () => {
+        return instanceData.find((item) => item.registryURL === selected);
+    };
+
     const form = useForm({
         initialValues: {
             email: '',
@@ -83,12 +87,14 @@ const SBHOnly = ({opened, onClose, goBack}) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(selected, values.email, values.password);
+                const selectedInstance = getSelectedInstance();
+                const registryAPI = selectedInstance?.registryAPI || selected;
+                const info = await login(registryAPI, values.email, values.password);
                 
                 const updatedInstance = { 
                     registryURL: selected, 
-                    registryAPI: selected,
-                    registryPrefix: selected,
+                    registryAPI,
+                    registryPrefix: selectedInstance?.registryPrefix || selected,
                     email: info.email, 
                     authtoken: info.auth,
                     name: info.name,

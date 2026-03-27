@@ -171,7 +171,10 @@ export default function CredentialCheckModal({
             return;
         }
         
-        navigateTo(MODAL_TYPES.SBH_LOGIN);
+        navigateTo(MODAL_TYPES.SBH_LOGIN, {
+            selectedRepo,
+            returnTo: MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+        });
     }, [navigateTo, skipRepositorySelection, expectedEmail, emailMismatch]);
 
     const handleConfirm = useCallback(() => {
