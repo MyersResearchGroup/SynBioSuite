@@ -34,10 +34,10 @@ export default function TransformationWizard() {
     
     const numSteps = 4
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
-    const nextStep = () => setActiveStep((current) => (current < numSteps ? current + 1 : current))
+    const nextStep = () => setActiveStep((current) => (current < numSteps - 1 ? current + 1 : current))
     const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
 
-const [assemblyMethod, setAssemblyMethod] = usePanelProperty(panelId, "assemblyMethod", false, AssemblyMethods.MOCLO)
+    const [assemblyMethod, setAssemblyMethod] = usePanelProperty(panelId, "assemblyMethod", false, AssemblyMethods.MOCLO)
     const [restrictionEnzyme, setRestrictionEnzyme] = usePanelProperty(panelId, "restrictionEnzyme", false, RestrictionEnzymes.MOCLO.BSAI)
     const [compiler, setCompiler] = usePanelProperty(panelId, "compiler", false, Compiler.PUDU)
     const [machine, setMachine] = usePanelProperty(panelId, "machine", false, Machines.PUDU.OT2)

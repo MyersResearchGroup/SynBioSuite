@@ -15,11 +15,6 @@ function mapOneDriveItemToObjectType(item) {
         return "synbio.object-type.plasmid";  // Match for plasmid XML files in the 'plasmids' subdirectory
     }
 
-    // You can add more subdirectory checks for other object types here
-    if (fileName.match(/\.json$/) && subdirectory && subdirectory.includes("assemblyPlans")) {
-        return "synbio.object-type.assembly-plan";
-    }
-
     if (fileName.match(/\.json$/) && subdirectory && subdirectory.includes("builds")) {
         return "synbio.object-type.build";
     }
