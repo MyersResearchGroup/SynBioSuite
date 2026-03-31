@@ -6,14 +6,12 @@ import {
     Tabs,
     Text,
     Paper,
-    TextInput,
     Textarea,
     FileInput,
     Alert,
-    ScrollArea,
     Divider,
 } from '@mantine/core';
-import { FaCheck, FaExclamationTriangle, FaTimes, FaUpload } from 'react-icons/fa';
+import { FaCheck, FaExclamationTriangle, FaUpload } from 'react-icons/fa';
 import { showNotification } from '@mantine/notifications';
 
 export default function WellLocationsConfigModal({
