@@ -94,15 +94,15 @@ export const ObjectTypes = {
         subdirectory: "strains",
         downloadable: true,
     },
-    Transformations: {
-        id: "synbio.object-type.transformations",
-        title: "Transformations",
-        listTitle: "Transformations",
+    BuildPlans: {
+        id: "synbio.object-type.buildplans",
+        title: "Build Plans",
+        listTitle: "Build Plans",
         fileNameMatch: /\.json$/,
         icon: GiSewingMachine,
         createable: true,
         extension: '.json',
-        subdirectory: "transformations"
+        subdirectory: "buildPlans"
     },
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",

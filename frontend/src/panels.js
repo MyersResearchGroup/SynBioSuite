@@ -2,7 +2,7 @@ import { FcAddDatabase } from "react-icons/fc";
 import { FaFileArchive } from "react-icons/fa";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
-import TransformationPanel from "./components/panels/transformations/TransformationPanel";
+import TransformationPanel from "./components/panels/buildplans/BuildPlansPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
@@ -85,11 +85,11 @@ export const PanelTypes = {
             return panel.sbol;
         }
     },
-    Transformations: {
-        id: "synbio.panel-type.transformations",
-        title: "Transformations",
+    BuildPlans: {
+        id: "synbio.panel-type.buildplans",
+        title: "Build Plans",
         component: TransformationPanel,
-        objectTypes: [ ObjectTypes.Transformations.id ],
+        objectTypes: [ ObjectTypes.BuildPlans.id ],
         icon: GiSewingMachine,
 
         deserialize: content => {

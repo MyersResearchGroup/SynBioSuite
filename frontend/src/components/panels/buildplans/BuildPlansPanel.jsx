@@ -2,30 +2,36 @@ import { ScrollArea, Space, Tabs } from '@mantine/core'
 import { createContext } from 'react'
 import PanelSaver from "../PanelSaver"
 import { useState } from 'react'
-import TransformationWizard from './TransformationWizard'
+import BuildPlansWizard from './BuildPlansWizard'
 
 //contains info that is written to json
 export const PanelContext = createContext()
 
 const TabValues = {
-    SETUP: "setup"
+    FULL: "full build",
+    ASSEMBLY: "DNA assembly",
+    TRANSFORMATION: "transformations",
+    PLATING: "plating"
 }
 
-export default function TransformationPanel({ id }) {
+export default function BuildPlansPanel({ id }) {
 
 
-    const [activeTab, setActiveTab] = useState(TabValues.SETUP);
+    const [activeTab, setActiveTab] = useState(TabValues.FULL);
 
     return (
         <>
          <PanelContext.Provider value={id}>
                 <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted = {false}>
                     <Tabs.List>
-                        <Tabs.Tab value={TabValues.SETUP}>Setup</Tabs.Tab>
+                        <Tabs.Tab value={TabValues.FULL}>{TabValues.FULL}</Tabs.Tab>
+                        <Tabs.Tab value={TabValues.ASSEMBLY}>{TabValues.ASSEMBLY}</Tabs.Tab>
+                        <Tabs.Tab value={TabValues.TRANSFORMATION}>{TabValues.TRANSFORMATION}</Tabs.Tab>
+                        <Tabs.Tab value={TabValues.PLATING}>{TabValues.PLATING}</Tabs.Tab>
                     </Tabs.List>
-                    <Tabs.Panel value={TabValues.SETUP}>
+                    <Tabs.Panel value={TabValues.FULL}>
                         <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
-                            <TransformationWizard />
+                            <BuildPlansWizard />
                             <Space h={20} />
                         </ScrollArea>
                     </Tabs.Panel>
@@ -38,7 +44,6 @@ export default function TransformationPanel({ id }) {
 
 const tabStyles = theme => ({
     tab: {
-        width: 120,
         textTransform: 'uppercase',
         fontWeight: 600
     },

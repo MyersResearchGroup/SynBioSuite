@@ -1,7 +1,7 @@
 import { Container } from "@mantine/core"
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useContext, useEffect } from 'react'
-import { PanelContext } from './TransformationPanel'
+import { PanelContext } from './BuildPlansPanel'
 import { Button, Group, Stepper, Tabs, Space, Select } from '@mantine/core'
 
 export const Machines = {
@@ -29,7 +29,7 @@ export const RestrictionEnzymes = {
     }
 }
 
-export default function TransformationWizard() {
+export default function BuildPlansWizard() {
     const panelId = useContext(PanelContext)
     
     const numSteps = 4
@@ -93,14 +93,14 @@ export default function TransformationWizard() {
                 >
                     <Tabs position='left' value={assemblyMethod} onTabChange={setAssemblyMethod} >
                         <Tabs.List grow>
+                            <Tabs.Tab value={AssemblyMethods.MOCLO}>
+                                {AssemblyMethods.MOCLO}
+                            </Tabs.Tab>
                             <Tabs.Tab value={AssemblyMethods.GIBSON} disabled>
                                 {AssemblyMethods.GIBSON}
                             </Tabs.Tab>
                             <Tabs.Tab value={AssemblyMethods.LOOP} disabled>
                                 {AssemblyMethods.LOOP}
-                            </Tabs.Tab>
-                            <Tabs.Tab value={AssemblyMethods.MOCLO}>
-                                {AssemblyMethods.MOCLO}
                             </Tabs.Tab>
                         </Tabs.List>
                         <Space h='md' />
