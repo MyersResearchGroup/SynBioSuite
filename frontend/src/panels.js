@@ -2,8 +2,7 @@ import { FcAddDatabase } from "react-icons/fc";
 import { FaFileArchive } from "react-icons/fa";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
-import AssemblyPanel from "./components/panels/assembly-editor/AssemblyPanel";
-import TransformationPanel from "./components/panels/transformations/TransformationPanel";
+import TransformationPanel from "./components/panels/buildplans/BuildPlansPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import SeqImprovePanel from "./components/panels/SeqImprovePanel";
 import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
@@ -83,33 +82,12 @@ export const PanelTypes = {
             return panel.sbol;
         }
     },
-    Transformations: {
-        id: "synbio.panel-type.transformations",
-        title: "Transformations",
+    BuildPlans: {
+        id: "synbio.panel-type.buildplans",
+        title: "Build Plans",
         component: TransformationPanel,
-        objectTypes: [ ObjectTypes.Transformations.id ],
+        objectTypes: [ ObjectTypes.BuildPlans.id ],
         icon: GiSewingMachine,
-
-        deserialize: content => {
-            try {
-                return JSON.parse(content)
-            }
-            catch {
-                return {}
-            }
-        },
-
-        serialize: panel => {
-            const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
-        }
-    },
-    AssemblyPlanCreator: {
-        id: "synbio.panel-type.assembly-plan-creator",
-        title: "Assembly Plan Creator",
-        component: AssemblyPanel,
-        objectTypes: [ ObjectTypes.Assembly.id ],
-        icon: GiThorHammer,
 
         deserialize: content => {
             try {
