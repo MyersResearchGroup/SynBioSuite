@@ -44,6 +44,14 @@ export function useWorkingDirectory() {
 }
 
 
+export async function createFileInDirectory(directory, fileName, objectType, dispatch, subDirectoryName = null) {
+    const fileHandle = await directory.getFileHandle(fileName, { create: true })
+    await addFileMetadata(fileHandle, subDirectoryName, { objectType })
+    dispatch(actions.addFile(fileHandle))
+    return fileHandle
+}
+
+
 // Action hooks
 
 
@@ -51,12 +59,12 @@ export function useCreateFile() {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
     const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-    return (fileName, objectType, directory = workDir) => { // Optional arg directory in which the file will be created 
+    return (fileName, objectType, directory = workDir, shouldOpenPanel = true) => {
         directory.getFileHandle(fileName, { create: true })
             .then(fileHandle => {
                 addFileMetadata(fileHandle, directory == workDir ? null : directory.name, { objectType })
                 dispatch(actions.addFile(fileHandle))
-                openPanel(fileHandle)
+                if (shouldOpenPanel) openPanel(fileHandle)
             })
     }
 }
@@ -164,7 +172,37 @@ export async function findFilesInDirectory(dirHandle) {
     return files
 }
 
-async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
+export async function readFileFromPath(dirHandle, filePath) {
+    if (!dirHandle || typeof dirHandle.getDirectoryHandle !== 'function') {
+        throw new Error('Invalid directory handle provided');
+    }
+    
+    // Split path into parts
+    const parts = filePath.split('/');
+    const fileName = parts[parts.length - 1];
+    const directories = parts.slice(0, -1);
+    
+    // Navigate through subdirectories
+    let currentDir = dirHandle;
+    for (const dirName of directories) {
+        try {
+            currentDir = await currentDir.getDirectoryHandle(dirName);
+        } catch (error) {
+            throw new Error(`Directory not found: ${dirName}`);
+        }
+    }
+    
+    // Get the file handle and return the file
+    try {
+        const fileHandle = await currentDir.getFileHandle(fileName);
+        const file = await fileHandle.getFile();
+        return file;
+    } catch (error) {
+        throw new Error(`File not found: ${fileName}`);
+    }
+}
+
+export async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
     // handle.id = uuidv4()
     if (subDirectoryName === null) {
         handle.id = handle.name;
@@ -175,7 +213,9 @@ async function addFileMetadata(handle, subDirectoryName, { objectType } = {}) {
 }
 
 export function titleFromFileName(fileName) {
-    return fileName?.match(/([\w\W]+)\./)?.[1]
+    const base = fileName?.match(/([\w\W]+)\./)?.[1]
+    if (!base) return base
+    return base.replace(/_(sbol|sbml)$/, '')
 }
 
 export async function writeToFileHandle(fileHandle, content) {
