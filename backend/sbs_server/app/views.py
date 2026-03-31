@@ -2,12 +2,11 @@ from __future__ import annotations
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from .main import app
-from .utils import abstract_design_2_plasmids, sbol2build_moclo, generate_transformation_metadata
+from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
 import sys
 import os
 import json
 import xml.etree.ElementTree as ET
-
 import tricahue
 import sbol2 as sb2
 import pudu
@@ -39,9 +38,7 @@ def upload_experiment():
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE
 '''
 def sbh_fj_upload(files):
-    
     if 'Metadata' not in files:
-        print(request)
         return 'No file part', 400
     metadata_file = files['Metadata']
     if metadata_file.filename == '':
@@ -65,6 +62,10 @@ def sbh_fj_upload(files):
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
+    sbh_url = params_from_request.get('sbh_url')
+    if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
+        params_from_request['sbh_url'] = 'https://' + sbh_url
+
     required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
                        'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
                        'sbh_collec', 'sbh_collec_desc', 
@@ -78,26 +79,18 @@ def sbh_fj_upload(files):
         return 'No SBH credentials provided', 400
 
     # Attachment files to upload to SBH
-    attachments = None
-    if 'Attachments' in files:
+    if 'Attachments' in files and 'attachments' in params_from_request:
         attachment_files = files.getlist("Attachments")
-        attachment_metadata = params_from_request.get('attachments')
-
-        if attachment_metadata is None:
-            return 'Attachment metadata not provided', 400
-        if not isinstance(attachment_metadata, dict):
-            return 'Attachment metadata must be a JSON object keyed by filename', 400
-
         attachments = {}
-        missing_metadata = [file.filename for file in attachment_files if file.filename not in attachment_metadata]
-        if missing_metadata:
-            missing_list = ', '.join(missing_metadata)
-            return f'Missing attachment metadata for files: {missing_list}', 400
-
         for file in attachment_files:
-            attachments[attachment_metadata[file.filename]] = file
-
-        print(attachments)
+            if file.filename not in params_from_request['attachments']:
+                return (
+                    f"Attachment metadata for file '{file.filename}' not found in request",
+                    400,
+                )
+            attachments[params_from_request['attachments'][file.filename]] = file
+    else:
+        attachments = None
 
     # instantiate the XDC class using the params_from_request dictionary
     xdc = tricahue.XDC(input_excel_path = files['Metadata'],
@@ -113,8 +106,8 @@ def sbh_fj_upload(files):
             fj_overwrite = params_from_request['fj_overwrite'], 
             fj_token = params_from_request['fj_token'], 
             sbh_token = params_from_request['sbh_token'],
+            attachments = attachments,
             homespace = "https://example.org/", 
-            attachments = attachments
             )
 
     try:
@@ -192,7 +185,7 @@ def sbol_2_build_golden_gate():
     except Exception as e:
         return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
     
-@app.route('/upload_transformation', methods=['POST'])    
+"""@app.route('/upload_transformation', methods=['POST'])    
 def upload_transformation():
     if 'auth_token' not in request.form:
         return jsonify({"error": "Missing SynBioHub Authentication Token"}), 400
@@ -239,7 +232,7 @@ def upload_transformation():
         return jsonify({"error": str(e)}), 400
 
     except Exception as e:
-        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
+        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500"""
 
 @app.route('/api/build_pudu', methods=['POST'])
 def build_pudu():

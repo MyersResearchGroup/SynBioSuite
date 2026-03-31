@@ -1,13 +1,15 @@
-import { useCreateFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
+import { useCreateFile, useFiles, createFileInDirectory, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
+import { useDispatch } from 'react-redux'
 import CreateNewButton from "./CreateNewButton"
 import { Accordion, ScrollArea, Title} from '@mantine/core'
-import { ObjectTypes } from '../../../objectTypes'
+import { ObjectTypes, BLANK_SBML } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import ImportFile from './ImportFile'
 import { useState} from 'react'
 import Registries from './Registries.jsx'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import DownloadMetadata from './DownloadMetadata.jsx'
+import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -49,20 +51,30 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
     // handle creation
     const createFile = useCreateFile()
+    const dispatch = useDispatch()
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         if(objectType.subdirectory){
             tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
-        createFile(fileName + objectType.extension, objectType.id, tempDirectory)
+
+        if (objectType.id === ObjectTypes.SBOL.id) {
+            const directory = tempDirectory || workDir
+            createFile(fileName + "_sbol.xml", objectType.id, directory)
+            const sbmlHandle = await createFileInDirectory(directory, fileName + "_sbml.xml", ObjectTypes.SBML.id, dispatch)
+            await writeToFileHandle(sbmlHandle, BLANK_SBML)
+        } else {
+            createFile(fileName + objectType.extension, objectType.id, tempDirectory)
+        }
     }
     
     // generate DragObjects based on data
-    const createListItems = (files, Icon) => files.map((file, i) =>
+    const createListItems = (files, Icon, importable) => files.map((file, i) =>
         <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
+            importable={importable}
         />
     )
 
@@ -97,7 +109,13 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             <DownloadMetadata objectType={objectType}>
                                             </DownloadMetadata>
                                         }
-                                        {objectType.importable &&
+                                        {objectType.importable && objectType.iframeImport &&
+                                            <OpenSeqImproveButton
+                                                text={`Import ${objectType.title}`}
+                                                url={objectType.iframeUrl}>
+                                            </OpenSeqImproveButton>
+                                        }
+                                        {objectType.importable && !objectType.iframeImport &&
                                             <ImportFile
                                             onSelect={finalImport}
                                             text={`Import ${objectType.title}`}
@@ -112,7 +130,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                                 New {objectType.title}
                                             </CreateNewButton>
                                         }
-                                        {createListItems(filesOfType, objectType.icon)}
+                                        {createListItems(filesOfType, objectType.icon, objectType.importable)}
                                     {objectType.isRepository ?
                                         <Registries 
                                             typeOfRegistry={objectType.listTitle}

@@ -144,11 +144,13 @@ const tabStyles = theme => {
         },
         tab: {
             fill: dark ? theme.other.inactiveColor : theme.colors.gray[7],
+            color: dark ? theme.other.inactiveColor : theme.colors.gray[7],
             padding: 0,
             height: 'auto',
             zIndex: 100,
             '&:hover': {
-                fill: activeColor
+                fill: activeColor,
+                color: activeColor
             },
             '&.addDivider::after': {
                 content: '""',
@@ -160,6 +162,7 @@ const tabStyles = theme => {
             },
             '&[data-active]': {
                 fill: activeColor,
+                color: activeColor,
                 borderLeft: '3px solid ' + activeColor,
                 '& svg': {
                     marginLeft: '-3px'

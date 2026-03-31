@@ -113,7 +113,8 @@ export function useUnifiedModal() {
                 allowedModals: [
                     MODAL_TYPES.CREATE_COLLECTION, 
                     MODAL_TYPES.SBH_LOGIN, 
-                    MODAL_TYPES.ADD_SBH_REPO
+                    MODAL_TYPES.ADD_SBH_REPO,
+                    MODAL_TYPES.COLLECTION_BROWSER,
                 ],
                 props: { libraryName, libraryDescription },
                 onComplete,
@@ -175,6 +176,7 @@ export function useUnifiedModal() {
                     MODAL_TYPES.COLLECTION_BROWSER,
                     MODAL_TYPES.ADD_SBH_REPO,
                     MODAL_TYPES.SBH_LOGIN,
+                    MODAL_TYPES.CREATE_COLLECTION,
                 ],
                 props,
                 onComplete,
@@ -216,6 +218,7 @@ export function useUnifiedModal() {
                     MODAL_TYPES.SBH_CREDENTIAL_CHECK,
                     MODAL_TYPES.COLLECTION_BROWSER,
                     MODAL_TYPES.SBH_LOGIN,
+                    MODAL_TYPES.CREATE_COLLECTION
                 ],
                 props: {
                     ...props,

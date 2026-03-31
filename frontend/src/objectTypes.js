@@ -10,7 +10,29 @@ import { MdAlignVerticalTop } from "react-icons/md";
 import { VscOutput } from "react-icons/vsc";
 import { FaFileArchive } from "react-icons/fa";
 
+const SEQ_IMPROVE_LINK = import.meta.env.VITE_SEQIMPROVE_URL
 
+export const BLANK_SBOL = `<?xml version="1.0" ?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:om="http://www.ontology-of-units-of-measure.org/resource/om-2/" xmlns:SBOLCanvas="https://sbolcanvas.org/">
+<sbol:ModuleDefinition rdf:about="https://sbolcanvas.org/module1">
+    <sbol:persistentIdentity rdf:resource="https://sbolcanvas.org/module1"/>
+    <sbol:displayId>module1</sbol:displayId>
+</sbol:ModuleDefinition>
+<SBOLCanvas:Layout rdf:about="https://sbolcanvas.org/module1_Layout">
+    <sbol:persistentIdentity rdf:resource="https://sbolcanvas.org/module1_Layout"/>
+    <sbol:displayId>module1_Layout</sbol:displayId>
+    <SBOLCanvas:objectRef rdf:resource="https://sbolcanvas.org/module1"/>
+</SBOLCanvas:Layout>
+</rdf:RDF>`
+
+export const BLANK_SBML = `<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
+  <model id="sbolcanvas_model">
+    <listOfCompartments>
+      <compartment id="Cell" constant="true"/>
+    </listOfCompartments>
+  </model>
+</sbml>`
 
 export const ObjectTypes = {
     SYNBIOHUB: {
@@ -76,6 +98,9 @@ export const ObjectTypes = {
         title: "Plasmid",
         listTitle: "Plasmids",
         createable: true,
+        importable: true,
+        iframeImport: true,
+        iframeUrl: SEQ_IMPROVE_LINK,
         extension: '.xml',
         icon: TbComponents,
         fileNameMatch: /\.xml$/,
@@ -117,9 +142,9 @@ export const ObjectTypes = {
         downloadable: true,
     },
     Metadata: {
-        id: "synbio.object-type.experimental-data",
+        id: "synbio.object-type.study-data",
         title: "Metadata",
-        listTitle: "Experimental Metadata",
+        listTitle: "Study Metadata",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: MdAlignVerticalTop,
         createable: false,
@@ -147,10 +172,10 @@ export const ObjectTypes = {
         importable: true,
         subdirectory: "plateReaderOutputs",
     },
-    Experiments: {
+    Studies: {
         id: "synbio.object-type.experiment",
-        title: "Experiments",
-        listTitle: "Experiments",
+        title: "Studies",
+        listTitle: "Studies",
         fileNameMatch: /\.xdc$/,
         icon: GrTestDesktop,
         createable: true,
