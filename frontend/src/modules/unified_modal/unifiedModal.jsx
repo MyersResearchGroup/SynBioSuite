@@ -13,6 +13,7 @@ import FJInstanceSelector from '../modular_login/FJInstanceSelector';
 import RepositorySelectorModal from './RepositorySelectorModal';
 import CredentialCheckModal from './CredentialCheckModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
+import WellLocationsConfigModal from './WellLocationsConfigModal';
 
 export const MODAL_TYPES = {
     SBH_LOGIN: 'sbh_login',
@@ -26,6 +27,7 @@ export const MODAL_TYPES = {
     REPOSITORY_SELECTOR: 'repository_selector',
     SBH_CREDENTIAL_CHECK: 'sbh_credential_check',
     COLLECTION_BROWSER: 'collection_browser',
+    WELL_LOCATIONS_CONFIG: 'well_locations_config',
 };
 
 const MODAL_FLOWS = {
@@ -40,6 +42,7 @@ const MODAL_FLOWS = {
     [MODAL_TYPES.REPOSITORY_SELECTOR]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
     [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.COLLECTION_BROWSER],
     [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_CREDENTIAL_CHECK],
+    [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
 };
 
 const titles = {
@@ -54,6 +57,7 @@ const titles = {
     [MODAL_TYPES.REPOSITORY_SELECTOR]: 'Select Repository',
     [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'Verify Credentials',
     [MODAL_TYPES.COLLECTION_BROWSER]: 'Browse Collections',
+    [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'Well Locations & Advanced Configurations',
 };
 
 const sizes = {
@@ -65,6 +69,7 @@ const sizes = {
             [MODAL_TYPES.COLLECTION_BROWSER]: 1200,
             [MODAL_TYPES.REPOSITORY_SELECTOR]: 'lg',
             [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'lg',
+            [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'lg',
         };
 
 /**
@@ -284,6 +289,18 @@ function UnifiedModal({
                         completeWorkflow={completeWorkflow}
                         modalData={modalData}
                         setModalData={setModalData}
+                        onCancel={handleClose}
+                        {...commonProps}
+                    />
+                );
+
+            case MODAL_TYPES.WELL_LOCATIONS_CONFIG:
+                return (
+                    <WellLocationsConfigModal
+                        navigateTo={navigateTo}
+                        goBack={goBack}
+                        completeWorkflow={completeWorkflow}
+                        modalData={modalData}
                         onCancel={handleClose}
                         {...commonProps}
                     />
