@@ -10,6 +10,7 @@ import AddSBHRepository from '../modules/modular_login/addSBHRepository';
 import AddFJRepository from '../modules/modular_login/addFJRepository';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
 import SBHOnly from '../modules/modular_login/SBHOnly';
+import UnifiedModal from '../modules/unified_modal/unifiedModal';
 
 
 export default function LocalHome() {
@@ -26,6 +27,12 @@ export default function LocalHome() {
 
     const libraryName = useSelector((state) => state.modal.libraryName)
     const libraryDescription = useSelector((state) => state.modal.libraryDescription)
+
+    const unifiedModalOpen = useSelector((state) => state.modal.unifiedModalOpen);
+    const unifiedModalType = useSelector((state) => state.modal.unifiedModalType);
+    const unifiedModalAllowed = useSelector((state) => state.modal.unifiedModalAllowed);
+    const unifiedModalProps = useSelector((state) => state.modal.unifiedModalProps);
+    const unifiedModalCallback = useSelector((state) => state.modal.unifiedModalCallback);
 
     const dispatch = useDispatch();
 
@@ -66,6 +73,13 @@ export default function LocalHome() {
             <SBHOnly
                 opened={SBHOnlyOpened}
                 onClose={() => dispatch(closeSBHLogin())}
+            />
+            <UnifiedModal
+                opened={unifiedModalOpen}
+                initialModal={unifiedModalType}
+                allowedModals={unifiedModalAllowed}
+                onComplete={unifiedModalCallback}
+                modalProps={unifiedModalProps}
             />
         </>
     );

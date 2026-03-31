@@ -3,6 +3,7 @@ import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import { useContext, useEffect } from 'react'
 import { PanelContext } from './BuildPlansPanel'
 import { Button, Group, Stepper, Tabs, Space, Select } from '@mantine/core'
+import { useUnifiedModal, MODAL_TYPES } from '../../../modules/unified_modal'
 
 export const Machines = {
     PUDU: {
@@ -31,6 +32,7 @@ export const RestrictionEnzymes = {
 
 export default function BuildPlansWizard() {
     const panelId = useContext(PanelContext)
+    const { open } = useUnifiedModal()
     
     const numSteps = 4
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
@@ -41,6 +43,7 @@ export default function BuildPlansWizard() {
     const [restrictionEnzyme, setRestrictionEnzyme] = usePanelProperty(panelId, "restrictionEnzyme", false, RestrictionEnzymes.MOCLO.BSAI)
     const [compiler, setCompiler] = usePanelProperty(panelId, "compiler", false, Compiler.PUDU)
     const [machine, setMachine] = usePanelProperty(panelId, "machine", false, Machines.PUDU.OT2)
+    const [wellLocationsConfig, setWellLocationsConfig] = usePanelProperty(panelId, "wellLocationsConfig", false, null)
 
     const [selectedBackbone, setSelectedBackbone] = usePanelProperty(panelId, "selectedBackbone", false, null);
     const [selectedBackboneInfo, setSelectedBackboneInfo] = usePanelProperty(panelId, "selectedBackboneInfo", false, null);
@@ -50,6 +53,15 @@ export default function BuildPlansWizard() {
             setRestrictionEnzyme(RestrictionEnzymes.MOCLO.BSAI);
         }
     }, [assemblyMethod, setRestrictionEnzyme, restrictionEnzyme]);
+
+    const handleOpenWellLocationsConfig = () => {
+        open(MODAL_TYPES.WELL_LOCATIONS_CONFIG, {
+            allowedModals: [MODAL_TYPES.WELL_LOCATIONS_CONFIG],
+            onComplete: (data) => {
+                setWellLocationsConfig(data);
+            },
+        });
+    };
 
     return (
         <Container style={{ marginTop: 40, padding: '0 40px' }}>
@@ -144,6 +156,21 @@ export default function BuildPlansWizard() {
                                 value={machine}
                                 onChange={setMachine}
                             />
+                            <Space h='lg' />
+                            <Button
+                                variant="outline"
+                                fullWidth
+                                onClick={handleOpenWellLocationsConfig}
+                            >
+                                Well Locations & Advanced Configurations
+                            </Button>
+                            {wellLocationsConfig && (
+                                <Group spacing='xs' style={{ marginTop: 12 }}>
+                                    <span style={{ fontSize: '12px', color: '#666' }}>
+                                        ✓ Configuration saved
+                                    </span>
+                                </Group>
+                            )}
                         </Tabs.Panel>
                     </Tabs>
                 </Stepper.Step>
