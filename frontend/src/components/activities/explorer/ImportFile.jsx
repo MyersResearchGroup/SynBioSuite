@@ -16,10 +16,10 @@ export const importedFile = createContext()
 
 const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns', 'experimentalSetups']
 
-async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext) {
+async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, maxAttempts = 1000) {
     let candidate = baseName;
     let counter = 1;
-    while (true) {
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
         let jsonExists = false;
         let fileExists = false;
         try { await objectTypeDir.getFileHandle(`${candidate}.json`); jsonExists = true; } catch {}
@@ -28,6 +28,7 @@ async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext) {
         candidate = `${baseName} (${counter})`;
         counter++;
     }
+    throw new Error(`Unable to find available base name after ${maxAttempts} attempts.`);
 }
 
 export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
@@ -44,7 +45,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 fileobj: file,
                 name: file.name,
                 fileHandle: fileHandle,
-                directoryHandle: null,
+                directoryHandle: useSubdirectory ? await dirName.getDirectoryHandle(useSubdirectory, { create: true }) : null,
                 objectType: await classifyFile(fileHandle)
             };
         }
@@ -121,18 +122,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
                             await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName);
 
-                            const uploadEntry = {
-                                collectionName: collection.name || collection.displayId,
-                                uri: collection.uri,
-                                file: filePath,
-                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
-                                selectedRepo: result.sbh_credential_check?.selectedRepo,
-                                userEmail: result.sbh_credential_check?.userInfo?.email
-                            };
-
-                            await createWorkflowJSON(availableBaseName, useSubdirectory, filePath, uploadEntry);
-
-                            upload_resource(
+                            const response = await upload_resource(
                                 filePath,
                                 result.sbh_credential_check?.selectedRepo,
                                 result.authToken,
@@ -141,6 +131,19 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                                 dirName,
                                 result.sbh_overwrite
                             );
+
+                            const uploadEntry = {
+                                collectionName: collection.name || collection.displayId,
+                                uri: response.sbh_url,
+                                file: filePath,
+                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                                selectedRepo: result.sbh_credential_check?.selectedRepo,
+                                userEmail: result.sbh_credential_check?.userInfo?.email
+                            };
+
+                            console.log(response)
+
+                            await createWorkflowJSON(availableBaseName, useSubdirectory, filePath, uploadEntry);
                         } catch (err) {
                             console.error("Error saving file or creating workflow:", err);
                             showErrorNotification("Import Failed", err.message);

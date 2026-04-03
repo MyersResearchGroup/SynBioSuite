@@ -1,6 +1,7 @@
 import store from "./redux/store"
-import { isPanelOpen, panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
-import { workDirActions, writeToFileHandle, readFileFromPath } from "./redux/hooks/workingDirectoryHooks"
+import { isPanelOpen, panelsActions, panelsSelectors, serializePanel } from "./redux/hooks/panelsHooks"
+import { workDirActions, writeToFileHandle, readFileFromPath, createFileInDirectory } from "./redux/hooks/workingDirectoryHooks"
+import { ObjectTypes, BLANK_SBML } from "./objectTypes"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
 import { openUnifiedModal } from "./redux/slices/modalSlice"
@@ -78,6 +79,22 @@ export default {
                 return "Panel isn't open."
 
             await writeToFileHandle(file, serializePanel(file.id))
+
+            if (file.objectType === ObjectTypes.SBOL.id) {
+                const panel = panelsSelectors.selectById(store.getState(), file.id)
+                const sbmlContent = panel?.sbml || BLANK_SBML
+
+                const baseName = file.name.replace(/\.xml$/, '').replace(/_sbol$/, '')
+                const sbmlFileName = baseName + '_sbml.xml'
+
+                let sbmlFile = findFileByNameOrId(sbmlFileName)
+                if (!sbmlFile) {
+                    const dirHandle = store.getState().workingDirectory.directoryHandle
+                    sbmlFile = await createFileInDirectory(dirHandle, sbmlFileName, ObjectTypes.SBML.id, store.dispatch)
+                }
+
+                await writeToFileHandle(sbmlFile, sbmlContent)
+            }
         }
     },
 
@@ -215,7 +232,6 @@ export default {
             const expectedEmail = lastUpload.userEmail || null;
             const collectionDisplayId = lastUpload.uri.split('/').slice(-2, -1)[0] || lastUpload.collectionName;
             const collectionName = lastUpload.collectionName;
-            const collectionUri = lastUpload.uri;
 
             function getStoredToken() {
                 try {
@@ -274,21 +290,19 @@ export default {
                             await writable.close();
 
                             const newFilePath = `${directory}/uploads/${newFileName}`;
+                            const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
 
-                            // TODO: Remove once SBS Server implementation works correctly
-                            try{ await upload_resource(
-                                newFilePath,
+                            const response = await upload_resource(
+                                uploadPath,
                                 selectedRepo,
                                 authToken,
                                 collectionDisplayId,
                                 "",
                                 dirHandle,
                                 3
-                            );} catch (e) {
-                            }
+                            );
 
                             if (sameFilename) {
-                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
                                 const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
                                 const finalWritable = await finalFH.createWritable();
                                 await finalWritable.write(newFile);
@@ -300,7 +314,7 @@ export default {
 
                             const updateEntry = {
                                 collectionName,
-                                uri: collectionUri,
+                                uri: response.sbh_url,
                                 file: newFilePath,
                                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                                 selectedRepo,
@@ -336,6 +350,7 @@ export default {
 
                             resolve("File updated successfully.");
                         } catch (err) {
+                            try { await uploadsDir.removeEntry(stagingName); } catch {}
                             showErrorNotification("Failed to update file", err.message);
                             resolve("Failed to update file: " + err.message);
                         }

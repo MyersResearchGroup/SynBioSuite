@@ -40,7 +40,7 @@ export default function ResourcesWizard() {
                                     <strong>Collection Name: </strong>{upload.collectionName}
                                 </div>
                                 <div>
-                                    <strong>Collection URL: </strong>{upload.uri}
+                                    <strong>Collection URL: </strong><a href={upload.uri} target="_blank" rel="noopener noreferrer">{upload.uri}</a>
                                 </div>
                                 <div>
                                     <strong>Date Uploaded: </strong>{upload.date}
