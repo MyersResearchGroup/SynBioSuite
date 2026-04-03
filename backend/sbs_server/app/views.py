@@ -70,8 +70,8 @@ def sbh_fj_upload(files):
 
     required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
                        'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
-                       'sbh_collec', 'sbh_collec_desc', 
-                       'sbh_overwrite', 'fj_overwrite']
+                       'collection_url', 'sbh_overwrite', 'fj_overwrite']
+
     for param in required_params:
         if param not in params_from_request:
             return 'Parameter ' + param + ' not found in request', 400
@@ -89,29 +89,28 @@ def sbh_fj_upload(files):
         attachments = None
 
     # instantiate the XDC class using the params_from_request dictionary
-    xdc = tricahue.XDC(input_excel_path = files['Metadata'],
-            fj_url = params_from_request['fj_url'],
-            fj_user = params_from_request['fj_user'], 
-            fj_pass = params_from_request['fj_pass'], 
-            sbh_url = params_from_request['sbh_url'], 
-            sbh_user = params_from_request['sbh_user'], 
-            sbh_pass = params_from_request['sbh_pass'], 
-            sbh_collection = params_from_request['sbh_collec'], 
-            sbh_collection_description = params_from_request['sbh_collec_desc'],
-            sbh_overwrite = params_from_request['sbh_overwrite'], 
-            fj_overwrite = params_from_request['fj_overwrite'], 
-            fj_token = params_from_request['fj_token'], 
-            sbh_token = params_from_request['sbh_token'],
-            homespace = "https://example.org/", 
-            )
-
     try:
-        sbh_url = xdc.run()
+        xdc = tricahue.XDC(input_excel_path = files['Metadata'])
+        print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
+        sbh_url, fj_url = xdc.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
+                                      collection_url = params_from_request['collection_url'], 
+                                      sbh_overwrite = params_from_request['sbh_overwrite'], 
+                                      sbh_user = params_from_request['sbh_user'],
+                                      sbh_pass = params_from_request['sbh_pass'], 
+                                      sbh_token = params_from_request['sbh_token'],
+                                      fj_url = params_from_request['fj_url'],
+                                      fj_overwrite = params_from_request['fj_overwrite'], 
+                                      fj_user = params_from_request['fj_user'], 
+                                      fj_pass = params_from_request['fj_pass'],
+                                      fj_token = params_from_request['fj_token'])
     except AttributeError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
+        "fj_url": fj_url,
         "status": "success"
     }
     return jsonify(sbs_upload_response_dict)
