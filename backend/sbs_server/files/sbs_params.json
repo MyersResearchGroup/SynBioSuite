@@ -1,16 +1,17 @@
 {
-    "attachments": {"ExpNOTs_GFP_trans.xlsx": "LB", "example.jpg": "ExampleMedia"},
+    "attachments": {
+        "ExpNOTs_GFP_trans.xlsx": "LB",
+        "example.jpg": "ExampleMedia"
+    },
     "fj_overwrite": 1,
     "fj_pass": null,
     "fj_token": null,
     "fj_url": "charmmefj-api.synbiohub.org",
     "fj_user": null,
-    "sbh_collec": "sbs_backend_test",
-    "sbh_collec_desc": "Uploaded via SBS_server using XDC to SBH",
-    "sbh_overwrite": 1,
-    "sbh_pass": null,
-    "sbh_token": "6a5ef614-d6f2-46de-a551-94616944399f",
-    "sbh_url": "https://synbiohub.org",
-    "sbh_user": null,
-    "version": ""
+    "collection_url": "https://synbiohub.org/user/synbiotest/XDC_Upload_Test/XDC_Upload_Test_collection/1",
+    "sbh_overwrite": true,
+    "sbh_user": "synbiotest",
+    "sbh_pass": "test123",
+    "sbh_token": null,
+    "sbh_url": "https://api.synbiohub.org"
 }
