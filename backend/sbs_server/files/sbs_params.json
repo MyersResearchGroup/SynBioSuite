@@ -10,8 +10,8 @@
     "fj_user": null,
     "collection_url": "https://synbiohub.org/user/synbiotest/XDC_Upload_Test/XDC_Upload_Test_collection/1",
     "sbh_overwrite": true,
-    "sbh_user": "synbiotest",
-    "sbh_pass": "test123",
-    "sbh_token": null,
+    "sbh_user": null,
+    "sbh_pass": null,
+    "sbh_token": "REPLACE_WITH_SYN_BIO_HUB_TOKEN",
     "sbh_url": "https://api.synbiohub.org"
 }

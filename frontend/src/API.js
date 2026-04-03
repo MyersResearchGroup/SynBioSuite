@@ -58,6 +58,8 @@ export async function upload_resource(
             sbh_url: sbh_url,
             sbh_token: sbh_token,
             fj_url: "charmmefj-api.synbiohub.org",
+            sbh_user: null,
+            sbh_pass: null,
             fj_token: null,
             fj_user: null,
             fj_pass: null,
@@ -86,7 +88,6 @@ export async function upload_resource(
         return response.data;
     } catch (error) {
         console.error("Upload Resource error:", error);
-        showErrorNotification('Error', error.message);
         throw error;
     }
 }

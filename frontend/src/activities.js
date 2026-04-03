@@ -61,8 +61,7 @@ export const Activities = {
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
-            ObjectTypes.Assembly.id,
-            ObjectTypes.Transformations.id, 
+            ObjectTypes.BuildPlans.id, 
         ]
     },
     Test: {
@@ -72,7 +71,7 @@ export const Activities = {
         icon: BiSolidFlask,
         objectTypesToList: [
             ObjectTypes.SampleDesigns.id,
-            ObjectTypes.Experiments.id,
+            ObjectTypes.Studies.id,
             ObjectTypes.Metadata.id,
             ObjectTypes.Results.id,
             ObjectTypes.PlateReader.id
