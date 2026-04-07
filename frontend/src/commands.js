@@ -1,8 +1,12 @@
 import store from "./redux/store"
-import { isPanelOpen, panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
-import { workDirActions, writeToFileHandle } from "./redux/hooks/workingDirectoryHooks"
+import { isPanelOpen, panelsActions, panelsSelectors, serializePanel } from "./redux/hooks/panelsHooks"
+import { workDirActions, writeToFileHandle, readFileFromPath, createFileInDirectory } from "./redux/hooks/workingDirectoryHooks"
+import { ObjectTypes, BLANK_SBML } from "./objectTypes"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
+import { openUnifiedModal } from "./redux/slices/modalSlice"
+import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
+import { upload_resource, CheckLogin } from "./API"
 import * as XLSX from 'xlsx';
 
 
@@ -20,37 +24,38 @@ export default {
             }
         ],
         execute: async fileNameOrId => {
-            // try to find file by ID first, then by name
             const file = findFileByNameOrId(fileNameOrId)
-            // quit if this file doesn't exist
             if (!file)
                 return "File doesn't exist."
             
-            // delete file from disk, try to see if in subdirectory first else delete from root
+            const dirHandle = store.getState().workingDirectory.directoryHandle
             const directory = file.id.split("/")[0]
+
             try {
-                const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory);
+                const tempDirectory = await dirHandle.getDirectoryHandle(directory);
+
+                let uploadedFilePath = null;
+                try {
+                    const jsonFH = await tempDirectory.getFileHandle(file.name);
+                    const jsonText = await (await jsonFH.getFile()).text();
+                    const jsonData = JSON.parse(jsonText);
+                    uploadedFilePath = jsonData.file || null;
+                } catch (e) {}
+
                 await tempDirectory.removeEntry(file.name);
 
                 try {
-                    const uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
-                    const baseName = file.name.replace(/\.[^/.]+$/, "");
-                    
-                    for await (const entry of uploadsDir.values()) {
-                        if (entry.kind === 'file' && entry.name.startsWith(baseName + '.')) {
-                            await uploadsDir.removeEntry(entry.name);
-                        }
+                    if (uploadedFilePath) {
+                        const uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
+                        const uploadFileName = uploadedFilePath.split('/').pop();
+                        await uploadsDir.removeEntry(uploadFileName);
                     }
-                } catch (e) {
-                }
+                } catch (e) {}
             } catch {
-                await store.getState().workingDirectory.directoryHandle?.removeEntry(file.name);
+                await dirHandle?.removeEntry(file.name);
             }
 
-            // close panel if it's open
             store.dispatch(panelsActions.closePanel(file.id))
-
-            // remove file from store
             store.dispatch(workDirActions.removeFile(file.id))
         }
     },
@@ -331,19 +336,30 @@ export default {
             }
         ],
         execute: async fileNameOrId => {
-            // try to find file by ID first, then by name
             const file = findFileByNameOrId(fileNameOrId)
-
-            // quit if this file doesn't exist
             if (!file)
                 return "File doesn't exist."
 
-            // make sure panel is open
             if(!isPanelOpen(file.id))
                 return "Panel isn't open."
 
-            // save
             await writeToFileHandle(file, serializePanel(file.id))
+
+            if (file.objectType === ObjectTypes.SBOL.id) {
+                const panel = panelsSelectors.selectById(store.getState(), file.id)
+                const sbmlContent = panel?.sbml || BLANK_SBML
+
+                const baseName = file.name.replace(/\.xml$/, '').replace(/_sbol$/, '')
+                const sbmlFileName = baseName + '_sbml.xml'
+
+                let sbmlFile = findFileByNameOrId(sbmlFileName)
+                if (!sbmlFile) {
+                    const dirHandle = store.getState().workingDirectory.directoryHandle
+                    sbmlFile = await createFileInDirectory(dirHandle, sbmlFileName, ObjectTypes.SBML.id, store.dispatch)
+                }
+
+                await writeToFileHandle(sbmlFile, sbmlContent)
+            }
         }
     },
 
@@ -372,44 +388,49 @@ export default {
                     try {
                         const parts = file.id.split('/');
                         let cur = dirHandle;
-                        
                         for (let i = 0; i < parts.length - 1; i++) {
                             cur = await cur.getDirectoryHandle(parts[i]);
                         }
+                        const jsonFH = await cur.getFileHandle(parts[parts.length - 1]);
+                        const jsonText = await (await jsonFH.getFile()).text();
+                        const jsonData = JSON.parse(jsonText);
 
-                        let uploadsDir;
-
-                        try {
-                            uploadsDir = await cur.getDirectoryHandle('uploads');
-                        } catch (e) {
-                            uploadsDir = null;
-                        }
-                        
-                        if (uploadsDir) {
-                            const baseName = file.name.replace(/\.[^/.]+$/, "");
-                            let foundUpload = null;
-                            
-                            for await (const entry of uploadsDir.values()) {
-                                if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") === baseName) {
-                                    foundUpload = entry;
-                                    break;
-                                }
-                            }
-                            
-                            if (foundUpload) {
-                                const fh = await uploadsDir.getFileHandle(foundUpload.name);
-                                fileData = await fh.getFile();
-                                downloadName = foundUpload.name;
-                            }
-                        }
-
-                        // If not found in uploads, fallback to original file
-                        if (!fileData) {
-                            const fh = await cur.getFileHandle(parts[parts.length - 1]);
-                            fileData = await fh.getFile();
+                        if (jsonData.file) {
+                            fileData = await readFileFromPath(dirHandle, jsonData.file);
+                            downloadName = jsonData.file.split('/').pop();
+                        } else {
+                            fileData = await jsonFH.getFile();
                         }
                     } catch (err) {
-                        console.warn('Failed to read file from directoryHandle', err);
+                        try {
+                            const parts = file.id.split('/');
+                            let cur = dirHandle;
+                            for (let i = 0; i < parts.length - 1; i++) {
+                                cur = await cur.getDirectoryHandle(parts[i]);
+                            }
+
+                            let uploadsDir = null;
+                            try { uploadsDir = await cur.getDirectoryHandle('uploads'); } catch (e) {}
+
+                            if (uploadsDir) {
+                                const baseName = file.name.replace(/\.[^/.]+$/, "");
+                                for await (const entry of uploadsDir.values()) {
+                                    if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") === baseName) {
+                                        const fh = await uploadsDir.getFileHandle(entry.name);
+                                        fileData = await fh.getFile();
+                                        downloadName = entry.name;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!fileData) {
+                                const fh = await cur.getFileHandle(parts[parts.length - 1]);
+                                fileData = await fh.getFile();
+                            }
+                        } catch (fallbackErr) {
+                            console.warn('Failed to read file from directoryHandle', fallbackErr);
+                        }
                     }
                 } else {
                     console.warn('No usable directoryHandle in store. directoryHandle:', dirHandle);
@@ -447,85 +468,208 @@ export default {
             const file = findFileByNameOrId(fileNameOrId);
             if (!file) return "File doesn't exist.";
 
-            // Create a file input element
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.style.display = 'none';
-            document.body.appendChild(input);
+            const dirHandle = store.getState().workingDirectory.directoryHandle;
+            const directory = file.id.split("/")[0];
 
-            // Return a promise that resolves when file is selected
-            return new Promise((resolve, reject) => {
-                input.onchange = async (e) => {
-                    const newFile = e.target.files[0];
-                    if (!newFile) {
+            let jsonData = null;
+            let tempDirectory = null;
+
+            try {
+                tempDirectory = await dirHandle.getDirectoryHandle(directory);
+                const jsonFH = await tempDirectory.getFileHandle(file.name);
+                const jsonText = await (await jsonFH.getFile()).text();
+                jsonData = JSON.parse(jsonText);
+            } catch (e) {
+                showErrorNotification("Failed to read workflow file", e.message);
+                return "Failed to read workflow file.";
+            }
+
+            const lastUpload = jsonData.uploads?.length
+                ? jsonData.uploads[jsonData.uploads.length - 1]
+                : null;
+
+            if (!lastUpload?.selectedRepo || !lastUpload?.uri) {
+                showErrorNotification("Cannot update", "No prior upload record with repository information found.");
+                return "No prior upload record found.";
+            }
+
+            const selectedRepo = lastUpload.selectedRepo;
+            const expectedEmail = lastUpload.userEmail || null;
+            const collectionDisplayId = lastUpload.uri.split('/').slice(-2, -1)[0] || lastUpload.collectionName;
+            const collectionName = lastUpload.collectionName;
+
+            function getStoredToken() {
+                try {
+                    const stored = localStorage.getItem('SynbioHub');
+                    if (!stored) return null;
+                    const repos = JSON.parse(stored);
+                    const entry = repos.find(r => r.value === selectedRepo);
+                    return entry?.authtoken || null;
+                } catch { return null; }
+            }
+
+            async function performUpdate(authToken) {
+                return new Promise((resolve) => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+
+                    input.oncancel = () => {
                         document.body.removeChild(input);
-                        showErrorNotification("Unable to update", "No file selected");
-                        return resolve("No file selected.");
-                    }
-
-                    // Get file extensions
-                    const getExtension = (filename) => {
-                        const match = filename.match(/\.[^/.]+$/);
-                        return match ? match[0] : '';
+                        showNotification({ title: "File update cancelled", message: "The file update was cancelled." });
+                        resolve("File update cancelled.");
                     };
 
-                    const originalExt = getExtension(file.name);
-                    const newFileExt = getExtension(newFile.name);
-
-                    // Verify extensions match
-                    if (originalExt !== newFileExt) {
+                    input.onchange = async (e) => {
+                        const newFile = e.target.files[0];
                         document.body.removeChild(input);
-                        showErrorNotification("File type mismatch", `Expected ${originalExt} but got ${newFileExt}`);
-                        return resolve(`File type mismatch. Expected ${originalExt} but got ${newFileExt}`);
-                    }
 
-                    const directory = file.id.split("/")[0];
-                    try {
-                        const tempDirectory = await store.getState().workingDirectory.directoryHandle.getDirectoryHandle(directory);
-                        
-                        // Get or create uploads directory
-                        let uploadsDir;
-                        try {
-                            uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
-                        } catch {
-                            uploadsDir = await tempDirectory.getDirectoryHandle('uploads', { create: true });
+                        if (!newFile) {
+                            showErrorNotification("Unable to update", "No file selected");
+                            return resolve("No file selected.");
                         }
 
-                        // Remove old upload file(s) for this base name
-                        const baseName = file.name.replace(/\.[^/.]+$/, "");
-                        for await (const entry of uploadsDir.values()) {
-                            if (entry.kind === 'file' && entry.name.startsWith(baseName + '.')) {
-                                await uploadsDir.removeEntry(entry.name);
+                        const getExtension = (n) => { const m = n.match(/\.[^/.]+$/); return m ? m[0] : ''; };
+                        const existingFileName = jsonData.file ? jsonData.file.split('/').pop() : null;
+
+                        if (existingFileName) {
+                            const originalExt = getExtension(existingFileName);
+                            const newFileExt = getExtension(newFile.name);
+                            if (originalExt !== newFileExt) {
+                                showErrorNotification("File type mismatch", `Expected ${originalExt} but got ${newFileExt}`);
+                                return resolve(`File type mismatch. Expected ${originalExt} but got ${newFileExt}`);
                             }
                         }
 
-                        // Write the new file with the original file's name
-                        const targetFileName = baseName + originalExt;
-                        const newFileHandle = await uploadsDir.getFileHandle(targetFileName, { create: true });
-                        const writable = await newFileHandle.createWritable();
-                        await writable.write(newFile);
-                        await writable.close();
+                        try {
+                            const uploadsDir = await tempDirectory.getDirectoryHandle('uploads', { create: true });
 
-                        document.body.removeChild(input);
-                        resolve("File updated successfully.");
-                    } catch (e) {
-                        document.body.removeChild(input);
-                        showErrorNotification("Failed to update file", e.message);
-                        reject("Failed to update file in uploads subdirectory: " + e.message);
+                            const newFileName = newFile.name;
+                            const sameFilename = existingFileName && existingFileName === newFileName;
+
+                            const stagingName = sameFilename ? `__tmp__${newFileName}` : newFileName;
+                            const stagingFH = await uploadsDir.getFileHandle(stagingName, { create: true });
+                            const writable = await stagingFH.createWritable();
+                            await writable.write(newFile);
+                            await writable.close();
+
+                            const newFilePath = `${directory}/uploads/${newFileName}`;
+                            const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
+
+                            const response = await upload_resource(
+                                uploadPath,
+                                selectedRepo,
+                                authToken,
+                                collectionDisplayId,
+                                "",
+                                dirHandle,
+                                3
+                            );
+
+                            if (sameFilename) {
+                                const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
+                                const finalWritable = await finalFH.createWritable();
+                                await finalWritable.write(newFile);
+                                await finalWritable.close();
+                                try { await uploadsDir.removeEntry(stagingName); } catch {}
+                            } else if (existingFileName) {
+                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
+                            }
+
+                            const updateEntry = {
+                                collectionName,
+                                uri: response.sbh_url,
+                                file: newFilePath,
+                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                                selectedRepo,
+                                userEmail: expectedEmail,
+                                type: 'update',
+                            };
+
+                            const updatedJson = {
+                                ...jsonData,
+                                file: newFilePath,
+                                uploads: [...(jsonData.uploads ?? []), updateEntry],
+                            };
+
+                            const jsonFH = await tempDirectory.getFileHandle(file.name);
+                            await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
+
+                            // Sync Redux panel state so PanelSaver doesn't overwrite with stale data
+                            if (isPanelOpen(file.id)) {
+                                store.dispatch(panelsActions.updateOne({
+                                    id: file.id,
+                                    changes: {
+                                        file: newFilePath,
+                                        uploads: updatedJson.uploads,
+                                    }
+                                }))
+                            }
+
+                            showNotification({
+                                title: "File updated",
+                                message: `${newFileName} uploaded successfully to ${collectionName}.`,
+                                color: "green",
+                            });
+
+                            resolve("File updated successfully.");
+                        } catch (err) {
+                            try { await uploadsDir.removeEntry(stagingName); } catch {}
+                            showErrorNotification("Failed to update file", err.message);
+                            resolve("Failed to update file: " + err.message);
+                        }
+                    };
+
+                    input.click();
+                });
+            }
+
+            const storedToken = getStoredToken();
+            if (storedToken) {
+                try {
+                    const loginResult = await CheckLogin(selectedRepo, storedToken);
+                    if (loginResult.valid) {
+                        const actualEmail = loginResult.profile?.email || '';
+                        if (!expectedEmail || actualEmail.toLowerCase() === expectedEmail.toLowerCase()) {
+                            return await performUpdate(storedToken);
+                        }
                     }
-                };
+                } catch {}
+            }
 
-                input.oncancel = () => {
-                    document.body.removeChild(input);
-                    showNotification({
-                        title: "File update cancelled",
-                        message: "The file update was cancelled.",
-                    });
-                    resolve("File update cancelled.");
-                };
+            return new Promise((resolve) => {
+                store.dispatch(openUnifiedModal({
+                    modalType: MODAL_TYPES.COLLECTION_BROWSER,
+                    allowedModals: [
+                        MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                        MODAL_TYPES.COLLECTION_BROWSER,
+                        MODAL_TYPES.SBH_LOGIN,
+                        MODAL_TYPES.CREATE_COLLECTION,
+                    ],
+                    props: {
+                        selectedRepo,
+                        expectedEmail,
+                        skipRepositorySelection: true,
+                        silentCredentialCheck: true,
+                        multiSelect: false,
+                        rootOnly: true,
+                    },
+                    callback: async (result) => {
+                        if (!result?.completed) {
+                            showNotification({ title: "Update cancelled", message: "Authentication was cancelled." });
+                            return resolve("Update cancelled.");
+                        }
 
-                // Trigger the file picker
-                input.click();
+                        const authToken = result.authToken;
+                        if (!authToken) {
+                            showErrorNotification("Authentication failed", "Could not obtain a valid auth token.");
+                            return resolve("Authentication failed.");
+                        }
+
+                        resolve(await performUpdate(authToken));
+                    },
+                }));
             });
         }
     },
