@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import FolderSelect from './FolderSelect'
 import { ActionIcon, Center, Text, Tooltip } from '@mantine/core'
 import ExplorerList from './ExplorerList'
@@ -7,7 +6,7 @@ import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 import { openDirectory } from '../../../redux/slices/modalSlice'
 import { useDispatch } from 'react-redux'
-import { checkAndClearOnVersionMismatch, APP_VERSION } from '../../../version'
+import { APP_VERSION } from '../../../version'
 
 function checkDirectoryVersion(dispatch) {
     dispatch(openDirectory())
@@ -15,10 +14,6 @@ function checkDirectoryVersion(dispatch) {
 
 export default function ExplorerActivityView({objectTypesToList }) {
     const dispatch = useDispatch()
-
-    useEffect(() => {
-        checkAndClearOnVersionMismatch()
-    }, [])
 
     const [, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
 
