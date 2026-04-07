@@ -7,7 +7,7 @@ import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 import { openDirectory } from '../../../redux/slices/modalSlice'
 import { useDispatch } from 'react-redux'
-import { checkAndClearOnVersionMismatch } from '../../../version'
+import { checkAndClearOnVersionMismatch, APP_VERSION } from '../../../version'
 
 function checkDirectoryVersion(dispatch) {
     dispatch(openDirectory())
@@ -43,6 +43,9 @@ export default function ExplorerActivityView({objectTypesToList }) {
                     Switch Folder
                 </FolderSelect>
             </Center>
+            <Center mt={4}>
+                <Text size="xs" color="dimmed" style={{ fontSize: '0.7rem' }}>v{APP_VERSION}</Text>
+            </Center>
             <Tooltip label="Refresh working directory">
                 <ActionIcon sx={refreshButtonStyle} onClick={refreshWorkDir}>
                     <IoRefreshOutline />
@@ -53,6 +56,9 @@ export default function ExplorerActivityView({objectTypesToList }) {
             <Text align='center' size='xs' mt={20}>There's no folder opened.</Text>
             <Center mt={20}>
                 <FolderSelect onSelect={handleDirectorySelection} />
+            </Center>
+            <Center mt={4}>
+                <Text size="xs" color="dimmed" style={{ fontSize: '0.7rem' }}>v{APP_VERSION}</Text>
             </Center>
         </>
 }
