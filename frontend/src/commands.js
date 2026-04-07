@@ -78,8 +78,11 @@ export default {
             const ext = file.name.split('.').pop().toLowerCase();
             const state = store.getState().workingDirectory;
             const isExcelExt = value => /\.(xls|xlsx|xlsm)$/i.test(value || "");
+            const workflowDir = file.id.includes('/') ? file.id.split('/').slice(0, -1).join('/') : '';
 
-            const readFileFromId = async targetId => {
+            const normalizePath = value => value?.replace(/^\/+|\/+$/g, '') || '';
+
+            const readFileFromId = async (targetId, preferredBaseDir = '') => {
                 const entity = state.entities[targetId];
                 if (entity?.data) {
                     return {
@@ -113,51 +116,71 @@ export default {
                 }
             };
 
-            const readExcelFromIdWithUploadsFallback = async targetId => {
-                const direct = await readFileFromId(targetId);
-                if (!direct) return null;
+            const readExcelFromIdWithUploadsFallback = async (targetId, preferredBaseDir = '') => {
+                const normalizedTarget = normalizePath(targetId);
+                const candidatePaths = [normalizedTarget];
 
-                const targetExt = (direct.fileName.split('.').pop() || '').toLowerCase();
-                const baseName = direct.fileName.replace(/\.[^/.]+$/, "");
-                const dirHandle = state.directoryHandle;
-
-                if (dirHandle && typeof dirHandle.getFileHandle === 'function') {
-                    try {
-                        const parts = targetId.split('/');
-                        let cur = dirHandle;
-                        for (let i = 0; i < parts.length - 1; i++) {
-                            cur = await cur.getDirectoryHandle(parts[i]);
-                        }
-
-                        let uploadsDir;
-                        try {
-                            uploadsDir = await cur.getDirectoryHandle('uploads');
-                        } catch {
-                            uploadsDir = null;
-                        }
-
-                        if (uploadsDir) {
-                            for await (const entry of uploadsDir.values()) {
-                                if (entry.kind !== 'file') continue;
-                                const entryBase = entry.name.replace(/\.[^/.]+$/, "");
-                                const entryExt = (entry.name.split('.').pop() || '').toLowerCase();
-
-                                if (entryBase === baseName && entryExt === targetExt) {
-                                    const fh = await uploadsDir.getFileHandle(entry.name);
-                                    const uploadFile = await fh.getFile();
-                                    return {
-                                        fileData: uploadFile,
-                                        fileName: entry.name,
-                                        fileId: `${parts.slice(0, -1).join('/')}/uploads/${entry.name}`
-                                    };
-                                }
-                            }
-                        }
-                    } catch {
-                    }
+                if (preferredBaseDir && !normalizedTarget.includes('/')) {
+                    candidatePaths.push(`${preferredBaseDir}/${normalizedTarget}`);
+                    candidatePaths.push(`${preferredBaseDir}/uploads/${normalizedTarget}`);
                 }
 
-                return direct;
+                if (!normalizedTarget.includes('/')) {
+                    candidatePaths.push(`uploads/${normalizedTarget}`);
+                }
+
+                const seen = new Set();
+                for (const candidate of candidatePaths) {
+                    if (!candidate || seen.has(candidate)) continue;
+                    seen.add(candidate);
+
+                    const direct = await readFileFromId(candidate, preferredBaseDir);
+                    if (!direct) continue;
+
+                    const targetExt = (direct.fileName.split('.').pop() || '').toLowerCase();
+                    const baseName = direct.fileName.replace(/\.[^/.]+$/, "");
+                    const dirHandle = state.directoryHandle;
+
+                    if (dirHandle && typeof dirHandle.getFileHandle === 'function') {
+                        try {
+                            const parts = candidate.split('/');
+                            let cur = dirHandle;
+                            for (let i = 0; i < parts.length - 1; i++) {
+                                cur = await cur.getDirectoryHandle(parts[i]);
+                            }
+
+                            let uploadsDir;
+                            try {
+                                uploadsDir = await cur.getDirectoryHandle('uploads');
+                            } catch {
+                                uploadsDir = null;
+                            }
+
+                            if (uploadsDir) {
+                                for await (const entry of uploadsDir.values()) {
+                                    if (entry.kind !== 'file') continue;
+                                    const entryBase = entry.name.replace(/\.[^/.]+$/, "");
+                                    const entryExt = (entry.name.split('.').pop() || '').toLowerCase();
+
+                                    if (entryBase === baseName && entryExt === targetExt) {
+                                        const fh = await uploadsDir.getFileHandle(entry.name);
+                                        const uploadFile = await fh.getFile();
+                                        return {
+                                            fileData: uploadFile,
+                                            fileName: entry.name,
+                                            fileId: `${parts.slice(0, -1).join('/')}/uploads/${entry.name}`
+                                        };
+                                    }
+                                }
+                            }
+                        } catch {
+                        }
+                    }
+
+                    return direct;
+                }
+
+                return null;
             };
 
             let fileData = state.entities[file.id]?.data;
@@ -176,11 +199,19 @@ export default {
 
                 let referencedPath = null;
                 let excelFileName = null;
+                let latestUploadPath = null;
 
                 try {
                     const json = typeof jsonText === 'string' ? JSON.parse(jsonText) : jsonText;
                     if (typeof json?.file === 'string' && isExcelExt(json.file)) {
                         referencedPath = json.file;
+                    }
+
+                    if (!referencedPath && Array.isArray(json?.uploads) && json.uploads.length > 0) {
+                        const lastUpload = json.uploads[json.uploads.length - 1];
+                        if (typeof lastUpload?.file === 'string' && isExcelExt(lastUpload.file)) {
+                            latestUploadPath = lastUpload.file;
+                        }
                     }
 
                     if (!referencedPath) {
@@ -216,19 +247,19 @@ export default {
                 }
 
                 if (!referencedPath && !excelFileName) {
-                    return "No Excel file reference found in JSON.";
+                    referencedPath = latestUploadPath;
                 }
 
                 let resolvedExcel = null;
 
                 if (referencedPath) {
-                    resolvedExcel = await readExcelFromIdWithUploadsFallback(referencedPath);
+                    resolvedExcel = await readExcelFromIdWithUploadsFallback(referencedPath, workflowDir);
                 }
 
                 if (!resolvedExcel && excelFileName) {
                     const excelEntity = Object.values(state.entities).find(entity => entity.name === excelFileName);
                     if (excelEntity) {
-                        resolvedExcel = await readExcelFromIdWithUploadsFallback(excelEntity.id);
+                        resolvedExcel = await readExcelFromIdWithUploadsFallback(excelEntity.id, workflowDir);
                     }
                 }
 

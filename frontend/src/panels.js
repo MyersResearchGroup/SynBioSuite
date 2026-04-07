@@ -20,7 +20,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.resources",
         title: "Uploader",
         component: ResourcesPanel,
-        objectTypes: [ ObjectTypes.Resources.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id ],
+        objectTypes: [ ObjectTypes.Resources.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id ],
         icon: FaFileArchive,
 
         deserialize: content => {
@@ -126,18 +126,6 @@ export const PanelTypes = {
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
-    },
-    ExcelFile: {
-        id: "synbio.panel-type.excel-file",
-        title: "Experimental Setup",
-        component: ExcelFilePanel,
-        objectTypes: [ObjectTypes.Metadata.id],
-        icon: PiMicrosoftExcelLogoFill,
-        deserialize: content => ({
-            file: content
-        }),
-        serialize: panel => panel.file,
-        useBuffer: true
     },
     SynBioHub: {
         id: "synbio.panel-type.synbiohub",
