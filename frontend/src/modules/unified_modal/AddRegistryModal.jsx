@@ -156,6 +156,9 @@ export default function AddRegistryModal({ opened, onClose, onAdd, title, existi
                             onChange={setURIHost}
                             placeholder="synbiohub.org"
                         />
+                        <Text size="xs" color="red" mt={4} style={{ fontSize: '12px' }}>
+                            *The Registry URL and Registry Prefix should normally be the same value. These usually only differ when you are debugging using a local registry.
+                        </Text>
                     </div>
                 )}
 

@@ -137,7 +137,7 @@ export const ObjectTypes = {
         icon: MdAlignVerticalTop,
         createable: false,
         importable: true,
-        subdirectory: "experimentalSetups",
+        subdirectory: "studies",
         downloadable: true,
     },
     Results: {

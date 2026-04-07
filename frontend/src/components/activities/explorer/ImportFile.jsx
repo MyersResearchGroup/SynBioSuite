@@ -30,7 +30,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     .catch(() => dirName.getDirectoryHandle(useSubdirectory, { create: true }));
 
                 // TODO: Automatically generate this
-                if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns' || useSubdirectory === "experimentalSetups") {
+                if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns') {
                     directoryHandle = await directoryHandle.getDirectoryHandle("uploads", { create: false })
                         .catch(() => directoryHandle.getDirectoryHandle("uploads", { create: true }));
                 }
@@ -97,7 +97,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     jsonFileHandle.objectType = ObjectTypes.Strains.id;
                 } else if (useSubdirectory === 'sampleDesigns') {
                     jsonFileHandle.objectType = ObjectTypes.SampleDesigns.id;
-                } else if (useSubdirectory === 'experimentalSetups') {
+                } else if (useSubdirectory === 'studies') {
                     jsonFileHandle.objectType = ObjectTypes.Metadata.id;
                 }
                 
@@ -121,7 +121,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 setSelectedFile(fileMetadata)
                 
                 // TODO: Automatically generate this list
-                if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns' || useSubdirectory === "experimentalSetups") {
+                if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns') {
                     await createWorkflowJSON(fileMetadata.name, useSubdirectory);
                 }
 

@@ -1,7 +1,6 @@
 import store from "./redux/store"
 import { isPanelOpen, panelsActions, serializePanel } from "./redux/hooks/panelsHooks"
 import { workDirActions, writeToFileHandle } from "./redux/hooks/workingDirectoryHooks"
-import { useOpenPanel } from "./redux/hooks/panelsHooks"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
 
