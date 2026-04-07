@@ -11,9 +11,9 @@ export default function App() {
     return (
         <BrowserRouter>
             <LoadingOverlay
-                loaderProps={{ size: 'lg', color: 'pink', variant: 'bars' }}
+                loaderProps={{ size: 'lg', color: 'blue', variant: 'bars' }}
                 overlayOpacity={.8}
-                overlayColor="#c5c5c5"
+                overlayColor="#454545"
                 visible={visible}
             />
             <Routes>
