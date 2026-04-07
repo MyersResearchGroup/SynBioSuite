@@ -519,14 +519,14 @@ export default {
                 ? jsonData.uploads[jsonData.uploads.length - 1]
                 : null;
 
-            if (!lastUpload?.selectedRepo || !lastUpload?.uri) {
+            if (!lastUpload?.selectedRepo || !(lastUpload?.collectionUri || lastUpload?.uri)) {
                 showErrorNotification("Cannot update", "No prior upload record with repository information found.");
                 return "No prior upload record found.";
             }
 
             const selectedRepo = lastUpload.selectedRepo;
             const expectedEmail = lastUpload.userEmail || null;
-            const collectionDisplayId = lastUpload.uri.split('/').slice(-2, -1)[0] || lastUpload.collectionName;
+            const collectionUrl = lastUpload.collectionUri || lastUpload.uri;
             const collectionName = lastUpload.collectionName;
 
             function getStoredToken() {
@@ -534,9 +534,78 @@ export default {
                     const stored = localStorage.getItem('SynbioHub');
                     if (!stored) return null;
                     const repos = JSON.parse(stored);
-                    const entry = repos.find(r => r.value === selectedRepo);
+                    const entry = repos.find(r => r.registryURL === selectedRepo);
                     return entry?.authtoken || null;
                 } catch { return null; }
+            }
+
+            async function resolveAuthToken() {
+                const storedToken = getStoredToken();
+
+                if (storedToken) {
+                    try {
+                        const loginResult = await CheckLogin(selectedRepo, storedToken);
+                        const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+                        if (loginResult.valid) {
+                            if (!expectedEmail || actualEmail === expectedEmail.toLowerCase()) {
+                                return storedToken;
+                            }
+
+                            showErrorNotification(
+                                "Authentication failed",
+                                `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+                            );
+                            return null;
+                        }
+                    } catch {}
+                }
+
+                const modalResult = await new Promise((resolve) => {
+                    store.dispatch(openUnifiedModal({
+                        modalType: MODAL_TYPES.SBH_LOGIN,
+                        allowedModals: [
+                            MODAL_TYPES.SBH_LOGIN,
+                            MODAL_TYPES.ADD_SBH_REPO,
+                        ],
+                        props: {
+                            selectedRepo,
+                        },
+                        callback: (result) => resolve(result || null),
+                    }));
+                });
+
+                if (!modalResult?.completed) {
+                    showNotification({ title: "Update cancelled", message: "Login was cancelled." });
+                    return null;
+                }
+
+                const refreshedToken = getStoredToken();
+                if (!refreshedToken) {
+                    showErrorNotification("Authentication failed", "No token found after login.");
+                    return null;
+                }
+
+                try {
+                    const loginResult = await CheckLogin(selectedRepo, refreshedToken);
+                    if (!loginResult.valid) {
+                        showErrorNotification("Authentication failed", "Token is invalid or expired after login.");
+                        return null;
+                    }
+
+                    const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+                    if (expectedEmail && actualEmail !== expectedEmail.toLowerCase()) {
+                        showErrorNotification(
+                            "Authentication failed",
+                            `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+                        );
+                        return null;
+                    }
+
+                    return refreshedToken;
+                } catch (err) {
+                    showErrorNotification("Authentication failed", err.message || "Unable to validate login token.");
+                    return null;
+                }
             }
 
             async function performUpdate(authToken) {
@@ -592,8 +661,7 @@ export default {
                                 uploadPath,
                                 selectedRepo,
                                 authToken,
-                                collectionDisplayId,
-                                "",
+                                collectionUrl,
                                 dirHandle,
                                 3
                             );
@@ -610,6 +678,7 @@ export default {
 
                             const updateEntry = {
                                 collectionName,
+                                collectionUri: collectionUrl,
                                 uri: response.sbh_url,
                                 file: newFilePath,
                                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
@@ -656,52 +725,12 @@ export default {
                 });
             }
 
-            const storedToken = getStoredToken();
-            if (storedToken) {
-                try {
-                    const loginResult = await CheckLogin(selectedRepo, storedToken);
-                    if (loginResult.valid) {
-                        const actualEmail = loginResult.profile?.email || '';
-                        if (!expectedEmail || actualEmail.toLowerCase() === expectedEmail.toLowerCase()) {
-                            return await performUpdate(storedToken);
-                        }
-                    }
-                } catch {}
+            const authToken = await resolveAuthToken();
+            if (!authToken) {
+                return "Authentication token not available.";
             }
 
-            return new Promise((resolve) => {
-                store.dispatch(openUnifiedModal({
-                    modalType: MODAL_TYPES.COLLECTION_BROWSER,
-                    allowedModals: [
-                        MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                        MODAL_TYPES.COLLECTION_BROWSER,
-                        MODAL_TYPES.SBH_LOGIN,
-                        MODAL_TYPES.CREATE_COLLECTION,
-                    ],
-                    props: {
-                        selectedRepo,
-                        expectedEmail,
-                        skipRepositorySelection: true,
-                        silentCredentialCheck: true,
-                        multiSelect: false,
-                        rootOnly: true,
-                    },
-                    callback: async (result) => {
-                        if (!result?.completed) {
-                            showNotification({ title: "Update cancelled", message: "Authentication was cancelled." });
-                            return resolve("Update cancelled.");
-                        }
-
-                        const authToken = result.authToken;
-                        if (!authToken) {
-                            showErrorNotification("Authentication failed", "Could not obtain a valid auth token.");
-                            return resolve("Authentication failed.");
-                        }
-
-                        resolve(await performUpdate(authToken));
-                    },
-                }));
-            });
+            return await performUpdate(authToken);
         }
     },
 }

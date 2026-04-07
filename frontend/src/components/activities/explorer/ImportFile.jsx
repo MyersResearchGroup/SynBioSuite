@@ -10,8 +10,7 @@ import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import { workingDirectorySlice } from "../../../redux/store";
 import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
-import { openUnifiedModal } from "../../../redux/slices/modalSlice";
-import { MODAL_TYPES } from "../../../modules/unified_modal/unifiedModal";
+import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 
 export const importedFile = createContext()
 
@@ -37,6 +36,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
     const dirName = useSelector(state => state.workingDirectory.directoryHandle)
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
+    const { workflows } = useUnifiedModal()
     const { actions } = workingDirectorySlice
 
     const isWorkflowImport = WORKFLOW_SUBDIRS.includes(useSubdirectory)
@@ -75,7 +75,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
         await writable.close();
     }
 
-    async function createWorkflowJSON(availableBaseName, objectType, filePath, initialUpload) {
+    async function createWorkflowJSON(availableBaseName, objectType, filePath, collection, initialUpload) {
         try {
             const directory = await dirName.getDirectoryHandle(objectType, { create: true });
             const jsonFileName = `${availableBaseName}.json`;
@@ -84,7 +84,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
             const defaultWorkflow = {
                 activeStep: 0,
                 file: filePath,
-                collection: {},
+                collection: collection || {},
                 uploads: initialUpload ? [initialUpload] : []
             };
 
@@ -109,24 +109,10 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
     async function runImportCollectionWorkflow() {
         return new Promise((resolve) => {
-            dispatch(openUnifiedModal({
-                modalType: MODAL_TYPES.REPOSITORY_SELECTOR,
-                allowedModals: [
-                    MODAL_TYPES.REPOSITORY_SELECTOR,
-                    MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                    MODAL_TYPES.COLLECTION_BROWSER,
-                    MODAL_TYPES.ADD_SBH_REPO,
-                    MODAL_TYPES.SBH_LOGIN,
-                    MODAL_TYPES.CREATE_COLLECTION,
-                ],
-                props: {
-                    multiSelect: false,
-                    rootOnly: true,
-                },
-                callback: (result) => {
-                    resolve(result || null)
-                },
-            }))
+            workflows.browseCollections(resolve, {
+                multiSelect: false,
+                rootOnly: true,
+            })
         })
     }
 
@@ -166,9 +152,11 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     return
                 }
 
-                const collectionDisplayId = selectedCollection.uri.split('/').slice(-2, -1)[0]
-                    || selectedCollection.displayId
+                const collectionUrl = selectedCollection.uri
+                const collectionDisplayId = selectedCollection.displayId
+                    || collectionUrl.split('/').slice(-2, -1)[0]
                     || selectedCollection.name
+                    || collectionUrl
 
                 await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
 
@@ -176,15 +164,24 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     uploadedFilePath,
                     selectedRepo,
                     authToken,
-                    collectionDisplayId,
-                    "",
+                    collectionUrl,
                     dirName,
                     modalResult.sbh_overwrite ?? 0
                 )
 
+                const collectionData = {
+                    name: selectedCollection.name || collectionDisplayId,
+                    displayId: collectionDisplayId,
+                    uri: collectionUrl,
+                    selectedRepo,
+                    userEmail: modalResult.userInfo?.email || null,
+                }
+
                 const initialUpload = {
-                    collectionName: selectedCollection.name || selectedCollection.displayId || collectionDisplayId,
-                    uri: uploadResponse?.sbh_url || selectedCollection.uri,
+                    collectionName: collectionData.name,
+                    collectionUri: collectionUrl,
+                    collectionDisplayId,
+                    uri: uploadResponse?.sbh_url || collectionUrl,
                     file: uploadedFilePath,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
@@ -192,7 +189,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                     type: 'initial',
                 }
 
-                await createWorkflowJSON(availableBaseName, useSubdirectory, uploadedFilePath, initialUpload)
+                await createWorkflowJSON(availableBaseName, useSubdirectory, uploadedFilePath, collectionData, initialUpload)
                 return
             }
 
