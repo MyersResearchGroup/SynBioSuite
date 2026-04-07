@@ -335,6 +335,37 @@ export async function CheckLogin(instance, authToken){
     }
 }
 
+
+export async function getWebOfRegistries() {
+    try {
+        const response = await axios.get('https://wor.synbiohub.org/instances/');
+        
+        if (!Array.isArray(response.data)) {
+            throw new Error("Response from Web of Registries is not an array");
+        }
+
+        // Map the WoR data to our registry format
+        const registries = response.data.map(item => ({
+            registryURL: item.uriPrefix,
+            registryAPI: item.instanceUrl,
+            registryPrefix: item.uriPrefix,
+            name: item.name,
+            description: item.description || '',
+            email: '',
+            authtoken: '',
+            username: '',
+            affiliation: ''
+        }));
+
+        return registries;
+    } catch (error) {
+        console.error("Get Web of Registries error:", error);
+        showErrorNotification('Error', 'Failed to fetch registries from Web of Registries: ' + error.message);
+        throw error;
+    }
+}
+
+
 // Function to clear invalid credentials from local storage
 export function clearInvalidCredentials(instanceUrl) {
     try {
