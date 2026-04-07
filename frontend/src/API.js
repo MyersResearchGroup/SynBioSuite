@@ -34,8 +34,7 @@ export async function upload_resource(
     file,
     sbh_url,
     sbh_token,
-    sbh_collec,
-    sbh_collec_desc,
+    collectionUrl,
     workingDirectory = null,
     sbh_overwrite = 0
 ) {
@@ -63,8 +62,7 @@ export async function upload_resource(
             fj_token: null,
             fj_user: null,
             fj_pass: null,
-            sbh_collec: sbh_collec,
-            sbh_collec_desc: sbh_collec_desc,
+            collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
