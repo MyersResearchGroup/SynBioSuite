@@ -55,6 +55,7 @@ export default function CollectionBrowserModal({
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
     const credentialCheckDoneRef = useRef(false);
+    const rowClickTimeoutRef = useRef(null);
 
     const selectedRepo = selectedRepoFromProps || modalData.selectedRepo || dataPrimarySBH;
     const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
@@ -68,6 +69,9 @@ export default function CollectionBrowserModal({
             isMountedRef.current = false;
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
+            }
+            if (rowClickTimeoutRef.current) {
+                clearTimeout(rowClickTimeoutRef.current);
             }
         };
     }, []);
@@ -281,11 +285,26 @@ export default function CollectionBrowserModal({
     }, []);
 
     const handleDoubleClick = useCallback(async (collection) => {
+        if (rowClickTimeoutRef.current) {
+            clearTimeout(rowClickTimeoutRef.current);
+            rowClickTimeoutRef.current = null;
+        }
         if(rootOnly) return null;
         setBreadcrumbs(prev => [...prev, { name: collection.name || collection.displayId, uri: collection.uri }]);
         setCurrentPath(prev => [...prev, collection.uri]);
         await fetchCollections(collection.uri);
     }, [fetchCollections]);
+
+    const handleRowClick = useCallback((collection) => {
+        if (rowClickTimeoutRef.current) {
+            clearTimeout(rowClickTimeoutRef.current);
+        }
+
+        rowClickTimeoutRef.current = setTimeout(() => {
+            toggleSelection(collection);
+            rowClickTimeoutRef.current = null;
+        }, 200);
+    }, [toggleSelection]);
 
     const navigateToBreadcrumb = useCallback((index) => {
         const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
@@ -341,38 +360,6 @@ export default function CollectionBrowserModal({
                 ))}
             </Breadcrumbs>
 
-            {selectedCollections.size > 0 && (
-                <Paper p="sm" withBorder>
-                    <Text size="sm" weight={500} mb="xs">
-                        {multiSelect 
-                            ? `Selected Collections (${selectedCollections.size})` 
-                            : `Selected Collection`
-                        }
-                    </Text>
-                    <Group spacing="xs">
-                        {Array.from(selectedCollections.values()).map(collection => (
-                            <Badge
-                                key={collection.uri}
-                                rightSection={
-                                    <ActionIcon
-                                        size="xs"
-                                        color="blue"
-                                        radius="xl"
-                                        variant="transparent"
-                                        onClick={() => removeSelection(collection.uri)}
-                                    >
-                                        <FaTimes size={10} />
-                                    </ActionIcon>
-                                }
-                                pr={3}
-                            >
-                                {collection.displayId}
-                            </Badge>
-                        ))}
-                    </Group>
-                </Paper>
-            )}
-
 
             <Group position="right" mb={0} mt="xs">
                 <Tooltip label="Refresh collections list">
@@ -425,13 +412,16 @@ export default function CollectionBrowserModal({
                                 {collections.map((collection) => (
                                     <tr
                                         key={collection.uri}
+                                        onClick={() => handleRowClick(collection)}
                                         onDoubleClick={() => handleDoubleClick(collection)}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
                                                 e.preventDefault();
-                                                handleDoubleClick(collection);
+                                                toggleSelection(collection);
                                             }
                                         }}
+                                        tabIndex={0}
+                                        role="button"
                                         style={{ cursor: 'pointer' }}
                                     >
                                         <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
@@ -464,7 +454,38 @@ export default function CollectionBrowserModal({
                     </div>
                 )}
             </ScrollArea>
-
+            
+            {selectedCollections.size > 0 && (
+                <Paper p="sm" withBorder>
+                    <Text size="sm" weight={500} mb="xs">
+                        {multiSelect 
+                            ? `Selected Collections (${selectedCollections.size})` 
+                            : `Selected Collection`
+                        }
+                    </Text>
+                    <Group spacing="xs">
+                        {Array.from(selectedCollections.values()).map(collection => (
+                            <Badge
+                                key={collection.uri}
+                                rightSection={
+                                    <ActionIcon
+                                        size="xs"
+                                        color="blue"
+                                        radius="xl"
+                                        variant="transparent"
+                                        onClick={() => removeSelection(collection.uri)}
+                                    >
+                                        <FaTimes size={10} />
+                                    </ActionIcon>
+                                }
+                                pr={3}
+                            >
+                                {collection.displayId}
+                            </Badge>
+                        ))}
+                    </Group>
+                </Paper>
+            )}
 
             <Group position="right" mt="md">
                 <Checkbox
