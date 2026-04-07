@@ -5,6 +5,7 @@ import { ObjectTypes, BLANK_SBML } from "./objectTypes"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
 import { openUnifiedModal } from "./redux/slices/modalSlice"
+import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
 import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
 import { upload_resource, CheckLogin } from "./API"
 import * as XLSX from 'xlsx';
@@ -657,14 +658,20 @@ export default {
                             const newFilePath = `${directory}/uploads/${newFileName}`;
                             const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
 
-                            const response = await upload_resource(
-                                uploadPath,
-                                selectedRepo,
-                                authToken,
-                                collectionUrl,
-                                dirHandle,
-                                3
-                            );
+                            store.dispatch(loadOverlay())
+                            let response
+                            try {
+                                response = await upload_resource(
+                                    uploadPath,
+                                    selectedRepo,
+                                    authToken,
+                                    collectionUrl,
+                                    dirHandle,
+                                    3
+                                );
+                            } finally {
+                                store.dispatch(closeOverlay())
+                            }
 
                             if (sameFilename) {
                                 const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });

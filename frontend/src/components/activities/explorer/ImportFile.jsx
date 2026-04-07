@@ -11,6 +11,7 @@ import { workingDirectorySlice } from "../../../redux/store";
 import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
+import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
 
 export const importedFile = createContext()
 
@@ -160,14 +161,20 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
                 await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
 
-                const uploadResponse = await upload_resource(
-                    uploadedFilePath,
-                    selectedRepo,
-                    authToken,
-                    collectionUrl,
-                    dirName,
-                    modalResult.sbh_overwrite ?? 0
-                )
+                dispatch(loadOverlay())
+                let uploadResponse
+                try {
+                    uploadResponse = await upload_resource(
+                        uploadedFilePath,
+                        selectedRepo,
+                        authToken,
+                        collectionUrl,
+                        dirName,
+                        modalResult.sbh_overwrite ?? 0
+                    )
+                } finally {
+                    dispatch(closeOverlay())
+                }
 
                 const collectionData = {
                     name: selectedCollection.name || collectionDisplayId,
