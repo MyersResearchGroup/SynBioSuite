@@ -16,7 +16,8 @@ import {
     Paper,
     Divider,
     ActionIcon,
-    Tooltip
+    Tooltip,
+    TextInput
 } from '@mantine/core';
 import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
@@ -51,6 +52,7 @@ export default function CollectionBrowserModal({
     const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
     const [currentPath, setCurrentPath] = useState([]);
     const [overwrite, setOverwrite] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
@@ -346,6 +348,13 @@ export default function CollectionBrowserModal({
         onCancel ? onCancel() : goBack();
     }, [onCancel, goBack]);
 
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    const filteredCollections = normalizedSearch
+        ? collections.filter(collection =>
+            (collection.displayId || '').toLowerCase().includes(normalizedSearch)
+        )
+        : collections;
+
     return (
         <Stack spacing="md" style={{ height: '70vh', display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'stretch', padding: 0 }}>
             <Breadcrumbs style={{ width: '100%' }}>
@@ -360,6 +369,7 @@ export default function CollectionBrowserModal({
                 ))}
             </Breadcrumbs>
 
+            
 
             <Group position="right" mb={0} mt="xs">
                 <Tooltip label="Refresh collections list">
@@ -378,6 +388,12 @@ export default function CollectionBrowserModal({
                 </Button>
             </Group>
 
+            <TextInput
+                placeholder="Search by Display ID"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.currentTarget.value)}
+            />
+
             <Divider />
 
             <ScrollArea style={{ flex: 1, width: '100%', overflowX: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0, alignItems: 'stretch' }} type="always">
@@ -391,7 +407,7 @@ export default function CollectionBrowserModal({
                     </Center>
                 ) : (
                     <div style={{ flex: 1, display: 'flex', minHeight: 0, alignItems: 'stretch', width: '100%' }}>
-                        <Table highlightOnHover withColumnBorders style={{ display: 'block', width: '100%', tableLayout: 'fixed', minWidth: '100%', flex: '1 1 auto' }}>
+                        <Table highlightOnHover withColumnBorders style={{ width: '100%', tableLayout: 'fixed', minWidth: '100%', flex: '1 1 auto' }}>
                             <colgroup>
                                 <col style={{ width: '10%' }} />
                                 <col style={{ width: '20%' }} />
@@ -409,46 +425,54 @@ export default function CollectionBrowserModal({
                                 </tr>
                             </thead>
                             <tbody>
-                                {collections.map((collection) => (
-                                    <tr
-                                        key={collection.uri}
-                                        onClick={() => handleRowClick(collection)}
-                                        onDoubleClick={() => handleDoubleClick(collection)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                toggleSelection(collection);
-                                            }
-                                        }}
-                                        tabIndex={0}
-                                        role="button"
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                            {multiSelect ? (
-                                                <Checkbox
-                                                    checked={selectedCollections.has(collection.uri)}
-                                                    onChange={() => toggleSelection(collection)}
-                                                />
-                                            ) : (
-                                                <Radio
-                                                    checked={selectedCollections.has(collection.uri)}
-                                                    onChange={() => toggleSelection(collection)}
-                                                />
-                                            )}
-                                        </td>
-                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.displayId}</td>
-                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.name}</td>
-                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.version}</td>
-                                        <td style={{ 
-                                            overflowWrap: 'break-word',
-                                            wordBreak: 'break-word',
-                                            whiteSpace: 'normal'
-                                        }}>
-                                            {collection.description}
+                                {filteredCollections.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--mantine-color-dimmed)', padding: '1rem' }}>
+                                            No collections match the Display ID search
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    filteredCollections.map((collection) => (
+                                        <tr
+                                            key={collection.uri}
+                                            onClick={() => handleRowClick(collection)}
+                                            onDoubleClick={() => handleDoubleClick(collection)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    toggleSelection(collection);
+                                                }
+                                            }}
+                                            tabIndex={0}
+                                            role="button"
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                                {multiSelect ? (
+                                                    <Checkbox
+                                                        checked={selectedCollections.has(collection.uri)}
+                                                        onChange={() => toggleSelection(collection)}
+                                                    />
+                                                ) : (
+                                                    <Radio
+                                                        checked={selectedCollections.has(collection.uri)}
+                                                        onChange={() => toggleSelection(collection)}
+                                                    />
+                                                )}
+                                            </td>
+                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.displayId}</td>
+                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.name}</td>
+                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.version}</td>
+                                            <td style={{ 
+                                                overflowWrap: 'break-word',
+                                                wordBreak: 'break-word',
+                                                whiteSpace: 'normal'
+                                            }}>
+                                                {collection.description}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </Table>
                     </div>
