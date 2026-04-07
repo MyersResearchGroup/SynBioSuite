@@ -26,14 +26,15 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
     }
 
     // command list
-    const contextMenuCommands = importable ? [
+    let contextMenuCommands = importable ? [
         commands.FileDownload,
         commands.FileUpdate,
+        commands.FileView,
         commands.FileDelete
     ] : [
         commands.FileDownload,
         commands.FileDelete
-    ]
+    ];
 
     return (
         <Menu
