@@ -109,7 +109,7 @@ export default function CredentialCheckModal({
                             validated: true,
                         }));
                         
-                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER);
+                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
                         return;
                     }
                     
@@ -182,13 +182,14 @@ export default function CredentialCheckModal({
 
         setModalData?.(prev => ({ 
             ...prev, 
+            selectedRepo,
             userInfo,
             authToken: getRepoInfo()?.authtoken,
             validated: skipRepositorySelection ? true : undefined,
         }));
 
-        navigateTo(MODAL_TYPES.COLLECTION_BROWSER);
-    }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection]);
+        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
+    }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection, selectedRepo]);
 
     const handleLogout = useCallback(async () => {
         const repoInfo = getRepoInfo();

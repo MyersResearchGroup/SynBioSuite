@@ -46,9 +46,10 @@ export default function RepositorySelectorModal({
             return;
         }
 
+        setDataPrimarySBH(selectedRepo);
         setModalData?.(prev => ({ ...prev, selectedRepo }));
         navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK, { selectedRepo });
-    }, [selectedRepo, navigateTo, setModalData]);
+    }, [selectedRepo, navigateTo, setModalData, setDataPrimarySBH]);
 
     const handleRemoveInstance = useCallback(() => {
         if (!selectedRepo || selectedRepo === 'add-repository' || selectedRepo.startsWith('Select')) return;

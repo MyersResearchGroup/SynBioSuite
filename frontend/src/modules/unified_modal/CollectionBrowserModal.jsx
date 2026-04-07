@@ -204,6 +204,8 @@ export default function CollectionBrowserModal({
         try {
             const authToken = getAuthToken();
             const url = selectedRepo || dataPrimarySBH;
+            const repoInfo = dataSBH.find(r => r.registryURL === url);
+            const registryAPI = repoInfo?.registryAPI || url;
 
             if (!url || url.startsWith('Select')) {
                 setCollections([]);
@@ -213,10 +215,8 @@ export default function CollectionBrowserModal({
             let result;
             
             if (!parentUri) {
-                result = await searchCollections(url, authToken);
+                result = await searchCollections(registryAPI, authToken);
             } else {
-                const repoInfo = dataSBH.find(r => r.registryURL === url);
-                const registryAPI = repoInfo?.registryAPI || url;
                 const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
                 
                 const response = await fetch(searchUrl, {
@@ -254,7 +254,7 @@ export default function CollectionBrowserModal({
                 setLoading(false);
             }
         }
-    }, [selectedRepo, dataPrimarySBH, getAuthToken]);
+    }, [selectedRepo, dataPrimarySBH, dataSBH, getAuthToken]);
 
     useEffect(() => {
         fetchCollections();
