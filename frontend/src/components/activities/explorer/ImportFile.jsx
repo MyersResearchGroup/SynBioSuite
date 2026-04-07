@@ -9,8 +9,27 @@ import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import { workingDirectorySlice } from "../../../redux/store";
 import { showErrorNotification } from "../../../modules/util";
+import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
+import { upload_resource } from "../../../API";
 
 export const importedFile = createContext()
+
+const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns', 'experimentalSetups']
+
+async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, maxAttempts = 1000) {
+    let candidate = baseName;
+    let counter = 1;
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
+        let jsonExists = false;
+        let fileExists = false;
+        try { await objectTypeDir.getFileHandle(`${candidate}.json`); jsonExists = true; } catch {}
+        try { await uploadsDir.getFileHandle(`${candidate}${ext}`); fileExists = true; } catch {}
+        if (!jsonExists && !fileExists) return candidate;
+        candidate = `${baseName} (${counter})`;
+        counter++;
+    }
+    throw new Error(`Unable to find available base name after ${maxAttempts} attempts.`);
+}
 
 export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
         const [selectedFile, setSelectedFile] = useState(null)
@@ -18,11 +37,9 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
         const dispatch = useDispatch()
         const openPanel = useOpenPanel()
         const { actions } = workingDirectorySlice
-
-
+        const { workflows } = useUnifiedModal()
 
         async function addFileMetadata(fileHandle) {
-            let directoryHandle = null;
             const file = await fileHandle.getFile();
 
             if (useSubdirectory) {
@@ -40,75 +57,53 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 fileobj: file,
                 name: file.name,
                 fileHandle: fileHandle,
-                directoryHandle: directoryHandle,
+                directoryHandle: useSubdirectory ? await dirName.getDirectoryHandle(useSubdirectory, { create: true }) : null,
                 objectType: await classifyFile(fileHandle)
             };
         }
 
-        async function createWorkflowJSON(fileName, objectType) {
+        async function saveFileToUploads(fileObj, objectType, actualFileName) {
+            const subDir = await dirName.getDirectoryHandle(objectType, { create: true });
+            const uploadsDir = await subDir.getDirectoryHandle('uploads', { create: true });
+            const fileHandle = await uploadsDir.getFileHandle(actualFileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            const arrayBuffer = await fileObj.arrayBuffer();
+            await writable.write(arrayBuffer);
+            await writable.close();
+        }
+
+        async function createWorkflowJSON(availableBaseName, objectType, filePath, initialUpload) {
             try {
                 const directory = await dirName.getDirectoryHandle(objectType, { create: true });
-                const baseFileName = fileName.replace(/\.[^/.]+$/, "");
-                const jsonFileName = `${baseFileName}.json`;
-
-                let fileExists = false;
-                for await (const entry of directory.values()) {
-                    if (entry.kind === 'file' && entry.name === jsonFileName) {
-                        fileExists = true;
-                        break;
-                    }
-                }
-
-                if (!fileExists) {
-                    try {
-                        const uploadsDir = await directory.getDirectoryHandle("uploads", { create: false });
-                        for await (const entry of uploadsDir.values()) {
-                            if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") == baseFileName) {
-                                fileExists = true;
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                    }
-                }
-
-                if (fileExists) {
-                    showErrorNotification('Same Filename', "SynbioSuite currently does not support uploading multiple files of same name.");
-                    return;
-                }
-
+                const jsonFileName = `${availableBaseName}.json`;
                 const jsonFileHandle = await directory.getFileHandle(jsonFileName, { create: true });
-                
+
                 const defaultWorkflow = {
                     activeStep: 0,
-                    file: `${objectType}/uploads/${fileName}`,
+                    file: filePath,
                     collection: {},
-                    uploads: []
+                    uploads: initialUpload ? [initialUpload] : []
                 };
-                
+
                 await writeToFileHandle(jsonFileHandle, JSON.stringify(defaultWorkflow));
-                
+
                 jsonFileHandle.id = `${objectType}/${jsonFileName}`;
 
-                // TODO: Assign programatically
-                if (useSubdirectory === 'resources') {
+                if (objectType === 'resources') {
                     jsonFileHandle.objectType = ObjectTypes.Resources.id;
-                } else if (useSubdirectory === 'strains') {
+                } else if (objectType === 'strains') {
                     jsonFileHandle.objectType = ObjectTypes.Strains.id;
-                } else if (useSubdirectory === 'sampleDesigns') {
+                } else if (objectType === 'sampleDesigns') {
                     jsonFileHandle.objectType = ObjectTypes.SampleDesigns.id;
-                } else if (useSubdirectory === 'studies') {
-                    jsonFileHandle.objectType = ObjectTypes.Metadata.id;
                 }
-                
+
                 dispatch(actions.addFile(jsonFileHandle));
-                
                 openPanel(jsonFileHandle);
             } catch (err) {
                 console.error("Error creating resource workflow JSON:", err);
             }
         }
-        
+
         const handleClick = async () => {
             try {
                 const [fileHandle] = await window.showOpenFilePicker({
@@ -127,7 +122,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
                 onSelect?.(fileMetadata)
             } catch (err) {
-                console.error("File selection canceled or failed", err)
+                console.warn("File selection canceled or failed", err)
             }
         }
             

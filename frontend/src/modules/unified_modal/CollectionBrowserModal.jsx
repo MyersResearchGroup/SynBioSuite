@@ -319,7 +319,7 @@ export default function CollectionBrowserModal({
         completeWorkflow({
             collections: Array.from(selectedCollections.values()),
             count: selectedCollections.size,
-            sbh_overwrite: overwrite,
+            sbh_overwrite: overwrite ? 2 : 0,
         });
     }, [selectedCollections, overwrite, completeWorkflow]);
 

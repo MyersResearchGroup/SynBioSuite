@@ -37,7 +37,7 @@ export async function upload_resource(
     sbh_collec,
     sbh_collec_desc,
     workingDirectory = null,
-    sbh_overwrite = false
+    sbh_overwrite = 0
 ) {
     try {
         let data = new FormData();
@@ -57,15 +57,15 @@ export async function upload_resource(
         const paramsObj = {
             sbh_url: sbh_url,
             sbh_token: sbh_token,
+            fj_url: "charmmefj-api.synbiohub.org",
             sbh_user: null,
             sbh_pass: null,
-            fj_url: "charmmefj-api.synbiohub.org",
             fj_token: null,
             fj_user: null,
             fj_pass: null,
             sbh_collec: sbh_collec,
             sbh_collec_desc: sbh_collec_desc,
-            sbh_overwrite: sbh_overwrite ? 2 : 0,
+            sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
             attachments: {}
@@ -88,7 +88,6 @@ export async function upload_resource(
         return response.data;
     } catch (error) {
         console.error("Upload Resource error:", error);
-        showErrorNotification('Error', error.message);
         throw error;
     }
 }
