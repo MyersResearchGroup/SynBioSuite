@@ -41,6 +41,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
         async function addFileMetadata(fileHandle) {
             const file = await fileHandle.getFile();
+            let directoryHandle = null;
 
             if (useSubdirectory) {
                 directoryHandle = await dirName.getDirectoryHandle(useSubdirectory, { create: false })
@@ -57,7 +58,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 fileobj: file,
                 name: file.name,
                 fileHandle: fileHandle,
-                directoryHandle: useSubdirectory ? await dirName.getDirectoryHandle(useSubdirectory, { create: true }) : null,
+                directoryHandle,
                 objectType: await classifyFile(fileHandle)
             };
         }
@@ -117,7 +118,8 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 
                 // TODO: Automatically generate this list
                 if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns') {
-                    await createWorkflowJSON(fileMetadata.name, useSubdirectory);
+                    const uploadedFilePath = `${useSubdirectory}/uploads/${fileMetadata.name}`
+                    await createWorkflowJSON(fileMetadata.name, useSubdirectory, uploadedFilePath);
                 }
 
                 onSelect?.(fileMetadata)
