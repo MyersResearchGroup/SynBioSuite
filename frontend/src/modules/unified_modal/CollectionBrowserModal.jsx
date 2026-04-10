@@ -219,6 +219,8 @@ export default function CollectionBrowserModal({
             if (!parentUri) {
                 result = await searchCollections(registryAPI, authToken);
             } else {
+                const repoInfo = dataSBH.find(r => r.registryURL === url);
+                const registryAPI = repoInfo?.registryAPI || url;
                 const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
                 
                 const response = await fetch(searchUrl, {

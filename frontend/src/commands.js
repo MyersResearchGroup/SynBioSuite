@@ -291,7 +291,7 @@ export default {
             const workbook = XLSX.read(buffer, { type: 'array' });
 
             const sheetTabs = workbook.SheetNames.map((name, idx) =>
-                `<button class="excel-tab" onclick="showSheet('${name.replace(/'/g, "\\'")}')" id="tab-${idx}">${name}</button>`
+                `<button class="excel-tab" data-sheet-name="${name}" id="tab-${idx}">${name}</button>`
             ).join('');
 
             const sheetsHtml = workbook.SheetNames.map((name, idx) => {
@@ -336,9 +336,21 @@ export default {
                             document.getElementById('tab-' + idx).classList.toggle('active', n === name);
                         });
                     }
-                    // Set first tab active on load
                     window.onload = function() {
-                        document.getElementById('tab-0').classList.add('active');
+                        var tabs = document.querySelectorAll('.excel-tab');
+                        tabs.forEach(function(tab) {
+                            tab.addEventListener('click', function() {
+                                var name = tab.getAttribute('data-sheet-name');
+                                showSheet(name);
+                            });
+                        });
+                        if (tabs.length > 0) {
+                            tabs[0].classList.add('active');
+                            var firstSheet = document.getElementById('sheet-0');
+                            if (firstSheet) {
+                                firstSheet.style.display = 'block';
+                            }
+                        }
                     };
                 </script>
                 </head>
@@ -658,8 +670,8 @@ export default {
                             const newFilePath = `${directory}/uploads/${newFileName}`;
                             const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
 
-                            store.dispatch(loadOverlay())
-                            let response
+                            store.dispatch(loadOverlay());
+                            let response;
                             try {
                                 response = await upload_resource(
                                     uploadPath,
@@ -670,7 +682,7 @@ export default {
                                     3
                                 );
                             } finally {
-                                store.dispatch(closeOverlay())
+                                store.dispatch(closeOverlay());
                             }
 
                             if (sameFilename) {

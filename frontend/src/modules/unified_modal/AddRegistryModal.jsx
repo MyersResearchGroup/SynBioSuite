@@ -1,4 +1,4 @@
-import { Modal, TextInput, Button, Group, Select, Stack, ActionIcon, Text } from '@mantine/core';
+import { Modal, TextInput, Button, Group, Select, Stack, Text } from '@mantine/core';
 import { useState } from 'react';
 import { showNotification } from '@mantine/notifications';
 import { AiOutlinePlus, AiOutlineMinus } from 'react-icons/ai';
