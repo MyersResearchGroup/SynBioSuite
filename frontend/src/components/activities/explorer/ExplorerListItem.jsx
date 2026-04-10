@@ -25,11 +25,22 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
         setContextMenuOpen(true)
     }
 
+    const supportsFileView = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
+            return true
+        }
+        if (/\.json$/i.test(fileName)) {
+            return true
+        }
+        return false
+    }
+
     // command list
     let contextMenuCommands = importable ? [
         commands.FileDownload,
-        commands.FileUpdate,
-        commands.FileView,
+        ...(supportsFileView() ? [commands.FileUpdate] : []),
+        ...(supportsFileView() ? [commands.FileView] : []),
         commands.FileDelete
     ] : [
         commands.FileDownload,

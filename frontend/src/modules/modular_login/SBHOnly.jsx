@@ -1,59 +1,11 @@
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Modal, Group } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
-import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
-
-const login = async (instance, email, password) => {
-    try {
-        showNotification({
-            title: 'Logging in',
-            message: 'Please wait...',
-            color: 'blue',
-            loading: true,
-        });
-        const response = await axios.post(`${instance}/login`, {
-            "email": email,
-            "password": password
-        }, {
-            headers: {
-                'accept': 'text/plain',
-                'Content-Type': 'application/json',
-            }
-        });
-        if(response.data){
-            let data = await getProfile(instance, response.data);
-            data.auth = response.data;
-            return data;
-        }
-    } catch (error) {
-        cleanNotifications();
-        console.error('Error:', error);
-        throw error;
-    }
-};
-
-const getProfile = async (instance, auth) => {
-    try {
-        const response = await axios.get(`${instance}/profile`, {
-            headers: {
-                'Accept': 'text/plain; charset=UTF-8',
-                "X-authorization" : `${auth}`
-            }
-        });
-        if(response.data){
-            cleanNotifications();
-            return response.data;
-        }
-    } catch (error) {
-        cleanNotifications();
-        console.error('Error:', error);
-        throw error;
-    }
-};
+import { SBHLogin, CheckLogin } from '../../API';
 
 const SBHOnly = ({opened, onClose, goBack}) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
@@ -87,16 +39,37 @@ const SBHOnly = ({opened, onClose, goBack}) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
+                showNotification({
+                    title: 'Logging in',
+                    message: 'Please wait...',
+                    color: 'blue',
+                    loading: true,
+                });
+                
                 const selectedInstance = getSelectedInstance();
                 const registryAPI = selectedInstance?.registryAPI || selected;
-                const info = await login(registryAPI, values.email, values.password);
+                
+                const authToken = await SBHLogin(registryAPI, values.email, values.password);
+                const loginResult = await CheckLogin(registryAPI, authToken);
+                
+                if (!loginResult.valid) {
+                    cleanNotifications();
+                    showNotification({
+                        title: 'Login failed',
+                        message: 'Unable to verify login. Please try again.',
+                        color: 'red',
+                    });
+                    return;
+                }
+                
+                const info = loginResult.profile;
                 
                 const updatedInstance = { 
                     registryURL: selected, 
                     registryAPI,
                     registryPrefix: selectedInstance?.registryPrefix || selected,
                     email: info.email, 
-                    authtoken: info.auth,
+                    authtoken: authToken,
                     name: info.name,
                     username: info.username,
                     affiliation: info.affiliation
@@ -109,6 +82,7 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                 setInstanceData(updatedInstanceData);
                 setSelected(updatedInstance.registryURL);
                 
+                cleanNotifications();
                 showNotification({
                     title: 'Login successful',
                     message: 'You have successfully logged in.',
@@ -116,17 +90,18 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                 });                
                 onClose()
             } catch (error) {
+                cleanNotifications();
                 console.error('Login failed:', error);
-                if(error.status === 401){
+                if(error.response?.status === 401){
                     showNotification({
                         title: 'Login failed',
                         message: 'Please check your credentials and try again.',
                         color: 'red',
                     });
-                } else {
+                } else if(error.message){
                     showNotification({
                         title: 'Login failed',
-                        message: 'An error occurred. Please try again and make sure your repository is online.',
+                        message: error.message || 'An error occurred. Please try again and make sure your repository is online.',
                         color: 'red',
                     });
                 }

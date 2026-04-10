@@ -211,8 +211,20 @@ function UnifiedModal({
             ...modalProps,
         };
 
+        const getStoredRegistries = (key) => {
+            const rawStored = localStorage.getItem(key);
+            if (!rawStored) {
+                return [];
+            }
+            try {
+                const parsed = JSON.parse(rawStored);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                return [];
+            }
+        };
         const addRegistryToStorage = (key, data) => {
-            const stored = JSON.parse(localStorage.getItem(key)) || [];
+            const stored = getStoredRegistries(key);
             if (stored.some(item => item.registryURL === data.registryURL)) {
                 return;
             }
