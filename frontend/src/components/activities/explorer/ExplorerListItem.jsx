@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import DragObject from '../../DragObject'
+import { getPanelTypeForObject } from '../../../panels'
 
 
 export default function ExplorerListItem({ fileId, icon, importable }) {
@@ -12,8 +13,17 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
 
     // handle opening of file
     const openPanel = useOpenPanel()
-    const handleOpenFile = () => {
-        openPanel(file)
+    const handleOpenFile = async () => {
+        const hasWorkflowPanel = !!getPanelTypeForObject(file?.objectType)
+        if (hasWorkflowPanel) {
+            openPanel(file)
+            return
+        }
+
+        if (supportsFileView()) {
+            await commands.FileView.execute(fileId)
+            return
+        }
     }
 
     // context menu states

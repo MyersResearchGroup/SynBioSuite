@@ -8,8 +8,8 @@ import { openUnifiedModal } from "./redux/slices/modalSlice"
 import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
 import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
 import { upload_resource, CheckLogin } from "./API"
-import * as XLSX from 'xlsx';
 
+const EXCEL_VIEWER_PANEL_TYPE = 'synbio.panel-type.excel-viewer'
 
 export default {
     FileDelete: {
@@ -288,83 +288,39 @@ export default {
             }
 
             const buffer = fileData instanceof Blob ? await fileData.arrayBuffer() : fileData;
-            const workbook = XLSX.read(buffer, { type: 'array' });
+            const panelId = `${file.id}::view`;
+            const legacyPanel = panelsSelectors.selectById(store.getState(), file.id);
 
-            const sheetTabs = workbook.SheetNames.map((name, idx) =>
-                `<button class="excel-tab" data-sheet-name="${name}" id="tab-${idx}">${name}</button>`
-            ).join('');
+            // Clean up old excel-viewer instances that used the file id directly.
+            if (file.id !== panelId && legacyPanel?.type === EXCEL_VIEWER_PANEL_TYPE) {
+                store.dispatch(panelsActions.closePanel(file.id));
+            }
 
-            const sheetsHtml = workbook.SheetNames.map((name, idx) => {
-                const sheet = workbook.Sheets[name];
-                let html = XLSX.utils.sheet_to_html(sheet);
-                html = html.replace(/<h2>.*?<\/h2>/, '');
-                return `<div class="excel-sheet" id="sheet-${idx}" style="display:${idx === 0 ? 'block' : 'none'}">${html}</div>`;
-            }).join('');
+            const panelState = {
+                id: panelId,
+                type: EXCEL_VIEWER_PANEL_TYPE,
+                name: `${downloadName} (view)`,
+                file: buffer,
+                fileHandle: {
+                    id: panelId,
+                    name: downloadName,
+                    objectType: file.objectType,
+                }
+            };
 
-            const viewerHtml = `<!DOCTYPE html>
-                <html>
-                <head>
-                <title>Excel Viewer</title>
-                <style>
-                    body { font-family: sans-serif; padding: 16px; }
-                    .excel-tabs { margin-bottom: 16px; }
-                    .excel-tab {
-                        background: #f0f0f0;
-                        border: 1px solid #ccc;
-                        border-bottom: none;
-                        padding: 8px 16px;
-                        margin-right: 2px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        outline: none;
+            if (isPanelOpen(panelId)) {
+                store.dispatch(panelsActions.updateOne({
+                    id: panelId,
+                    changes: {
+                        name: panelState.name,
+                        file: panelState.file,
+                        fileHandle: panelState.fileHandle,
                     }
-                    .excel-tab.active {
-                        background: #fff;
-                        border-bottom: 2px solid #0078d4;
-                        font-weight: bold;
-                    }
-                    .excel-sheet { width: 100%; }
-                    table { border-collapse: collapse; width: 100%; }
-                    td, th { border: 1px solid #ccc; padding: 4px 8px; font-size: 13px; }
-                    th { background: #f0f0f0; }
-                </style>
-                <script>
-                    function showSheet(name) {
-                        var names = ${JSON.stringify(workbook.SheetNames)};
-                        names.forEach(function(n, idx) {
-                            document.getElementById('sheet-' + idx).style.display = (n === name) ? 'block' : 'none';
-                            document.getElementById('tab-' + idx).classList.toggle('active', n === name);
-                        });
-                    }
-                    window.onload = function() {
-                        var tabs = document.querySelectorAll('.excel-tab');
-                        tabs.forEach(function(tab) {
-                            tab.addEventListener('click', function() {
-                                var name = tab.getAttribute('data-sheet-name');
-                                showSheet(name);
-                            });
-                        });
-                        if (tabs.length > 0) {
-                            tabs[0].classList.add('active');
-                            var firstSheet = document.getElementById('sheet-0');
-                            if (firstSheet) {
-                                firstSheet.style.display = 'block';
-                            }
-                        }
-                    };
-                </script>
-                </head>
-                <body>
-                    <div class="excel-tabs">${sheetTabs}</div>
-                    ${sheetsHtml}
-                </body>
-                </html>`;
-
-            const blob = new Blob([viewerHtml], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+                }));
+                store.dispatch(panelsActions.setActive(panelId));
+            } else {
+                store.dispatch(panelsActions.openPanel(panelState));
+            }
         }
     },
 
@@ -380,6 +336,11 @@ export default {
             }
         ],
         execute: async fileNameOrId => {
+            const panel = panelsSelectors.selectById(store.getState(), fileNameOrId)
+            if (panel?.type === EXCEL_VIEWER_PANEL_TYPE) {
+                return
+            }
+
             const file = findFileByNameOrId(fileNameOrId)
             if (!file)
                 return "File doesn't exist."

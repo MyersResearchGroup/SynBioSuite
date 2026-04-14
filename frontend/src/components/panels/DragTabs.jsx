@@ -123,7 +123,7 @@ export default function DragTabs({
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}>
-                <Tabs variant="outline" styles={tabsStyles} value={active} keepMounted = {false} >
+                <Tabs style={tabsRootStyle} variant="outline" styles={tabsStyles} value={active} keepMounted = {false} >
                     <Tabs.List>
                         {tabIds.map((id, i) =>
                             <TabComponent
@@ -143,7 +143,15 @@ export default function DragTabs({
 }
 
 const containerStyle = {
-    minHeight: '100vh'
+    height: '100%',
+    minHeight: 0,
+}
+
+const tabsRootStyle = {
+    height: '100%',
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column'
 }
 
 const scrollBarWidth = 8
@@ -169,7 +177,10 @@ const tabsStyles = theme => ({
         }
     },
     panel: {
-        padding: 0
+        padding: 0,
+        height: '100%',
+        minHeight: 0,
+        overflow: 'hidden'
     },
     tabsListWrapper: {
         overflowX: 'scroll',    // fallback
