@@ -1,0 +1,19 @@
+/* Customize top navigation color for MkDocs default theme */
+.navbar,
+.navbar-default {
+  background-color: #3146A8;
+  border-color: #3146A8;
+}
+
+.navbar-default .navbar-brand,
+.navbar-default .navbar-nav > li > a {
+  color: #ffffff;
+}
+
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus,
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-brand:focus {
+  color: #ffffff;
+  opacity: 0.9;
+}

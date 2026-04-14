@@ -1,0 +1,27 @@
+site_name: SynBioSuite
+site_description: Documentation for the current repository state of SynBioSuite
+repo_name: MyersResearchGroup/SynBioSuite
+repo_url: https://github.com/MyersResearchGroup/SynBioSuite
+edit_uri: ''
+theme:
+  name: mkdocs
+nav:
+  - Home: index.md
+  - Users:
+      - Overview: users/index.md
+      - Activities: users/activities.md
+      - Panels: users/panels.md
+  - Developers:
+      - Overview: developers/index.md
+      - Architecture: developers/architecture.md
+      - Frontend: developers/frontend.md
+      - Backend: developers/backend.md
+      - Infrastructure / Deployment: developers/infrastructure-deployment.md
+      - Known Gaps: developers/known-gaps.md
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/extra.css
