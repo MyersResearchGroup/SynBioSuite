@@ -9,7 +9,8 @@ export default function DragTabs({
     tabIds,
     active,
     onSelect,
-    onReorder
+    onReorder,
+    keepMounted = false,
 }) {
 
     // drag states
@@ -123,7 +124,7 @@ export default function DragTabs({
                 onMouseUp={handleMouseUp}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}>
-                <Tabs style={tabsRootStyle} variant="outline" styles={tabsStyles} value={active} keepMounted = {false} >
+                <Tabs style={tabsRootStyle} variant="outline" styles={tabsStyles} value={active} keepMounted={keepMounted} >
                     <Tabs.List>
                         {tabIds.map((id, i) =>
                             <TabComponent
