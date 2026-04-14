@@ -16,6 +16,16 @@ import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
 
 
 export const PanelTypes = {
+    ExcelViewer: {
+        id: "synbio.panel-type.excel-viewer",
+        title: "Excel Viewer",
+        component: ExcelFilePanel,
+        objectTypes: [],
+        icon: PiMicrosoftExcelLogoFill,
+
+        deserialize: () => ({}),
+        serialize: () => ''
+    },
     Resources: {
         id: "synbio.panel-type.resources",
         title: "Uploader",
@@ -146,5 +156,5 @@ export function getPanelType(id) {
 }
 
 export function getPanelTypeForObject(objectType) {
-    return Object.values(PanelTypes).find(pt => pt.objectTypes.includes(objectType))
+    return Object.values(PanelTypes).find(pt => Array.isArray(pt.objectTypes) && pt.objectTypes.includes(objectType))
 }
