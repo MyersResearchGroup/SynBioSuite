@@ -18,6 +18,10 @@ export const PanelTypes = {
     Resources: {
         id: "synbio.panel-type.resources",
         title: "Uploader",
+        tooltip: {
+            description: "Upload and organize resource and package files.",
+            instructions: "Use the form in this panel to add files and track uploads."
+        },
         component: ResourcesPanel,
         objectTypes: [ ObjectTypes.Resources.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id ],
         icon: FaFileArchive,
@@ -39,6 +43,10 @@ export const PanelTypes = {
     Simulator: {
         id: "synbio.panel-type.simulator",
         title: "iBioSim Analysis",
+        tooltip: {
+            description: "Configure and run simulation analysis workflows.",
+            instructions: "Complete setup steps, run analysis, and review results tabs."
+        },
         component: SimulatorPanel,
         objectTypes: [ ObjectTypes.Analysis.id, ObjectTypes.SBML.id ],
         icon: SimulationIcon,
@@ -67,6 +75,10 @@ export const PanelTypes = {
     SBOLEditor: {
         id: "synbio.panel-type.sbol-editor",
         title: "SBOL Canvas",
+        tooltip: {
+            description: "Visual editor for SBOL designs.",
+            instructions: "Open a design file, edit in canvas, then save your changes."
+        },
         component: SBOLEditorPanel,
         objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id ],
         icon: CanvasIcon,
@@ -85,6 +97,10 @@ export const PanelTypes = {
     BuildPlans: {
         id: "synbio.panel-type.buildplans",
         title: "Build Plans",
+        tooltip: {
+            description: "Create assembly and transformation build instructions.",
+            instructions: "Step through the tabs to generate complete build plans."
+        },
         component: TransformationPanel,
         objectTypes: [ ObjectTypes.BuildPlans.id ],
         icon: GiSewingMachine,
@@ -106,6 +122,10 @@ export const PanelTypes = {
     Experiment: {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",
+        tooltip: {
+            description: "Capture and review experiment collection data.",
+            instructions: "Use setup tools in this panel to structure collected records."
+        },
         component: CollectionPanel,
         objectTypes: [ ObjectTypes.Studies.id ],
         icon: FcAddDatabase,
@@ -129,6 +149,10 @@ export const PanelTypes = {
     ExcelFile: {
         id: "synbio.panel-type.excel-file",
         title: "Experimental Setup",
+        tooltip: {
+            description: "Open and review experimental setup spreadsheets.",
+            instructions: "Load the file and navigate sheets for setup validation."
+        },
         component: ExcelFilePanel,
         objectTypes: [ObjectTypes.Metadata.id],
         icon: PiMicrosoftExcelLogoFill,
@@ -141,12 +165,20 @@ export const PanelTypes = {
     SynBioHub: {
         id: "synbio.panel-type.synbiohub",
         title: "SynBioHub",
+        tooltip: {
+            description: "Interact with SynBioHub registry content.",
+            instructions: "Search or browse available entries and open selected items."
+        },
         component: SynBioHubPanel,
         icon: SynBioHub,
     },
     SeqImprove: {
         id: "synbio.panel-type.seqimprove",
         title: "SeqImprove",
+        tooltip: {
+            description: "Open sequence improvement workflows.",
+            instructions: "Use this panel to review and refine sequence annotations."
+        },
         component: SeqImprovePanel,
         icon: SynBioHub,
     }
