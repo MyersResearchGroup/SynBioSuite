@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import { Tabs as MantineTabs, Tooltip } from "@mantine/core"
+import { Box, Tabs as MantineTabs, Text, Tooltip } from "@mantine/core"
 import TabLabel from './TabLabel'
 import { useClosePanel, usePanelProperty, usePanelType } from '../../redux/hooks/panelsHooks'
 import { titleFromFileName } from '../../redux/hooks/workingDirectoryHooks'
@@ -11,13 +11,31 @@ const Tab = forwardRef(({ id, ...props }, ref) => {
     const panelType = usePanelType(id)
     const closePanel = useClosePanel()
 
+    const panelTitle = panelType?.title || 'Panel'
+    const panelDescription = panelType?.tooltip?.description || 'Open file workspace panel.'
+    const panelInstructions = panelType?.tooltip?.instructions || 'Use this tab to view and edit its content.'
+    const fileLabel = name || (fileHandle ? titleFromFileName(fileHandle.name) : id)
+
     return (
-        <Tooltip label={id} openDelay={800}>
+        <Tooltip
+            label={(
+                <Box>
+                    <Text fw={700}>{panelTitle}</Text>
+                    <Text size="xs">{panelDescription}</Text>
+                    <Text size="xs" c="gray.3">{panelInstructions}</Text>
+                    <Text size="xs" mt={4}>File: {fileLabel}</Text>
+                </Box>
+            )}
+            openDelay={500}
+            withArrow
+            multiline
+            maw={320}
+        >
 
             <MantineTabs.Tab value={id} ref={ref} {...props}>
                 <TabLabel
-                title={name || (fileHandle ? titleFromFileName(fileHandle.name) : id)}
-                    icon={panelType.icon}
+                title={fileLabel}
+                    icon={panelType?.icon}
                     id={id}
                     onClose={closePanel}
                 />
@@ -40,4 +58,3 @@ export default {
     Tab,
     Content,
 }
-

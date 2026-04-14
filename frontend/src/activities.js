@@ -19,6 +19,10 @@ export const Activities = {
     LocalFileExplorer: {
         id: "synbio.activity.entire-workflow",
         title: "Entire Workflow",
+        tooltip: {
+            description: "Browse all project files and tools in one place.",
+            instructions: "Click to open the full explorer and manage any file type."
+        },
         component: ExplorerActivityView,
         icon: FileIcon,
         objectTypesToList: Object.values(ObjectTypes).map(object => object.id) // Local Explorer should list every object
@@ -26,6 +30,10 @@ export const Activities = {
     ResourceSelection: {
         id: "synbio.activity.resource-selection",
         title: "Resources",
+        tooltip: {
+            description: "Access registries and resource package files.",
+            instructions: "Use this activity to open resources and upload related files."
+        },
         component: ExplorerActivityView,
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
@@ -36,6 +44,10 @@ export const Activities = {
     Design: {
         id: "synbio.activity.design",
         title: "Design",
+        tooltip: {
+            description: "Work with SBOL designs and plasmid assets.",
+            instructions: "Select a design file here to open it in the design tooling."
+        },
         component: ExplorerActivityView,
         icon: PiDna,
         objectTypesToList: [
@@ -45,6 +57,10 @@ export const Activities = {
     Model: {
         id: "synbio.activity.models",
         title: "Model",
+        tooltip: {
+            description: "Open and manage modeling and analysis files.",
+            instructions: "Use this section for SBML, OMEX, and analysis workflows."
+        },
         component: ExplorerActivityView,
         icon: BsGraphUpArrow,
         objectTypesToList: [
@@ -56,6 +72,10 @@ export const Activities = {
     Build: {
         id: "synbio.activity.build",
         title: "Build",
+        tooltip: {
+            description: "Prepare build plans and strain/plasmid build assets.",
+            instructions: "Open build-related files to configure execution-ready plans."
+        },
         component: ExplorerActivityView,
         icon: TiPipette,
         objectTypesToList: [
@@ -67,6 +87,10 @@ export const Activities = {
     Test: {
         id: "synbio.activity.test",
         title: "Test",
+        tooltip: {
+            description: "Review test inputs, metadata, and results artifacts.",
+            instructions: "Choose files in this area to inspect testing data and outputs."
+        },
         component: ExplorerActivityView,
         icon: BiSolidFlask,
         objectTypesToList: [
@@ -80,6 +104,10 @@ export const Activities = {
     Learn: {
         id: "synbio.activity.learn",
         title: "Learn",
+        tooltip: {
+            description: "Access learning-oriented datasets and analysis outputs.",
+            instructions: "Open files here to review insights and interpretation resources."
+        },
         component: ExplorerActivityView,
         icon: FaGraduationCap,
         objectTypesToList: [
@@ -97,6 +125,10 @@ export const Activities = {
     LoginStatusPanel: {
         id: "synbio.activity.login-status-panel",
         title: "Check Login Status",
+        tooltip: {
+            description: "View and manage account authentication status.",
+            instructions: "Click to open login controls and verify your current session."
+        },
         component: LoginStatus,
         icon: ProfileWhite,
         mt: 'auto'
@@ -104,12 +136,20 @@ export const Activities = {
     GitHub: {
         id: "synbio.activity.GitHub",
         title: "GitHub and Website ",
+        tooltip: {
+            description: "Quick links to project source and documentation.",
+            instructions: "Open this panel to navigate to GitHub or website resources."
+        },
         component: GitHubView,
         icon: RiGithubFill,
     },
     BugReport: {
         id: "synbio.activity.bug-report",
         title: "Report Bug",
+        tooltip: {
+            description: "Submit issues and feedback to improve the platform.",
+            instructions: "Use this to report bugs with reproducible steps."
+        },
         component: BugReportView,
         icon: BugReport,
     },
@@ -118,6 +158,10 @@ export const Activities = {
 export const MicrosoftStatus = {
     id: "synbio.activity.microsoft-status",
     title: "Check Microsoft Login Status",
+    tooltip: {
+        description: "Check Microsoft account connection state.",
+        instructions: "Open this to sign in, sign out, or verify account access."
+    },
     component: MicrosoftView,
     icon: MicrosoftLogo
 }
@@ -125,6 +169,10 @@ export const MicrosoftStatus = {
 export const MicrosoftFileExplorer = {
     id: "synbio.activity.microsoft-file-explorer",
     title: "OneDrive Explorer",
+    tooltip: {
+        description: "Browse and open project files from OneDrive.",
+        instructions: "Click to view cloud files and open them in SynBioSuite panels."
+    },
     component: MicrosoftExplorerActivityView,
     icon: CloudWeatherIcon,
     objectTypesToList: Object.values(ObjectTypes).map(object => object.id)
@@ -133,4 +181,3 @@ export const MicrosoftFileExplorer = {
 export function getActivity(id) {
     return Object.values(Activities).find(act => act.id == id)
 }
-

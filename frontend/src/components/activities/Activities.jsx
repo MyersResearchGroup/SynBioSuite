@@ -39,7 +39,20 @@ export default function Activities() {
                 value={activityId}
                 mt={activityDef.mt}
             >
-                <Tooltip label={activityDef.title} color='gray' position="right" withArrow>
+                <Tooltip
+                    label={(
+                        <Box>
+                            <Text fw={700}>{activityDef.title}</Text>
+                            <Text size="xs">{activityDef.tooltip?.description || "Open this activity panel."}</Text>
+                            <Text size="xs" c="gray.3">{activityDef.tooltip?.instructions || "Select to start working in this area."}</Text>
+                        </Box>
+                    )}
+                    color='gray'
+                    position="right"
+                    withArrow
+                    multiline
+                    maw={280}
+                >
                     <Box py={15} px={14}>
                         <SVGIcon
                             icon={activityDef.icon}
@@ -73,7 +86,20 @@ export default function Activities() {
                 key={msStatus.id}
                 value={msStatus.id}
             >
-                <Tooltip label={msStatus.title} color='gray' position="right" withArrow>
+                <Tooltip
+                    label={(
+                        <Box>
+                            <Text fw={700}>{msStatus.title}</Text>
+                            <Text size="xs">{msStatus.tooltip?.description || "Open this activity panel."}</Text>
+                            <Text size="xs" c="gray.3">{msStatus.tooltip?.instructions || "Select to start working in this area."}</Text>
+                        </Box>
+                    )}
+                    color='gray'
+                    position="right"
+                    withArrow
+                    multiline
+                    maw={280}
+                >
                     <Box py={15} px={14}>
                         <SVGIcon
                             icon={msStatus.icon}
@@ -90,7 +116,20 @@ export default function Activities() {
                 key={OneDrivePanel.id}
                 value={OneDrivePanel.id}
             >
-                <Tooltip label={OneDrivePanel.title} color='gray' position="right" withArrow>
+                <Tooltip
+                    label={(
+                        <Box>
+                            <Text fw={700}>{OneDrivePanel.title}</Text>
+                            <Text size="xs">{OneDrivePanel.tooltip?.description || "Open this activity panel."}</Text>
+                            <Text size="xs" c="gray.3">{OneDrivePanel.tooltip?.instructions || "Select to start working in this area."}</Text>
+                        </Box>
+                    )}
+                    color='gray'
+                    position="right"
+                    withArrow
+                    multiline
+                    maw={280}
+                >
                     <Box py={15} px={14}>
                         <SVGIcon
                             icon={OneDrivePanel.icon}
