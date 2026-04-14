@@ -77,12 +77,13 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
         }
 
         try {
-            const info = await login(selected, values.email, values.password);
             const existing = instanceData.find(item => item.registryURL === selected) || {};
+            const registryAPI = existing.registryAPI || selected;
+            const info = await login(registryAPI, values.email, values.password);
             const updatedInstance = {
                 ...existing,
                 registryURL: selected,
-                registryAPI: existing.registryAPI || selected,
+                registryAPI,
                 registryPrefix: existing.registryPrefix || selected,
                 email: info.email,
                 authtoken: info.authtoken,
