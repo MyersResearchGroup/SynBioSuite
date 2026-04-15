@@ -51,14 +51,11 @@ export const PanelTypes = {
         id: "synbio.panel-type.simulator",
         title: "iBioSim Analysis",
         component: SimulatorPanel,
-        objectTypes: [ ObjectTypes.Analysis.id, ObjectTypes.SBML.id ],
+        objectTypes: [ ObjectTypes.Analysis.id ],
         icon: SimulationIcon,
 
         deserialize: content => {
             const trimmed = content.trimStart()
-            if (trimmed.includes('sbml.org/sbml')) {
-                return { sbml: content }
-            }
             try {
                 return JSON.parse(content)
             }
@@ -68,9 +65,6 @@ export const PanelTypes = {
         },
 
         serialize: panel => {
-            if (panel.sbml && panel.fileHandle?.objectType === ObjectTypes.SBML.id) {
-                return panel.sbml
-            }
             const { id, fileHandle, type, ...restOfPanel } = panel
             return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
