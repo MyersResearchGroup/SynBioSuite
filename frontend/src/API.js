@@ -34,8 +34,7 @@ export async function upload_resource(
     file,
     sbh_url,
     sbh_token,
-    sbh_collec,
-    sbh_collec_desc,
+    collectionUrl,
     workingDirectory = null,
     sbh_overwrite = 0
 ) {
@@ -63,8 +62,7 @@ export async function upload_resource(
             fj_token: null,
             fj_user: null,
             fj_pass: null,
-            sbh_collec: sbh_collec,
-            sbh_collec_desc: sbh_collec_desc,
+            collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
@@ -180,7 +178,7 @@ export async function SBHLogin(url, username, password) {
         formdata.append('email', username);
         formdata.append('password', password);
 
-        const response = await axios.post(`https://${url}/login`, {
+        const response = await axios.post(`${url}/login`, {
             "email": username,
             "password": password
         }, {
@@ -201,7 +199,7 @@ export async function SBHLogin(url, username, password) {
 export async function searchCollections(url, auth) {
     try {
         if (typeof url !== "string" || url.trim() === "") return null;
-        const response = await axios.get(`https://${url}/rootCollections`, {
+        const response = await axios.get(`${url}/rootCollections`, {
             headers: {
                 "Content-Type": "text/plain",
                 "X-authorization": auth
@@ -236,7 +234,7 @@ export async function createCollection(id, version, name, description, citations
         formdata.append('overwrite_merge', overwrite ? 1 : 0);
 
         const response = await axios.post(
-            `https://${url}/submit`,
+            `${url}/submit`,
             formdata,
             {
                 headers: {
@@ -264,7 +262,7 @@ export async function createCollection(id, version, name, description, citations
 export async function SBHLogout(auth, url) {
     try {
         const response = await axios.post(
-            `https://${url}/logout`,
+            `${url}/logout`,
             null,
             {
                 headers: {
@@ -283,7 +281,7 @@ export async function SBHLogout(auth, url) {
 
 export async function FJLogin(instance, username, password){
     try {
-        const response = await axios.post(`https://${instance}/api/auth/log_in/`, {
+        const response = await axios.post(`${instance}/api/auth/log_in/`, {
             "username": username,
             "password": password
         }, {
@@ -312,7 +310,7 @@ export async function CheckLogin(instance, authToken){
             return { valid: false }
         }
 
-        const response = await axios.get(`https://${instance}/profile`, {
+        const response = await axios.get(`${instance}/profile`, {
             headers: {
                 "Accept": "text/plain",
                 "X-authorization": authToken
@@ -335,6 +333,37 @@ export async function CheckLogin(instance, authToken){
     }
 }
 
+
+export async function getWebOfRegistries() {
+    try {
+        const response = await axios.get('https://wor.synbiohub.org/instances/');
+        
+        if (!Array.isArray(response.data)) {
+            throw new Error("Response from Web of Registries is not an array");
+        }
+
+        // Map the WoR data to our registry format
+        const registries = response.data.map(item => ({
+            registryURL: item.uriPrefix,
+            registryAPI: item.instanceUrl,
+            registryPrefix: item.uriPrefix,
+            name: item.name,
+            description: item.description || '',
+            email: '',
+            authtoken: '',
+            username: '',
+            affiliation: ''
+        }));
+
+        return registries;
+    } catch (error) {
+        console.error("Get Web of Registries error:", error);
+        showErrorNotification('Error', 'Failed to fetch registries from Web of Registries: ' + error.message);
+        throw error;
+    }
+}
+
+
 // Function to clear invalid credentials from local storage
 export function clearInvalidCredentials(instanceUrl) {
     try {
@@ -346,7 +375,7 @@ export function clearInvalidCredentials(instanceUrl) {
         
         // Find and clear the credentials for the specific instance
         const updatedData = dataSBH.map(repo => {
-            if (repo.value === instanceUrl) {
+            if (repo.registryURL === instanceUrl) {
                 // Clear auth-related fields but keep the repository info
                 return {
                     ...repo,

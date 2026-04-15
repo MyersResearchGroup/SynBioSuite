@@ -5,14 +5,14 @@ import { useDispatch } from "react-redux";
 import { panelsSlice } from "../../../redux/store.js";
 
 const { actions } = panelsSlice;
+const SEQ_IMPROVE_PANEL_ID = "seqimprove-panel";
 
 export default function OpenSeqImproveButton({ text, url }) {
     const dispatch = useDispatch();
 
     const handleClick = () => {
-        const uniqueId = `seqimprove-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         dispatch(actions.openPanel({
-            id: uniqueId,
+            id: SEQ_IMPROVE_PANEL_ID,
             type: "synbio.panel-type.seqimprove",
             url: url,
             name: "SeqImprove",

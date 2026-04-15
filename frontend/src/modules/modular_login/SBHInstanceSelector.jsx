@@ -1,32 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Select, Button } from '@mantine/core';
 import SBHInstanceLogin from './SBHLogin';
-import AddInstance from './addInstance';
+import AddRegistryModal from '../unified_modal/AddRegistryModal';
 import { useLocalStorage } from '@mantine/hooks';
 import { cleanNotifications, showNotification } from '@mantine/notifications';
 import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
-    const [addingInstance, setAddingInstance] = useState("placeholder");
+    const [addRegistryOpen, setAddRegistryOpen] = useState(false);
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [nullSelected, setNullSelected] = useState(false);
-    const [selected, setSelected] = useLocalStorage({ key: `SynbioHub-Primary`, defaultValue: [] });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
     
-    const findInstance = (instance) => {
-        return instanceData.find((element) => element.value === instance);
+    const findInstance = (uri) => {
+        return instanceData.find((element) => element.registryURL === uri);
     }
 
     const handleRemoveInstance = () => {
-        setInstanceData(instanceData.filter(instance => instance.value !== selected));
+        setInstanceData(instanceData.filter(instance => instance.registryURL !== selected));
         setSelected(null);
     };
 
-    const stripData = (selected, showNotificationFlag = false) => {
+    const stripData = (uri, showNotificationFlag = false) => {
         const updatedInstance = {
-            value: selected,
-            label: selected,
-            instance: selected,
+            registryURL: uri,
+            registryAPI: uri,
+            registryPrefix: uri,
             email: '',
             authtoken: '',
             name: '',
@@ -34,7 +38,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
             affiliation: ''
         };
         const updatedInstanceData = instanceData.map((item) =>
-            item.instance === selected ? updatedInstance : item
+            item.registryURL === uri ? updatedInstance : item
         );
         setInstanceData(updatedInstanceData);
         
@@ -47,9 +51,11 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     }
 
-    const login = async (instance, auth) => {
+    const login = async (uri, auth) => {
+        const instance = findInstance(uri);
+        const registryAPI = instance?.registryAPI || uri;
         try {
-            const response = await axios.get(`https://${instance}/profile`, {
+            const response = await axios.get(`${registryAPI}/profile`, {
                 headers: {
                     'Accept': 'text/plain; charset=UTF-8',
                     "X-authorization" : `${auth}`
@@ -60,7 +66,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 return;
             }
         } catch (error) {
-            stripData(instance, true);
+            stripData(uri, true);
             showNotification({
                 title: 'Login Failed',
                 message: 'Unable to login. Try logging in again.',
@@ -71,7 +77,9 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
-    const logout = async (instance, auth) => {
+    const logout = async (uri, auth) => {
+        const instance = findInstance(uri);
+        const registryAPI = instance?.registryAPI || uri;
         try {
             cleanNotifications();
             showNotification({
@@ -80,18 +88,18 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 color: 'blue',
                 loading: true,
             });
-            const response = await axios.post(`https://${instance}/logout`, null, {
+            const response = await axios.post(`${registryAPI}/logout`, null, {
                 headers: {
                     'Accept': 'text/plain; charset=UTF-8',
                     "X-authorization" : `${auth}`
                 }
             });
             cleanNotifications();
-            stripData(instance);
+            stripData(uri);
 
         } catch (error) {
             cleanNotifications();
-            stripData(instance, true);
+            stripData(uri, true);
             showNotification({
                 title: 'Logout Failed',
                 message: 'Unable to logout from SynbioHub correctly. Credentials on SynbioSuite have been reset. If this is happening consistently please reach out to the SynbioSuite team.',
@@ -102,50 +110,58 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     };
 
-    useEffect(() => {
-        if (addingInstance != null && addingInstance != "placeholder") {
-            const newInstance = { 
-                value: addingInstance, 
-                label: addingInstance,
-                instance: addingInstance, 
-                email: '', 
-                authtoken: '',
-                name: '',
-                username: '',
-                affiliation: ''
-
-            };
-            if (!instanceData.some(instance => instance.value === newInstance.value)) {
-                setInstanceData([...instanceData, newInstance]);
-                setSelected(addingInstance);
-            } else {
-                showNotification({
-                    title: 'Login exists',
-                    message: 'This repository has already been added. Please add a different repository.',
-                    color: 'yellow',
-                })
-            }
+    const handleAddRegistry = ({ registryURL, registryAPI, registryPrefix }) => {
+        if (instanceData.some(instance => instance.registryURL === registryURL)) {
+            showNotification({
+                title: 'Login exists',
+                message: 'This repository has already been added. Please add a different repository.',
+                color: 'yellow',
+            });
+            return;
         }
-    }, [addingInstance]);
+
+        const newInstance = {
+            registryURL,
+            registryAPI,
+            registryPrefix,
+            email: '',
+            authtoken: '',
+            name: '',
+            username: '',
+            affiliation: ''
+        };
+
+        setInstanceData([...instanceData, newInstance]);
+        setSelected(registryURL);
+    };
+
+    const selectData = instanceData.map(inst => ({
+        value: inst.registryURL,
+        label: inst.registryURL,
+    }));
 
     return (
         <>
-            {!addingInstance ? 
-                <AddInstance goBack={setAddingInstance} repo={"SynbioHub"}/>
-            :
-                showLogin ?
-                    <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
+            {showLogin ?
+                <SBHInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
             : ( <>
+                    <AddRegistryModal
+                        opened={addRegistryOpen}
+                        onClose={() => setAddRegistryOpen(false)}
+                        onAdd={handleAddRegistry}
+                        title="SynbioHub Repository"
+                        existingRegistries={instanceData.map(inst => inst.registryURL)}
+                    />
                     <Select
                         label={`Select a SynbioHub repository`}
                         placeholder="Pick one"
-                        data={instanceData}
+                        data={selectData}
                         onChange={(value) => {setNullSelected(false); setSelected(value)}}
                         value={selected}
                     />
                     {nullSelected && <div style={{ color: 'red', marginTop: '1px', fontSize: '12px' }}>No selected repository. Please select an repository</div>}
                     <div style={{ marginTop: '20px', display: 'flex' }}>
-                        <Button mr="md" onClick={() => {setAddingInstance(null)}}>Add</Button>
+                        <Button mr="md" onClick={() => setAddRegistryOpen(true)}>Add</Button>
                         {selected && (
                         <>
                             <Button mr="md" onClick={() => 

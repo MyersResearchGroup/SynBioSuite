@@ -1,6 +1,7 @@
 import { Button, Center, Space, Stack, Text, Title, useMantineTheme } from '@mantine/core'
 import MicrosoftSignInButton from '../components/microsoft/MicrosoftSignInButton'
 import { useNavigate } from 'react-router-dom';
+import { APP_VERSION } from '../version';
 
 
 export default function LandingPage() {
@@ -35,6 +36,7 @@ export default function LandingPage() {
                 <Button onClick={() => navigate("/local")}>
                     Use my local file system through Chrome
                 </Button>
+                <Text size="xs" color="dimmed" style={{ fontSize: '0.7rem' }}>SynBioSuite v{APP_VERSION}</Text>
                 {false && <>
                 <Text align='center' sx={{ maxWidth: 700 }}>
                     SynBio Suite can also be connected to your Microsoft OneDrive. To sign in with Microsoft and connect SynBio Suite, select the option below.

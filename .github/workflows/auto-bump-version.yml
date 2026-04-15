@@ -1,0 +1,97 @@
+name: Auto Bump Frontend Version
+
+on:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: frontend-version-bump-master
+  cancel-in-progress: false
+
+jobs:
+  bump-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Use a token with write access so the commit can trigger downstream workflows
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Check if package.json version was modified in this push
+        id: version_check
+        run: |
+          # Compare the previous and current commits for changes to frontend/package.json
+          BASE_SHA="${{ github.event.before }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          # Handle first push to a branch, where before can be all zeros.
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse "$HEAD_SHA"^ 2>/dev/null || true)"
+          fi
+
+          if [ -z "$BASE_SHA" ]; then
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No valid base SHA found - will auto-bump patch version."
+            exit 0
+          fi
+
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -q "^frontend/package.json$"; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "frontend/package.json was already modified in this push - skipping auto-bump."
+          else
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+            echo "frontend/package.json was NOT modified in this push - will auto-bump patch version."
+          fi
+
+      - name: Set up Node.js
+        if: steps.version_check.outputs.version_changed == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bump patch version
+        if: steps.version_check.outputs.version_changed == 'false'
+        working-directory: frontend
+        run: |
+          set -e
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Bump patch version in package.json without creating a git tag
+          npm version patch --no-git-tag-version
+
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Bumped to $NEW_VERSION"
+
+          git add package.json
+          if [ -f package-lock.json ]; then
+            git add package-lock.json
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No version changes to commit - exiting."
+            exit 0
+          fi
+
+          git commit -m "chore: auto-bump frontend version to $NEW_VERSION [skip ci]"
+
+          for attempt in 1 2 3; do
+            git pull --rebase origin master
+            if git push origin HEAD:master; then
+              echo "Push succeeded on attempt $attempt"
+              exit 0
+            fi
+            echo "Push failed on attempt $attempt, retrying..."
+          done
+
+          echo "Failed to push after 3 attempts"
+          exit 1

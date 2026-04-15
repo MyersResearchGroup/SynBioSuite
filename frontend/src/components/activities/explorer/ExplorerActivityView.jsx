@@ -6,22 +6,21 @@ import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
 import { openDirectory } from '../../../redux/slices/modalSlice'
 import { useDispatch } from 'react-redux'
+import { APP_VERSION } from '../../../version'
 
 function checkDirectoryVersion(dispatch) {
-    //To be implemented with a scan of the various folders in the directory to see if renaming is required
     dispatch(openDirectory())
 }
 
 export default function ExplorerActivityView({objectTypesToList }) {
     const dispatch = useDispatch()
 
-    // handle first time visiting
-    const [firstTime, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
+    const [, setFirstTime] = useLocalStorage({ key: 'first-time-visiting', defaultValue: true })
 
     // handle directory selection
         const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
         const handleDirectorySelection = dirHandle => {
-            firstTime && setFirstTime(false)
+            setFirstTime(false)
             setWorkingDirectory(dirHandle)
             checkDirectoryVersion(dispatch)
         }
@@ -39,6 +38,9 @@ export default function ExplorerActivityView({objectTypesToList }) {
                     Switch Folder
                 </FolderSelect>
             </Center>
+            <Center mt={4}>
+                <Text size="xs" color="dimmed" style={{ fontSize: '0.7rem' }}>v{APP_VERSION}</Text>
+            </Center>
             <Tooltip label="Refresh working directory">
                 <ActionIcon sx={refreshButtonStyle} onClick={refreshWorkDir}>
                     <IoRefreshOutline />
@@ -49,6 +51,9 @@ export default function ExplorerActivityView({objectTypesToList }) {
             <Text align='center' size='xs' mt={20}>There's no folder opened.</Text>
             <Center mt={20}>
                 <FolderSelect onSelect={handleDirectorySelection} />
+            </Center>
+            <Center mt={4}>
+                <Text size="xs" color="dimmed" style={{ fontSize: '0.7rem' }}>v{APP_VERSION}</Text>
             </Center>
         </>
 }

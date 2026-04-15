@@ -1,5 +1,6 @@
 import { createEntityAdapter, createSlice } from "@reduxjs/toolkit"
 
+const SEQ_IMPROVE_PANEL_TYPE = "synbio.panel-type.seqimprove"
 
 const panelsAdapter = createEntityAdapter()
 const initialState = panelsAdapter.getInitialState()
@@ -9,6 +10,19 @@ const panelsSlice = createSlice({
     initialState,
     reducers: {
         openPanel: (state, action) => {
+            // Keep SeqImprove as a singleton panel and reactivate it if it already exists.
+            if (action.payload?.type === SEQ_IMPROVE_PANEL_TYPE) {
+                const existingSeqImprovePanelId = state.ids.find(id => state.entities[id]?.type === SEQ_IMPROVE_PANEL_TYPE)
+
+                if (existingSeqImprovePanelId) {
+                    const existingPanel = state.entities[existingSeqImprovePanelId]
+                    existingPanel.url = action.payload.url ?? existingPanel.url
+                    existingPanel.name = action.payload.name ?? existingPanel.name
+                    state.active = existingSeqImprovePanelId
+                    return
+                }
+            }
+
             panelsAdapter.addOne(state, action.payload)
             state.active = action.payload.id
         },

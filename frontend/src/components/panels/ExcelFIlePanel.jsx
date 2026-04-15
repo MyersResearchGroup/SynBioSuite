@@ -1,5 +1,4 @@
 import { createContext } from 'react'
-import PanelSaver from './PanelSaver'
 import { useSelector } from 'react-redux'
 import ExcelFileReader from "./ExcelFileReader";
 
@@ -10,7 +9,6 @@ export default function ExcelFilePanel({fileObjectTypeId}) {
     return (
         <PanelContext.Provider value={activePanel}>
             <ExcelFileReader />
-            <PanelSaver id={activePanel} />
         </PanelContext.Provider>
     )
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import DragObject from '../../DragObject'
+import { getPanelTypeForObject } from '../../../panels'
 
 
 export default function ExplorerListItem({ fileId, icon, importable }) {
@@ -12,8 +13,17 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
 
     // handle opening of file
     const openPanel = useOpenPanel()
-    const handleOpenFile = () => {
-        openPanel(file)
+    const handleOpenFile = async () => {
+        const hasWorkflowPanel = !!getPanelTypeForObject(file?.objectType)
+        if (hasWorkflowPanel) {
+            openPanel(file)
+            return
+        }
+
+        if (supportsFileView()) {
+            await commands.FileView.execute(fileId)
+            return
+        }
     }
 
     // context menu states
@@ -25,15 +35,27 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
         setContextMenuOpen(true)
     }
 
+    const supportsFileView = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
+            return true
+        }
+        if (/\.json$/i.test(fileName)) {
+            return true
+        }
+        return false
+    }
+
     // command list
-    const contextMenuCommands = importable ? [
+    let contextMenuCommands = importable ? [
         commands.FileDownload,
-        commands.FileUpdate,
+        ...(supportsFileView() ? [commands.FileUpdate] : []),
+        ...(supportsFileView() ? [commands.FileView] : []),
         commands.FileDelete
     ] : [
         commands.FileDownload,
         commands.FileDelete
-    ]
+    ];
 
     return (
         <Menu
