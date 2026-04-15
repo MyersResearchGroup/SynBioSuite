@@ -306,7 +306,7 @@ function UnifiedModal({
                             completeWorkflow({ selectedRepo: data.registryURL });
                         }}
                         title="SynBioHub Repository"
-                        existingRegistries={(JSON.parse(localStorage.getItem('SynbioHub')) || []).map(item => item.registryURL)}
+                        existingRegistries={getStoredRegistries('SynbioHub').map(item => item.registryURL)}
                     />
                 );
 
@@ -322,7 +322,7 @@ function UnifiedModal({
                             completeWorkflow({ selectedRepo: data.registryURL });
                         }}
                         title="Flapjack Repository"
-                        existingRegistries={(JSON.parse(localStorage.getItem('Flapjack')) || []).map(item => item.registryURL)}
+                        existingRegistries={getStoredRegistries('Flapjack').map(item => item.registryURL)}
                     />
                 );
 
