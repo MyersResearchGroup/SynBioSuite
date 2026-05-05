@@ -3,16 +3,20 @@ import { Modal, Button } from '@mantine/core';
 import FJInstanceSelector from './FJInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 
 function FJModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
     
     const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
-    const [selectedFJ, setSelectedFJ] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: "" });
+    const dispatch = useDispatch();
+    const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
+    const setSelectedFJ = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selectedFJ) : value));
     
     const findInstance = (instance, repo) => {
-        return dataFJ.find((element) => element.value === instance);
+        return dataFJ.find((element) => element.registryURL === instance);
     }
 
     const handleRemoveInstance = (repo) => {
@@ -38,7 +42,7 @@ function FJModal({ opened, onClose, repoName }) {
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {selectedFJ ? findInstance(selectedFJ, "FJ").instance : "Not Logged In"}
+                                    Repository: {selectedFJ ? findInstance(selectedFJ, "FJ").registryURL : "Not Logged In"}
                                 </Text>
     
                                 <Text fz="lg" fw={500}>

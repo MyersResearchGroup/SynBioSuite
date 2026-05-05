@@ -1,13 +1,14 @@
 import { Modal } from '@mantine/core';
 import { TextInput, Button, Group, Space, Checkbox } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
+import { useSelector } from 'react-redux';
 import { showNotification } from '@mantine/notifications';
 import { createCollection } from '../API';
 import { useState } from 'react';
 
 function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack }) {    
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const [overwrite, setOverwrite] = useState(false);
 
     return (
@@ -36,8 +37,9 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
 
                     const url = selected && selected.trim() !== "" ? selected : null;
-                    const instance = instanceData.find((inst) => inst.value === url);
+                    const instance = instanceData.find((inst) => inst.registryURL === url);
                     const auth = instance ? instance.authtoken : null;
+                    const registryAPI = instance?.registryAPI || url;
                     if (!url) {
                         showNotification({
                             title: 'No Instance Selected',
@@ -48,7 +50,7 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
                     
                     try {
-                        await createCollection(id, version, name, description, citations, auth, url, overwrite);
+                        await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
 
                         if (goBack) {
                             goBack();

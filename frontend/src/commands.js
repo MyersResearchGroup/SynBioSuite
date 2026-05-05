@@ -5,9 +5,11 @@ import { ObjectTypes, BLANK_SBML } from "./objectTypes"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
 import { openUnifiedModal } from "./redux/slices/modalSlice"
+import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
 import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
 import { upload_resource, CheckLogin } from "./API"
 
+const EXCEL_VIEWER_PANEL_TYPE = 'synbio.panel-type.excel-viewer'
 
 export default {
     FileDelete: {
@@ -59,6 +61,269 @@ export default {
         }
     },
 
+    FileView: {
+        id: createId('file-view'),
+        title: "View File",
+        shortTitle: "View",
+        description: "View Excel file",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            }
+        ],
+        execute: async fileNameOrId => {
+            const file = findFileByNameOrId(fileNameOrId);
+            if (!file) return "File doesn't exist.";
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            const state = store.getState().workingDirectory;
+            const isExcelExt = value => /\.(xls|xlsx|xlsm)$/i.test(value || "");
+            const workflowDir = file.id.includes('/') ? file.id.split('/').slice(0, -1).join('/') : '';
+
+            const normalizePath = value => value?.replace(/^\/+|\/+$/g, '') || '';
+
+            const readFileFromId = async (targetId, preferredBaseDir = '') => {
+                const entity = state.entities[targetId];
+                if (entity?.data) {
+                    return {
+                        fileData: entity.data,
+                        fileName: entity.name,
+                        fileId: entity.id
+                    };
+                }
+
+                const dirHandle = state.directoryHandle;
+                if (!dirHandle || typeof dirHandle.getFileHandle !== 'function') {
+                    return null;
+                }
+
+                try {
+                    const parts = targetId.split('/');
+                    let cur = dirHandle;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        cur = await cur.getDirectoryHandle(parts[i]);
+                    }
+
+                    const directHandle = await cur.getFileHandle(parts[parts.length - 1]);
+                    const directFile = await directHandle.getFile();
+                    return {
+                        fileData: directFile,
+                        fileName: parts[parts.length - 1],
+                        fileId: targetId
+                    };
+                } catch {
+                    return null;
+                }
+            };
+
+            const readExcelFromIdWithUploadsFallback = async (targetId, preferredBaseDir = '') => {
+                const normalizedTarget = normalizePath(targetId);
+                const candidatePaths = [normalizedTarget];
+
+                if (preferredBaseDir && !normalizedTarget.includes('/')) {
+                    candidatePaths.push(`${preferredBaseDir}/${normalizedTarget}`);
+                    candidatePaths.push(`${preferredBaseDir}/uploads/${normalizedTarget}`);
+                }
+
+                if (!normalizedTarget.includes('/')) {
+                    candidatePaths.push(`uploads/${normalizedTarget}`);
+                }
+
+                const seen = new Set();
+                for (const candidate of candidatePaths) {
+                    if (!candidate || seen.has(candidate)) continue;
+                    seen.add(candidate);
+
+                    const direct = await readFileFromId(candidate, preferredBaseDir);
+                    if (!direct) continue;
+
+                    const targetExt = (direct.fileName.split('.').pop() || '').toLowerCase();
+                    const baseName = direct.fileName.replace(/\.[^/.]+$/, "");
+                    const dirHandle = state.directoryHandle;
+
+                    if (dirHandle && typeof dirHandle.getFileHandle === 'function') {
+                        try {
+                            const parts = candidate.split('/');
+                            let cur = dirHandle;
+                            for (let i = 0; i < parts.length - 1; i++) {
+                                cur = await cur.getDirectoryHandle(parts[i]);
+                            }
+
+                            let uploadsDir;
+                            try {
+                                uploadsDir = await cur.getDirectoryHandle('uploads');
+                            } catch {
+                                uploadsDir = null;
+                            }
+
+                            if (uploadsDir) {
+                                for await (const entry of uploadsDir.values()) {
+                                    if (entry.kind !== 'file') continue;
+                                    const entryBase = entry.name.replace(/\.[^/.]+$/, "");
+                                    const entryExt = (entry.name.split('.').pop() || '').toLowerCase();
+
+                                    if (entryBase === baseName && entryExt === targetExt) {
+                                        const fh = await uploadsDir.getFileHandle(entry.name);
+                                        const uploadFile = await fh.getFile();
+                                        return {
+                                            fileData: uploadFile,
+                                            fileName: entry.name,
+                                            fileId: `${parts.slice(0, -1).join('/')}/uploads/${entry.name}`
+                                        };
+                                    }
+                                }
+                            }
+                        } catch {
+                        }
+                    }
+
+                    return direct;
+                }
+
+                return null;
+            };
+
+            let fileData = state.entities[file.id]?.data;
+            let downloadName = file.name;
+            let excelFileId = file.id;
+
+            if (ext === 'json') {
+                let jsonText = fileData;
+                if (!jsonText) {
+                    const jsonFile = await readFileFromId(file.id);
+                    if (!jsonFile || !jsonFile.fileData) {
+                        return "Could not read JSON file from disk.";
+                    }
+                    jsonText = await jsonFile.fileData.text();
+                }
+
+                let referencedPath = null;
+                let excelFileName = null;
+                let latestUploadPath = null;
+
+                try {
+                    const json = typeof jsonText === 'string' ? JSON.parse(jsonText) : jsonText;
+                    if (typeof json?.file === 'string' && isExcelExt(json.file)) {
+                        referencedPath = json.file;
+                    }
+
+                    if (!referencedPath && Array.isArray(json?.uploads) && json.uploads.length > 0) {
+                        const lastUpload = json.uploads[json.uploads.length - 1];
+                        if (typeof lastUpload?.file === 'string' && isExcelExt(lastUpload.file)) {
+                            latestUploadPath = lastUpload.file;
+                        }
+                    }
+
+                    if (!referencedPath) {
+                        const findExcelPath = obj => {
+                            if (!obj || typeof obj !== 'object') return null;
+
+                            if (typeof obj.file === 'string' && isExcelExt(obj.file)) {
+                                return obj.file;
+                            }
+
+                            for (const k of Object.keys(obj)) {
+                                const value = obj[k];
+                                if (typeof value === 'string' && isExcelExt(value)) {
+                                    return value;
+                                }
+                                if (value && typeof value === 'object') {
+                                    const found = findExcelPath(value);
+                                    if (found) return found;
+                                }
+                            }
+                            return null;
+                        };
+
+                        referencedPath = findExcelPath(json);
+                    }
+
+                    if (referencedPath) {
+                        const fileNameMatch = referencedPath.match(/([^/]+\.(xls|xlsx|xlsm))$/i);
+                        excelFileName = fileNameMatch ? fileNameMatch[1] : null;
+                    }
+                } catch {
+                    return "Could not parse JSON or find Excel file reference.";
+                }
+
+                if (!referencedPath && !excelFileName) {
+                    referencedPath = latestUploadPath;
+                }
+
+                let resolvedExcel = null;
+
+                if (referencedPath) {
+                    resolvedExcel = await readExcelFromIdWithUploadsFallback(referencedPath, workflowDir);
+                }
+
+                if (!resolvedExcel && excelFileName) {
+                    const excelEntity = Object.values(state.entities).find(entity => entity.name === excelFileName);
+                    if (excelEntity) {
+                        resolvedExcel = await readExcelFromIdWithUploadsFallback(excelEntity.id, workflowDir);
+                    }
+                }
+
+                if (!resolvedExcel) {
+                    return "Excel file referenced in JSON not found.";
+                }
+
+                fileData = resolvedExcel.fileData;
+                downloadName = resolvedExcel.fileName;
+                excelFileId = resolvedExcel.fileId;
+            } else if (!(ext === 'xls' || ext === 'xlsx' || ext === 'xlsm')) {
+                return "Only Excel files or intermediary JSON files can be viewed.";
+            }
+
+            if (!fileData) {
+                const resolved = await readExcelFromIdWithUploadsFallback(excelFileId);
+                if (resolved) {
+                    fileData = resolved.fileData;
+                    downloadName = resolved.fileName;
+                }
+            }
+
+            if (!fileData) {
+                return "File data not found.";
+            }
+
+            const buffer = fileData instanceof Blob ? await fileData.arrayBuffer() : fileData;
+            const panelId = `${file.id}::view`;
+            const legacyPanel = panelsSelectors.selectById(store.getState(), file.id);
+
+            // Clean up old excel-viewer instances that used the file id directly.
+            if (file.id !== panelId && legacyPanel?.type === EXCEL_VIEWER_PANEL_TYPE) {
+                store.dispatch(panelsActions.closePanel(file.id));
+            }
+
+            const panelState = {
+                id: panelId,
+                type: EXCEL_VIEWER_PANEL_TYPE,
+                name: `${downloadName} (view)`,
+                file: buffer,
+                fileHandle: {
+                    id: panelId,
+                    name: downloadName,
+                    objectType: file.objectType,
+                }
+            };
+
+            if (isPanelOpen(panelId)) {
+                store.dispatch(panelsActions.updateOne({
+                    id: panelId,
+                    changes: {
+                        name: panelState.name,
+                        file: panelState.file,
+                        fileHandle: panelState.fileHandle,
+                    }
+                }));
+                store.dispatch(panelsActions.setActive(panelId));
+            } else {
+                store.dispatch(panelsActions.openPanel(panelState));
+            }
+        }
+    },
+
     FileSave: {
         id: createId("file-save"),
         title: "Save File",
@@ -71,6 +336,11 @@ export default {
             }
         ],
         execute: async fileNameOrId => {
+            const panel = panelsSelectors.selectById(store.getState(), fileNameOrId)
+            if (panel?.type === EXCEL_VIEWER_PANEL_TYPE) {
+                return
+            }
+
             const file = findFileByNameOrId(fileNameOrId)
             if (!file)
                 return "File doesn't exist."
@@ -223,14 +493,14 @@ export default {
                 ? jsonData.uploads[jsonData.uploads.length - 1]
                 : null;
 
-            if (!lastUpload?.selectedRepo || !lastUpload?.uri) {
+            if (!lastUpload?.selectedRepo || !(lastUpload?.collectionUri || lastUpload?.uri)) {
                 showErrorNotification("Cannot update", "No prior upload record with repository information found.");
                 return "No prior upload record found.";
             }
 
             const selectedRepo = lastUpload.selectedRepo;
             const expectedEmail = lastUpload.userEmail || null;
-            const collectionDisplayId = lastUpload.uri.split('/').slice(-2, -1)[0] || lastUpload.collectionName;
+            const collectionUrl = lastUpload.collectionUri || lastUpload.uri;
             const collectionName = lastUpload.collectionName;
 
             function getStoredToken() {
@@ -238,9 +508,78 @@ export default {
                     const stored = localStorage.getItem('SynbioHub');
                     if (!stored) return null;
                     const repos = JSON.parse(stored);
-                    const entry = repos.find(r => r.value === selectedRepo);
+                    const entry = repos.find(r => r.registryURL === selectedRepo);
                     return entry?.authtoken || null;
                 } catch { return null; }
+            }
+
+            async function resolveAuthToken() {
+                const storedToken = getStoredToken();
+
+                if (storedToken) {
+                    try {
+                        const loginResult = await CheckLogin(selectedRepo, storedToken);
+                        const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+                        if (loginResult.valid) {
+                            if (!expectedEmail || actualEmail === expectedEmail.toLowerCase()) {
+                                return storedToken;
+                            }
+
+                            showErrorNotification(
+                                "Authentication failed",
+                                `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+                            );
+                            return null;
+                        }
+                    } catch {}
+                }
+
+                const modalResult = await new Promise((resolve) => {
+                    store.dispatch(openUnifiedModal({
+                        modalType: MODAL_TYPES.SBH_LOGIN,
+                        allowedModals: [
+                            MODAL_TYPES.SBH_LOGIN,
+                            MODAL_TYPES.ADD_SBH_REPO,
+                        ],
+                        props: {
+                            selectedRepo,
+                        },
+                        callback: (result) => resolve(result || null),
+                    }));
+                });
+
+                if (!modalResult?.completed) {
+                    showNotification({ title: "Update cancelled", message: "Login was cancelled." });
+                    return null;
+                }
+
+                const refreshedToken = getStoredToken();
+                if (!refreshedToken) {
+                    showErrorNotification("Authentication failed", "No token found after login.");
+                    return null;
+                }
+
+                try {
+                    const loginResult = await CheckLogin(selectedRepo, refreshedToken);
+                    if (!loginResult.valid) {
+                        showErrorNotification("Authentication failed", "Token is invalid or expired after login.");
+                        return null;
+                    }
+
+                    const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+                    if (expectedEmail && actualEmail !== expectedEmail.toLowerCase()) {
+                        showErrorNotification(
+                            "Authentication failed",
+                            `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+                        );
+                        return null;
+                    }
+
+                    return refreshedToken;
+                } catch (err) {
+                    showErrorNotification("Authentication failed", err.message || "Unable to validate login token.");
+                    return null;
+                }
             }
 
             async function performUpdate(authToken) {
@@ -292,15 +631,20 @@ export default {
                             const newFilePath = `${directory}/uploads/${newFileName}`;
                             const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
 
-                            const response = await upload_resource(
-                                uploadPath,
-                                selectedRepo,
-                                authToken,
-                                collectionDisplayId,
-                                "",
-                                dirHandle,
-                                3
-                            );
+                            store.dispatch(loadOverlay());
+                            let response;
+                            try {
+                                response = await upload_resource(
+                                    uploadPath,
+                                    selectedRepo,
+                                    authToken,
+                                    collectionUrl,
+                                    dirHandle,
+                                    3
+                                );
+                            } finally {
+                                store.dispatch(closeOverlay());
+                            }
 
                             if (sameFilename) {
                                 const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
@@ -314,6 +658,7 @@ export default {
 
                             const updateEntry = {
                                 collectionName,
+                                collectionUri: collectionUrl,
                                 uri: response.sbh_url,
                                 file: newFilePath,
                                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
@@ -360,52 +705,12 @@ export default {
                 });
             }
 
-            const storedToken = getStoredToken();
-            if (storedToken) {
-                try {
-                    const loginResult = await CheckLogin(selectedRepo, storedToken);
-                    if (loginResult.valid) {
-                        const actualEmail = loginResult.profile?.email || '';
-                        if (!expectedEmail || actualEmail.toLowerCase() === expectedEmail.toLowerCase()) {
-                            return await performUpdate(storedToken);
-                        }
-                    }
-                } catch {}
+            const authToken = await resolveAuthToken();
+            if (!authToken) {
+                return "Authentication token not available.";
             }
 
-            return new Promise((resolve) => {
-                store.dispatch(openUnifiedModal({
-                    modalType: MODAL_TYPES.COLLECTION_BROWSER,
-                    allowedModals: [
-                        MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                        MODAL_TYPES.COLLECTION_BROWSER,
-                        MODAL_TYPES.SBH_LOGIN,
-                        MODAL_TYPES.CREATE_COLLECTION,
-                    ],
-                    props: {
-                        selectedRepo,
-                        expectedEmail,
-                        skipRepositorySelection: true,
-                        silentCredentialCheck: true,
-                        multiSelect: false,
-                        rootOnly: true,
-                    },
-                    callback: async (result) => {
-                        if (!result?.completed) {
-                            showNotification({ title: "Update cancelled", message: "Authentication was cancelled." });
-                            return resolve("Update cancelled.");
-                        }
-
-                        const authToken = result.authToken;
-                        if (!authToken) {
-                            showErrorNotification("Authentication failed", "Could not obtain a valid auth token.");
-                            return resolve("Authentication failed.");
-                        }
-
-                        resolve(await performUpdate(authToken));
-                    },
-                }));
-            });
+            return await performUpdate(authToken);
         }
     },
 }

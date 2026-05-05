@@ -16,10 +16,12 @@ import {
     Paper,
     Divider,
     ActionIcon,
-    Tooltip
+    Tooltip,
+    TextInput
 } from '@mantine/core';
 import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
 import { useLocalStorage } from '@mantine/hooks';
+import { useSelector } from 'react-redux';
 import { FaTimes } from 'react-icons/fa';
 import { IoMdRefresh } from 'react-icons/io';
 import { showNotification } from '@mantine/notifications';
@@ -42,7 +44,7 @@ export default function CollectionBrowserModal({
     rootOnly: rootOnlyFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
 
     const [collections, setCollections] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -50,10 +52,12 @@ export default function CollectionBrowserModal({
     const [breadcrumbs, setBreadcrumbs] = useState([{ name: 'Root', uri: null }]);
     const [currentPath, setCurrentPath] = useState([]);
     const [overwrite, setOverwrite] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
     const credentialCheckDoneRef = useRef(false);
+    const rowClickTimeoutRef = useRef(null);
 
     const selectedRepo = selectedRepoFromProps || modalData.selectedRepo || dataPrimarySBH;
     const expectedEmail = expectedEmailFromProps || modalData.expectedEmail;
@@ -68,6 +72,9 @@ export default function CollectionBrowserModal({
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
             }
+            if (rowClickTimeoutRef.current) {
+                clearTimeout(rowClickTimeoutRef.current);
+            }
         };
     }, []);
 
@@ -79,7 +86,7 @@ export default function CollectionBrowserModal({
         const checkCredentials = async () => {
             credentialCheckDoneRef.current = true;
 
-            const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+            const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo);
             
             if (!repoInfo) {
                 showNotification({
@@ -182,7 +189,7 @@ export default function CollectionBrowserModal({
     const getAuthToken = useCallback(() => {
         const repoUrl = selectedRepo || dataPrimarySBH;
         if (!repoUrl || !dataSBH.length) return null;
-        const repo = dataSBH.find(r => r.value === repoUrl);
+        const repo = dataSBH.find(r => r.registryURL === repoUrl);
         return repo?.authtoken || null;
     }, [selectedRepo, dataPrimarySBH, dataSBH]);
 
@@ -199,6 +206,8 @@ export default function CollectionBrowserModal({
         try {
             const authToken = getAuthToken();
             const url = selectedRepo || dataPrimarySBH;
+            const repoInfo = dataSBH.find(r => r.registryURL === url);
+            const registryAPI = repoInfo?.registryAPI || url;
 
             if (!url || url.startsWith('Select')) {
                 setCollections([]);
@@ -208,9 +217,11 @@ export default function CollectionBrowserModal({
             let result;
             
             if (!parentUri) {
-                result = await searchCollections(url, authToken);
+                result = await searchCollections(registryAPI, authToken);
             } else {
-                const searchUrl = `https://${url}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
+                const repoInfo = dataSBH.find(r => r.registryURL === url);
+                const registryAPI = repoInfo?.registryAPI || url;
+                const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
                 
                 const response = await fetch(searchUrl, {
                     method: 'GET',
@@ -247,7 +258,7 @@ export default function CollectionBrowserModal({
                 setLoading(false);
             }
         }
-    }, [selectedRepo, dataPrimarySBH, getAuthToken]);
+    }, [selectedRepo, dataPrimarySBH, dataSBH, getAuthToken]);
 
     useEffect(() => {
         fetchCollections();
@@ -278,11 +289,26 @@ export default function CollectionBrowserModal({
     }, []);
 
     const handleDoubleClick = useCallback(async (collection) => {
+        if (rowClickTimeoutRef.current) {
+            clearTimeout(rowClickTimeoutRef.current);
+            rowClickTimeoutRef.current = null;
+        }
         if(rootOnly) return null;
         setBreadcrumbs(prev => [...prev, { name: collection.name || collection.displayId, uri: collection.uri }]);
         setCurrentPath(prev => [...prev, collection.uri]);
         await fetchCollections(collection.uri);
     }, [fetchCollections]);
+
+    const handleRowClick = useCallback((collection) => {
+        if (rowClickTimeoutRef.current) {
+            clearTimeout(rowClickTimeoutRef.current);
+        }
+
+        rowClickTimeoutRef.current = setTimeout(() => {
+            toggleSelection(collection);
+            rowClickTimeoutRef.current = null;
+        }, 200);
+    }, [toggleSelection]);
 
     const navigateToBreadcrumb = useCallback((index) => {
         const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
@@ -298,7 +324,7 @@ export default function CollectionBrowserModal({
     }, [fetchCollections, currentPath]);
 
     const handleCreateCollection = useCallback(() => {
-        const repoInfo = dataSBH.find(r => r.value === selectedRepo);
+        const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo);
         const authToken = repoInfo?.authtoken;
 
         setModalData?.(prev => ({
@@ -324,6 +350,13 @@ export default function CollectionBrowserModal({
         onCancel ? onCancel() : goBack();
     }, [onCancel, goBack]);
 
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    const filteredCollections = normalizedSearch
+        ? collections.filter(collection =>
+            (collection.displayId || '').toLowerCase().includes(normalizedSearch)
+        )
+        : collections;
+
     return (
         <Stack spacing="md" style={{ height: '70vh', display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'stretch', padding: 0 }}>
             <Breadcrumbs style={{ width: '100%' }}>
@@ -338,6 +371,116 @@ export default function CollectionBrowserModal({
                 ))}
             </Breadcrumbs>
 
+            
+
+            <Group position="right" mb={0} mt="xs">
+                <Tooltip label="Refresh collections list">
+                    <ActionIcon 
+                        onClick={handleRefresh} 
+                        variant="light" 
+                        color="blue"
+                        size="lg"
+                        disabled={loading}
+                    >
+                        <IoMdRefresh size={18} />
+                    </ActionIcon>
+                </Tooltip>
+                <Button onClick={handleCreateCollection} variant="outline" color="teal">
+                    Create Collection
+                </Button>
+            </Group>
+
+            <TextInput
+                placeholder="Search by Display ID"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.currentTarget.value)}
+            />
+
+            <Divider />
+
+            <ScrollArea style={{ flex: 1, width: '100%', overflowX: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0, alignItems: 'stretch' }} type="always">
+                {loading ? (
+                    <Center style={{ height: 300 }}>
+                        <Loader />
+                    </Center>
+                ) : collections.length === 0 ? (
+                    <Center style={{ height: 300 }}>
+                        <Text color="dimmed">No objects found</Text>
+                    </Center>
+                ) : (
+                    <div style={{ flex: 1, display: 'flex', minHeight: 0, alignItems: 'stretch', width: '100%' }}>
+                        <Table highlightOnHover withColumnBorders style={{ width: '100%', tableLayout: 'fixed', minWidth: '100%', flex: '1 1 auto' }}>
+                            <colgroup>
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '35%' }} />
+                                <col style={{ width: '10%' }} />
+                                <col style={{ width: '25%' }} />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '8%' }}>Select</th>
+                                    <th>Display ID</th>
+                                    <th>Name</th>
+                                    <th>Version</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredCollections.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--mantine-color-dimmed)', padding: '1rem' }}>
+                                            No collections match the Display ID search
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredCollections.map((collection) => (
+                                        <tr
+                                            key={collection.uri}
+                                            onClick={() => handleRowClick(collection)}
+                                            onDoubleClick={() => handleDoubleClick(collection)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    toggleSelection(collection);
+                                                }
+                                            }}
+                                            tabIndex={0}
+                                            role="button"
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                                {multiSelect ? (
+                                                    <Checkbox
+                                                        checked={selectedCollections.has(collection.uri)}
+                                                        onChange={() => toggleSelection(collection)}
+                                                    />
+                                                ) : (
+                                                    <Radio
+                                                        checked={selectedCollections.has(collection.uri)}
+                                                        onChange={() => toggleSelection(collection)}
+                                                    />
+                                                )}
+                                            </td>
+                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.displayId}</td>
+                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.name}</td>
+                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.version}</td>
+                                            <td style={{ 
+                                                overflowWrap: 'break-word',
+                                                wordBreak: 'break-word',
+                                                whiteSpace: 'normal'
+                                            }}>
+                                                {collection.description}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </Table>
+                    </div>
+                )}
+            </ScrollArea>
+            
             {selectedCollections.size > 0 && (
                 <Paper p="sm" withBorder>
                     <Text size="sm" weight={500} mb="xs">
@@ -369,99 +512,6 @@ export default function CollectionBrowserModal({
                     </Group>
                 </Paper>
             )}
-
-
-            <Group position="right" mb={0} mt="xs">
-                <Tooltip label="Refresh collections list">
-                    <ActionIcon 
-                        onClick={handleRefresh} 
-                        variant="light" 
-                        color="blue"
-                        size="lg"
-                        disabled={loading}
-                    >
-                        <IoMdRefresh size={18} />
-                    </ActionIcon>
-                </Tooltip>
-                <Button onClick={handleCreateCollection} variant="outline" color="teal">
-                    Create Collection
-                </Button>
-            </Group>
-
-            <Divider />
-
-            <ScrollArea style={{ flex: 1, width: '100%', overflowX: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0, alignItems: 'stretch' }} type="always">
-                {loading ? (
-                    <Center style={{ height: 300 }}>
-                        <Loader />
-                    </Center>
-                ) : collections.length === 0 ? (
-                    <Center style={{ height: 300 }}>
-                        <Text color="dimmed">No objects found</Text>
-                    </Center>
-                ) : (
-                    <div style={{ flex: 1, display: 'flex', minHeight: 0, alignItems: 'stretch', width: '100%' }}>
-                        <Table highlightOnHover withColumnBorders style={{ display: 'block', width: '100%', tableLayout: 'fixed', minWidth: '100%', flex: '1 1 auto' }}>
-                            <colgroup>
-                                <col style={{ width: '10%' }} />
-                                <col style={{ width: '20%' }} />
-                                <col style={{ width: '35%' }} />
-                                <col style={{ width: '10%' }} />
-                                <col style={{ width: '25%' }} />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '8%' }}>Select</th>
-                                    <th>Display ID</th>
-                                    <th>Name</th>
-                                    <th>Version</th>
-                                    <th>Description</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {collections.map((collection) => (
-                                    <tr
-                                        key={collection.uri}
-                                        onDoubleClick={() => handleDoubleClick(collection)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                handleDoubleClick(collection);
-                                            }
-                                        }}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                            {multiSelect ? (
-                                                <Checkbox
-                                                    checked={selectedCollections.has(collection.uri)}
-                                                    onChange={() => toggleSelection(collection)}
-                                                />
-                                            ) : (
-                                                <Radio
-                                                    checked={selectedCollections.has(collection.uri)}
-                                                    onChange={() => toggleSelection(collection)}
-                                                />
-                                            )}
-                                        </td>
-                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.displayId}</td>
-                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.name}</td>
-                                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{collection.version}</td>
-                                        <td style={{ 
-                                            overflowWrap: 'break-word',
-                                            wordBreak: 'break-word',
-                                            whiteSpace: 'normal'
-                                        }}>
-                                            {collection.description}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    </div>
-                )}
-            </ScrollArea>
-
 
             <Group position="right" mt="md">
                 <Checkbox

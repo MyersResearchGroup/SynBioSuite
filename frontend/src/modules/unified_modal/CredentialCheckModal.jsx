@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Stack, Button, Group, Text, Alert, Loader, Center, Paper, Avatar } from '@mantine/core';
 import { FaExclamationCircle, FaCheck, FaTimes } from 'react-icons/fa';
 import { useLocalStorage } from '@mantine/hooks';
+import { useSelector } from 'react-redux';
 import { CheckLogin, SBHLogout, clearInvalidCredentials } from '../../API';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
@@ -14,7 +15,7 @@ export default function CredentialCheckModal({
     setModalData 
 }) {
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [dataPrimarySBH] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: "" });
+    const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
     
     const [checking, setChecking] = useState(true);
     const [isValid, setIsValid] = useState(null);
@@ -39,7 +40,7 @@ export default function CredentialCheckModal({
 
     const getRepoInfo = useCallback(() => {
         if (!selectedRepo || !dataSBH.length) return null;
-        return dataSBH.find(r => r.value === selectedRepo);
+        return dataSBH.find(r => r.registryURL === selectedRepo);
     }, [selectedRepo, dataSBH]);
 
     useEffect(() => {
@@ -108,7 +109,7 @@ export default function CredentialCheckModal({
                             validated: true,
                         }));
                         
-                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER);
+                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
                         return;
                     }
                     
@@ -135,7 +136,8 @@ export default function CredentialCheckModal({
                     previousValidState.current = false;
                     
                     try {
-                        await SBHLogout(authToken, selectedRepo);
+                        const repoForLogout = getRepoInfo();
+                        await SBHLogout(authToken, repoForLogout?.registryAPI || selectedRepo);
                     } catch (err) {
                         console.error('Logout error:', err);
                     }
@@ -169,7 +171,10 @@ export default function CredentialCheckModal({
             return;
         }
         
-        navigateTo(MODAL_TYPES.SBH_LOGIN);
+        navigateTo(MODAL_TYPES.SBH_LOGIN, {
+            selectedRepo,
+            returnTo: MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+        });
     }, [navigateTo, skipRepositorySelection, expectedEmail, emailMismatch]);
 
     const handleConfirm = useCallback(() => {
@@ -177,26 +182,27 @@ export default function CredentialCheckModal({
 
         setModalData?.(prev => ({ 
             ...prev, 
+            selectedRepo,
             userInfo,
             authToken: getRepoInfo()?.authtoken,
             validated: skipRepositorySelection ? true : undefined,
         }));
 
-        navigateTo(MODAL_TYPES.COLLECTION_BROWSER);
-    }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection]);
+        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
+    }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection, selectedRepo]);
 
     const handleLogout = useCallback(async () => {
         const repoInfo = getRepoInfo();
         if (!repoInfo?.authtoken) return;
 
         try {
-            await SBHLogout(repoInfo.authtoken, selectedRepo);
+            await SBHLogout(repoInfo.authtoken, repoInfo.registryAPI || selectedRepo);
         } catch (err) {
             console.error('Logout error:', err);
         }
 
         setDataSBH(dataSBH.map(item => 
-            item.value === selectedRepo ? { ...item, authtoken: '' } : item
+            item.registryURL === selectedRepo ? { ...item, authtoken: '' } : item
         ));
 
         setIsValid(false);

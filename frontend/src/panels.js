@@ -1,5 +1,6 @@
 import { FcAddDatabase } from "react-icons/fc";
 import { FaFileArchive } from "react-icons/fa";
+import { APP_VERSION } from "./version";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
 import TransformationPanel from "./components/panels/buildplans/BuildPlansPanel";
@@ -15,11 +16,21 @@ import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
 
 
 export const PanelTypes = {
+    ExcelViewer: {
+        id: "synbio.panel-type.excel-viewer",
+        title: "Excel Viewer",
+        component: ExcelFilePanel,
+        objectTypes: [],
+        icon: PiMicrosoftExcelLogoFill,
+
+        deserialize: () => ({}),
+        serialize: () => ''
+    },
     Resources: {
         id: "synbio.panel-type.resources",
         title: "Uploader",
         component: ResourcesPanel,
-        objectTypes: [ ObjectTypes.Resources.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id, ObjectTypes.Metadata.id ],
+        objectTypes: [ ObjectTypes.Resources.id, ObjectTypes.Strains.id, ObjectTypes.SampleDesigns.id ],
         icon: FaFileArchive,
 
         deserialize: content => {
@@ -33,21 +44,18 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     }, 
     Simulator: {
         id: "synbio.panel-type.simulator",
         title: "iBioSim Analysis",
         component: SimulatorPanel,
-        objectTypes: [ ObjectTypes.Analysis.id, ObjectTypes.SBML.id ],
+        objectTypes: [ ObjectTypes.Analysis.id ],
         icon: SimulationIcon,
 
         deserialize: content => {
             const trimmed = content.trimStart()
-            if (trimmed.includes('sbml.org/sbml')) {
-                return { sbml: content }
-            }
             try {
                 return JSON.parse(content)
             }
@@ -57,11 +65,8 @@ export const PanelTypes = {
         },
 
         serialize: panel => {
-            if (panel.sbml && panel.fileHandle?.objectType === ObjectTypes.SBML.id) {
-                return panel.sbml
-            }
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
     SBOLEditor: {
@@ -100,7 +105,7 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
     Experiment: {
@@ -123,20 +128,8 @@ export const PanelTypes = {
 
         serialize: panel => {
             const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify(restOfPanel)
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
-    },
-    ExcelFile: {
-        id: "synbio.panel-type.excel-file",
-        title: "Experimental Setup",
-        component: ExcelFilePanel,
-        objectTypes: [ObjectTypes.Metadata.id],
-        icon: PiMicrosoftExcelLogoFill,
-        deserialize: content => ({
-            file: content
-        }),
-        serialize: panel => panel.file,
-        useBuffer: true
     },
     SynBioHub: {
         id: "synbio.panel-type.synbiohub",
@@ -157,5 +150,5 @@ export function getPanelType(id) {
 }
 
 export function getPanelTypeForObject(objectType) {
-    return Object.values(PanelTypes).find(pt => pt.objectTypes.includes(objectType))
+    return Object.values(PanelTypes).find(pt => Array.isArray(pt.objectTypes) && pt.objectTypes.includes(objectType))
 }
