@@ -3,6 +3,8 @@ import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
+import { useDispatch, useSelector } from 'react-redux';
+import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 const login = async (instance, username, password) => {
     try {
@@ -12,7 +14,7 @@ const login = async (instance, username, password) => {
             color: 'blue',
             loading: true,
         });
-        const response = await axios.post(`https://${instance}/api/auth/log_in/`, {
+        const response = await axios.post(`${instance}/api/auth/log_in/`, {
             "username": username,
             "password": password
         }, {
@@ -36,7 +38,9 @@ const login = async (instance, username, password) => {
 
 const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: `Flapjack-Primary`, defaultValue: [] });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.fjPrimary);
+    const setSelected = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selected) : value));
 
     const form = useForm({
         initialValues: {
@@ -55,9 +59,9 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
             try {
                 const info = await login(selected, values.username, values.password);
                 const updatedInstance = { 
-                    value: selected, 
-                    label: selected,
-                    instance: selected, 
+                    registryURL: selected, 
+                    registryAPI: selected,
+                    registryPrefix: selected,
                     username: values.username, 
                     email: info.email,
                     authtoken: info.authtoken,
@@ -65,7 +69,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.instance === selected ? updatedInstance : item
+                    item.registryURL === selected ? updatedInstance : item
                 );
                 setInstanceData(updatedInstanceData);
                 cleanNotifications();
@@ -74,7 +78,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                     message: 'You have successfully logged in.',
                     color: 'green',
                 });
-                setSelected(updatedInstance.value);
+                setSelected(updatedInstance.registryURL);
                 goBack(false)
             } catch (error) {
                 console.error('Login failed:', error);

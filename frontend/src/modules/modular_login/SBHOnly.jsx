@@ -1,61 +1,21 @@
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Modal, Group } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
-import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useEffect } from 'react';
-
-const login = async (instance, email, password) => {
-    try {
-        showNotification({
-            title: 'Logging in',
-            message: 'Please wait...',
-            color: 'blue',
-            loading: true,
-        });
-        const response = await axios.post(`https://${instance}/login`, {
-            "email": email,
-            "password": password
-        }, {
-            headers: {
-                'accept': 'text/plain',
-                'Content-Type': 'application/json',
-            }
-        });
-        if(response.data){
-            let data = await getProfile(instance, response.data);
-            data.auth = response.data;
-            return data;
-        }
-    } catch (error) {
-        cleanNotifications();
-        console.error('Error:', error);
-        throw error;
-    }
-};
-
-const getProfile = async (instance, auth) => {
-    try {
-        const response = await axios.get(`https://${instance}/profile`, {
-            headers: {
-                'Accept': 'text/plain; charset=UTF-8',
-                "X-authorization" : `${auth}`
-            }
-        });
-        if(response.data){
-            cleanNotifications();
-            return response.data;
-        }
-    } catch (error) {
-        cleanNotifications();
-        console.error('Error:', error);
-        throw error;
-    }
-};
+import { useDispatch, useSelector } from 'react-redux';
+import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { SBHLogin, CheckLogin } from '../../API';
 
 const SBHOnly = ({opened, onClose, goBack}) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
-    const [selected, setSelected] = useLocalStorage({ key: "SynbioHub-Primary", defaultValue: [] });
+    const dispatch = useDispatch();
+    const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
+
+    const getSelectedInstance = () => {
+        return instanceData.find((item) => item.registryURL === selected);
+    };
 
     const form = useForm({
         initialValues: {
@@ -79,26 +39,50 @@ const SBHOnly = ({opened, onClose, goBack}) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(selected, values.email, values.password);
+                showNotification({
+                    title: 'Logging in',
+                    message: 'Please wait...',
+                    color: 'blue',
+                    loading: true,
+                });
+                
+                const selectedInstance = getSelectedInstance();
+                const registryAPI = selectedInstance?.registryAPI || selected;
+                
+                const authToken = await SBHLogin(registryAPI, values.email, values.password);
+                const loginResult = await CheckLogin(registryAPI, authToken);
+                
+                if (!loginResult.valid) {
+                    cleanNotifications();
+                    showNotification({
+                        title: 'Login failed',
+                        message: 'Unable to verify login. Please try again.',
+                        color: 'red',
+                    });
+                    return;
+                }
+                
+                const info = loginResult.profile;
                 
                 const updatedInstance = { 
-                    value: selected, 
-                    label: selected,
-                    instance: selected, 
+                    registryURL: selected, 
+                    registryAPI,
+                    registryPrefix: selectedInstance?.registryPrefix || selected,
                     email: info.email, 
-                    authtoken: info.auth,
+                    authtoken: authToken,
                     name: info.name,
                     username: info.username,
                     affiliation: info.affiliation
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.instance === selected ? updatedInstance : item
+                    item.registryURL === selected ? updatedInstance : item
                 );
                 
                 setInstanceData(updatedInstanceData);
-                setSelected(updatedInstance.value);
+                setSelected(updatedInstance.registryURL);
                 
+                cleanNotifications();
                 showNotification({
                     title: 'Login successful',
                     message: 'You have successfully logged in.',
@@ -106,17 +90,18 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                 });                
                 onClose()
             } catch (error) {
+                cleanNotifications();
                 console.error('Login failed:', error);
-                if(error.status === 401){
+                if(error.response?.status === 401){
                     showNotification({
                         title: 'Login failed',
                         message: 'Please check your credentials and try again.',
                         color: 'red',
                     });
-                } else {
+                } else if(error.message){
                     showNotification({
                         title: 'Login failed',
-                        message: 'An error occurred. Please try again and make sure your repository is online.',
+                        message: error.message || 'An error occurred. Please try again and make sure your repository is online.',
                         color: 'red',
                     });
                 }

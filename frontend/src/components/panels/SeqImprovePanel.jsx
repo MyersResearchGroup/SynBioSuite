@@ -7,9 +7,8 @@ const { selectors } = panelsSlice
 
 export const PanelContext = createContext()
 
-export default function SeqImprovePanel({fileObjectTypeId}) {
-    const activePanelId = useSelector(state => state.panels.active)
-    const panel = useSelector(state => selectors.selectById(state, activePanelId))
+export default function SeqImprovePanel({ id }) {
+    const panel = useSelector(state => selectors.selectById(state, id))
     const url = panel?.url
     
     return (

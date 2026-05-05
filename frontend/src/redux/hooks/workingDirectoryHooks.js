@@ -4,6 +4,7 @@ import { classifyFile } from "../../objectTypes"
 import { useOpenPanel, useCloseAllPanels, usePanelIds, useClosePanel, panelsSelectors } from "./panelsHooks"
 
 const { actions, selectors } = workingDirectorySlice
+const SEQ_IMPROVE_PANEL_TYPE = "synbio.panel-type.seqimprove"
 
 
 // Selector hooks
@@ -15,6 +16,7 @@ export function useWorkingDirectory() {
     
     const dispatch = useDispatch()
     const panelIds = usePanelIds()
+    const panelsState = useSelector(state => state.panels)
     const closePanel = useClosePanel()
     const closeAllPanels = useCloseAllPanels()
 
@@ -35,6 +37,10 @@ export function useWorkingDirectory() {
 
                     // otherwise, we'll search for stale panels and close those
                     panelIds.forEach(panelId => {
+                        const panel = panelsSelectors.selectById({ panels: panelsState }, panelId)
+                        if (panel?.type === SEQ_IMPROVE_PANEL_TYPE)
+                            return
+
                         !foundFiles.find(file => file.id == panelId) &&
                             closePanel(panelId, false)
                     })
