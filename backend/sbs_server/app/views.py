@@ -46,14 +46,6 @@ def sbh_fj_upload(files):
     root, extension = os.path.splitext(metadata_file.filename)
     if not extension == '.xlsx' and not extension == '.xlsm':
         return 'Invalid Metadata file format', 400
-    
-    # # Plate reader data to upload to FJ
-    # if 'Experimental_Data' in request.files:
-    #     experimental = request.files['Experimental_Data']
-    #     # Run XDE to add data to template (?)
-    #     # experimental = result
-    # else:
-    #     experimental = None
 
     # Check params from frontend
     if 'Params' not in files:
@@ -92,9 +84,25 @@ def sbh_fj_upload(files):
     else:
         attachments = None
 
+    metadata_file.save(metadata_file.filename)
+
+    # Plate reader data to upload to FJ
+    if 'Plate_Reader_Output' in request.files and 'sheet_name' in params_from_request:
+        filenames = [metadata_file.filename]
+        for file in files.getlist("Plate_Reader_Output"):
+            # TODO - adapt XDE to work with the file object to avoid unneccesary writes
+            # For now:
+            file.save(file.filename)
+            filenames.append(file.filename)
+        xde = tricahue.XDE()
+        xde.run(filenames, params_from_request['sheet_name'], data_cols_offset=2)
+        print(filenames)
+        for data_filename in filenames[1:]:
+          os.remove(data_filename)
+
     # instantiate the XDC class using the params_from_request dictionary
     try:
-        xdc = tricahue.XDC(input_excel_path = files['Metadata'])
+        xdc = tricahue.XDC(input_excel_path = metadata_file.filename, attachments=attachments)
         # print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
         sbh_url, fj_url = xdc.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
                                       collection_url = params_from_request['collection_url'], 
@@ -108,8 +116,10 @@ def sbh_fj_upload(files):
                                       fj_pass = params_from_request['fj_pass'],
                                       fj_token = params_from_request['fj_token'])
     except AttributeError as e:
+        os.remove(metadata_file.filename)
         return jsonify({"error": str(e)}), 400
     except Exception as e:
+        os.remove(metadata_file.filename)
         return jsonify({"error": str(e)}), 500
 
     sbs_upload_response_dict ={
@@ -117,6 +127,7 @@ def sbh_fj_upload(files):
         "fj_url": fj_url,
         "status": "success"
     }
+    os.remove(metadata_file.filename)
     return jsonify(sbs_upload_response_dict)
 
 
