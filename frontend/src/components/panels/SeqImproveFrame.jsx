@@ -40,7 +40,7 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
                             return
                         }
 
-                        const safeName = data.displayID
+                        const safeName = data.displayID + '.xml'
                         const plasmidsSubdir = ObjectTypes.Plasmids.subdirectory
                         const plasmidsDir = await workDir.getDirectoryHandle(plasmidsSubdir, { create: true })
                         const fileHandle = await createFileInDirectory(
