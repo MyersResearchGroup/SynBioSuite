@@ -3,6 +3,9 @@ import { showNotification } from '@mantine/notifications'
 import { useState, useEffect, useRef, useContext } from 'react'
 import { PanelContext } from './SeqImprovePanel'
 import { usePanelProperty } from '../../redux/hooks/panelsHooks'
+import store from '../../redux/store'
+import { createFileInDirectory, writeToFileHandle } from '../../redux/hooks/workingDirectoryHooks'
+import { ObjectTypes } from '../../objectTypes'
 
 export default function SeqImproveFrame({ fileTypeObjectId }) {
     const { url, panelId } = useContext(PanelContext)
@@ -27,6 +30,34 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
         if (data?.sbol) {
             console.debug('Received SBOL from SeqImprove:', data.sbol.substring(0, 100))
             setSBOLContent(data.sbol)
+
+            if (data.source === 'seqimprove') {
+                ;(async () => {
+                    try {
+                        const workDir = store.getState().workingDirectory.directoryHandle
+                        if (!workDir) {
+                            showNotification({ title: 'Save failed', message: 'No working directory selected', color: 'red' })
+                            return
+                        }
+
+                        const safeName = data.displayID
+                        const plasmidsSubdir = ObjectTypes.Plasmids.subdirectory
+                        const plasmidsDir = await workDir.getDirectoryHandle(plasmidsSubdir, { create: true })
+                        const fileHandle = await createFileInDirectory(
+                            plasmidsDir,
+                            safeName,
+                            ObjectTypes.Plasmids.id,
+                            store.dispatch,
+                            plasmidsSubdir,
+                        )
+                        await writeToFileHandle(fileHandle, data.sbol)
+                        showNotification({ title: 'Saved to working directory', message: `${plasmidsSubdir}/${safeName}`, color: 'teal' })
+                    }
+                    catch (err) {
+                        showNotification({ title: 'Save failed', message: err?.message ?? String(err), color: 'red' })
+                    }
+                })()
+            }
             return
         }
         if (data?.error) {
