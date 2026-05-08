@@ -142,6 +142,16 @@ export const PanelTypes = {
         title: "SeqImprove",
         component: SeqImprovePanel,
         icon: SynBioHub,
+
+        deserialize: content => ({
+            sbol: content
+        }),
+        serialize: panel => {
+            if (!panel.sbol || panel.sbol.trim() === "") {
+                return BLANK_SBOL
+            }
+            return panel.sbol;
+        }
     }
 }
 
