@@ -114,7 +114,7 @@ def sbh_fj_upload(files):
 
     # instantiate the XDC class using the params_from_request dictionary
     try:
-        xdc = tricahue.XDC(input_excel_path = metadata_file.filename, attachments=attachments)
+        xdc = tricahue.XDC(input_excel_path = metadata_path, attachments=attachments)
         # print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
         sbh_url, fj_url = xdc.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
                                       collection_url = params_from_request['collection_url'], 
@@ -128,10 +128,10 @@ def sbh_fj_upload(files):
                                       fj_pass = params_from_request['fj_pass'],
                                       fj_token = params_from_request['fj_token'])
     except AttributeError as e:
-        os.remove(metadata_file.filename)
+        os.remove(metadata_path)
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        os.remove(metadata_file.filename)
+        os.remove(metadata_path)
         return jsonify({"error": str(e)}), 500
 
     sbs_upload_response_dict ={
@@ -139,7 +139,7 @@ def sbh_fj_upload(files):
         "fj_url": fj_url,
         "status": "success"
     }
-    os.remove(metadata_file.filename)
+    os.remove(metadata_path)
     return jsonify(sbs_upload_response_dict)
 
 
