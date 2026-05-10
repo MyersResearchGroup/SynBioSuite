@@ -1,6 +1,7 @@
 from __future__ import annotations 
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 from .main import app
 from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
 import sys
@@ -84,21 +85,32 @@ def sbh_fj_upload(files):
     else:
         attachments = None
 
-    metadata_file.save(metadata_file.filename)
+    upload_dir = os.path.join(os.getcwd(), "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    safe_metadata_filename = secure_filename(metadata_file.filename)
+    if safe_metadata_filename == '':
+        return 'Invalid Metadata file name', 400
+    metadata_path = os.path.join(upload_dir, safe_metadata_filename)
+    metadata_file.save(metadata_path)
 
     # Plate reader data to upload to FJ
     if 'Plate_Reader_Output' in request.files and 'sheet_name' in params_from_request:
-        filenames = [metadata_file.filename]
+        filenames = [metadata_path]
         for file in files.getlist("Plate_Reader_Output"):
             # TODO - adapt XDE to work with the file object to avoid unneccesary writes
             # For now:
-            file.save(file.filename)
-            filenames.append(file.filename)
+            safe_data_filename = secure_filename(file.filename)
+            if safe_data_filename == '':
+                return 'Invalid Plate Reader Output file name', 400
+            data_path = os.path.join(upload_dir, safe_data_filename)
+            file.save(data_path)
+            filenames.append(data_path)
         xde = tricahue.XDE()
         xde.run(filenames, params_from_request['sheet_name'], data_cols_offset=2)
         print(filenames)
         for data_filename in filenames[1:]:
-          os.remove(data_filename)
+            os.remove(data_filename)
 
     # instantiate the XDC class using the params_from_request dictionary
     try:
