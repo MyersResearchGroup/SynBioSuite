@@ -1,224 +1,139 @@
-import { Container, Stepper, Group, Button, Space, Menu } from "@mantine/core"
-import Dropzone from '../../Dropzone'
-import { ObjectTypes } from '../../../objectTypes'
-import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
+import { Alert, Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
 import { useContext, useState } from 'react'
-import { PanelContext } from './CollectionPanel'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
-import XDCTimeline from './XDCTimeline'
-import { IoIosCloudUpload } from "react-icons/io";
-import { TbStatusChange } from "react-icons/tb";
-import { RuntimeStatus } from "../../../runtimeStatus"
-import { useLocalStorage } from "@mantine/hooks"
-import { useSelector } from 'react-redux'
-import ExperimentalTable from "./ExperimentalTable"
-import { MdTextSnippet } from "react-icons/md"
-import CollectionInfo from "./CollectionInfo"
-import { useDispatch } from "react-redux"
-import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal"
+import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
+import { useLocalStorage } from '@mantine/hooks'
+import { PanelContext } from './CollectionPanel'
+import { ObjectTypes } from '../../../objectTypes'
+import { RuntimeStatus } from '../../../runtimeStatus'
+import { uploadExperiment } from '../../../API'
+import { showErrorNotification } from '../../../modules/util'
+import Dropzone from '../../Dropzone'
 
-export default function CollectionWizard() {
+export default function CollectionWizard({ onUploadComplete }) {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
-    const dispatch = useDispatch();
-    const { workflows } = useUnifiedModal();
-    
+    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
+
     const handleOpenFile = (file) => {
-        openPanel(file)
+        if (file) {
+            openPanel(file)
+        }
     }
 
-    const selectedSBH = useSelector(state => state.primaryRepository.sbhPrimary);
-    const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
-    
-    // stepper states
-    const numSteps = 3
-    const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
-    const nextStep = () => setActiveStep((current) => (current < numSteps - 1 ? current + 1 : current))
-    const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current))
-    
-    // Step 1: Experimental Metadata, Results, and Plate Reader file
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
     const metadataFile = useFile(metadataID)
-    
+
     const [resultsID, setResultsID] = usePanelProperty(panelId, 'results', false)
     const resultsFile = useFile(resultsID)
 
     const [plateOutputID, setPlateOutputID] = usePanelProperty(panelId, 'plateOutput', false)
     const plateOutputFile = useFile(plateOutputID)
-    
-    const handleMetadataChange = name => {
-        setMetadataID(name)
+
+    const [collection] = usePanelProperty(panelId, 'collection', false, {})
+    const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
+
+    const [timelineStatus, setTimelineStatus] = useState(RuntimeStatus.WAITING)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
+    const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
+    const collectionUrl = collection?.uri || collection?.collectionUrl || collection?.collections?.[0]?.uri || ''
+    const uploadCount = uploads?.length ?? 0
+    const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
+
+    const runTimeline = async () => {
+        setTimelineStatus(RuntimeStatus.PROCESSING)
+        await new Promise((resolve) => setTimeout(resolve, 600))
+        setTimelineStatus(RuntimeStatus.UPLOADING)
+        await new Promise((resolve) => setTimeout(resolve, 600))
+        setTimelineStatus(RuntimeStatus.COMPLETED)
     }
-    
-    const handleExperimentalDataChange = name => {
-        setResultsID(name)
-    }
-    
-    const handlePlateReaderChange = name => {
-        setPlateOutputID(name)
-    }
 
-    // Step 2: Just to read values to know when to go to next step
-    const [collection, setCollection] = usePanelProperty(panelId, 'collection', false, {})
+    const handleSubmit = async () => {
+        if (!metadataFile) {
+            showErrorNotification('Missing file', 'Please choose a study metadata file before uploading.')
+            return
+        }
 
-    //Step 3: Timeline status--indicates XDC server's status
-    const [timelineStatus, setTimelineStatus] = useState(RuntimeStatus.WAITING);
+        if (!collectionUrl) {
+            showErrorNotification('Missing collection', 'Please choose a target collection before uploading.')
+            return
+        }
 
-    const handleUploadSequence = () => {
-        setTimelineStatus(RuntimeStatus.PROCESSING);
-        setTimeout(() => {
-            setTimelineStatus(RuntimeStatus.UPLOADING);
-            setTimeout(() => {
-                setTimelineStatus(RuntimeStatus.COMPLETED);
-            }, 1000);
-        }, 1000);
-    };
+        setIsSubmitting(true)
+        try {
+            await runTimeline()
 
-    const uploadToFlapjack = sbh => {
-        if (!selectedFJ || selectedFJ == ''){
-            workflows.addRepository('fj', () => handleUploadSequence());
-        } else {
-            handleUploadSequence();
+            const response = await uploadExperiment(
+                metadataFile,
+                selectedRepo,
+                authToken,
+                collectionUrl,
+                collection.sbh_overwrite,
+                uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
+                {
+                    attachments: resultsFile ? [resultsFile] : [],
+                    plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
+                }
+            )
+
+            const uploadEntry = {
+                collectionName: collection?.name || collection?.displayId || collectionUrl,
+                uri: response?.sbh_url || collectionUrl,
+                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                file: metadataFile.name,
+                selectedRepo,
+                status: response?.status || 'success',
+            }
+
+            setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
+            onUploadComplete?.(uploadEntry)
+        } catch (error) {
+            showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
+            setTimelineStatus(RuntimeStatus.FAILED)
+        } finally {
+            setIsSubmitting(false)
         }
     }
-    
+
     return (
         <Container style={stepperContainerStyle}>
-            <Stepper active={activeStep} onStepClick={setActiveStep} breakpoint="sm">
-                <Stepper.Step allowStepSelect={activeStep > 0}
-                    label="Upload Files"
-                    description="Upload Experimental Data"
-                    icon={<MdTextSnippet />}>
+            <Stack gap="xl">
+                <div>
                     <Dropzone
                         allowedTypes={[ObjectTypes.Metadata.id]}
                         item={metadataFile?.name}
-                        onItemChange={handleMetadataChange}
-                        link={() => handleOpenFile(metadataFile)}>
+                        onItemChange={setMetadataID}
+                    >
                         Drag & drop Study Metadata from the explorer
                     </Dropzone>
-                    <Space h='lg' />
+                    <Space h="lg" />
                     <Dropzone
                         allowedTypes={[ObjectTypes.Results.id]}
                         item={resultsFile?.name}
-                        onItemChange={handleExperimentalDataChange}>
+                        onItemChange={setResultsID}
+                    >
                         Drag & drop Experimental Results from the explorer
                     </Dropzone>
-                    <Space h='lg' />
+                    <Space h="lg" />
                     <Dropzone
                         allowedTypes={[ObjectTypes.PlateReader.id]}
                         item={plateOutputFile?.name}
-                        onItemChange={handlePlateReaderChange}>
+                        onItemChange={setPlateOutputID}
+                    >
                         Drag & drop Plate Reader Output from the explorer
                     </Dropzone>
-                </Stepper.Step>
-                <Stepper.Step allowStepSelect={metadataID}
-                    label="Collection Info"
-                    description="Choose Collection"
-                    icon={<TbStatusChange />}>
-                    <CollectionInfo />
-                </Stepper.Step>
-                <Stepper.Step
-                    allowStepSelect={metadataID && Object.keys(collection).length != 0}
-                    label="Upload"
-                    description="Confirm Selections"
-                    icon={<IoIosCloudUpload />}
-                >
-                    <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                        <Group grow style={{ flexDirection: 'row', alignItems: 'flex-start' }} >
-                            <ExperimentalTable/>
-                            <XDCTimeline status={timelineStatus} />
-                        </Group>
-                    </Group>
-                </Stepper.Step>
-            </Stepper>
-
-            <Group position="center" mt="xl">
+                </div>
+            </Stack>
+            <Group position="center" style={{ width: '100%', marginTop: 20 }}>
                 <Button
-                    variant="default"
-                    onClick={prevStep}
-                    sx={{ display: activeStep != 0 ? 'block' : 'none' }}
+                    variant='default'
+                    onClick={handleSubmit}
+                    disabled={!metadataFile}
                 >
-                    Back
+                    {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
-                {activeStep == numSteps - 1 ? (
-                    <>
-                        {(!resultsID && !plateOutputID) ? (
-                            <Button
-                                onClick={() => {
-                                    setTimelineStatus(RuntimeStatus.PROCESSING);
-                                    setTimeout(() => {
-                                        setTimelineStatus(RuntimeStatus.UPLOADING);
-                                        setTimeout(() => {
-                                            setTimelineStatus(RuntimeStatus.COMPLETED);
-                                            setTimeout(() => nextStep(), 1000);
-                                        }, 1000);
-                                    }, 1000);
-                                }}
-                                disabled={!selectedSBH}
-                                sx={{ display: 'block', opacity: selectedSBH ? 1 : 0.5 }}
-                            >
-                                Upload to Synbiohub
-                            </Button>
-                        ) : (
-                            <Menu shadow="md" position="bottom-end">
-                                <Menu.Target>
-                                    <Button
-                                        sx={{ display: 'block' }}
-                                        disabled={!selectedSBH && !selectedFJ}
-                                        radius='xl'
-                                        rightIcon={
-                                            <span style={{ fontSize: 16, marginLeft: 8 }}>▼</span>
-                                        }
-                                    >
-                                        Upload to...
-                                    </Button>
-                                </Menu.Target>
-                                <Menu.Dropdown>
-                                    <Menu.Item
-                                        onClick={() => {
-                                            setTimelineStatus(RuntimeStatus.PROCESSING);
-                                            setTimeout(() => {
-                                                setTimelineStatus(RuntimeStatus.UPLOADING);
-                                                setTimeout(() => {
-                                                    setTimelineStatus(RuntimeStatus.COMPLETED);
-                                                    setTimeout(() => nextStep(), 1000);
-                                                }, 1000);
-                                            }, 1000);
-                                        }}
-                                    >
-                                        Synbiohub
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={() => {
-                                            uploadToFlapjack(false)
-                                        }}
-                                    >
-                                        Flapjack
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={() => {
-                                            uploadToFlapjack(true)
-                                        }}
-                                    >
-                                        Synbiohub and Flapjack
-                                    </Menu.Item>
-                                </Menu.Dropdown>
-                            </Menu>
-                        )}
-                    </>
-                ) : (
-                    <></>
-                )}
-                {((activeStep == 0 && metadataID) || (activeStep == 1 && Object.keys(collection).length != 0)) ? (
-                    <Button
-                        onClick={nextStep}
-                        sx={{ display: 'block' }}
-                    >
-                        Next step
-                    </Button>
-                ) : (
-                    <></>
-                )}
             </Group>
         </Container>
     )
@@ -227,5 +142,8 @@ export default function CollectionWizard() {
 const stepperContainerStyle = {
     marginTop: 40,
     padding: '0 40px',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center'
 }

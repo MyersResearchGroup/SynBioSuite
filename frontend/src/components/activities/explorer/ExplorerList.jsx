@@ -10,11 +10,15 @@ import Registries from './Registries.jsx'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import DownloadMetadata from './DownloadMetadata.jsx'
 import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
+import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
+import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
+
+    const { workflows } = useUnifiedModal()
 
     const [importedFile, setImportedFile] = useState(null)
 
@@ -49,11 +53,59 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         }
     }
 
+    async function runImportCollectionWorkflow() {
+        return new Promise((resolve) => {
+            workflows.browseCollections(resolve, {
+                multiSelect: false,
+                rootOnly: true,
+            })
+        })
+    }
+
     // handle creation
     const createFile = useCreateFile()
     const dispatch = useDispatch()
+    const openPanel = useOpenPanel()
+
+    async function createStudyWorkflowFile(fileName, modalResult) {
+        const directory = await workDir.getDirectoryHandle(ObjectTypes.Studies.subdirectory, { create: true })
+        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Studies.extension, ObjectTypes.Studies.id, dispatch)
+
+        const selectedCollection = modalResult.collections?.[0]
+
+        const workflowData = {
+            activeStep: 0,
+            metadata: null,
+            results: null,
+            plateOutput: null,
+            collection: {
+                uri: selectedCollection?.uri || null,
+                name: selectedCollection?.name || null,
+                displayId: selectedCollection?.displayId || null,
+                selectedRepo: modalResult.selectedRepo || null,
+                authToken: modalResult.authToken || null,
+                sbh_overwrite: modalResult.sbh_overwrite ?? 0,
+                completed: true,
+            },
+            uploads: [],
+        }
+
+        await writeToFileHandle(fileHandle, JSON.stringify(workflowData))
+        openPanel(fileHandle)
+    }
+
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
+        let modalResult = null;
+        if (objectType.id === ObjectTypes.Studies.id) {
+            modalResult = await runImportCollectionWorkflow()
+            if (!modalResult?.completed) {
+                return
+            }
+
+            await createStudyWorkflowFile(fileName, modalResult)
+            return
+        }
         if(objectType.subdirectory){
             tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
