@@ -90,6 +90,98 @@ export async function upload_resource(
     }
 }
 
+export async function uploadExperiment(
+    file,
+    sbh_url,
+    sbh_token,
+    collectionUrl,
+    workingDirectory = null,
+    sbh_overwrite = 0,
+    extraFiles = {}
+) {
+    try {
+        let data = new FormData();
+        if (file) {
+            let fileObject;
+            if (typeof file === 'string') {
+                if (!workingDirectory) {
+                    throw new Error('Working directory handle is required when file is provided as a path string');
+                }
+                fileObject = await readFileFromPath(workingDirectory, file);
+            } else {
+                fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
+            }
+            data.append('Metadata', fileObject);
+        }
+
+        const appendFileGroup = async (fieldName, files = []) => {
+            for (const extraFile of files) {
+                if (!extraFile) continue;
+
+                let fileObject;
+                if (typeof extraFile === 'string') {
+                    if (!workingDirectory) {
+                        throw new Error(`Working directory handle is required when ${fieldName} is provided as a path string`);
+                    }
+                    fileObject = await readFileFromPath(workingDirectory, extraFile);
+                } else {
+                    fileObject = typeof extraFile.getFile === 'function' ? await extraFile.getFile() : extraFile;
+                }
+
+                data.append(fieldName, fileObject, fileObject.name || fieldName);
+            }
+        };
+
+        await appendFileGroup('Attachments', extraFiles.attachments || []);
+        await appendFileGroup('Plate_Reader_Output', extraFiles.plateReaderOutputs || []);
+
+        const paramsObj = {
+            sbh_url: sbh_url,
+            sbh_token: sbh_token,
+            fj_url: null,
+            sbh_user: null,
+            sbh_pass: null,
+            fj_token: null,
+            fj_user: null,
+            fj_pass: null,
+            collection_url: collectionUrl,
+            sbh_overwrite: sbh_overwrite,
+            fj_overwrite: 1,
+            version: "",
+            attachments: Object.fromEntries(
+                (extraFiles.attachments || [])
+                    .filter(Boolean)
+                    .map((attachmentFile) => {
+                        const attachmentName = typeof attachmentFile === 'string'
+                            ? attachmentFile.split('/').pop()
+                            : attachmentFile.name;
+                        return [attachmentName, attachmentName];
+                    })
+            ),
+            ...(extraFiles.sheetName ? { sheet_name: extraFiles.sheetName } : {})
+        }
+
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/uploadExperiment',
+            data,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                maxBodyLength: Infinity
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Upload Experiment error:", error);
+        throw error;
+    }
+}
+
 export async function submitAssembly(wizardInput, insertParts, acceptorBackbone) {
     var formdata = new FormData()
 

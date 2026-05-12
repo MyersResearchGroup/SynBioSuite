@@ -3,32 +3,47 @@ import { createContext } from 'react'
 import PanelSaver from "../PanelSaver"
 import { useState } from 'react'
 import CollectionWizard from './CollectionWizard'
+import CollectionUploads from './CollectionUploads'
 
 
 export const PanelContext = createContext()
 
 const TabValues = {
-    SETUP: "import",
+    UPLOAD: "UPLOAD",
+    RESULTS: "RESULTS"
 }
 
 
 export default function CollectionPanel({ id }) {
  
-    const [activeTab, setActiveTab] = useState(TabValues.SETUP);
+    const [activeTab, setActiveTab] = useState(TabValues.UPLOAD);
+    const [hasUploads, setHasUploads] = useState(false);
+
+    const handleUploadComplete = () => {
+        setHasUploads(true);
+        setActiveTab(TabValues.RESULTS);
+    }
 
    return (
        <PanelContext.Provider value={id}>
             <Tabs value={activeTab} onTabChange={setActiveTab} styles={tabStyles} keepMounted={false}>
                 <Tabs.List>
-                    <Tabs.Tab value={TabValues.SETUP}>UPLOAD</Tabs.Tab>
+                    <Tabs.Tab value={TabValues.UPLOAD}>UPLOAD</Tabs.Tab>
+                    {hasUploads && <Tabs.Tab value={TabValues.RESULTS}>RESULTS</Tabs.Tab>}
                 </Tabs.List>
 
-                <Tabs.Panel value={TabValues.SETUP}>
-                    <CollectionWizard />
+                <Tabs.Panel value={TabValues.UPLOAD}>
+                    <CollectionWizard onUploadComplete={handleUploadComplete} />
                     <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
                         <Space h={20} />
                     </ScrollArea>
                 </Tabs.Panel>
+
+                {hasUploads && (
+                    <Tabs.Panel value={TabValues.RESULTS}>
+                        <CollectionUploads />
+                    </Tabs.Panel>
+                )}
             </Tabs>
             <PanelSaver id={id} />
        </PanelContext.Provider>
