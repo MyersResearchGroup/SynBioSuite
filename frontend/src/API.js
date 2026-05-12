@@ -56,7 +56,7 @@ export async function upload_resource(
         const paramsObj = {
             sbh_url: sbh_url,
             sbh_token: sbh_token,
-            fj_url: "charmmefj-api.synbiohub.org",
+            fj_url: null,
             sbh_user: null,
             sbh_pass: null,
             fj_token: null,
