@@ -59,9 +59,8 @@ def sbh_fj_upload(files):
     if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
         params_from_request['sbh_url'] = 'https://' + sbh_url
 
-    required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass', 
-                       'fj_url', 'fj_token', 'fj_user', 'fj_pass', 
-                       'collection_url', 'sbh_overwrite', 'fj_overwrite']
+    required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass',
+                       'collection_url', 'sbh_overwrite']
 
     for param in required_params:
         if param not in params_from_request:
@@ -70,6 +69,22 @@ def sbh_fj_upload(files):
         params_from_request['sbh_user'] is None and
         params_from_request['sbh_pass'] is None):
         return 'No SBH credentials provided', 400
+
+    fj_url = params_from_request.get('fj_url')
+    fj_token = params_from_request.get('fj_token')
+    fj_user = params_from_request.get('fj_user')
+    fj_pass = params_from_request.get('fj_pass')
+    fj_overwrite = params_from_request.get('fj_overwrite', 1)
+
+    if not fj_url:
+        fj_url = None
+        fj_token = None
+        fj_user = None
+        fj_pass = None
+    elif not fj_token and not (fj_user and fj_pass):
+        return jsonify({
+            "error": "Flapjack URL was provided, but no Flapjack credentials were provided"
+        }), 400
 
     # Attachment files to upload to SBH
     if 'Attachments' in files and 'attachments' in params_from_request:
@@ -122,11 +137,11 @@ def sbh_fj_upload(files):
                                       sbh_user = params_from_request['sbh_user'],
                                       sbh_pass = params_from_request['sbh_pass'], 
                                       sbh_token = params_from_request['sbh_token'],
-                                      fj_url = params_from_request['fj_url'],
-                                      fj_overwrite = params_from_request['fj_overwrite'], 
-                                      fj_user = params_from_request['fj_user'], 
-                                      fj_pass = params_from_request['fj_pass'],
-                                      fj_token = params_from_request['fj_token'])
+                                      fj_url = fj_url,
+                                      fj_overwrite = fj_overwrite, 
+                                      fj_user = fj_user, 
+                                      fj_pass = fj_pass,
+                                      fj_token = fj_token)
     except AttributeError as e:
         os.remove(metadata_path)
         return jsonify({"error": str(e)}), 400
@@ -312,4 +327,3 @@ def inspect_request():
     return jsonify({
         "message": "Request received successfully", 
         "files": files}), 200
-
