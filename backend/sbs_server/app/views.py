@@ -4,6 +4,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from .main import app
 from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
+from .version import __version__
 import sys
 import os
 import json
@@ -17,7 +18,7 @@ import subprocess
 #check if the app is running
 @app.route('/api/status')
 def pin():
-    return jsonify({"status": "working"}), 200
+    return jsonify({"status": "working", "version": __version__}), 200
 
 @app.route('/api/uploadResource', methods = ['POST'])
 def upload_resource():
