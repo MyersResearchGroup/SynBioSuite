@@ -1,4 +1,4 @@
-import { Alert, Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
+import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
 import { useContext, useState } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
@@ -10,16 +10,10 @@ import { uploadExperiment } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
 
-export default function CollectionWizard({ onUploadComplete }) {
+export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
-
-    const handleOpenFile = (file) => {
-        if (file) {
-            openPanel(file)
-        }
-    }
 
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
     const metadataFile = useFile(metadataID)
@@ -33,7 +27,6 @@ export default function CollectionWizard({ onUploadComplete }) {
     const [collection] = usePanelProperty(panelId, 'collection', false, {})
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
 
-    const [timelineStatus, setTimelineStatus] = useState(RuntimeStatus.WAITING)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
@@ -41,14 +34,6 @@ export default function CollectionWizard({ onUploadComplete }) {
     const collectionUrl = collection?.uri || collection?.collectionUrl || collection?.collections?.[0]?.uri || ''
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
-
-    const runTimeline = async () => {
-        setTimelineStatus(RuntimeStatus.PROCESSING)
-        await new Promise((resolve) => setTimeout(resolve, 600))
-        setTimelineStatus(RuntimeStatus.UPLOADING)
-        await new Promise((resolve) => setTimeout(resolve, 600))
-        setTimelineStatus(RuntimeStatus.COMPLETED)
-    }
 
     const handleSubmit = async () => {
         if (!metadataFile) {
@@ -63,13 +48,12 @@ export default function CollectionWizard({ onUploadComplete }) {
 
         setIsSubmitting(true)
         try {
-            await runTimeline()
-
             const response = await uploadExperiment(
                 metadataFile,
                 selectedRepo,
                 authToken,
                 collectionUrl,
+                null,
                 collection.sbh_overwrite,
                 uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
@@ -88,10 +72,8 @@ export default function CollectionWizard({ onUploadComplete }) {
             }
 
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
-            onUploadComplete?.(uploadEntry)
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
-            setTimelineStatus(RuntimeStatus.FAILED)
         } finally {
             setIsSubmitting(false)
         }
@@ -130,7 +112,7 @@ export default function CollectionWizard({ onUploadComplete }) {
                 <Button
                     variant='default'
                     onClick={handleSubmit}
-                    disabled={!metadataFile}
+                    disabled={!metadataFile || isSubmitting}
                 >
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
