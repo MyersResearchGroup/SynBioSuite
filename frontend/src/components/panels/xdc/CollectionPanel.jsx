@@ -1,7 +1,8 @@
 import { ScrollArea, Space, Tabs } from '@mantine/core'
 import { createContext } from 'react'
 import PanelSaver from "../PanelSaver"
-import { useState } from 'react'
+import { useState, useContext } from 'react'
+import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import CollectionWizard from './CollectionWizard'
 import CollectionUploads from './CollectionUploads'
 
@@ -17,12 +18,8 @@ const TabValues = {
 export default function CollectionPanel({ id }) {
  
     const [activeTab, setActiveTab] = useState(TabValues.UPLOAD);
-    const [hasUploads, setHasUploads] = useState(false);
-
-    const handleUploadComplete = () => {
-        setHasUploads(true);
-        setActiveTab(TabValues.RESULTS);
-    }
+    const [uploads] = usePanelProperty(id, 'uploads', false, [])
+    const hasUploads = (uploads?.length ?? 0) > 0
 
    return (
        <PanelContext.Provider value={id}>
@@ -33,7 +30,7 @@ export default function CollectionPanel({ id }) {
                 </Tabs.List>
 
                 <Tabs.Panel value={TabValues.UPLOAD}>
-                    <CollectionWizard onUploadComplete={handleUploadComplete} />
+                    <CollectionWizard />
                     <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
                         <Space h={20} />
                     </ScrollArea>

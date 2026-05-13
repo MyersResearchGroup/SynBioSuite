@@ -47,6 +47,5 @@ export default function CollectionUploads() {
 
 const stepperContainerStyle = {
     marginTop: 40,
-    padding: '0 40px',
-    flexDirection: 'column'
+    padding: '0 40px'
 }

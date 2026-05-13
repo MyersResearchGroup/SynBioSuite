@@ -127,7 +127,8 @@ export const ObjectTypes = {
         icon: GiSewingMachine,
         createable: true,
         extension: '.json',
-        subdirectory: "buildPlans"
+        subdirectory: "buildPlans",
+        visible: false
     },
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
