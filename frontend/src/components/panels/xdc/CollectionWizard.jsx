@@ -30,6 +30,7 @@ export default function CollectionWizard() {
 
     const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
     const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
+    const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
     const collectionUrl = collection?.uri || collection?.collectionUrl || collection?.collections?.[0]?.uri || ''
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
@@ -49,7 +50,7 @@ export default function CollectionWizard() {
         try {
             const response = await uploadExperiment(
                 metadataFile,
-                selectedRepo,
+                registryAPI,
                 authToken,
                 collectionUrl,
                 null,
