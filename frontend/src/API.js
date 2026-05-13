@@ -80,7 +80,6 @@ export async function upload_resource(
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
-                maxBodyLength: Infinity
             }
         );
         return response.data;
@@ -172,7 +171,6 @@ export async function uploadExperiment(
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
-                maxBodyLength: Infinity
             }
         );
         return response.data;
