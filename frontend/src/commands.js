@@ -502,6 +502,16 @@ export default {
             const expectedEmail = lastUpload.userEmail || null;
             const collectionUrl = lastUpload.collectionUri || lastUpload.uri;
             const collectionName = lastUpload.collectionName;
+            const registryAPI = (() => {
+                try {
+                    const stored = localStorage.getItem('SynbioHub');
+                    if (!stored) return selectedRepo;
+                    const repos = JSON.parse(stored);
+                    return repos.find(r => r.registryURL === selectedRepo)?.registryAPI || selectedRepo;
+                } catch {
+                    return selectedRepo;
+                }
+            })();
 
             function getStoredToken() {
                 try {
@@ -636,7 +646,7 @@ export default {
                             try {
                                 response = await upload_resource(
                                     uploadPath,
-                                    selectedRepo,
+                                    registryAPI,
                                     authToken,
                                     collectionUrl,
                                     dirHandle,

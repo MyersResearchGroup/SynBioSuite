@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import { workingDirectorySlice } from "../../../redux/store";
+import { useLocalStorage } from "@mantine/hooks";
 import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
@@ -35,6 +36,7 @@ async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, ma
 export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
     const [selectedFile, setSelectedFile] = useState(null)
     const dirName = useSelector(state => state.workingDirectory.directoryHandle)
+    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
     const { workflows } = useUnifiedModal()
@@ -147,6 +149,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const selectedCollection = modalResult.collections?.[0]
                 const selectedRepo = modalResult.selectedRepo
                 const authToken = modalResult.authToken
+                const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
 
                 if (!selectedCollection?.uri || !selectedRepo || !authToken) {
                     showErrorNotification("Import aborted", "Missing repository, credentials, or collection selection.")
@@ -166,7 +169,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 try {
                     uploadResponse = await upload_resource(
                         uploadedFilePath,
-                        selectedRepo,
+                        registryAPI,
                         authToken,
                         collectionUrl,
                         dirName,

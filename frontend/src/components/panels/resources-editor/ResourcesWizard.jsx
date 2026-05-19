@@ -5,7 +5,6 @@ import { PanelContext } from './ResourcesPanel'
 import PanelSaver from '../PanelSaver'
 import { showErrorNotification } from "../../../modules/util"
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal'
-import { upload_resource } from "../../../API"
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 
 
