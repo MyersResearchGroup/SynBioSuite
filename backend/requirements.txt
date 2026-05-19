@@ -4,7 +4,7 @@ requests
 numpy==1.26.2
 pandas==1.5.3
 pyflapjack @ git+https://github.com/flapjacksynbio/pyFlapjack
-excel2flapjack @ git+https://github.com/SynBioDex/Excel-to-Flapjack
+excel2flapjack @ git+https://github.com/SynBioDex/Excel-to-Flapjack.git
 # tricahue==0.0b6
 tricahue @ git+https://github.com/MyersResearchGroup/Tricahue/@dev
 sbol2build
