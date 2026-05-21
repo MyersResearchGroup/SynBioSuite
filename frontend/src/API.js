@@ -63,7 +63,7 @@ export async function upload_resource(
             fj_user: null,
             fj_pass: null,
             collection_url: collectionUrl,
-            sbh_overwrite: sbh_overwrite,
+            sbh_overwrite: sbh_overwrite == 3 ? true : false,
             fj_overwrite: 1,
             version: "",
             attachments: {}
@@ -144,7 +144,7 @@ export async function uploadExperiment(
             fj_user: null,
             fj_pass: null,
             collection_url: collectionUrl,
-            sbh_overwrite: sbh_overwrite,
+            sbh_overwrite: sbh_overwrite == 3 ? true : false,
             fj_overwrite: 1,
             version: "",
             attachments: Object.fromEntries(
@@ -161,6 +161,7 @@ export async function uploadExperiment(
         }
 
         const paramsJson = JSON.stringify(paramsObj);
+        console.log(paramsJson)
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
         data.append('Params', paramBlob, 'parameters.json');
 

@@ -12,3 +12,4 @@ flask_swagger_ui
 xlsxwriter
 # pudupy==1.0.0b2
 pudupy @ git+https://github.com/MyersResearchGroup/PUDU
+packaging==25.0
