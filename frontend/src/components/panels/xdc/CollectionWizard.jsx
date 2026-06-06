@@ -6,7 +6,7 @@ import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
 import { uploadExperiment } from '../../../API'
-import { showErrorNotification } from '../../../modules/util'
+import { showErrorNotification, showUploadErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
 
 export default function CollectionWizard() {
@@ -73,7 +73,7 @@ export default function CollectionWizard() {
 
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
         } catch (error) {
-            showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
+            showUploadErrorNotification('Upload failed', error, 'Unable to upload the collection metadata.')
         } finally {
             setIsSubmitting(false)
         }

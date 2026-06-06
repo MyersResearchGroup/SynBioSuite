@@ -9,7 +9,7 @@ import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import { workingDirectorySlice } from "../../../redux/store";
 import { useLocalStorage } from "@mantine/hooks";
-import { showErrorNotification } from "../../../modules/util";
+import { showErrorNotification, showUploadErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
@@ -206,6 +206,9 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
             onSelect?.(fileMetadata)
         } catch (err) {
             console.warn("File selection canceled or failed", err)
+            if (err?.response) {
+                showUploadErrorNotification("Upload failed", err, "Unable to upload the collection metadata.")
+            }
         }
     }
         
