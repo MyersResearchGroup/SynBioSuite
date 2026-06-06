@@ -5,6 +5,8 @@ from werkzeug.utils import secure_filename
 from .main import app
 from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
 from .version import __version__
+import contextlib
+import io
 import sys
 import os
 import json
@@ -13,6 +15,86 @@ import tricahue
 import sbol2 as sb2
 import pudu
 import subprocess
+import traceback
+
+
+def classify_excel2sbol_error(exc):
+    if isinstance(exc, FileNotFoundError):
+        return {
+            "code": "E_INPUT_FILE",
+            "message": "The uploaded Excel file could not be read.",
+            "hint": "Check that the file was uploaded correctly.",
+            "status": 400,
+        }
+
+    if isinstance(exc, (KeyError, AttributeError)):
+        return {
+            "code": "E_WORKBOOK_STRUCTURE",
+            "message": "The Excel file is missing a required sheet, column, or SBOL mapping.",
+            "hint": "Check the Init sheet and column_definitions sheet.",
+            "status": 400,
+        }
+
+    if isinstance(exc, ValueError):
+        return {
+            "code": "E_WORKBOOK_VALUE",
+            "message": "A value in the Excel file could not be converted to SBOL.",
+            "hint": "Check the reported sheet, column, row, or pattern requirement.",
+            "status": 400,
+        }
+
+    return {
+        "code": "E_CONVERSION_FAILED",
+        "message": "Excel2SBOL failed during conversion.",
+        "hint": "Open More details and send the technical report to the developers.",
+        "status": 500,
+    }
+
+
+def redact_sensitive_values(text):
+    if text is None:
+        return ""
+
+    sensitive_values = [
+        os.getenv("SBOL_USERNAME"),
+        os.getenv("SBOL_PASSWORD"),
+        os.getenv("SBOL_URL"),
+        os.getenv("SYNBIOHUB_USERNAME"),
+        os.getenv("SYNBIOHUB_PASSWORD"),
+        os.getenv("SYNBIOHUB_URL"),
+    ]
+
+    for value in sensitive_values:
+        if value:
+            text = text.replace(value, "[REDACTED]")
+
+    return text
+
+
+def excel2sbol_error_response(exc, stdout_buffer, stderr_buffer):
+    terminal_output = "\n".join([
+        "STDOUT:",
+        stdout_buffer.getvalue(),
+        "",
+        "STDERR:",
+        stderr_buffer.getvalue(),
+    ])
+
+    classified = classify_excel2sbol_error(exc)
+
+    return jsonify({
+        "status": "error",
+        "error": {
+            "code": classified["code"],
+            "message": classified["message"],
+            "hint": classified["hint"],
+            "details": redact_sensitive_values(str(exc)),
+            "technical_details": {
+                "terminal_output": redact_sensitive_values(terminal_output),
+                "traceback": redact_sensitive_values(traceback.format_exc()),
+            },
+        },
+    }), classified["status"]
 
 #routes
 #check if the app is running
@@ -129,26 +211,32 @@ def sbh_fj_upload(files):
             os.remove(data_filename)
 
     # instantiate the XDC class using the params_from_request dictionary
+    stdout_buffer = io.StringIO()
+    stderr_buffer = io.StringIO()
+
     try:
-        xdc = tricahue.XDC(input_excel_path = metadata_path, attachments=attachments)
-        # print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
-        sbh_url, fj_url = xdc.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
-                                      collection_url = params_from_request['collection_url'], 
-                                      sbh_overwrite = params_from_request['sbh_overwrite'], 
-                                      sbh_user = params_from_request['sbh_user'],
-                                      sbh_pass = params_from_request['sbh_pass'], 
-                                      sbh_token = params_from_request['sbh_token'],
-                                      fj_url = fj_url,
-                                      fj_overwrite = fj_overwrite, 
-                                      fj_user = fj_user, 
-                                      fj_pass = fj_pass,
-                                      fj_token = fj_token)
-    except AttributeError as e:
-        os.remove(metadata_path)
-        return jsonify({"error": str(e)}), 400
+        with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
+            xdc = tricahue.XDC(input_excel_path = metadata_path, attachments=attachments)
+            # print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
+            sbh_url, fj_url = xdc.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
+                                          collection_url = params_from_request['collection_url'], 
+                                          sbh_overwrite = params_from_request['sbh_overwrite'], 
+                                          sbh_user = params_from_request['sbh_user'],
+                                          sbh_pass = params_from_request['sbh_pass'], 
+                                          sbh_token = params_from_request['sbh_token'],
+                                          fj_url = fj_url,
+                                          fj_overwrite = fj_overwrite, 
+                                          fj_user = fj_user, 
+                                          fj_pass = fj_pass,
+                                          fj_token = fj_token)
     except Exception as e:
-        os.remove(metadata_path)
-        return jsonify({"error": str(e)}), 500
+        if os.path.exists(metadata_path):
+            os.remove(metadata_path)
+        app.logger.exception("Excel2SBOL conversion failed")
+        return excel2sbol_error_response(e, stdout_buffer, stderr_buffer)
+
+    sys.stdout.write(stdout_buffer.getvalue())
+    sys.stderr.write(stderr_buffer.getvalue())
 
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
@@ -328,4 +416,3 @@ def inspect_request():
     return jsonify({
         "message": "Request received successfully", 
         "files": files}), 200
-
