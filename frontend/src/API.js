@@ -286,9 +286,30 @@ export async function SBHLogin(url, username, password) {
     }
 }
 
+function normalizeCollectionResponse(data) {
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (data?.results && Array.isArray(data.results)) {
+        return data.results;
+    }
+
+    if (data?.collections && Array.isArray(data.collections)) {
+        return data.collections;
+    }
+
+    if (data?.rootCollections && Array.isArray(data.rootCollections)) {
+        return data.rootCollections;
+    }
+
+    return [];
+}
+
 export async function searchCollections(url, auth) {
     try {
-        if (typeof url !== "string" || url.trim() === "") return null;
+        if (typeof url !== "string" || url.trim() === "") return [];
+
         const response = await axios.get(`${url}/rootCollections`, {
             headers: {
                 "Content-Type": "text/plain",
@@ -296,18 +317,21 @@ export async function searchCollections(url, auth) {
             }
         });
 
-        // This filters out all the public root collections so only private ones are returned
-        if (Array.isArray(response.data)) {
-            return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
-        } else {
-            throw new Error("Response from SynbioHub is not an array");
-        }
+        const collections = normalizeCollectionResponse(response.data);
+
+        return collections.filter(
+            item => typeof item.uri === 'string' && !/\/public\//.test(item.uri)
+        );
     } catch (error) {
-        if (error.response && error.response.status == 401 && error.response.data == "Login required"){
-            showErrorNotification('Your SynbioHub Credentials Have Expired', "Try logging out and logging back in again")
+        if (error.response && error.response.status == 401 && error.response.data == "Login required") {
+            showErrorNotification(
+                'Your SynbioHub Credentials Have Expired',
+                "Try logging out and logging back in again"
+            );
         } else {
             showErrorNotification('Error Gathering Collections', error.message);
         }
+
         throw error;
     }
 }
