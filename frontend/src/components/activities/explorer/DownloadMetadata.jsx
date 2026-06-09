@@ -2,6 +2,7 @@ import { Group, Text } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { AiOutlineDownload } from "react-icons/ai";
+import { downloadGithubTemplate } from "../../../API";
 
 export default function DownloadMetadata({ objectType }) {
     
@@ -24,20 +25,22 @@ export default function DownloadMetadata({ objectType }) {
         } 
 
         try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const link = document.createElement("a");
-        
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-            }
-            catch(error){
-                window.open(url, '_blank');
-            }
+            const blob = await downloadGithubTemplate(url);
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        } catch (error) {
+            showNotification({
+                title: 'Download Failed',
+                message: 'Unable to fetch template from GitHub. Opening source in a new tab.',
+                color: 'yellow',
+            });
+            window.open(url, '_blank');
+        }
     }
 
     return(
