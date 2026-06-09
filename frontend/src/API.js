@@ -76,16 +76,25 @@ export async function upload_resource(
         const response = await axios.post(
             SBS_Server_Link + '/api/uploadResource',
             data,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
-            }
+            // { timeout: 120000 }
+            // {
+            //     headers: {
+            //         'Content-Type': 'multipart/form-data'
+            //     },
+            // }
         );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-        console.error("Upload Resource error:", error);
-        throw error;
+        showErrorNotification('Resource Upload Failed', error.message);
+        // if (error.response) {
+        //     showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
+        // } else if (error.request) { // no response
+        //     showErrorNotification('Network error', 'No response from server.');
+        // } 
+        // else {
+        //     showErrorNotification('Unexpected error', error.message);
+        // }
     }
 }
 
@@ -365,6 +374,18 @@ export async function SBHLogout(auth, url) {
     } catch (error) {
         console.error("SBHLogout error:", error);
         showErrorNotification('Logout Error', error.message);
+        throw error;
+    }
+}
+
+export async function downloadGithubTemplate(url) {
+    try {
+        const response = await axios.get(url, {
+            responseType: 'blob'
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Download GitHub template error:', error);
         throw error;
     }
 }
