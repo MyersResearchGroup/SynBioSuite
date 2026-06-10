@@ -76,25 +76,22 @@ export async function upload_resource(
         const response = await axios.post(
             SBS_Server_Link + '/api/uploadResource',
             data,
-            // { timeout: 120000 }
-            // {
-            //     headers: {
-            //         'Content-Type': 'multipart/form-data'
-            //     },
-            // }
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              },
+            }
         );
         // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-        showErrorNotification('Resource Upload Failed', error.message);
-        // if (error.response) {
-        //     showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
-        // } else if (error.request) { // no response
-        //     showErrorNotification('Network error', 'No response from server.');
-        // } 
-        // else {
-        //     showErrorNotification('Unexpected error', error.message);
-        // }
+      console.log(error.response?.data);
+      const msg =
+            error.response?.data?.error ||
+            error.message ||
+            'Unknown error';
+      showErrorNotification('Resource Upload Failed', msg);
+      throw error;
     }
 }
 
@@ -304,7 +301,9 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-
+      console.log('URL: '+url)
+      console.log('auth: '+auth)
+      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
@@ -374,18 +373,6 @@ export async function SBHLogout(auth, url) {
     } catch (error) {
         console.error("SBHLogout error:", error);
         showErrorNotification('Logout Error', error.message);
-        throw error;
-    }
-}
-
-export async function downloadGithubTemplate(url) {
-    try {
-        const response = await axios.get(url, {
-            responseType: 'blob'
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Download GitHub template error:', error);
         throw error;
     }
 }

@@ -145,11 +145,19 @@ def sbh_fj_upload(files):
                                       fj_token = fj_token)
     except AttributeError as e:
         os.remove(metadata_path)
+        print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        os.remove(metadata_path)
-        return jsonify({"error": str(e)}), 500
+        import traceback
 
+        traceback.print_exc()
+
+        return jsonify({
+            "error": str(e),
+            "type": type(e).__name__,
+            "repr": repr(e)
+        }), 500
+    
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
         "fj_url": fj_url,
