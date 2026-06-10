@@ -261,8 +261,11 @@ export default function CollectionBrowserModal({
     }, [selectedRepo, dataPrimarySBH, dataSBH, getAuthToken]);
 
     useEffect(() => {
+        if (!dataSBH?.length) return;
+        const authToken = getAuthToken();
+        if (!authToken) return;
         fetchCollections();
-    }, [fetchCollections]);
+    }, [fetchCollections, dataSBH, getAuthToken]);
 
     const toggleSelection = useCallback((collection) => {
         setSelectedCollections(prev => {

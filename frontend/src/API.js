@@ -77,15 +77,21 @@ export async function upload_resource(
             SBS_Server_Link + '/api/uploadResource',
             data,
             {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              },
             }
         );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-        console.error("Upload Resource error:", error);
-        throw error;
+      console.log(error.response?.data);
+      const msg =
+            error.response?.data?.error ||
+            error.message ||
+            'Unknown error';
+      showErrorNotification('Resource Upload Failed', msg);
+      throw error;
     }
 }
 
@@ -295,7 +301,9 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-
+      console.log('URL: '+url)
+      console.log('auth: '+auth)
+      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));

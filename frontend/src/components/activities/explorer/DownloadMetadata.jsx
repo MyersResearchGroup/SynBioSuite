@@ -24,20 +24,19 @@ export default function DownloadMetadata({ objectType }) {
         } 
 
         try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const link = document.createElement("a");
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const link = document.createElement("a");
         
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-            }
-            catch(error){
-                window.open(url, '_blank');
-            }
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        } catch(error){
+            window.open(url, '_blank');
+        }
     }
 
     return(
