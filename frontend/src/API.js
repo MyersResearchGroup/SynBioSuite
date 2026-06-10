@@ -76,25 +76,10 @@ export async function upload_resource(
         const response = await axios.post(
             SBS_Server_Link + '/api/uploadResource',
             data,
-            // { timeout: 120000 }
-            // {
-            //     headers: {
-            //         'Content-Type': 'multipart/form-data'
-            //     },
-            // }
         );
-        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
         showErrorNotification('Resource Upload Failed', error.message);
-        // if (error.response) {
-        //     showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
-        // } else if (error.request) { // no response
-        //     showErrorNotification('Network error', 'No response from server.');
-        // } 
-        // else {
-        //     showErrorNotification('Unexpected error', error.message);
-        // }
     }
 }
 
@@ -298,23 +283,52 @@ export async function SBHLogin(url, username, password) {
 export async function searchCollections(url, auth) {
     try {
         if (typeof url !== "string" || url.trim() === "") return null;
-        const response = await axios.get(`${url}/rootCollections`, {
-            headers: {
-                "Content-Type": "text/plain",
-                "X-authorization": auth
+        
+        let response;
+        let retries = 3;
+        let delay = 500; // Start with 500ms
+        
+        while (retries > 0) {
+            response = await axios.get(`${url}/rootCollections`, {
+                headers: {
+                    "Content-Type": "text/plain",
+                    "X-authorization": auth
+                }
+            });
+            
+            if (Array.isArray(response.data) && response.data.length > 0) {
+                retries = 0; // sanity check
+                break; // Success with data, exit loop
+            } else if (Array.isArray(response.data)) {
+                // It's an array but empty, that's still valid
+                retries = 0; // sanity check
+                break;
             }
-        });
-
-        // This filters out all the public root collections so only private ones are returned
+            
+            retries--;
+            if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Double the delay each retry
+            }
+        }
+        
+        // Handle the final response
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
+        } else if (response.data && typeof response.data === 'object') {
+            // Response is an object but not an array - log but don't error
+            console.warn("Response from SynbioHub is not an array. Received:", response.data);
+            return []; // Return empty array instead of throwing
         } else {
-            throw new Error("Response from SynbioHub is not an array");
+            console.warn("Unexpected response format from SynbioHub:", response.data);
+            return [];
         }
-    } catch (error) {
+    } 
+    catch (error) {
         if (error.response && error.response.status == 401 && error.response.data == "Login required"){
             showErrorNotification('Your SynbioHub Credentials Have Expired', "Try logging out and logging back in again")
-        } else {
+        } 
+        else {
             showErrorNotification('Error Gathering Collections', error.message);
         }
         throw error;
