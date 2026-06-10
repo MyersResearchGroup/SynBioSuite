@@ -55,7 +55,7 @@ export default function CollectionWizard() {
                 collectionUrl,
                 null,
                 collection.sbh_overwrite,
-                uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
+                //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
                     attachments: resultsFile ? [resultsFile] : [],
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
