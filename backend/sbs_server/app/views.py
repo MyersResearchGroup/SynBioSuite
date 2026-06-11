@@ -122,7 +122,6 @@ def sbh_fj_upload(files):
         filenames = [metadata_path]
         for file in files.getlist("Plate_Reader_Output"):
             # TODO - adapt XDE to work with the file object to avoid unneccesary writes
-            # For now:
             safe_data_filename = secure_filename(file.filename)
             if safe_data_filename == '':
                 return 'Invalid Plate Reader Output file name', 400
