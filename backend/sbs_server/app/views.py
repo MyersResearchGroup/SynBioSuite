@@ -13,6 +13,7 @@ import tricahue
 import sbol2 as sb2
 import pudu
 import subprocess
+from uuid import uuid4
 
 #routes
 #check if the app is running
@@ -105,9 +106,15 @@ def sbh_fj_upload(files):
     os.makedirs(upload_dir, exist_ok=True)
 
     safe_metadata_filename = secure_filename(metadata_file.filename)
+
     if safe_metadata_filename == '':
         return 'Invalid Metadata file name', 400
-    metadata_path = os.path.join(upload_dir, safe_metadata_filename)
+
+    metadata_path = os.path.join(
+        upload_dir,
+        f"{uuid4()}_{safe_metadata_filename}"
+    )
+
     metadata_file.save(metadata_path)
 
     # Plate reader data to upload to FJ
