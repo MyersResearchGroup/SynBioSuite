@@ -1,4 +1,5 @@
 import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
+// import { Notifications } from '@mantine/notifications'
 import { useContext, useState } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
@@ -9,7 +10,7 @@ import { uploadExperiment } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
 
-export default function CollectionWizard() {
+export default function CollectionWizard({ onUploadSuccess }) {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
@@ -27,6 +28,7 @@ export default function CollectionWizard() {
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
 
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [uploadSuccess, setUploadSuccess] = useState(false)
 
     const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
     const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
@@ -72,6 +74,18 @@ export default function CollectionWizard() {
             }
 
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
+            setUploadSuccess(true)
+
+            // notifications.show({
+            //     title: 'Upload successful',
+            //     message: 'Your collection has been uploaded.',
+            //     color: 'green',
+            //     action: {
+            //         label: 'See Results',
+            //         onClick: onUploadSuccess
+            //     }
+            // })
+
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
         } finally {
@@ -117,6 +131,17 @@ export default function CollectionWizard() {
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
             </Group>
+
+            {uploadSuccess && (
+            <Button 
+                onClick={onUploadSuccess}
+                color="green"
+                style={{ marginTop: 20 }}
+            >
+                See Results
+            </Button>
+            )}
+
         </Container>
     )
 }
