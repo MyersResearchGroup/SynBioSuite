@@ -30,6 +30,7 @@ export const MODAL_TYPES = {
     WELL_LOCATIONS_CONFIG: 'well_locations_config',
 };
 
+// Defines modal flow rules, defines permitted navigation paths between modals
 const MODAL_FLOWS = {
     [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
     [MODAL_TYPES.FJ_LOGIN]: [MODAL_TYPES.ADD_FJ_REPO],
@@ -122,14 +123,15 @@ function UnifiedModal({
         }
     }, [currentModal, modalData, modalProps.selectedRepo, dispatch]);
 
+    // Validates that modal transitions follow the defined flows before allowing them
     const navigateTo = useCallback((modalType, data = {}) => {
         const currentFlow = MODAL_FLOWS[currentModal] || [];
         
+        // doesn't allow the interaction if the flow type is not allowed between modals
         if (!currentFlow.includes(modalType)) {
             console.warn(`Navigation from ${currentModal} to ${modalType} not allowed by flow`);
             return false;
         }
-
         if (!allowedModals.includes(modalType)) {
             console.warn(`Modal ${modalType} not allowed by workflow constraints`);
             return false;
