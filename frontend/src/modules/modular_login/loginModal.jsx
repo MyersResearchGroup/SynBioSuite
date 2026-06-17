@@ -44,7 +44,7 @@ function LoginModal({ opened, onClose, repoName }) {
     const fjInfo = selectedFJ ? findInstance(selectedFJ, "FJ") : null;
 
     return (
-        <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
+        <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg" closeOnClickOutside={false} >
             {repoSelection === "" ? (
                 <>
                     <Grid>
