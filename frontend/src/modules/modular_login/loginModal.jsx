@@ -6,6 +6,7 @@ import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary, setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { CheckLogin } from '../../API';
 
 
 function LoginModal({ opened, onClose, repoName }) {
@@ -36,8 +37,60 @@ function LoginModal({ opened, onClose, repoName }) {
 
     //To reset the repoSelection state when the modal is closed
     useEffect(() => {
-        setRepoSelection("");
-    }, [opened]);
+        if (!opened) {
+            setRepoSelection("");
+        } else if (repoName) {
+            setRepoSelection(repoName);
+        }
+    }, [opened, repoName]);
+
+
+    // auto close only when allowed
+    useEffect(() => {
+        const checkAndAutoClose = async () => {
+            if (!opened || !allowAutoClose) return; // Don't check if modal is closed
+            
+            // If a repo is selected, check if it has a valid token
+            if (selectedSBH) {
+                const sbhInstance = dataSBH.find(r => r.registryURL === selectedSBH);
+                if (sbhInstance?.authtoken) {
+                    try {
+                        const result = await CheckLogin(
+                            sbhInstance.registryAPI || selectedSBH,
+                            sbhInstance.authtoken
+                        );
+                        // If valid token exists, close the modal
+                        if (result.valid) {
+                            onClose();
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Token validation failed:', error);
+                    }
+                }
+            }
+
+            if (selectedFJ) {
+                const fjInstance = dataFJ.find(r => r.registryURL === selectedFJ);
+                if (fjInstance?.authtoken) {
+                    try {
+                        const result = await CheckLogin(
+                            fjInstance.registryAPI || selectedFJ,
+                            fjInstance.authtoken
+                        );
+                        if (result.valid) {
+                            onClose();
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Token validation failed:', error);
+                    }
+                }
+            }
+        };
+
+        checkAndAutoClose();
+    }, [opened, selectedSBH, selectedFJ, dataSBH, dataFJ, onClose]);
 
     // Safely resolve selected instance info to avoid undefined property access
     const sbhInfo = selectedSBH ? findInstance(selectedSBH, "SBH") : null;

@@ -9,6 +9,8 @@ import SBHModal from '../modules/modular_login/SBHModal';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
 import SBHOnly from '../modules/modular_login/SBHOnly';
 import UnifiedModal from '../modules/unified_modal/unifiedModal';
+import { useAuthCheck } from '../hooks/useAuthCheck';
+import { Loader, Center } from '@mantine/core';
 
 
 export default function LocalHome() {
@@ -30,6 +32,16 @@ export default function LocalHome() {
     const unifiedModalCallback = useSelector((state) => state.modal.unifiedModalCallback);
 
     const dispatch = useDispatch();
+
+    // auth check hook is used here. Waits for auth check to finish before showing the app, to prevent the login modal from flashing
+    const authCheckComplete = useAuthCheck();
+    if (!authCheckComplete) {
+        return (
+            <Center style={{ height: '100vh' }}>
+                <Loader size="lg" />
+            </Center>
+        );
+    }
 
     return (
         <>
