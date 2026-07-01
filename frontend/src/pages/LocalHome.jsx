@@ -9,7 +9,6 @@ import SBHModal from '../modules/modular_login/SBHModal';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
 import SBHOnly from '../modules/modular_login/SBHOnly';
 import UnifiedModal from '../modules/unified_modal/unifiedModal';
-import { useAuthCheck } from '../hooks/useAuthCheck';
 import { Loader, Center } from '@mantine/core';
 
 

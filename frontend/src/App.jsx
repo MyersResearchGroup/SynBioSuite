@@ -1,9 +1,10 @@
 import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import CloudHome from './pages/CloudHome';
 import LocalHome from './pages/LocalHome';
 import { LoadingOverlay } from '@mantine/core';
-import { useSelector } from 'react-redux'
+import { useSelector } from 'react-redux';
+import RequireAuth from './components/RequireAuth';
 
 export default function App() {
     const visible = useSelector((state) => state.overlay.loadingOverlay)
@@ -17,9 +18,9 @@ export default function App() {
                 visible={visible}
             />
             <Routes>
-                {/* <Route path="/onedrive" element={<CloudHome />} /> */}
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/local" element={<LocalHome />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/local" element={<RequireAuth><LocalHome /></RequireAuth>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
