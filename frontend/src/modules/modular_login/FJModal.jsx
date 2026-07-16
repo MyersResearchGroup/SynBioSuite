@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Button } from '@mantine/core';
 import FJInstanceSelector from './FJInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
+import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { useDispatch, useSelector } from 'react-redux';
 import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
@@ -10,7 +10,7 @@ import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 function FJModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
     
-    const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
+    const [dataFJ] = useRepositoryStorage('flapjack');
     const dispatch = useDispatch();
     const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     const setSelectedFJ = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selectedFJ) : value));

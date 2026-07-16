@@ -3,6 +3,7 @@ import commands from "./commands"
 import { showErrorNotification } from './modules/util'
 import { showNotification } from '@mantine/notifications';
 import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
+import { clearCredentials } from './modules/auth/credentialStore'
 
 const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
 
@@ -465,30 +466,7 @@ export async function getWebOfRegistries() {
 // Function to clear invalid credentials from local storage
 export function clearInvalidCredentials(instanceUrl) {
     try {
-        // Get current SynbioHub data from localStorage
-        const storedData = localStorage.getItem('SynbioHub');
-        if (!storedData) return;
-        
-        const dataSBH = JSON.parse(storedData);
-        
-        // Find and clear the credentials for the specific instance
-        const updatedData = dataSBH.map(repo => {
-            if (repo.registryURL === instanceUrl) {
-                // Clear auth-related fields but keep the repository info
-                return {
-                    ...repo,
-                    authtoken: '',
-                    email: '',
-                    name: '',
-                    username: '',
-                    affiliation: ''
-                };
-            }
-            return repo;
-        });
-        
-        // Save updated data back to localStorage
-        localStorage.setItem('SynbioHub', JSON.stringify(updatedData));
+        clearCredentials('synbiohub', instanceUrl);
     } catch (error) {
         console.error('Error clearing invalid credentials:', error);
     }

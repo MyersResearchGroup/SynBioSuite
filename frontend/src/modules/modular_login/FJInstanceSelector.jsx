@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Select, Button } from '@mantine/core';
 import FJInstanceLogin from './FJLogin';
 import AddRegistryModal from '../unified_modal/AddRegistryModal';
-import { useLocalStorage } from '@mantine/hooks';
+import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { showNotification } from '@mantine/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
@@ -10,7 +10,7 @@ import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [addRegistryOpen, setAddRegistryOpen] = useState(false);
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
+    const [instanceData, setInstanceData] = useRepositoryStorage('flapjack');
     const [nullSelected, setNullSelected] = useState(false);
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.fjPrimary);

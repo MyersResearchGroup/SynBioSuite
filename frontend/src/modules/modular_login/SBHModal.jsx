@@ -3,7 +3,7 @@ import { Modal, Button } from '@mantine/core';
 import FJInstanceSelector from './FJInstanceSelector';
 import SBHInstanceSelector from './SBHInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
+import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
@@ -11,7 +11,7 @@ import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 function SBHModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
     
-    const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [dataSBH] = useRepositoryStorage('synbiohub');
     const dispatch = useDispatch();
     const selectedSBH = useSelector(state => state.primaryRepository.sbhPrimary);
     const setSelectedSBH = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selectedSBH) : value));
