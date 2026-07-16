@@ -22,8 +22,9 @@ on:
       - master
 
 concurrency:
-  group: azure-static-web-apps-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: >
+    azure-static-web-apps-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ (github.event_name == 'pull_request' && (github.event.action == 'closed' || github.event.action == 'converted_to_draft')) && 'cleanup' || 'active' }}
+  cancel-in-progress: ${{ !(github.event_name == 'pull_request' && (github.event.action == 'closed' || github.event.action == 'converted_to_draft')) }}
 
 jobs:
   validate_pull_request_job:
