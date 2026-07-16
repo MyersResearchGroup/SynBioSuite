@@ -1,19 +1,42 @@
-from __future__ import annotations 
+from __future__ import annotations
+
 from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
 from werkzeug.utils import secure_filename
+
+from .excel_to_sbol_routes import excel2sbol_bp
 from .main import app
-from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
+from .utils import abstract_design_2_plasmids, sbol2build_moclo  # , generate_transformation_metadata
 from .version import __version__
-import sys
-import os
+
 import json
-import xml.etree.ElementTree as ET
-import tricahue
-import sbol2 as sb2
-import pudu
+import os
 import subprocess
+import sys
+import xml.etree.ElementTree as ET
 from uuid import uuid4
+
+try:
+    import tricahue  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - optional dependency
+    tricahue = None
+
+try:
+    import sbol2 as sb2  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - optional dependency
+    sb2 = None
+
+try:
+    import pudu  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - optional dependency
+    pudu = None
+
+try:
+    import sbol2build  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - optional dependency
+    sbol2build = None
+
+# Register blueprints
+app.register_blueprint(excel2sbol_bp)
 
 #routes
 #check if the app is running
@@ -41,6 +64,9 @@ def upload_experiment():
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE
 '''
 def sbh_fj_upload(files):
+    if tricahue is None:
+        return jsonify({"error": "tricahue is not installed"}), 501
+
     if 'Metadata' not in files:
         return 'No file part', 400
     metadata_file = files['Metadata']
@@ -185,48 +211,61 @@ def sbol_2_build_golden_gate():
     if 'wizard_selections' not in request.form:
         return jsonify({"error": "Missing wizard selections"}), 400
 
+    if sb2 is None or sbol2build is None:
+        return jsonify({"error": "Required SBOL dependencies are not available"}), 501
+
     wizard_selection = request.form.get('wizard_selections')
     plasmid_backbone = request.files.get('plasmid_backbone')
     insert_parts = request.files.getlist('insert_parts')
 
-    # Parse the json
-
     wizard_selection_json = json.loads(wizard_selection)
-    assembly_method = wizard_selection_json.get('formValues').get('assemblyMethod')
+    assembly_method = wizard_selection_json.get('formValues', {}).get('assemblyMethod')
 
-    # Check if the assembly method is valid
     if assembly_method != 'MoClo':
         return jsonify({"error": "Invalid assembly method"}), 400
-    
-    # Get the restriction item
-    restriction_enzyme = wizard_selection_json.get('formValues').get('restrictionEnzyme')
 
-    # code for sbol2build
+    restriction_enzyme = wizard_selection_json.get('formValues', {}).get('restrictionEnzyme')
+    abstract_design_uri = request.form.get('abstract_design_uri')
+    plasmid_collection_uri = request.form.get('plasmid_collection_uri')
+    plasmid_vector_uri = request.form.get('plasmid_vector_uri')
+    recipient_collection_uri = request.form.get('recipient_collection_uri')
+    sbh_registry = request.form.get('sbh_registry') or os.environ.get('SBH_URL') or 'https://synbiohub.org'
+    auth_token = request.form.get('auth_token') or os.environ.get('SBH_TOKEN')
+
+    sbh = sb2.PartShop(sbh_registry)
+    if auth_token:
+        sbh.key = auth_token
+
     part_docs = []
     for item in insert_parts:
         doc = sb2.Document()
         doc.read(item)
         part_docs.append(doc)
-    
+
     bb_doc = sb2.Document()
     bb_doc.read(plasmid_backbone)
 
     assembly_doc = sb2.Document()
+    if not hasattr(sbol2build, 'golden_gate_assembly_plan'):
+        return jsonify({"error": "sbol2build does not provide golden_gate_assembly_plan"}), 501
+
     assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
 
     try:
-        # Run abstract translator to get plasmids
-        plasmid_documents, vector_doc, design_id = abstract_design_2_plasmids(abstract_design_uri, plasmid_collection_uri, plasmid_vector_uri, sbh)
-        
-        # Run plasmids through sbol2build to generate assembly plan
+        plasmid_documents, vector_doc, design_id = abstract_design_2_plasmids(
+            abstract_design_uri,
+            plasmid_collection_uri,
+            plasmid_vector_uri,
+            sbh,
+        )
+
         assembly_plan_doc = sbol2build_moclo(plasmid_documents, vector_doc, design_id)
         assembly_plan_doc.displayId = f"{design_id}_assembly"
 
-    
         sbh_response = sbh.submit(
             doc=assembly_plan_doc,
             collection=recipient_collection_uri,
-            overwrite=2
+            overwrite=2,
         )
         return sbh_response.text, sbh_response.status_code
 

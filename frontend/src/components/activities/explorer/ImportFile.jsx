@@ -207,7 +207,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
         } catch (err) {
             console.warn("File selection canceled or failed", err)
             if (err?.message) {
-                showErrorNotiviation("Upload failed", err.message)
+                showErrorNotiviation("Upload failed", err.message) // should be showErrorNotification?
             }
         }
     }

@@ -9,4 +9,5 @@ startup.py, that just imports the app object. You can then just specify
 startup:app in the Gunicorn command.
 """
 
-from sbs_server.webapp import app
+from sbs_server.app import create_app
+app = create_app()
