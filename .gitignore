@@ -27,6 +27,12 @@ package-lock.json
 # Environments
 *.env*
 
+# Python virtual environments
+venv/
+*/venv/
+env/
+.venv/
+
 
 # TERRAFORM IGNORES
 # Local .terraform directories
@@ -66,3 +72,11 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Python bytecode/cache
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS junk
+.DS_Store
