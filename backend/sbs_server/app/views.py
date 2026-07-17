@@ -7,6 +7,7 @@ from .excel_to_sbol_routes import excel2sbol_bp
 from .main import app
 from .utils import abstract_design_2_plasmids, sbol2build_moclo  # , generate_transformation_metadata
 from .version import __version__
+from .excel_to_sbol_routes import excel2sbol_bp
 
 import json
 import os

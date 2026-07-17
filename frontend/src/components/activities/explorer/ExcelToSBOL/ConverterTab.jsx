@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { showNotification } from "@mantine/notifications";
+
+const API_BASE = '/api/excel2sbol';
 
 export default function ConverterTab() {
     const [filePath, setFilePath] = useState('');
@@ -11,9 +13,47 @@ export default function ConverterTab() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('Ready');
+    const [jobId, setJobId] = useState(null);
+
+    // Poll for job status
+    useEffect(() => {
+        if (!jobId) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch(`${API_BASE}/conversion/${jobId}`);
+                const data = await response.json();
+
+                setStatus(data.message);
+
+                if (data.finished) {
+                    clearInterval(interval);
+                    setLoading(false);
+                    setJobId(null);
+
+                    if (data.success) {
+                        showNotification({
+                            color: 'green',
+                            title: 'Conversion Complete',
+                            message: data.message,
+                        });
+                    } else {
+                        showNotification({
+                            color: 'red',
+                            title: 'Conversion Failed',
+                            message: data.message,
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Error polling status:', err);
+            }
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, [jobId]);
 
     const handleBrowseFile = async () => {
-        // Use the File API for browser file selection
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.xlsx,.xlsm';
@@ -24,9 +64,17 @@ export default function ConverterTab() {
             setCurrentFile(file);
             setFilePath(file.name);
 
-            // Optionally, read Excel metadata
+            // Get metadata
+            const formData = new FormData();
+            formData.append('file', file);
+
             try {
-                const metadata = await getExcelMetadata(file);
+                const response = await fetch(`${API_BASE}/metadata`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const metadata = await response.json();
+
                 if (metadata.sbol_version) {
                     setSbolVersion(String(metadata.sbol_version));
                 }
@@ -46,39 +94,36 @@ export default function ConverterTab() {
         }
 
         setLoading(true);
-        setStatus('Converting...');
+        setStatus('Starting conversion...');
+
+        const formData = new FormData();
+        formData.append('file', currentFile);
+        formData.append('sbol_version', sbolVersion);
+        formData.append('use_signin', useSignin);
+        formData.append('domain', domain.trim());
+        formData.append('email', email.trim());
+        formData.append('password', password);
 
         try {
-            const config = {
-                file_path: currentFile,
-                sbol_version: parseInt(sbolVersion),
-                use_signin: useSignin,
-                domain: domain.trim(),
-                email: email.trim(),
-                password: password,
-            };
-
-            // Call backend API
-            const response = await fetch('/api/excel-to-sbol/convert', {
+            const response = await fetch(`${API_BASE}/convert`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config),
+                body: formData,
             });
 
-            if (!response.ok) throw new Error(await response.text());
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
 
-            const result = await response.json();
-            showNotification({
-                color: 'green',
-                title: 'Conversion Complete',
-                message: result.message,
-            });
-            setStatus('Ready');
+            const { job_id } = await response.json();
+            setJobId(job_id);
         } catch (error) {
-            setStatus('Error: ' + error.message);
-            showNotification({ color: 'red', message: error.message });
-        } finally {
             setLoading(false);
+            setStatus('Ready');
+            showNotification({
+                color: 'red',
+                title: 'Error',
+                message: error.message,
+            });
         }
     };
 
@@ -88,7 +133,9 @@ export default function ConverterTab() {
                 <div className="card-title">Excel File</div>
                 <div className="folder-row">
                     <input type="text" value={filePath} placeholder="No file selected" readOnly />
-                    <button className="btn" onClick={handleBrowseFile}>Browse</button>
+                    <button className="btn" onClick={handleBrowseFile} disabled={loading}>
+                        Browse
+                    </button>
                 </div>
             </section>
 
@@ -125,6 +172,7 @@ export default function ConverterTab() {
                             type="checkbox"
                             checked={useSignin}
                             onChange={(e) => setUseSignin(e.target.checked)}
+                            disabled={loading}
                         />
                         <span className="toggle-track"></span>
                     </label>
@@ -135,33 +183,33 @@ export default function ConverterTab() {
                     <div id="signin-fields">
                         <div className="divider"></div>
                         <div className="form-row">
-                            <label className="form-label" htmlFor="domain-input">Domain</label>
+                            <label className="form-label">Domain</label>
                             <input
                                 type="text"
-                                id="domain-input"
                                 placeholder="https://synbiohub.org"
                                 value={domain}
                                 onChange={(e) => setDomain(e.target.value)}
+                                disabled={loading}
                             />
                         </div>
                         <div className="form-row">
-                            <label className="form-label" htmlFor="email-input">Email</label>
+                            <label className="form-label">Email</label>
                             <input
                                 type="text"
-                                id="email-input"
                                 placeholder="user@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                disabled={loading}
                             />
                         </div>
                         <div className="form-row">
-                            <label className="form-label" htmlFor="password-input">Password</label>
+                            <label className="form-label">Password</label>
                             <input
                                 type="password"
-                                id="password-input"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -178,27 +226,14 @@ export default function ConverterTab() {
             )}
 
             <div className="extract-row">
-                <button 
-                    className="btn btn-accent" 
+                <button
+                    className="btn btn-accent"
                     onClick={handleConvert}
                     disabled={!currentFile || loading}
                 >
-                    Convert
+                    {loading ? 'Converting...' : 'Convert'}
                 </button>
             </div>
         </div>
     );
-}
-
-async function getExcelMetadata(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('/api/excel-to-sbol/metadata', {
-        method: 'POST',
-        body: formData,
-    });
-
-    if (!response.ok) throw new Error('Could not read metadata');
-    return response.json();
 }
