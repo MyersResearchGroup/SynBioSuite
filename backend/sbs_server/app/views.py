@@ -38,6 +38,26 @@ def upload_experiment():
     return sbh_fj_upload(request.files)
 
 '''
+Helper function to perform SPARQL queries to fetch URIs from SynBioHub
+'''
+def sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, collectionUri, role = None):
+    if role is None:
+        query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s FROM <{usergraph}> WHERE {{ <{collectionUri}> sbol:member ?s }}'
+    else:
+        query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s FROM <{usergraph}> WHERE {{ ?s sbol:role <{role}> . <{collectionUri}> sbol:member ?s }}'
+    url = f"{sbh_url}/sparql?{urlencode({'query': query})}"
+    response =  requests.get(
+        url,
+        headers={
+            'Accept': 'application/json',
+            'X-authorization': sbh_token
+            },
+        )
+    if not response.ok:
+        raise Exception(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")
+    return response.json()
+
+'''
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE
 '''
 def sbh_fj_upload(files):
