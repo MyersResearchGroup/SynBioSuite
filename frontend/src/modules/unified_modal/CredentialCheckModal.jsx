@@ -7,12 +7,12 @@ import { CheckLogin, SBHLogout, clearInvalidCredentials } from '../../API';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
 
-export default function CredentialCheckModal({ 
-    navigateTo, 
-    goBack, 
+export default function CredentialCheckModal({
+    navigateTo,
+    goBack,
     completeWorkflow,
     modalData = {},
-    setModalData 
+    setModalData,
 }) {
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
@@ -38,6 +38,10 @@ export default function CredentialCheckModal({
     const expectedEmail = modalData.expectedEmail;
     const skipRepositorySelection = modalData.skipRepositorySelection;
 
+    const nextModal =
+          modalData.nextModal ||
+          MODAL_TYPES.COLLECTION_BROWSER;
+  
     const getRepoInfo = useCallback(() => {
         if (!selectedRepo || !dataSBH.length) return null;
         return dataSBH.find(r => r.registryURL === selectedRepo);
@@ -109,7 +113,7 @@ export default function CredentialCheckModal({
                             validated: true,
                         }));
                         
-                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
+                        navigateTo(nextModal, { selectedRepo });
                         return;
                     }
                     
@@ -188,7 +192,7 @@ export default function CredentialCheckModal({
             validated: skipRepositorySelection ? true : undefined,
         }));
 
-        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
+        navigateTo(nextModal, { selectedRepo });
     }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection, selectedRepo]);
 
     const handleLogout = useCallback(async () => {

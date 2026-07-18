@@ -140,7 +140,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const availableBaseName = await getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext)
                 const actualFileName = `${availableBaseName}${ext}`
                 const uploadedFilePath = `${useSubdirectory}/uploads/${actualFileName}`
-
+                
                 const modalResult = await runImportCollectionWorkflow()
                 if (!modalResult?.completed) {
                     return
@@ -173,7 +173,8 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                         authToken,
                         collectionUrl,
                         dirName,
-                        modalResult.sbh_overwrite ?? 0
+                        modalResult.sbh_overwrite ?? 0,
+                        objectTypeDir.name
                     )
                 } finally {
                     dispatch(closeOverlay())

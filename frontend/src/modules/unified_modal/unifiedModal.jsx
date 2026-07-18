@@ -40,7 +40,7 @@ const MODAL_FLOWS = {
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO],
     [MODAL_TYPES.DIRECTORY_SELECT]: [],
     [MODAL_TYPES.REPOSITORY_SELECTOR]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
-    [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.COLLECTION_BROWSER],
+    [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.COLLECTION_BROWSER, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
     [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.CREATE_COLLECTION],
 };
@@ -90,7 +90,6 @@ function UnifiedModal({
     onComplete = null,
     modalProps = {}
 }) {
-    if (!opened) return null;
 
     const [currentModal, setCurrentModal] = useState(initialModal);
     const [modalHistory, setModalHistory] = useState([]);
@@ -123,26 +122,42 @@ function UnifiedModal({
     }, [currentModal, modalData, modalProps.selectedRepo, dispatch]);
 
     const navigateTo = useCallback((modalType, data = {}) => {
-        const currentFlow = MODAL_FLOWS[currentModal] || [];
-        
-        if (!currentFlow.includes(modalType)) {
-            console.warn(`Navigation from ${currentModal} to ${modalType} not allowed by flow`);
-            return false;
-        }
+      const currentFlow = MODAL_FLOWS[currentModal] || [];
 
-        if (!allowedModals.includes(modalType)) {
-            console.warn(`Modal ${modalType} not allowed by workflow constraints`);
-            return false;
-        }
+      if (!currentFlow.includes(modalType)) {
+        console.warn(
+          `Navigation from ${currentModal} to ${modalType} not allowed by flow`
+        );
+        return false;
+      }
 
-        setModalHistory(prev => [...prev, currentModal]);
-        setCurrentModal(modalType);
-        setModalData(prev => ({ ...prev, [modalType]: data }));
-        return true;
-    }, [currentModal, allowedModals]);
+      if (!allowedModals.includes(modalType)) {
+        console.warn(
+          `Modal ${modalType} not allowed by workflow constraints`
+        );
+        return false;
+      }
+      
+      setModalHistory(prev => [...prev, currentModal]);
+      setCurrentModal(modalType);
 
+      setModalData(prev => {
+        const currentState = prev[currentModal] || modalProps;
+
+        return {
+          ...prev,
+          [modalType]: {
+            ...currentState,
+            ...data,
+          },
+        };
+      });
+      
+      return true;
+    }, [currentModal, allowedModals, modalProps]);
+  
     const handleClose = useCallback(() => {
-        dispatch(closeUnifiedModal({ modalData }));
+        dispatch(closeUnifiedModal());
         setCurrentModal(initialModal);
         setModalHistory([]);
         setModalData({});
@@ -426,6 +441,8 @@ function UnifiedModal({
         MODAL_TYPES.ADD_FJ_REPO,
         MODAL_TYPES.CREATE_COLLECTION,
     ];
+
+    if (!opened) return null;
 
     if (selfContainedModals.includes(currentModal)) {
         return renderModalContent();

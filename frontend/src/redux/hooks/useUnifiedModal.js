@@ -17,6 +17,9 @@ export function useUnifiedModal() {
     const modalProps = useSelector(state => state.modal.unifiedModalProps);
     const pendingCallback = useSelector(state => state.modal._pendingCallback);
     const pendingCallbackData = useSelector(state => state.modal._pendingCallbackData);
+    const dataPrimarySBH = useSelector(
+      state => state.primaryRepository.sbhPrimary
+    );
 
     // Handle pending callback execution
     useEffect(() => {
@@ -120,6 +123,37 @@ export function useUnifiedModal() {
                 onComplete,
             });
         }, [open]),
+
+        /**
+         * Open create study workflow
+         * Allows:
+         *   SBH_CREDENTIAL_CHECK
+         *     -> SBH_LOGIN
+         *     -> ADD_SBH_REPO
+         *     -> CREATE_COLLECTION
+         */
+        createStudy: useCallback((
+          studyDirectory,
+          onComplete
+        ) => {
+          open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+            allowedModals: [
+              MODAL_TYPES.REPOSITORY_SELECTOR,
+              MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+              MODAL_TYPES.SBH_LOGIN,
+              MODAL_TYPES.ADD_SBH_REPO,
+              MODAL_TYPES.CREATE_COLLECTION,
+            ],
+            props: {
+              selectedRepo: dataPrimarySBH,
+              silentCredentialCheck: true,
+              skipRepositorySelection: true,
+              nextModal: MODAL_TYPES.CREATE_COLLECTION,
+              studyDirectory,
+            },
+            onComplete,
+          });
+        }, [open, dataPrimarySBH]),
 
         /**
          * Open add repository workflow (SBH or FJ)

@@ -68,13 +68,6 @@ export default function LocalHome() {
                 opened={SBHOnlyOpened}
                 onClose={() => dispatch(closeSBHLogin())}
             />
-            <UnifiedModal
-                opened={unifiedModalOpen}
-                initialModal={unifiedModalType}
-                allowedModals={unifiedModalAllowed}
-                onComplete={unifiedModalCallback}
-                modalProps={unifiedModalProps}
-            />
         </>
     );
 }

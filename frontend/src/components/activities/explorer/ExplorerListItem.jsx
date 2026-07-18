@@ -46,13 +46,23 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
         return false
     }
 
+    const supportsFileUpload = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.xml$/i.test(fileName) && !/_sbml\.xml$/i.test(fileName)) {
+          return true;
+        }
+        return false
+    }
+
     // command list
     let contextMenuCommands = importable ? [
         commands.FileDownload,
+        ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileView() ? [commands.FileUpdate] : []),
         ...(supportsFileView() ? [commands.FileView] : []),
         commands.FileDelete
     ] : [
+        ...(supportsFileUpload() ? [commands.FileUpload] : []),
         commands.FileDownload,
         commands.FileDelete
     ];
