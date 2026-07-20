@@ -1,6 +1,6 @@
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
+import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useDispatch, useSelector } from 'react-redux';
@@ -37,7 +37,7 @@ const login = async (instance, username, password) => {
 };
 
 const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
+    const [instanceData, setInstanceData] = useRepositoryStorage('flapjack');
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.fjPrimary);
     const setSelected = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selected) : value));

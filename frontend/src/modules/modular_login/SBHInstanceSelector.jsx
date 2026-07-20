@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Select, Button } from '@mantine/core';
 import SBHInstanceLogin from './SBHLogin';
 import AddRegistryModal from '../unified_modal/AddRegistryModal';
-import { useLocalStorage } from '@mantine/hooks';
+import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { cleanNotifications, showNotification } from '@mantine/notifications';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,7 +11,7 @@ import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [addRegistryOpen, setAddRegistryOpen] = useState(false);
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [instanceData, setInstanceData] = useRepositoryStorage('synbiohub');
     const [nullSelected, setNullSelected] = useState(false);
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);

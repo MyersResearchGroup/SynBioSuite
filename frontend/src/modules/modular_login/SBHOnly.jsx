@@ -1,6 +1,6 @@
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Modal, Group } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
+import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,7 +8,7 @@ import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 import { SBHLogin, CheckLogin } from '../../API';
 
 const SBHOnly = ({opened, onClose, goBack}) => {
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [instanceData, setInstanceData] = useRepositoryStorage('synbiohub');
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const setSelected = (value) => dispatch(setSBHPrimary(typeof value === 'function' ? value(selected) : value));
