@@ -83,7 +83,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 name: selectedCollection?.name || null,
                 displayId: selectedCollection?.displayId || null,
                 selectedRepo: modalResult.selectedRepo || null,
-                authToken: modalResult.authToken || null,
                 sbh_overwrite: modalResult.sbh_overwrite ?? 0,
                 completed: true,
             },

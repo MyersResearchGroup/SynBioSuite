@@ -4,6 +4,11 @@ import { showErrorNotification } from './modules/util'
 import { showNotification } from '@mantine/notifications';
 import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 import { clearCredentials } from './modules/auth/credentialStore'
+import {
+    AUTH_ERROR_CODES,
+    flapjackAdapter,
+    synBioHubAdapter,
+} from './modules/auth/providers/index.js'
 
 const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
 
@@ -271,23 +276,13 @@ export async function submitBuild(wizardInput, assemblyPlan) {
 
 export async function SBHLogin(url, username, password) {
     try {
-        var formdata = new FormData();
-        formdata.append('email', username);
-        formdata.append('password', password);
-
-        const response = await axios.post(`${url}/login`, {
-            "email": username,
-            "password": password
-        }, {
-            headers: {
-                "Accept": "text/plain",
-                "Content-Type": "application/json"
-            }
+        const result = await synBioHubAdapter.login({
+            instance: url,
+            email: username,
+            password,
         });
-
-        return response.data;
+        return result.credentials.accessToken;
     } catch (error) {
-        console.error("SBHLogin error:", error);
         showErrorNotification('Login Error', error.message);
         throw error;
     }
@@ -302,9 +297,6 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-      console.log('URL: '+url)
-      console.log('auth: '+auth)
-      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
@@ -360,19 +352,8 @@ export async function createCollection(id, version, name, description, citations
 
 export async function SBHLogout(auth, url) {
     try {
-        const response = await axios.post(
-            `${url}/logout`,
-            null,
-            {
-                headers: {
-                    "Accept": "text/plain",
-                    "X-authorization": auth
-                }
-            }
-        );
-        return response.data;
+        return await synBioHubAdapter.logout({ instance: url, accessToken: auth });
     } catch (error) {
-        console.error("SBHLogout error:", error);
         showErrorNotification('Logout Error', error.message);
         throw error;
     }
@@ -380,24 +361,17 @@ export async function SBHLogout(auth, url) {
 
 export async function FJLogin(instance, username, password){
     try {
-        const response = await axios.post(`${instance}/api/auth/log_in/`, {
-            "username": username,
-            "password": password
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-            }
+        const result = await flapjackAdapter.login({
+            instance,
+            username,
+            password,
         });
-        if(response.data){
-            return {
-                username: response.data.username,
-                email: response.data.email,
-                authtoken: response.data.access,
-                refresh: response.data.refresh
-            }
-        }
+        return {
+            ...result.profile,
+            authtoken: result.credentials.accessToken,
+            refresh: result.credentials.refreshToken,
+        };
     } catch (error) {
-        console.error("FJLogin error:", error);
         showErrorNotification('Login Error', error.message);
         throw error;
     }
@@ -409,24 +383,12 @@ export async function CheckLogin(instance, authToken){
             return { valid: false }
         }
 
-        const response = await axios.get(`${instance}/profile`, {
-            headers: {
-                "Accept": "text/plain",
-                "X-authorization": authToken
-            },
-        });
-
-        // Return user profile information for email verification
-        return { 
-            valid: true, 
-            profile: response.data
-        };
+        return await synBioHubAdapter.validate({ instance, accessToken: authToken });
     } catch (error) {
-        if (error.response?.status === 401) {
+        if (error.code === AUTH_ERROR_CODES.TOKEN_EXPIRED) {
             return { valid: false };
         }
 
-        console.error("CheckLogin error:", error);
         showErrorNotification('Login Error', error.message);
         throw error;
     }

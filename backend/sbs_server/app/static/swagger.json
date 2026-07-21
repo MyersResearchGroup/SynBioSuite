@@ -27,10 +27,98 @@
         {
             "name": "Data Processing",
             "description": "Data extraction and processing"
+        },
+        {
+            "name": "BuildCompiler",
+            "description": "Versioned planning, approval, compilation, and artifact APIs"
         }
     ],
     "paths": {
-        "/pin": {
+        "/buildcompiler/capabilities": {
+            "get": {
+                "tags": ["BuildCompiler"],
+                "summary": "Get the installed BuildCompiler contract",
+                "description": "Returns the pinned BuildCompiler version, stages, protocol modes, defaults, bounds, and optional automation availability.",
+                "responses": {
+                    "200": {
+                        "description": "Versioned BuildCompiler capabilities",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["schema_version", "buildcompiler", "stages", "defaults", "bounds"],
+                                    "properties": {
+                                        "schema_version": {"type": "string", "example": "1.0"},
+                                        "buildcompiler": {"type": "object"},
+                                        "stages": {"type": "array", "items": {"type": "string"}},
+                                        "protocol_modes": {"type": "array", "items": {"type": "string"}},
+                                        "defaults": {"type": "object"},
+                                        "bounds": {"type": "object"},
+                                        "availability": {"type": "object"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/buildcompiler/plan": {
+            "post": {
+                "tags": ["BuildCompiler"],
+                "summary": "Create a deterministic BuildCompiler plan",
+                "description": "Plans a local SBOL document or a token-authenticated SynBioHub design. Tokens are accepted only in the dedicated request header and are never persisted.",
+                "security": [{}, {"SynBioHubToken": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/BuildRequestEnvelope"}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Versioned plan and deterministic plan ID",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BuildPlanResponse"}}}
+                    },
+                    "400": {"description": "Invalid request or options", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "401": {"description": "SynBioHub credential missing or rejected", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "413": {"description": "SBOL input exceeds the configured limit", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "422": {"description": "Invalid SBOL input", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "502": {"description": "SynBioHub network or response failure", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "504": {"description": "Configured synchronous runtime limit exceeded", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}}
+                }
+            }
+        },
+        "/buildcompiler/compile": {
+            "post": {
+                "tags": ["BuildCompiler"],
+                "summary": "Verify and compile an approved BuildCompiler plan",
+                "description": "Replans the original request, rejects changed plans, applies run-scoped approvals, executes BuildCompiler, and returns an integrity-checked ZIP artifact.",
+                "security": [{}, {"SynBioHubToken": []}],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/BuildCompileRequest"}
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Build result DTO and Base64 ZIP artifact",
+                        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BuildCompileResponse"}}}
+                    },
+                    "400": {"description": "Invalid plan DTO or approvals", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "409": {"description": "Blocked, stale, or changed plan", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "413": {"description": "Generated artifact exceeds the configured limit", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "422": {"description": "BuildCompiler execution failure", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}},
+                    "504": {"description": "Configured synchronous runtime limit exceeded", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/APIError"}}}}
+                }
+            }
+        },
+        "/status": {
             "get": {
                 "tags": ["System"],
                 "summary": "Check if the API is running",
@@ -289,7 +377,129 @@
         }
     },
     "components": {
+        "securitySchemes": {
+            "SynBioHubToken": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-SynBioHub-Token",
+                "description": "Request-scoped SynBioHub token; never included in request JSON or stored by the backend."
+            }
+        },
         "schemas": {
+            "BuildRequestEnvelope": {
+                "type": "object",
+                "required": ["design"],
+                "properties": {
+                    "design": {
+                        "type": "object",
+                        "required": ["source"],
+                        "properties": {
+                            "source": {"type": "string", "enum": ["local", "project", "synbiohub"]},
+                            "content": {"type": "string", "description": "SBOL 2 XML for local/project sources."},
+                            "identity": {"type": "string"},
+                            "uri": {"type": "string"},
+                            "registry": {"type": "string"}
+                        }
+                    },
+                    "inventory": {
+                        "type": "object",
+                        "properties": {
+                            "registry": {"type": "string"},
+                            "collections": {"type": "array", "items": {"oneOf": [{"type": "string"}, {"type": "object"}]}}
+                        }
+                    },
+                    "options": {"type": "object"}
+                }
+            },
+            "BuildPlanDTO": {
+                "type": "object",
+                "required": ["schema_version", "kind", "lvl2_requests", "lvl1_requests", "domestication_requests", "unsupported", "warnings"],
+                "properties": {
+                    "schema_version": {"type": "string", "example": "1.0"},
+                    "kind": {"type": "string", "enum": ["build_plan"]},
+                    "lvl2_requests": {"type": "array", "items": {"type": "object"}},
+                    "lvl1_requests": {"type": "array", "items": {"type": "object"}},
+                    "domestication_requests": {"type": "array", "items": {"type": "object"}},
+                    "unsupported": {"type": "array", "items": {"type": "object"}},
+                    "warnings": {"type": "array", "items": {"type": "object"}}
+                }
+            },
+            "BuildPlanResponse": {
+                "type": "object",
+                "required": ["schema_version", "plan_id", "status", "plan", "summary", "required_approvals"],
+                "properties": {
+                    "schema_version": {"type": "string", "example": "1.0"},
+                    "plan_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                    "status": {"type": "string", "enum": ["ready", "blocked"]},
+                    "plan": {"$ref": "#/components/schemas/BuildPlanDTO"},
+                    "summary": {"type": "object"},
+                    "required_approvals": {"type": "array", "items": {"type": "object"}}
+                }
+            },
+            "BuildCompileRequest": {
+                "type": "object",
+                "required": ["plan_id", "plan", "request", "approvals"],
+                "properties": {
+                    "plan_id": {"type": "string"},
+                    "plan": {"$ref": "#/components/schemas/BuildPlanDTO"},
+                    "request": {"$ref": "#/components/schemas/BuildRequestEnvelope"},
+                    "approvals": {"type": "array", "items": {"type": "string"}}
+                }
+            },
+            "BuildCompileResponse": {
+                "type": "object",
+                "required": ["schema_version", "plan_id", "status", "result", "artifact"],
+                "properties": {
+                    "schema_version": {"type": "string"},
+                    "plan_id": {"type": "string"},
+                    "status": {"type": "string"},
+                    "result": {"type": "object"},
+                    "artifact": {
+                        "type": "object",
+                        "required": ["filename", "media_type", "encoding", "size_bytes", "sha256", "contents", "data"],
+                        "properties": {
+                            "filename": {"type": "string"},
+                            "media_type": {"type": "string", "enum": ["application/zip"]},
+                            "encoding": {"type": "string", "enum": ["base64"]},
+                            "size_bytes": {"type": "integer"},
+                            "sha256": {"type": "string"},
+                            "contents": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "required": ["filename", "type", "stage", "media_type", "description", "validation_status"],
+                                    "properties": {
+                                        "filename": {"type": "string"},
+                                        "type": {"type": "string"},
+                                        "stage": {"type": "string"},
+                                        "media_type": {"type": "string"},
+                                        "description": {"type": "string"},
+                                        "validation_status": {"type": "string"}
+                                    }
+                                }
+                            },
+                            "data": {"type": "string", "format": "byte"}
+                        }
+                    }
+                }
+            },
+            "APIError": {
+                "type": "object",
+                "required": ["schema_version", "error"],
+                "properties": {
+                    "schema_version": {"type": "string"},
+                    "error": {
+                        "type": "object",
+                        "required": ["code", "message"],
+                        "properties": {
+                            "code": {"type": "string"},
+                            "message": {"type": "string"},
+                            "correlation_id": {"type": "string", "format": "uuid"},
+                            "details": {"type": "object"}
+                        }
+                    }
+                }
+            },
             "XDCParams": {
                 "type": "object",
                 "properties": {

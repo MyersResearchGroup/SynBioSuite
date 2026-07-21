@@ -4,10 +4,9 @@ import { workDirActions, writeToFileHandle, readFileFromPath, createFileInDirect
 import { ObjectTypes, BLANK_SBML } from "./objectTypes"
 import { showErrorNotification } from "./modules/util"
 import { showNotification } from "@mantine/notifications"
-import { openUnifiedModal } from "./redux/slices/modalSlice"
 import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
-import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
-import { upload_resource, CheckLogin } from "./API"
+import { upload_resource } from "./API"
+import { authCoordinator } from "./modules/auth/authCoordinator.js"
 
 const EXCEL_VIEWER_PANEL_TYPE = 'synbio.panel-type.excel-viewer'
 
@@ -502,97 +501,29 @@ export default {
             const expectedEmail = lastUpload.userEmail || null;
             const collectionUrl = lastUpload.collectionUri || lastUpload.uri;
             const collectionName = lastUpload.collectionName;
-            const registryAPI = (() => {
-                try {
-                    const stored = localStorage.getItem('SynbioHub');
-                    if (!stored) return selectedRepo;
-                    const repos = JSON.parse(stored);
-                    return repos.find(r => r.registryURL === selectedRepo)?.registryAPI || selectedRepo;
-                } catch {
-                    return selectedRepo;
-                }
-            })();
-
-            function getStoredToken() {
-                try {
-                    const stored = localStorage.getItem('SynbioHub');
-                    if (!stored) return null;
-                    const repos = JSON.parse(stored);
-                    const entry = repos.find(r => r.registryURL === selectedRepo);
-                    return entry?.authtoken || null;
-                } catch { return null; }
-            }
-
-            async function resolveAuthToken() {
-                const storedToken = getStoredToken();
-
-                if (storedToken) {
-                    try {
-                        const loginResult = await CheckLogin(selectedRepo, storedToken);
-                        const actualEmail = (loginResult.profile?.email || '').toLowerCase();
-                        if (loginResult.valid) {
-                            if (!expectedEmail || actualEmail === expectedEmail.toLowerCase()) {
-                                return storedToken;
-                            }
-
-                            showErrorNotification(
-                                "Authentication failed",
-                                `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
-                            );
-                            return null;
-                        }
-                    } catch {}
-                }
-
-                const modalResult = await new Promise((resolve) => {
-                    store.dispatch(openUnifiedModal({
-                        modalType: MODAL_TYPES.SBH_LOGIN,
-                        allowedModals: [
-                            MODAL_TYPES.SBH_LOGIN,
-                            MODAL_TYPES.ADD_SBH_REPO,
-                        ],
-                        props: {
-                            selectedRepo,
-                        },
-                        callback: (result) => resolve(result || null),
-                    }));
+            async function resolveAuthContext() {
+                const context = await authCoordinator.requireCredential({
+                    provider: 'synbiohub',
+                    registryURL: selectedRepo,
                 });
-
-                if (!modalResult?.completed) {
-                    showNotification({ title: "Update cancelled", message: "Login was cancelled." });
-                    return null;
-                }
-
-                const refreshedToken = getStoredToken();
-                if (!refreshedToken) {
-                    showErrorNotification("Authentication failed", "No token found after login.");
-                    return null;
-                }
-
-                try {
-                    const loginResult = await CheckLogin(selectedRepo, refreshedToken);
-                    if (!loginResult.valid) {
-                        showErrorNotification("Authentication failed", "Token is invalid or expired after login.");
-                        return null;
-                    }
-
-                    const actualEmail = (loginResult.profile?.email || '').toLowerCase();
-                    if (expectedEmail && actualEmail !== expectedEmail.toLowerCase()) {
+                if (expectedEmail) {
+                    const validation = await context.adapter.validate({
+                        instance: context.instance,
+                        ...context.credentials,
+                    });
+                    const actualEmail = (validation.profile?.email || '').toLowerCase();
+                    if (actualEmail !== expectedEmail.toLowerCase()) {
                         showErrorNotification(
                             "Authentication failed",
-                            `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+                            `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`,
                         );
                         return null;
                     }
-
-                    return refreshedToken;
-                } catch (err) {
-                    showErrorNotification("Authentication failed", err.message || "Unable to validate login token.");
-                    return null;
                 }
+                return context;
             }
 
-            async function performUpdate(authToken) {
+            async function performUpdate(authContext) {
                 return new Promise((resolve) => {
                     const input = document.createElement('input');
                     input.type = 'file';
@@ -646,8 +577,8 @@ export default {
                             try {
                                 response = await upload_resource(
                                     uploadPath,
-                                    registryAPI,
-                                    authToken,
+                                    authContext.instance,
+                                    authContext.credentials.accessToken,
                                     collectionUrl,
                                     dirHandle,
                                     3
@@ -715,12 +646,12 @@ export default {
                 });
             }
 
-            const authToken = await resolveAuthToken();
-            if (!authToken) {
+            const authContext = await resolveAuthContext();
+            if (!authContext) {
                 return "Authentication token not available.";
             }
 
-            return await performUpdate(authToken);
+            return await performUpdate(authContext);
         }
     },
 }

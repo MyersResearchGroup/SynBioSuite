@@ -1,12 +1,12 @@
 {
     "name": "synbiosuite",
-    "private": true,
+  "private": true,
     "version": "1.9.0",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "test": "node --test src/modules/auth/*.test.js"
+    "test": "node --test src/modules/auth/*.test.js src/modules/auth/providers/*.test.js src/services/*.test.js src/components/panels/buildcompiler/*.test.js"
     },
     "dependencies": {
         "@azure/msal-browser": "^4.26.0",

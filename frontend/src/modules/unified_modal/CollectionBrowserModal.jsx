@@ -19,7 +19,8 @@ import {
     Tooltip,
     TextInput
 } from '@mantine/core';
-import { searchCollections, CheckLogin, clearInvalidCredentials } from '../../API';
+import { searchCollections } from '../../API';
+import { authCoordinator } from '../auth/authCoordinator.js';
 import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
 import { FaTimes } from 'react-icons/fa';
@@ -98,44 +99,18 @@ export default function CollectionBrowserModal({
                 return;
             }
 
-            const authToken = repoInfo.authtoken;
-
-            if (!authToken) {
-                setModalData?.(prev => ({
-                    ...prev,
-                    selectedRepo,
-                    expectedEmail,
-                    skipRepositorySelection: true,
-                }));
-                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
-                return;
-            }
-
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
-
-                if (!loginResult.valid) {
-                    clearInvalidCredentials(selectedRepo);
-                    setModalData?.(prev => ({
-                        ...prev,
-                        selectedRepo,
-                        expectedEmail,
-                        skipRepositorySelection: true,
-                    }));
-                    showNotification({
-                        title: 'Invalid Credentials',
-                        message: 'Your login credentials have expired or are invalid. Please log in again.',
-                        color: 'orange',
-                    });
-                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
-                    return;
-                }
-
-                const profileEmail = loginResult.profile?.email || '';
+                const context = await authCoordinator.requireCredential({
+                    provider: 'synbiohub',
+                    registryURL: selectedRepo,
+                });
+                const profile = await context.adapter.profile({
+                    instance: context.instance,
+                    ...context.credentials,
+                });
+                const profileEmail = profile?.email || '';
 
                 if (expectedEmail && profileEmail.toLowerCase() !== expectedEmail.toLowerCase()) {
-                    clearInvalidCredentials(selectedRepo);
-                    
                     showNotification({
                         title: 'Account Mismatch',
                         message: `You must be logged in as ${expectedEmail}. Currently logged in as ${profileEmail}.`,
@@ -155,18 +130,14 @@ export default function CollectionBrowserModal({
                 setModalData?.(prev => ({
                     ...prev,
                     userInfo: {
-                        name: loginResult.profile?.name || repoInfo.name || 'Unknown',
-                        username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                        name: profile?.name || repoInfo.name || 'Unknown',
+                        username: profile?.username || repoInfo.username || 'Unknown',
                         email: profileEmail,
-                        affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                        affiliation: profile?.affiliation || repoInfo.affiliation || 'N/A',
                     },
-                    authToken,
                     validated: true,
                 }));
             } catch (err) {
-                console.error('Credential check error:', err);
-                clearInvalidCredentials(selectedRepo);
-                
                 showNotification({
                     title: 'Credential Check Failed',
                     message: err.message || 'Failed to verify credentials. Please log in again.',
@@ -186,13 +157,6 @@ export default function CollectionBrowserModal({
         checkCredentials();
     }, [silentCredentialCheck, selectedRepo, expectedEmail, dataSBH, navigateTo, completeWorkflow, setModalData]);
 
-    const getAuthToken = useCallback(() => {
-        const repoUrl = selectedRepo || dataPrimarySBH;
-        if (!repoUrl || !dataSBH.length) return null;
-        const repo = dataSBH.find(r => r.registryURL === repoUrl);
-        return repo?.authtoken || null;
-    }, [selectedRepo, dataPrimarySBH, dataSBH]);
-
     const fetchCollections = useCallback(async (parentUri = null) => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -204,7 +168,6 @@ export default function CollectionBrowserModal({
         setLoading(true);
 
         try {
-            const authToken = getAuthToken();
             const url = selectedRepo || dataPrimarySBH;
             const repoInfo = dataSBH.find(r => r.registryURL === url);
             const registryAPI = repoInfo?.registryAPI || url;
@@ -214,30 +177,24 @@ export default function CollectionBrowserModal({
                 return;
             }
 
-            let result;
-            
-            if (!parentUri) {
-                result = await searchCollections(registryAPI, authToken);
-            } else {
-                const repoInfo = dataSBH.find(r => r.registryURL === url);
-                const registryAPI = repoInfo?.registryAPI || url;
-                const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
-                
-                const response = await fetch(searchUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'text/plain',
-                        'X-authorization': authToken
-                    },
-                    signal: abortController.signal
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                result = await response.json();
-            }
+            const result = await authCoordinator.runWithCredential(
+                { provider: 'synbiohub', registryURL: url },
+                async ({ credentials, authorizationHeaders }) => {
+                    if (!parentUri) {
+                        return searchCollections(registryAPI, credentials.accessToken);
+                    }
+                    const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
+                    const response = await fetch(searchUrl, {
+                        method: 'GET',
+                        headers: { 'Accept': 'text/plain', ...authorizationHeaders },
+                        signal: abortController.signal,
+                    });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                },
+            );
 
             if (abortController.signal.aborted || !isMountedRef.current) return;
 
@@ -258,14 +215,12 @@ export default function CollectionBrowserModal({
                 setLoading(false);
             }
         }
-    }, [selectedRepo, dataPrimarySBH, dataSBH, getAuthToken]);
+    }, [selectedRepo, dataPrimarySBH, dataSBH]);
 
     useEffect(() => {
         if (!dataSBH?.length) return;
-        const authToken = getAuthToken();
-        if (!authToken) return;
         fetchCollections();
-    }, [fetchCollections, dataSBH, getAuthToken]);
+    }, [fetchCollections, dataSBH]);
 
     const toggleSelection = useCallback((collection) => {
         setSelectedCollections(prev => {
@@ -327,17 +282,13 @@ export default function CollectionBrowserModal({
     }, [fetchCollections, currentPath]);
 
     const handleCreateCollection = useCallback(() => {
-        const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo);
-        const authToken = repoInfo?.authtoken;
-
         setModalData?.(prev => ({
             ...prev,
             selectedRepo,
-            authToken,
         }));
         
         navigateTo(MODAL_TYPES.CREATE_COLLECTION);
-    }, [selectedRepo, dataSBH, setModalData, navigateTo]);
+    }, [selectedRepo, setModalData, navigateTo]);
 
     const handleComplete = useCallback(() => {
         if (selectedCollections.size === 0) return;
@@ -345,9 +296,10 @@ export default function CollectionBrowserModal({
         completeWorkflow({
             collections: Array.from(selectedCollections.values()),
             count: selectedCollections.size,
+            selectedRepo,
             sbh_overwrite: overwrite ? 2 : 0,
         });
-    }, [selectedCollections, overwrite, completeWorkflow]);
+    }, [selectedCollections, overwrite, completeWorkflow, selectedRepo]);
 
     const handleCancel = useCallback(() => {
         onCancel ? onCancel() : goBack();

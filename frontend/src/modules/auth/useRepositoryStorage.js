@@ -1,54 +1,49 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import {
-    clearCredentials,
-    getCredentialsForRepository,
     listRepositories,
     removeRepository,
-    setCredentials,
     setRepository,
-} from './credentialStore';
-
-function toLegacyShape(provider, repository) {
-    const credentials = getCredentialsForRepository(provider, repository.registryURL) || {};
-    return {
-        ...repository,
-        authtoken: credentials.accessToken || '',
-        refresh: credentials.refreshToken || '',
-    };
-}
-
-function readRepositories(provider) {
-    return listRepositories(provider).map((repository) => toLegacyShape(provider, repository));
-}
+    subscribeRepositories,
+} from './credentialStore.js';
 
 /**
- * Compatibility hook for existing login components. It exposes repository
- * records in their former shape without allowing credentials into localStorage.
+ * React bridge for non-secret repository metadata.
+ *
+ * Consumers retain the familiar `[repositories, setRepositories]` interface while
+ * all browser storage keys and credential separation stay inside credentialStore.
  */
 export function useRepositoryStorage(provider) {
-    const [repositories, setRepositories] = useState(() => readRepositories(provider));
+    const [repositories, setRepositoriesState] = useState(
+        () => listRepositories(provider),
+    );
 
-    const persist = useCallback((nextValue) => {
-        const current = readRepositories(provider);
-        const next = typeof nextValue === 'function' ? nextValue(current) : nextValue;
-        const normalizedNext = Array.isArray(next) ? next : [];
-        const nextUrls = new Set(normalizedNext.map((repository) => repository.registryURL));
-
-        current.forEach((repository) => {
-            if (!nextUrls.has(repository.registryURL)) removeRepository(provider, repository.registryURL);
-        });
-
-        normalizedNext.forEach((repository) => {
-            setRepository(provider, repository);
-            if (repository.authtoken || repository.refresh || repository.accessToken || repository.refreshToken) {
-                setCredentials(provider, repository.registryURL, repository);
-            } else {
-                clearCredentials(provider, repository.registryURL);
-            }
-        });
-
-        setRepositories(readRepositories(provider));
+    useEffect(() => {
+        setRepositoriesState(listRepositories(provider));
+        return subscribeRepositories(provider, setRepositoriesState);
     }, [provider]);
 
-    return [repositories, persist];
+    const setRepositories = useCallback((nextValue) => {
+        setRepositoriesState((current) => {
+            const proposed = typeof nextValue === 'function'
+                ? nextValue(current)
+                : nextValue;
+            const next = Array.isArray(proposed) ? proposed : [];
+            const nextURLs = new Set(
+                next.map((repository) => repository?.registryURL).filter(Boolean),
+            );
+
+            current.forEach((repository) => {
+                if (repository?.registryURL && !nextURLs.has(repository.registryURL)) {
+                    removeRepository(provider, repository.registryURL);
+                }
+            });
+            next.forEach((repository) => {
+                if (repository?.registryURL) setRepository(provider, repository);
+            });
+            return listRepositories(provider);
+        });
+    }, [provider]);
+
+    return [repositories, setRepositories];
 }

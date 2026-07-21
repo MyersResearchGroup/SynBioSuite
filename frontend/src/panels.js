@@ -13,6 +13,7 @@ import { ObjectTypes, BLANK_SBOL } from "./objectTypes";
 import { GiSewingMachine, GiThorHammer } from "react-icons/gi";
 import { PiMicrosoftExcelLogoFill } from "react-icons/pi";
 import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
+import BuildCompilerPanel from "./components/panels/buildcompiler/BuildCompilerPanel";
 
 
 export const PanelTypes = {
@@ -93,6 +94,27 @@ export const PanelTypes = {
         component: TransformationPanel,
         objectTypes: [ ObjectTypes.BuildPlans.id ],
         icon: GiSewingMachine,
+
+        deserialize: content => {
+            try {
+                return JSON.parse(content)
+            }
+            catch {
+                return {}
+            }
+        },
+
+        serialize: panel => {
+            const { id, fileHandle, type, ...restOfPanel } = panel
+            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
+        }
+    },
+    BuildCompiler: {
+        id: "synbio.panel-type.buildcompiler",
+        title: "BuildCompiler",
+        component: BuildCompilerPanel,
+        objectTypes: [ObjectTypes.BuildCompilerRuns.id],
+        icon: GiThorHammer,
 
         deserialize: content => {
             try {

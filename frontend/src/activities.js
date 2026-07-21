@@ -62,6 +62,7 @@ export const Activities = {
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
             ObjectTypes.BuildPlans.id, 
+            ObjectTypes.BuildCompilerRuns.id,
         ]
     },
     Test: {
@@ -133,4 +134,3 @@ export const MicrosoftFileExplorer = {
 export function getActivity(id) {
     return Object.values(Activities).find(act => act.id == id)
 }
-

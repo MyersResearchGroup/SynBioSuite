@@ -1,10 +1,11 @@
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useRepositoryStorage } from '../auth/useRepositoryStorage';
-import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { flapjackAdapter } from '../auth/providers/index.js';
+import { setCredentials } from '../auth/credentialStore.js';
 
 const login = async (instance, username, password) => {
     try {
@@ -14,29 +15,18 @@ const login = async (instance, username, password) => {
             color: 'blue',
             loading: true,
         });
-        const response = await axios.post(`${instance}/api/auth/log_in/`, {
-            "username": username,
-            "password": password
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-            }
+        const result = await flapjackAdapter.login({
+            instance,
+            username,
+            password,
         });
-        if(response.data){
-            return {
-                username: response.data.username,
-                email: response.data.email,
-                authtoken: response.data.access,
-                refresh: response.data.refresh
-            }
-        }
+        return result;
     } catch (error) {
-        console.error('Error:', error);
         throw error;
     }
 };
 
-const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
+const FJInstanceLogin = ({ goBack, setRepoSelection, onSuccess }) => {
     const [instanceData, setInstanceData] = useRepositoryStorage('flapjack');
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.fjPrimary);
@@ -57,15 +47,18 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(selected, values.username, values.password);
+                const existing = instanceData.find(item => item.registryURL === selected) || {};
+                const registryAPI = existing.registryAPI || selected;
+                const result = await login(registryAPI, values.username, values.password);
+                const info = result.profile || {};
+                setCredentials('flapjack', selected, result.credentials);
                 const updatedInstance = { 
+                    ...existing,
                     registryURL: selected, 
-                    registryAPI: selected,
-                    registryPrefix: selected,
+                    registryAPI,
+                    registryPrefix: existing.registryPrefix || selected,
                     username: values.username, 
                     email: info.email,
-                    authtoken: info.authtoken,
-                    refresh: info.refresh 
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
@@ -79,9 +72,9 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                     color: 'green',
                 });
                 setSelected(updatedInstance.registryURL);
-                goBack(false)
+                if (onSuccess) onSuccess(updatedInstance);
+                else goBack(false)
             } catch (error) {
-                console.error('Login failed:', error);
                 if(error.status === 401){
                     cleanNotifications();
                     showNotification({

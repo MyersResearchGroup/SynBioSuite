@@ -9,6 +9,7 @@ import SBHModal from '../modules/modular_login/SBHModal';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
 import SBHOnly from '../modules/modular_login/SBHOnly';
 import UnifiedModal from '../modules/unified_modal/unifiedModal';
+import AuthCoordinatorBridge from '../modules/auth/AuthCoordinatorBridge';
 
 
 export default function LocalHome() {
@@ -36,6 +37,7 @@ export default function LocalHome() {
             <Activities />
             <Panels />
             <BrowserCompatibilityCatch />
+            <AuthCoordinatorBridge />
             <LoginModal
                 opened={loginModalOpened}
                 onClose={() => dispatch(closeModal())}
@@ -67,13 +69,6 @@ export default function LocalHome() {
             <SBHOnly
                 opened={SBHOnlyOpened}
                 onClose={() => dispatch(closeSBHLogin())}
-            />
-            <UnifiedModal
-                opened={unifiedModalOpen}
-                initialModal={unifiedModalType}
-                allowedModals={unifiedModalAllowed}
-                onComplete={unifiedModalCallback}
-                modalProps={unifiedModalProps}
             />
         </>
     );

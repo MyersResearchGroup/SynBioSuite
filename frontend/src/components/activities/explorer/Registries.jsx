@@ -7,6 +7,7 @@ import ListRegistries from './ListRegistries.jsx';
 import AddRegistryModal from '../../../modules/unified_modal/AddRegistryModal.jsx';
 import { AiOutlinePlus } from 'react-icons/ai';
 import { getPrimaryColor } from '../../../modules/colorScheme';
+import { clearCredentials } from '../../../modules/auth/credentialStore.js';
 
 /**
  * Component to handle the creation, deletion, and containment of SynBioHub registries.
@@ -37,13 +38,11 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
         if (!isDuplicate) {
             const updatedInstance = {
                 ...(storageKey === 'SynbioHub' && { affiliation: "" }),
-                authtoken: "",
                 email: "",
                 registryURL,
                 registryAPI,
                 registryPrefix,
                 ...(storageKey === 'SynbioHub' && { name: "" }),
-                ...(storageKey === 'Flapjack' && { refresh: "" }),
                 username: "",
             };
             storedRegistries.push(updatedInstance);
@@ -64,6 +63,10 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
         const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
         const updatedRegistries = storedRegistries.filter(reg => reg.registryURL !== registryToDelete);
         localStorage.setItem(storageKey, JSON.stringify(updatedRegistries));
+        clearCredentials(
+            storageKey === 'SynbioHub' ? 'synbiohub' : 'flapjack',
+            registryToDelete,
+        );
     }
     
     return(
@@ -113,4 +116,3 @@ const textStyle = theme => ({
     color: getPrimaryColor(theme, 5),
     fontWeight: 500,
 })
-

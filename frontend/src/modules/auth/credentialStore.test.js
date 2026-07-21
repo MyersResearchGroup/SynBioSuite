@@ -1,66 +1,152 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-    clearCredentials,
-    getCredentialsForRepository,
-    listRepositories,
-    migrateLegacyStorage,
-    setCredentials,
-} from './credentialStore.js';
+import test from 'node:test';
 
-class MemoryStorage {
-    constructor(values = {}) {
-        this.values = new Map(Object.entries(values));
-    }
+import { createCredentialStore } from './credentialStore.js';
 
-    getItem(key) { return this.values.has(key) ? this.values.get(key) : null; }
-    setItem(key, value) { this.values.set(key, String(value)); }
+function memoryStorage(initial = {}) {
+    const values = new Map(Object.entries(initial));
+    return {
+        getItem: (key) => values.has(key) ? values.get(key) : null,
+        setItem: (key, value) => values.set(key, String(value)),
+        removeItem: (key) => values.delete(key),
+        snapshot: () => Object.fromEntries(values),
+    };
 }
 
-const storage = (legacy = {}) => ({
-    localStorage: new MemoryStorage(legacy),
-    sessionStorage: new MemoryStorage(),
+test('empty storage migrates idempotently', () => {
+    const localStorage = memoryStorage();
+    const sessionStorage = memoryStorage();
+    const store = createCredentialStore({ localStorage, sessionStorage });
+
+    assert.deepEqual(store.migrateLegacyStorage(), {
+        repositoriesMigrated: 0,
+        credentialsMigrated: 0,
+    });
+    assert.deepEqual(store.migrateLegacyStorage(), {
+        repositoriesMigrated: 0,
+        credentialsMigrated: 0,
+    });
+    assert.deepEqual(store.listRepositories('synbiohub'), []);
+    assert.deepEqual(store.listCredentials(), []);
 });
 
-test('migrates valid SynBioHub and Flapjack records without persisting tokens', () => {
-    const stores = storage({
-        SynbioHub: JSON.stringify([{ registryURL: 'https://sbh.example', registryAPI: 'https://api.sbh.example', authtoken: 'sbh-token', username: 'sam' }]),
-        Flapjack: JSON.stringify([{ registryURL: 'https://fj.example', authtoken: 'fj-token', refresh: 'refresh-token', email: 'sam@example.org' }]),
+test('valid legacy records retain metadata and move tokens to session storage', () => {
+    const localStorage = memoryStorage({
+        SynbioHub: JSON.stringify([{
+            registryURL: 'https://sbh.example',
+            registryAPI: 'https://api.sbh.example',
+            username: 'scientist',
+            authtoken: 'sbh-secret',
+        }]),
+        Flapjack: JSON.stringify([{
+            registryURL: 'https://fj.example',
+            email: 'scientist@example.org',
+            authtoken: 'fj-secret',
+            refresh: 'refresh-secret',
+        }]),
+    });
+    const sessionStorage = memoryStorage();
+    const store = createCredentialStore({ localStorage, sessionStorage });
+
+    assert.deepEqual(store.migrateLegacyStorage(), {
+        repositoriesMigrated: 2,
+        credentialsMigrated: 2,
+    });
+    assert.deepEqual(store.getRepository('synbiohub', 'https://sbh.example'), {
+        registryURL: 'https://sbh.example',
+        registryAPI: 'https://api.sbh.example',
+        username: 'scientist',
+    });
+    assert.deepEqual(store.getCredentialsForRepository('sbh', 'https://sbh.example/'), {
+        accessToken: 'sbh-secret',
+    });
+    assert.deepEqual(store.getCredentialsForRepository('flapjack', 'https://fj.example'), {
+        accessToken: 'fj-secret',
+        refreshToken: 'refresh-secret',
+    });
+    assert.equal(JSON.stringify(localStorage.snapshot()).includes('secret'), false);
+
+    assert.deepEqual(store.migrateLegacyStorage(), {
+        repositoriesMigrated: 0,
+        credentialsMigrated: 0,
+    });
+});
+
+test('malformed records become a safe empty collection', () => {
+    const localStorage = memoryStorage({
+        SynbioHub: '{not-json',
+        Flapjack: JSON.stringify({ registryURL: 'https://not-an-array.example' }),
+    });
+    const store = createCredentialStore({
+        localStorage,
+        sessionStorage: memoryStorage(),
     });
 
-    migrateLegacyStorage(stores);
-
-    assert.deepEqual(listRepositories('synbiohub', stores), [{
-        provider: 'synbiohub', registryURL: 'https://sbh.example', registryAPI: 'https://api.sbh.example', registryPrefix: 'https://sbh.example', username: 'sam',
-    }]);
-    assert.equal(getCredentialsForRepository('synbiohub', 'https://sbh.example', stores).accessToken, 'sbh-token');
-    assert.deepEqual(getCredentialsForRepository('flapjack', 'https://fj.example', stores), { accessToken: 'fj-token', refreshToken: 'refresh-token' });
-    assert.doesNotMatch(stores.localStorage.getItem('synbiosuite.repositories.v1'), /sbh-token|fj-token|refresh-token/);
-    assert.doesNotMatch(stores.localStorage.getItem('SynbioHub'), /sbh-token/);
-    assert.match(stores.sessionStorage.getItem('synbiosuite.credentials.v1'), /sbh-token|fj-token|refresh-token/);
+    store.migrateLegacyStorage();
+    assert.deepEqual(JSON.parse(localStorage.getItem('SynbioHub')), []);
+    assert.deepEqual(JSON.parse(localStorage.getItem('Flapjack')), []);
 });
 
-test('handles empty and malformed legacy values', () => {
-    const stores = storage({ SynbioHub: '{not json', Flapjack: JSON.stringify([]) });
-
-    migrateLegacyStorage(stores);
-
-    assert.deepEqual(listRepositories(undefined, stores), []);
-    assert.equal(stores.localStorage.getItem('synbiosuite.credentials-migrated.v1'), '1');
-});
-
-test('is idempotent and merges partially migrated records', () => {
-    const stores = storage({
-        SynbioHub: JSON.stringify([{ registryURL: 'https://sbh.example', authtoken: 'legacy-token' }]),
-        'synbiosuite.repositories.v1': JSON.stringify({ version: 1, repositories: [{ provider: 'synbiohub', registryURL: 'https://sbh.example', registryAPI: 'https://custom-api.example', registryPrefix: 'https://sbh.example', name: 'Custom' }] }),
+test('partially migrated records do not replace newer session credentials', () => {
+    const localStorage = memoryStorage({
+        Flapjack: JSON.stringify([{
+            registryURL: 'https://fj.example',
+            registryAPI: 'https://api.fj.example',
+            authtoken: 'old-access',
+            refresh: 'old-refresh',
+        }]),
+    });
+    const sessionStorage = memoryStorage();
+    const store = createCredentialStore({ localStorage, sessionStorage });
+    store.setCredentials('flapjack', 'https://fj.example', {
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
     });
 
-    migrateLegacyStorage(stores);
-    migrateLegacyStorage(stores);
+    store.migrateLegacyStorage();
 
-    assert.deepEqual(listRepositories('synbiohub', stores), [{ provider: 'synbiohub', registryURL: 'https://sbh.example', registryAPI: 'https://custom-api.example', registryPrefix: 'https://sbh.example', name: 'Custom' }]);
-    assert.equal(getCredentialsForRepository('synbiohub', 'https://sbh.example', stores).accessToken, 'legacy-token');
-    setCredentials('synbiohub', 'https://sbh.example', { authtoken: 'new-token' }, stores);
-    clearCredentials('synbiohub', 'https://sbh.example', stores);
-    assert.equal(getCredentialsForRepository('synbiohub', 'https://sbh.example', stores), null);
+    assert.deepEqual(store.getCredentialsForRepository('fj', 'https://fj.example'), {
+        accessToken: 'new-access',
+        refreshToken: 'new-refresh',
+    });
+    assert.equal(localStorage.getItem('Flapjack').includes('old-access'), false);
+});
+
+test('repository operations keep credentials separate and clear both safely', () => {
+    const localStorage = memoryStorage();
+    const sessionStorage = memoryStorage();
+    const store = createCredentialStore({ localStorage, sessionStorage });
+
+    store.setRepository('synbiohub', {
+        registryURL: 'https://sbh.example',
+        name: 'Example registry',
+        authToken: 'session-only',
+    });
+
+    assert.equal(store.listRepositories('synbiohub').length, 1);
+    assert.equal(localStorage.getItem('SynbioHub').includes('session-only'), false);
+    assert.deepEqual(store.getCredentialsForRepository('synbiohub', 'https://sbh.example'), {
+        accessToken: 'session-only',
+    });
+
+    store.removeRepository('synbiohub', 'https://sbh.example');
+    assert.deepEqual(store.listRepositories('synbiohub'), []);
+    assert.deepEqual(store.getCredentialsForRepository('synbiohub', 'https://sbh.example'), {});
+});
+
+test('primary repository selection is provider-scoped and clears with its repository', () => {
+    const localStorage = memoryStorage();
+    const store = createCredentialStore({ localStorage, sessionStorage: memoryStorage() });
+
+    store.setPrimaryRepository('sbh', 'https://sbh.example/');
+    store.setPrimaryRepository('flapjack', 'https://fj.example');
+
+    assert.equal(store.getPrimaryRepository('synbiohub'), 'https://sbh.example');
+    assert.equal(store.getPrimaryRepository('fj'), 'https://fj.example');
+    assert.equal(localStorage.getItem('synbiosuite.primary-repositories.v1').includes('token'), false);
+
+    store.setRepository('synbiohub', { registryURL: 'https://sbh.example' });
+    store.removeRepository('synbiohub', 'https://sbh.example');
+    assert.equal(store.getPrimaryRepository('synbiohub'), '');
+    assert.equal(store.getPrimaryRepository('flapjack'), 'https://fj.example');
 });

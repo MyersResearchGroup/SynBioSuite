@@ -1,19 +1,34 @@
 from __future__ import annotations 
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
+from flask import g, request, jsonify
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 from .main import app
-from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
+from .buildcompiler_service import (
+    BuildCompilerAPIError,
+    capabilities,
+    compile_plan,
+    create_plan,
+)
+
 from .version import __version__
-import sys
 import os
 import json
-import xml.etree.ElementTree as ET
-import tricahue
-import sbol2 as sb2
-import pudu
-import subprocess
 from uuid import uuid4
+
+
+def _buildcompiler_correlation_id():
+    return getattr(g, 'buildcompiler_correlation_id', None)
+
+
+def _buildcompiler_error_response(error):
+    return jsonify(error.payload(_buildcompiler_correlation_id())), error.status
+
+
+@app.before_request
+def identify_buildcompiler_request():
+    if request.path.startswith('/api/buildcompiler/'):
+        g.buildcompiler_correlation_id = str(uuid4())
+
 
 #routes
 #check if the app is running
@@ -21,26 +36,89 @@ from uuid import uuid4
 def pin():
     return jsonify({"status": "working", "version": __version__}), 200
 
+@app.route('/api/buildcompiler/capabilities', methods=['GET'])
+def buildcompiler_capabilities():
+    return jsonify(capabilities()), 200
+
+
+@app.route('/api/buildcompiler/plan', methods=['POST'])
+def buildcompiler_plan():
+    try:
+        payload = create_plan(
+            request.get_json(silent=True),
+            auth_token=request.headers.get('X-SynBioHub-Token'),
+        )
+        return jsonify(payload), 200
+    except BuildCompilerAPIError as error:
+        return _buildcompiler_error_response(error)
+    except Exception:
+        return _buildcompiler_error_response(BuildCompilerAPIError(
+            'INTERNAL_ERROR',
+            'The BuildCompiler request failed unexpectedly.',
+            500,
+        ))
+
+
+@app.route('/api/buildcompiler/compile', methods=['POST'])
+def buildcompiler_compile():
+    try:
+        payload = compile_plan(
+            request.get_json(silent=True),
+            auth_token=request.headers.get('X-SynBioHub-Token'),
+        )
+        return jsonify(payload), 200
+    except BuildCompilerAPIError as error:
+        return _buildcompiler_error_response(error)
+    except Exception:
+        return _buildcompiler_error_response(BuildCompilerAPIError(
+            'INTERNAL_ERROR',
+            'The BuildCompiler request failed unexpectedly.',
+            500,
+        ))
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def request_too_large(_error):
+    error = BuildCompilerAPIError(
+        'PAYLOAD_TOO_LARGE',
+        'The request exceeds the configured upload limit.',
+        413,
+    )
+    return _buildcompiler_error_response(error)
+
+
+@app.after_request
+def protect_buildcompiler_responses(response):
+    if request.path.startswith('/api/buildcompiler/'):
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Correlation-ID'] = _buildcompiler_correlation_id()
+    return response
+
 @app.route('/api/uploadResource', methods = ['POST'])
 def upload_resource():
     return sbh_fj_upload(request.files)
-
-@app.route('/api/uploadAssembly', methods = ['POST'])
-def upload_assembly():
-    return 'Not implemented yet', 501
-
-@app.route('/api/uploadTransformation', methods = ['POST'])
-def upload_transformation():
-    return 'Not implemented yet', 501
 
 @app.route('/api/uploadExperiment', methods = ['POST'])
 def upload_experiment():
     return sbh_fj_upload(request.files)
 
+
+
 '''
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE
 '''
 def sbh_fj_upload(files):
+    try:
+        import tricahue
+    except ImportError:
+        return jsonify({
+            "error": {
+                "code": "TRICAHUE_UNAVAILABLE",
+                "message": "The metadata upload service is not installed.",
+            }
+        }), 503
+
     if 'Metadata' not in files:
         return 'No file part', 400
     metadata_file = files['Metadata']
@@ -173,162 +251,6 @@ def sbh_fj_upload(files):
     return jsonify(sbs_upload_response_dict)
 
 
-@app.route('/sbol_2_build_golden_gate', methods=['POST'])
-def sbol_2_build_golden_gate():
-    # Error checking in the request
-    print("request", request.files)
-
-    if 'plasmid_backbone' not in request.files:
-        return jsonify({"error": "Missing plasmid backbone"}), 400
-    if 'insert_parts' not in request.files:
-        return jsonify({"error": "Missing insert parts"}), 400
-    if 'wizard_selections' not in request.form:
-        return jsonify({"error": "Missing wizard selections"}), 400
-
-    wizard_selection = request.form.get('wizard_selections')
-    plasmid_backbone = request.files.get('plasmid_backbone')
-    insert_parts = request.files.getlist('insert_parts')
-
-    # Parse the json
-
-    wizard_selection_json = json.loads(wizard_selection)
-    assembly_method = wizard_selection_json.get('formValues').get('assemblyMethod')
-
-    # Check if the assembly method is valid
-    if assembly_method != 'MoClo':
-        return jsonify({"error": "Invalid assembly method"}), 400
-    
-    # Get the restriction item
-    restriction_enzyme = wizard_selection_json.get('formValues').get('restrictionEnzyme')
-
-    # code for sbol2build
-    part_docs = []
-    for item in insert_parts:
-        doc = sb2.Document()
-        doc.read(item)
-        part_docs.append(doc)
-    
-    bb_doc = sb2.Document()
-    bb_doc.read(plasmid_backbone)
-
-    assembly_doc = sb2.Document()
-    assembly_obj = sbol2build.golden_gate_assembly_plan('testassem', part_docs, bb_doc, restriction_enzyme, assembly_doc)
-
-    try:
-        # Run abstract translator to get plasmids
-        plasmid_documents, vector_doc, design_id = abstract_design_2_plasmids(abstract_design_uri, plasmid_collection_uri, plasmid_vector_uri, sbh)
-        
-        # Run plasmids through sbol2build to generate assembly plan
-        assembly_plan_doc = sbol2build_moclo(plasmid_documents, vector_doc, design_id)
-        assembly_plan_doc.displayId = f"{design_id}_assembly"
-
-    
-        sbh_response = sbh.submit(
-            doc=assembly_plan_doc,
-            collection=recipient_collection_uri,
-            overwrite=2
-        )
-        return sbh_response.text, sbh_response.status_code
-
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-    except Exception as e:
-        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
-    
-"""@app.route('/upload_transformation', methods=['POST'])    
-def upload_transformation():
-    if 'auth_token' not in request.form:
-        return jsonify({"error": "Missing SynBioHub Authentication Token"}), 400
-    if 'registry_url' not in request.form:
-        return jsonify({"error": "Missing SynBioHub Registry URL"}), 400
-    if 'collection_uri' not in request.form:
-        return jsonify({"error": "Missing recipient SynBioHub collection URI"}), 400
-
-    if 'plasmid_uris' not in request.form:
-        return jsonify({"error": "Missing plasmid URIs"}), 400
-    if 'chassis_uri' not in request.form:
-        return jsonify({"error": "Missing chassis URI"}), 400
-    if 'machine' not in request.form:
-        return jsonify({"error": "Missing machine"}), 400
-    if 'protocol' not in request.form:
-        return jsonify({"error": "Missing protocol"}), 400
-    if 'params' not in request.form:
-        return jsonify({"error": "Missing trasnformation parameters"}), 400
-
-    auth_token = request.form.get("auth_token")
-    sbh_registry = request.form.get("registry_url")
-    recipient_collection_uri = request.form.get("collection_uri")
-
-    plasmid_uris = request.form.get("plasmid_uris")
-    chassis_uri = request.form.get("chassis_uri")
-    machine_name = request.form.get("machine")
-    protocol = request.form.get("protocol")
-    parameters = request.form.get("params")
-
-    sbh = sbol2.PartShop(sbh_registry)
-    sbh.key = auth_token
-    
-    try:
-        transformation_doc = generate_transformation_metadata(plasmid_uris, chassis_uri, machine_name, protocol, parameters, sbh)
-
-        sbh_response = sbh.submit(
-            doc=transformation_doc,
-            collection=recipient_collection_uri,
-            overwrite=2
-        )
-        return sbh_response.text, sbh_response.status_code
-
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-    except Exception as e:
-        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500"""
-
-@app.route('/api/build_pudu', methods=['POST'])
-def build_pudu():
-    # Error checking in the request
-    print("request", request.files)
-
-    if 'assembly_plan' not in request.files:
-        return jsonify({"error": "Missing assembly plan"}), 400
-    if 'wizard_selections' not in request.form:
-        return jsonify({"error": "Missing wizard selections"}), 400
-
-    wizard_selection = request.form.get('wizard_selections')
-    assembly_plan_file = request.files.get('assembly_plan')
-
-    # # Parse the json
-    wizard_selection_json = json.loads(wizard_selection)
-    build_method = wizard_selection_json.get('formValues').get('buildMethod')
-
-    # Check if the assembly method is valid
-    if build_method != 'PUDU':
-        return jsonify({"error": "Invalid build method"}), 400
-
-    # TODO: save xml to a file ('assembly_plan.xml')
-
-    try:
-        # Run script (which has opentrons script hardcoded) using JSON file
-        log = subprocess.run(["python", "run_sbol2assembly.py"], capture_output=True).stdout
-        curpath = os.path.abspath(os.curdir)
-        print(curpath)
-        # write captured output to a text file
-        # w = write mode, create file if doesn't exist; b = binary file
-        with open("files/build_log.txt", "wb") as log_file:
-            log_file.write(log)
-        # read excel file "sbol2_assembly_output.xlsx"
-
-        # returns: build_log.txt, excel file, py protocol, build plan
-        return jsonify({"message": "PUDU build not implemented yet"}), 501
-    
-    except ValueError as e:
-        # catch errors and return to frontend
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": f"Unexpected server error: {str(e)}"}), 500
-
-
 @app.route('/api/inspect_request', methods=['POST'])
 def inspect_request():
     files = {}
@@ -342,4 +264,3 @@ def inspect_request():
     return jsonify({
         "message": "Request received successfully", 
         "files": files}), 200
-

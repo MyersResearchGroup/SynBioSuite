@@ -2,14 +2,10 @@ Flask
 flask_cors
 requests
 numpy==1.26.2
-pandas==1.5.3
-packaging==25.0
-pyflapjack @ git+https://github.com/flapjacksynbio/pyFlapjack.git@1da244021e86482615378e6f643e2ede59158c18
-excel2flapjack @ git+https://github.com/SynBioDex/Excel-to-Flapjack.git
-# tricahue==0.0b6
-tricahue @ git+https://github.com/MyersResearchGroup/Tricahue/@dev
-sbol2build
+pandas==2.3.3
+packaging==21.3
+setuptools<81
+synbio-buildcompiler==0.0.1a3
+tricahue @ git+https://github.com/DRAGGON-Lab/Tricahue.git@774f33f9e45284d4b3bcd1851cc2c9d14300dd5b
 flask_swagger_ui
 xlsxwriter
-# pudupy==1.0.0b2
-pudupy @ git+https://github.com/MyersResearchGroup/PUDU

@@ -1,13 +1,12 @@
 import { Modal } from '@mantine/core';
 import { TextInput, Button, Group, Space, Checkbox } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
 import { showNotification } from '@mantine/notifications';
 import { createCollection } from '../API';
 import { useState } from 'react';
+import { authCoordinator } from './auth/authCoordinator.js';
 
 function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack }) {    
-    const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const [overwrite, setOverwrite] = useState(false);
 
@@ -37,9 +36,6 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
 
                     const url = selected && selected.trim() !== "" ? selected : null;
-                    const instance = instanceData.find((inst) => inst.registryURL === url);
-                    const auth = instance ? instance.authtoken : null;
-                    const registryAPI = instance?.registryAPI || url;
                     if (!url) {
                         showNotification({
                             title: 'No Instance Selected',
@@ -50,7 +46,19 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
                     
                     try {
-                        await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
+                        await authCoordinator.runWithCredential(
+                            { provider: 'synbiohub', registryURL: url },
+                            ({ credentials, instance }) => createCollection(
+                                id,
+                                version,
+                                name,
+                                description,
+                                citations,
+                                credentials.accessToken,
+                                instance,
+                                overwrite,
+                            ),
+                        );
 
                         if (goBack) {
                             goBack();

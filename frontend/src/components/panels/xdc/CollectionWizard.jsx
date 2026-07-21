@@ -2,17 +2,16 @@ import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
 import { useContext, useState } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
-import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
 import { uploadExperiment } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
+import { authCoordinator } from '../../../modules/auth/authCoordinator.js'
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
-    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
 
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
     const metadataFile = useFile(metadataID)
@@ -29,8 +28,6 @@ export default function CollectionWizard() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
-    const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
-    const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
     const collectionUrl = collection?.uri || collection?.collectionUrl || collection?.collections?.[0]?.uri || ''
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
@@ -48,18 +45,20 @@ export default function CollectionWizard() {
 
         setIsSubmitting(true)
         try {
-            const response = await uploadExperiment(
-                metadataFile,
-                registryAPI,
-                authToken,
-                collectionUrl,
-                null,
-                collection.sbh_overwrite,
-                //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
-                {
-                    attachments: resultsFile ? [resultsFile] : [],
-                    plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
-                }
+            const response = await authCoordinator.runWithCredential(
+                { provider: 'synbiohub', registryURL: selectedRepo },
+                ({ credentials, instance }) => uploadExperiment(
+                    metadataFile,
+                    instance,
+                    credentials.accessToken,
+                    collectionUrl,
+                    null,
+                    collection.sbh_overwrite,
+                    {
+                        attachments: resultsFile ? [resultsFile] : [],
+                        plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
+                    },
+                ),
             )
 
             const uploadEntry = {

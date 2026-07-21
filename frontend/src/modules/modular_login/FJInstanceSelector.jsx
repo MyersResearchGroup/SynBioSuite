@@ -6,6 +6,12 @@ import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { showNotification } from '@mantine/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { flapjackAdapter } from '../auth/providers/index.js';
+import {
+    clearCredentials,
+    getCredentialsForRepository,
+    setCredentials,
+} from '../auth/credentialStore.js';
 
 const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
@@ -21,24 +27,24 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     }
 
     const handleRemoveInstance = () => {
+        clearCredentials('flapjack', selected);
         setInstanceData(instanceData.filter(instance => instance.registryURL !== selected));
         setSelected(null);
     };
 
     const stripData = (uri, showNotificationFlag = false) => {
         const updatedInstance = {
-            authtoken:"",
             email:"",
             registryURL: uri,
             registryAPI: uri,
             registryPrefix: uri,
-            refresh:"",
             username:"",
         };
         const updatedInstanceData = instanceData.map((item) =>
             item.registryURL === uri ? updatedInstance : item
         );
         setInstanceData(updatedInstanceData);
+        clearCredentials('flapjack', uri);
 
         if (!showNotificationFlag) {
             showNotification({
@@ -49,36 +55,16 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
         }
     }
 
-    //Does not work as intended
-    //Throws CORS error
-    const login = async (uri, refresh) => {
+    const login = async (uri) => {
         const instance = findInstance(uri);
         const registryAPI = instance?.registryAPI || uri;
         try {
-            const response = await fetch(`${registryAPI}/api/auth/refresh/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refresh }),
+            const credentials = getCredentialsForRepository('flapjack', uri);
+            const result = await flapjackAdapter.refresh({
+                instance: registryAPI,
+                refreshToken: credentials?.refreshToken,
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to refresh token');
-            }
-
-            const data = await response.json();
-            const updatedInstance = {
-                ...findInstance(uri),
-                authtoken: data.access,
-                refresh: data.refresh,
-            };
-
-            const updatedInstanceData = instanceData.map((item) =>
-                item.registryURL === uri ? updatedInstance : item
-            );
-
-            setInstanceData(updatedInstanceData);
+            setCredentials('flapjack', uri, result.credentials);
 
             showNotification({
                 title: 'Login Successful',
@@ -108,12 +94,10 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
         }
 
         const newInstance = {
-            authtoken: "",
             email: "",
             registryURL,
             registryAPI,
             registryPrefix,
-            refresh: "",
             username: "",
         };
 
@@ -157,10 +141,10 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
                                         else setNullSelected(true)}}>
                                     Remove
                                 </Button>
-                                {findInstance(selected)?.authtoken ?
+                                {getCredentialsForRepository('flapjack', selected)?.accessToken ?
                                     (<>
                                         <Button mr="md" onClick={() => {stripData(selected)}}>Log Out</Button>
-                                        <Button ml="auto" onClick={() => {/*login(selected, findInstance(selected)?.refresh)*/; setRepoSelection("")}}>Select</Button>
+                                        <Button ml="auto" onClick={() => {setRepoSelection("")}}>Select</Button>
                                     </>)
                                 :
                                     <Button mr="md" onClick={() => {setShowLogin(true)}}>Login</Button>}

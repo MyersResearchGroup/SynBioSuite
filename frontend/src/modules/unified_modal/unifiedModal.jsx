@@ -9,6 +9,7 @@ import SBHLogin from '../modular_login/SBHOnly';
 import CreateCollectionModal from '../CreateCollectionModal';
 import SBHInstanceSelector from '../modular_login/SBHInstanceSelector';
 import FJInstanceSelector from '../modular_login/FJInstanceSelector';
+import FJLogin from '../modular_login/FJLogin';
 import RepositorySelectorModal from './RepositorySelectorModal';
 import CredentialCheckModal from './CredentialCheckModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
@@ -230,7 +231,6 @@ function UnifiedModal({
             }
 
             const base = {
-                authtoken: '',
                 email: '',
                 registryURL: data.registryURL,
                 registryAPI: data.registryAPI,
@@ -240,7 +240,7 @@ function UnifiedModal({
 
             const instance = key === 'SynbioHub'
                 ? { ...base, name: '', affiliation: '' }
-                : { ...base, refresh: '' };
+                : base;
 
             localStorage.setItem(key, JSON.stringify([...stored, instance]));
         };
@@ -277,6 +277,16 @@ function UnifiedModal({
 
                             shouldReturnToCredentialCheck ? goBack() : completeWorkflow();
                         }}
+                        {...commonProps}
+                    />
+                );
+
+            case MODAL_TYPES.FJ_LOGIN:
+                return (
+                    <FJLogin
+                        goBack={goBack}
+                        setRepoSelection={(selection) => setModalData(prev => ({ ...prev, selectedRepo: selection }))}
+                        onSuccess={(repository) => completeWorkflow({ selectedRepo: repository.registryURL })}
                         {...commonProps}
                     />
                 );

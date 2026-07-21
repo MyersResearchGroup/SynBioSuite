@@ -6,6 +6,7 @@ RUN mkdir -p /app/data
 
 ENV STATIC_PATH=/app/app/static
 ENV LISTEN_PORT=5003
+ENV UWSGI_INI=/app/uwsgi.ini
 EXPOSE 5003
 
 # Install requirements

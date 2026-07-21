@@ -130,6 +130,16 @@ export const ObjectTypes = {
         subdirectory: "buildPlans",
         visible: false
     },
+    BuildCompilerRuns: {
+        id: "synbio.object-type.buildcompiler-run",
+        title: "BuildCompiler Run",
+        listTitle: "BuildCompiler Runs",
+        fileNameMatch: /\.build\.json$/,
+        icon: GiThorHammer,
+        createable: true,
+        extension: '.build.json',
+        subdirectory: "buildPlans",
+    },
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
         title: "Sample Designs",

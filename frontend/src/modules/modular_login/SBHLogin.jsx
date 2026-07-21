@@ -1,10 +1,11 @@
 import { useForm } from '@mantine/form';
 import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
 import { useRepositoryStorage } from '../auth/useRepositoryStorage';
-import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { synBioHubAdapter } from '../auth/providers/index.js';
+import { setCredentials } from '../auth/credentialStore.js';
 
 const login = async (instance, email, password) => {
     try {
@@ -15,39 +16,12 @@ const login = async (instance, email, password) => {
             loading: true,
         });
 
-        const response = await axios.post(`${instance}/login`, {
+        const result = await synBioHubAdapter.login({
+            instance,
             email,
             password,
-        }, {
-            headers: {
-                accept: 'text/plain',
-                'Content-Type': 'application/json',
-            },
         });
-
-        if (response.data) {
-            const profile = await getProfile(instance, response.data);
-            return { ...profile, authtoken: response.data };
-        }
-    } catch (error) {
-        cleanNotifications();
-        throw error;
-    }
-};
-
-const getProfile = async (instance, auth) => {
-    try {
-        const response = await axios.get(`${instance}/profile`, {
-            headers: {
-                Accept: 'text/plain; charset=UTF-8',
-                'X-authorization': `${auth}`,
-            },
-        });
-
-        if (response.data) {
-            cleanNotifications();
-            return response.data;
-        }
+        return result;
     } catch (error) {
         cleanNotifications();
         throw error;
@@ -79,14 +53,15 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
         try {
             const existing = instanceData.find(item => item.registryURL === selected) || {};
             const registryAPI = existing.registryAPI || selected;
-            const info = await login(registryAPI, values.email, values.password);
+            const result = await login(registryAPI, values.email, values.password);
+            const info = result.profile || {};
+            setCredentials('synbiohub', selected, result.credentials);
             const updatedInstance = {
                 ...existing,
                 registryURL: selected,
                 registryAPI,
                 registryPrefix: existing.registryPrefix || selected,
                 email: info.email,
-                authtoken: info.authtoken,
                 name: info.name,
                 username: info.username,
                 affiliation: info.affiliation,

@@ -4,9 +4,9 @@ import SBHInstanceLogin from './SBHLogin';
 import AddRegistryModal from '../unified_modal/AddRegistryModal';
 import { useRepositoryStorage } from '../auth/useRepositoryStorage';
 import { cleanNotifications, showNotification } from '@mantine/notifications';
-import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { synBioHubAdapter } from '../auth/providers/index.js';
 
 const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     const [showLogin, setShowLogin] = useState(false);
@@ -55,16 +55,8 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
         const instance = findInstance(uri);
         const registryAPI = instance?.registryAPI || uri;
         try {
-            const response = await axios.get(`${registryAPI}/profile`, {
-                headers: {
-                    'Accept': 'text/plain; charset=UTF-8',
-                    "X-authorization" : `${auth}`
-                }
-            });
-            if(response.data){
-                setRepoSelection("");
-                return;
-            }
+            await synBioHubAdapter.validate({ instance: registryAPI, accessToken: auth });
+            setRepoSelection("");
         } catch (error) {
             stripData(uri, true);
             showNotification({
@@ -72,7 +64,6 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 message: 'Unable to login. Try logging in again.',
                 color: 'red',
             });
-            console.error('Error:', error);
             throw error;
         }
     };
@@ -88,12 +79,7 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 color: 'blue',
                 loading: true,
             });
-            const response = await axios.post(`${registryAPI}/logout`, null, {
-                headers: {
-                    'Accept': 'text/plain; charset=UTF-8',
-                    "X-authorization" : `${auth}`
-                }
-            });
+            await synBioHubAdapter.logout({ instance: registryAPI, accessToken: auth });
             cleanNotifications();
             stripData(uri);
 
@@ -105,7 +91,6 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
                 message: 'Unable to logout from SynbioHub correctly. Credentials on SynbioSuite have been reset. If this is happening consistently please reach out to the SynbioSuite team.',
                 color: 'red',
             });
-            console.error('Error:', error);
             throw error;
         }
     };

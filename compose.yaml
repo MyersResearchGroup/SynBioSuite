@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "${SBS_BACKEND_PORT:-5003}:5003"
+    environment:
+      SBS_CORS_ORIGINS: "${SBS_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}"
+      SBS_BUILD_MAX_UPLOAD_BYTES: "${SBS_BUILD_MAX_UPLOAD_BYTES:-10485760}"
+      SBS_BUILD_MAX_ARTIFACT_BYTES: "${SBS_BUILD_MAX_ARTIFACT_BYTES:-26214400}"
+      SBS_BUILD_TIMEOUT_SECONDS: "${SBS_BUILD_TIMEOUT_SECONDS:-120}"
+      pydna_log_dir: /tmp/pydna
+      OT_API_CONFIG_DIR: /tmp/opentrons
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5003/api/status', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped

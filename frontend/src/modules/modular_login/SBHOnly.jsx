@@ -5,7 +5,8 @@ import { showNotification, cleanNotifications } from '@mantine/notifications';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
-import { SBHLogin, CheckLogin } from '../../API';
+import { synBioHubAdapter } from '../auth/providers/index.js';
+import { setCredentials } from '../auth/credentialStore.js';
 
 const SBHOnly = ({opened, onClose, goBack}) => {
     const [instanceData, setInstanceData] = useRepositoryStorage('synbiohub');
@@ -49,27 +50,19 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                 const selectedInstance = getSelectedInstance();
                 const registryAPI = selectedInstance?.registryAPI || selected;
                 
-                const authToken = await SBHLogin(registryAPI, values.email, values.password);
-                const loginResult = await CheckLogin(registryAPI, authToken);
-                
-                if (!loginResult.valid) {
-                    cleanNotifications();
-                    showNotification({
-                        title: 'Login failed',
-                        message: 'Unable to verify login. Please try again.',
-                        color: 'red',
-                    });
-                    return;
-                }
-                
-                const info = loginResult.profile;
+                const loginResult = await synBioHubAdapter.login({
+                    instance: registryAPI,
+                    email: values.email,
+                    password: values.password,
+                });
+                const info = loginResult.profile || {};
+                setCredentials('synbiohub', selected, loginResult.credentials);
                 
                 const updatedInstance = { 
                     registryURL: selected, 
                     registryAPI,
                     registryPrefix: selectedInstance?.registryPrefix || selected,
                     email: info.email, 
-                    authtoken: authToken,
                     name: info.name,
                     username: info.username,
                     affiliation: info.affiliation
@@ -91,8 +84,7 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                 onClose()
             } catch (error) {
                 cleanNotifications();
-                console.error('Login failed:', error);
-                if(error.response?.status === 401){
+                if(error.status === 401){
                     showNotification({
                         title: 'Login failed',
                         message: 'Please check your credentials and try again.',

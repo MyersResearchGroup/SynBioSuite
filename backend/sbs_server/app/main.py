@@ -1,10 +1,26 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
+import os
+
+
+def _allowed_origins():
+    configured = os.getenv("SBS_CORS_ORIGINS")
+    if configured:
+        return [origin.strip() for origin in configured.split(",") if origin.strip()]
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+    ]
 
 # Create the Flask app only ONCE
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+app.config["MAX_CONTENT_LENGTH"] = int(
+    os.getenv("SBS_BUILD_MAX_UPLOAD_BYTES", str(10 * 1024 * 1024))
+)
+CORS(app, resources={r"/api/*": {"origins": _allowed_origins()}})
 
 # Configure Swagger UI
 SWAGGER_URL = '/api/docs'  # URL for exposing Swagger UI
