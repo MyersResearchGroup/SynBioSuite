@@ -15,6 +15,7 @@ import pudu
 import subprocess
 import requests
 import sbol2
+import excel2sbol
 from uuid import uuid4
 from urllib.parse import urlencode
 
@@ -122,7 +123,13 @@ def sbh_upload(files):
     )
 
     sbol_file.save(sbol_path)
-
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+    homespaces = {
+        "designs": "https://sbolcanvas.org/",
+        "plasmids": "https://example.com/",
+    }
+    sbol2.setHomespace(homespaces.get(importType, "https://synbiosuite.org/"))
     doc = sbol2.Document()
     doc.read(sbol_path)
     subCollection = sbol2.Collection(importType)
@@ -184,6 +191,36 @@ def sbh_upload(files):
     }
     os.remove(sbol_path)
     return jsonify(sbs_upload_response_dict)
+
+def _convert_to_sbol(self, sbol_version=2):
+    print("converting to SBOL")
+    try:
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+        excel2sbol.converter(file_path_in = self.input_excel_path, 
+                        file_path_out = self.file_path_out, homespace=self.homespace, sbol_version=sbol_version)
+        doc = sbol2.Document()
+        doc.read(self.file_path_out)
+        print("conversion complete")
+        self.sbol_doc = doc
+    except Exception as e:
+        print("CONVERSION FAILED --- SEE MESSAGE")
+        print(f"{type(e).__name__}: {e}")
+
+        # Print full traceback so package-level failures are visible.
+        traceback.print_exc()
+
+        # If present, print chained exceptions explicitly for deeper root-cause debugging.
+        if e.__cause__ is not None:
+            print("\nDirect cause:")
+            print(f"{type(e.__cause__).__name__}: {e.__cause__}")
+            print("".join(traceback.format_exception(type(e.__cause__), e.__cause__, e.__cause__.__traceback__)))
+
+        if e.__context__ is not None and e.__context__ is not e.__cause__:
+            print("\nContext:")
+            print(f"{type(e.__context__).__name__}: {e.__context__}")
+            print("".join(traceback.format_exception(type(e.__context__), e.__context__, e.__context__.__traceback__)))
+        raise
 
 '''
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE

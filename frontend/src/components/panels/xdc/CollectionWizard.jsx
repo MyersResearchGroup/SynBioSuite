@@ -1,5 +1,5 @@
 import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useLocalStorage } from '@mantine/hooks'
@@ -8,6 +8,8 @@ import { ObjectTypes } from '../../../objectTypes'
 import { uploadExperiment } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
+import { readStudy } from "../../../modules/util";
+import { useSelector, useDispatch } from "react-redux";
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -28,10 +30,31 @@ export default function CollectionWizard() {
 
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
+    const dirName = useSelector(
+      state => state.workingDirectory.directoryHandle
+    );
+
+    const [study, setStudy] = useState(null);
+
+    useEffect(() => {
+      async function loadStudy() {
+        if (!dirName) return;
+
+        try {
+          const study = await readStudy(dirName);
+          setStudy(study);
+        } catch (e) {
+          console.error("Failed to read study.json", e);
+        }
+      }
+      loadStudy();
+    }, [dirName]);
+
+    const collectionUrl = study?.collectionUri ?? "";
+    const selectedRepo = study?.registryURL ?? "";
+    const registryAPI = study?.registryAPI ?? "";
     const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
-    const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
-    const collectionUrl = collection?.uri || collection?.collectionUrl || collection?.collections?.[0]?.uri || ''
+
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
 
@@ -54,7 +77,7 @@ export default function CollectionWizard() {
                 authToken,
                 collectionUrl,
                 null,
-                collection.sbh_overwrite,
+                3,
                 //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
                     attachments: resultsFile ? [resultsFile] : [],

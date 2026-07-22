@@ -38,10 +38,8 @@ export default function CredentialCheckModal({
     const expectedEmail = modalData.expectedEmail;
     const skipRepositorySelection = modalData.skipRepositorySelection;
 
-    const nextModal =
-          modalData.nextModal ||
-          MODAL_TYPES.COLLECTION_BROWSER;
-  
+    const nextModal = modalData.nextModal;
+    
     const getRepoInfo = useCallback(() => {
         if (!selectedRepo || !dataSBH.length) return null;
         return dataSBH.find(r => r.registryURL === selectedRepo);
@@ -113,7 +111,11 @@ export default function CredentialCheckModal({
                             validated: true,
                         }));
                         
-                        navigateTo(nextModal, { selectedRepo });
+                        if (nextModal) {
+                          navigateTo(nextModal, { selectedRepo });
+                        } else {
+                          completeWorkflow({ authToken });
+                        }
                         return;
                     }
                     
@@ -184,15 +186,22 @@ export default function CredentialCheckModal({
     const handleConfirm = useCallback(() => {
         if (!isValid) return;
 
-        setModalData?.(prev => ({ 
-            ...prev, 
-            selectedRepo,
-            userInfo,
-            authToken: getRepoInfo()?.authtoken,
-            validated: skipRepositorySelection ? true : undefined,
+        const repoInfo = getRepoInfo();
+        const authToken = repoInfo?.authtoken;
+
+        setModalData?.(prev => ({
+          ...prev,
+          selectedRepo,
+          userInfo,
+          authToken,
+          validated: skipRepositorySelection ? true : undefined,
         }));
 
-        navigateTo(nextModal, { selectedRepo });
+        if (nextModal) {
+          navigateTo(nextModal, { selectedRepo });
+        } else {
+          completeWorkflow({ authToken });
+        }
     }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection, selectedRepo]);
 
     const handleLogout = useCallback(async () => {

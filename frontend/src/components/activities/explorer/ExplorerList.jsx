@@ -68,8 +68,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const openPanel = useOpenPanel()
 
     async function createStudyWorkflowFile(fileName, modalResult) {
-        const directory = await workDir.getDirectoryHandle(ObjectTypes.Studies.subdirectory, { create: true })
-        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Studies.extension, ObjectTypes.Studies.id, dispatch)
+        const directory = await workDir.getDirectoryHandle(ObjectTypes.Assays.subdirectory, { create: true })
+        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Assays.extension, ObjectTypes.Assays.id, dispatch)
 
         const selectedCollection = modalResult.collections?.[0]
 
@@ -97,7 +97,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         let modalResult = null;
-        if (objectType.id === ObjectTypes.Studies.id) {
+        if (objectType.id === ObjectTypes.Assays.id) {
             modalResult = await runImportCollectionWorkflow()
             if (!modalResult?.completed) {
                 return

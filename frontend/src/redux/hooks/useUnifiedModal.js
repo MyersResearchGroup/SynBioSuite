@@ -218,6 +218,38 @@ export function useUnifiedModal() {
         }, [open]),
 
         /**
+         * Import to study workflow
+         * Steps: SBH_CREDENTIAL_CHECK -> SBH_LOGIN
+         * 
+         * @param {function} onComplete - Callback function that receives selected collections
+         * @param {object} props - Optional props for initial configuration
+         * 
+         * The callback receives data only when the entire workflow completes:
+         * {
+         *   repository: { uri, name, ... },
+         *   collections: [{ uri, name, displayId, ... }],
+         *   count: number,
+         *   completed: true
+         * }
+         */
+         importToStudy: useCallback((onComplete, props = {}) => {
+           open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+             allowedModals: [
+               MODAL_TYPES.REPOSITORY_SELECTOR,
+               MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+               MODAL_TYPES.SBH_LOGIN,
+             ],
+             props: {
+               ...props,
+               selectedRepo: dataPrimarySBH,
+               nextModal: null,
+               skipRepositorySelection: true,
+             },
+             onComplete,
+           });
+         }, [open]),
+
+        /**
          * Open collection browser workflow for resource selection (plasmids, backbones, etc.)
          * This workflow skips repository selection and uses the provided repository.
          * Silently validates credentials first - only shows UI if there's a problem.

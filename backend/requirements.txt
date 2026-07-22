@@ -9,6 +9,7 @@ sbol3==1.1
 pyflapjack @ git+https://github.com/flapjacksynbio/pyFlapjack.git@1da244021e86482615378e6f643e2ede59158c18
 excel2flapjack @ git+https://github.com/SynBioDex/Excel-to-Flapjack.git
 # tricahue==0.0b6
+excel2sbol @ git+https://github.com/SynBioDex/Excel-to-SBOL.git@fix-no-part-id-and-no-blank-id
 tricahue @ git+https://github.com/MyersResearchGroup/Tricahue/@dev
 sbol2build
 flask_swagger_ui

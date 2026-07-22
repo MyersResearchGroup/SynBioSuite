@@ -13,6 +13,7 @@ import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
+import store from "../../../redux/store"
 
 export const importedFile = createContext()
 
@@ -112,7 +113,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
     async function runImportCollectionWorkflow() {
         return new Promise((resolve) => {
-            workflows.browseCollections(resolve, {
+            workflows.importToStudy(resolve, {
                 multiSelect: false,
                 rootOnly: true,
             })
@@ -122,9 +123,10 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
     const handleClick = async () => {
         try {
             const [fileHandle] = await window.showOpenFilePicker({
+                id: "import-files",
                 types: [],
                 multiple: false,
-                startIn: 'desktop'
+                startIn: 'documents'
             })
 
             const fileMetadata = await addFileMetadata(fileHandle)
@@ -141,25 +143,39 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const actualFileName = `${availableBaseName}${ext}`
                 const uploadedFilePath = `${useSubdirectory}/uploads/${actualFileName}`
                 
-                const modalResult = await runImportCollectionWorkflow()
+              const modalResult = await runImportCollectionWorkflow()
+              console.log(modalResult);
                 if (!modalResult?.completed) {
                     return
                 }
 
-                const selectedCollection = modalResult.collections?.[0]
-                const selectedRepo = modalResult.selectedRepo
+                let jsonData
+                try {
+                  const dirHandle = dirName
+                  const jsonFH = await dirHandle.getFileHandle("study.json");
+                  const jsonText = await (await jsonFH.getFile()).text();
+                  jsonData = JSON.parse(jsonText);
+                } catch (e) {
+                  showErrorNotification("Failed to read study.json file", e.message);
+                  return "Failed to read study.json file.";
+                }
+
+                const selectedCollectionUri = jsonData.collectionUri
+                const selectedCollectionId = jsonData.id
+                const selectedCollectionName = jsonData.name
+                const selectedRepo = jsonData.registryURL;
                 const authToken = modalResult.authToken
                 const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
-
-                if (!selectedCollection?.uri || !selectedRepo || !authToken) {
+              
+                if (!selectedCollectionUri || !selectedRepo || !authToken) {
                     showErrorNotification("Import aborted", "Missing repository, credentials, or collection selection.")
                     return
                 }
 
-                const collectionUrl = selectedCollection.uri
-                const collectionDisplayId = selectedCollection.displayId
+                const collectionUrl = selectedCollectionUri
+                const collectionDisplayId = selectedCollectionId
                     || collectionUrl.split('/').slice(-2, -1)[0]
-                    || selectedCollection.name
+                    || selectedCollectionName
                     || collectionUrl
 
                 await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
@@ -181,7 +197,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 }
 
                 const collectionData = {
-                    name: selectedCollection.name || collectionDisplayId,
+                    name: selectedCollectionName || collectionDisplayId,
                     displayId: collectionDisplayId,
                     uri: collectionUrl,
                     selectedRepo,

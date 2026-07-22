@@ -42,11 +42,17 @@ npm run dev
 
 To run this project, you will need to add the following environment variables to your .env file
 
+`VITE_SYNBIOSUITE_API`
+The endpoint for the SynBioSuite Server. When running your own backend server, it should be set to: `http://127.0.0.1:5003`
+
 `VITE_IBIOSIM_API`
 The endpoint for the iBioSim API. The application expects it to be behind an instance of the [iBioSim API Connector](https://github.com/zachsents/iBioSim-API-Connector). A public instance is available here: `https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze`
 
 `VITE_SBOL_CANVAS_URL`
-An instance of [SBOLCanvas](https://github.com/SynBioDex/SBOLCanvas/tree/synbio-suite). A public one is available here: `https://sbolcanvas.org`
+An instance of [SBOLCanvas](https://github.com/SynBioDex/SBOLCanvas). A public one is available here: `https://sbolcanvas.org`
+
+`VITE_SEQIMPROVE_URL`
+An instance of [SeqImprove](https://github.com/MyersResearchGroup/SeqImprove). A public one is available here: `https://seqimprove.org`
 
 ## Deployment
 

@@ -211,7 +211,7 @@ export async function uploadExperiment(
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
-            importType: "assay",
+            importType: "assays",
             attachments: Object.fromEntries(
                 (extraFiles.attachments || [])
                     .filter(Boolean)
@@ -360,9 +360,6 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-      console.log('URL: '+url)
-      console.log('auth: '+auth)
-      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));

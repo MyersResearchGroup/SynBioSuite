@@ -46,6 +46,17 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
         return false
     }
 
+    const supportsFileUpdate = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
+            return true
+        }
+        if (/\.json$/i.test(fileName)) {
+            return true
+        }
+        return false
+    }
+
     const supportsFileUpload = () => {
         const fileName = file.name.toLowerCase()
         if (/\.xml$/i.test(fileName) && !/_sbml\.xml$/i.test(fileName)) {
@@ -54,16 +65,26 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
         return false
     }
 
+    const supportsFileDownload = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
+            return true
+        }
+        if (/\.json$/i.test(fileName)) {
+            return true
+        }
+        return false
+    }
+
     // command list
     let contextMenuCommands = importable ? [
-        commands.FileDownload,
-        ...(supportsFileUpload() ? [commands.FileUpload] : []),
-        ...(supportsFileView() ? [commands.FileUpdate] : []),
         ...(supportsFileView() ? [commands.FileView] : []),
+        ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
+        ...(supportsFileDownload() ? [commands.FileDownload] : []),
         commands.FileDelete
     ] : [
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
-        commands.FileDownload,
+        ...(supportsFileDownload() ? [commands.FileDownload] : []),
         commands.FileDelete
     ];
 

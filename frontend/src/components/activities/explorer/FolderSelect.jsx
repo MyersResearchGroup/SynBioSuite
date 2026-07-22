@@ -5,8 +5,9 @@ export default function FolderSelect({ onOpenStudy, onNewStudy, children }) {
 
     const handleClick = async () => {
       const directoryHandle = await window.showDirectoryPicker({
+        id: 'studies',
         mode: 'readwrite',
-        startIn: 'desktop'
+        startIn: 'documents'
       });
 
       try {
