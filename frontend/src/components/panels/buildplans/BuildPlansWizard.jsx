@@ -32,7 +32,7 @@ export const RestrictionEnzymes = {
 
 export default function BuildPlansWizard() {
     const panelId = useContext(PanelContext)
-    const { open } = useUnifiedModal()
+    const { open, workflows } = useUnifiedModal()
     
     const numSteps = 4
     const [activeStep, setActiveStep] = usePanelProperty(panelId, "activeStep", false, 0)
@@ -47,6 +47,9 @@ export default function BuildPlansWizard() {
 
     const [selectedBackbone, setSelectedBackbone] = usePanelProperty(panelId, "selectedBackbone", false, null);
     const [selectedBackboneInfo, setSelectedBackboneInfo] = usePanelProperty(panelId, "selectedBackboneInfo", false, null);
+    const [selectedAbstractDesign, setSelectedAbstractDesign] = usePanelProperty(panelId, "selectedAbstractDesign", false, null);
+    const [selectedPlasmids, setSelectedPlasmids] = usePanelProperty(panelId, "selectedPlasmids", false, []);
+    const [selectedChassis, setSelectedChassis] = usePanelProperty(panelId, "selectedChassis", false, null);
 
     useEffect(() => {
         if (assemblyMethod === AssemblyMethods.MOCLO && restrictionEnzyme !== RestrictionEnzymes.MOCLO.BSAI) {
@@ -63,6 +66,48 @@ export default function BuildPlansWizard() {
         });
     };
 
+    const withRepository = (collection, selectedRepo) => ({
+        ...collection,
+        selectedRepo,
+    });
+
+    const handleCollectionSelection = (selectionType, multiSelect = false) => {
+        workflows.browseCollections((result) => {
+            if (!result?.completed || !Array.isArray(result.collections)) {
+                return;
+            }
+
+            const selections = result.collections.map((collection) =>
+                withRepository(collection, result.selectedRepo)
+            );
+
+            if (selectionType === 'abstractDesign') {
+                setSelectedAbstractDesign(selections[0] || null);
+            } else if (selectionType === 'plasmids') {
+                setSelectedPlasmids(selections);
+            } else if (selectionType === 'backbone') {
+                setSelectedBackbone(selections[0] || null);
+                setSelectedBackboneInfo(result);
+            } else if (selectionType === 'chassis') {
+                setSelectedChassis(selections[0] || null);
+            }
+        }, { multiSelect });
+    };
+
+    const selectionLabel = (selection, defaultLabel, plural = false) => {
+        if (Array.isArray(selection)) {
+            return selection.length > 0
+                ? `${selection.length} ${plural ? 'plasmid collection' : 'collection'}${selection.length === 1 ? '' : 's'} selected`
+                : defaultLabel;
+        }
+
+        if (!selection) {
+            return defaultLabel;
+        }
+
+        return `${defaultLabel}: ${selection.displayId || selection.name || selection.uri}`;
+    };
+
     return (
         <Container style={{ marginTop: 40, padding: '0 40px' }}>
             <Stepper active={activeStep} onStepClick={setActiveStep}>
@@ -74,29 +119,33 @@ export default function BuildPlansWizard() {
                         variant="outline"
                         fullWidth
                         style={{ marginBottom: 16 }}
+                        onClick={() => handleCollectionSelection('abstractDesign')}
                     >
-                        Select Abstract Design
+                        {selectionLabel(selectedAbstractDesign, 'Select Abstract Design')}
                     </Button>
                     <Button
                         variant="outline"
                         fullWidth
                         style={{ marginBottom: 16 }}
+                        onClick={() => handleCollectionSelection('plasmids', true)}
                     >
-                        Select Plasmids
+                        {selectionLabel(selectedPlasmids, 'Select Plasmids', true)}
                     </Button>
                     <Button
                         variant="outline"
                         fullWidth
                         style={{ marginBottom: 16 }}
+                        onClick={() => handleCollectionSelection('backbone')}
                     >
-                        Select Backbone
+                        {selectionLabel(selectedBackbone, 'Select Backbone')}
                     </Button>
                     <Button
                         variant="outline"
                         fullWidth
                         style={{ marginBottom: 16 }}
+                        onClick={() => handleCollectionSelection('chassis')}
                     >
-                        Select Chassis
+                        {selectionLabel(selectedChassis, 'Select Chassis')}
                     </Button>
                 </Stepper.Step>
                 <Stepper.Step

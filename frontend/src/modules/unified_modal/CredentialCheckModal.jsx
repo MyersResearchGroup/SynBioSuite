@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { CheckLogin, SBHLogout, clearInvalidCredentials } from '../../API';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
+import { getCredentialsForRepository } from '../auth/credentialStore.js';
 
 export default function CredentialCheckModal({ 
     navigateTo, 
@@ -14,7 +15,7 @@ export default function CredentialCheckModal({
     modalData = {},
     setModalData 
 }) {
-    const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
     
     const [checking, setChecking] = useState(true);
@@ -57,7 +58,10 @@ export default function CredentialCheckModal({
                 return;
             }
 
-            const authToken = repoInfo.authtoken;
+            // Credentials are deliberately kept out of repository metadata and
+            // stored per repository in session storage. Looking for the legacy
+            // `authtoken` metadata field made a successful login appear invalid.
+            const authToken = getCredentialsForRepository('synbiohub', selectedRepo).accessToken;
 
             if (!authToken) {
                 setIsValid(false);
@@ -68,7 +72,7 @@ export default function CredentialCheckModal({
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(repoInfo.registryAPI || selectedRepo, authToken);
 
                 if (!isMountedRef.current) return;
 
@@ -105,7 +109,6 @@ export default function CredentialCheckModal({
                                 email: profileEmail || actualEmail,
                                 affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
                             },
-                            authToken,
                             validated: true,
                         }));
                         
@@ -159,7 +162,7 @@ export default function CredentialCheckModal({
         };
 
         checkCredentials();
-    }, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, setModalData, navigateTo]);
+    }, [selectedRepo, getRepoInfo, dataSBH, expectedEmail, skipRepositorySelection, setModalData, navigateTo]);
 
     const handleLogin = useCallback(() => {
         if (skipRepositorySelection && expectedEmail && emailMismatch) {
@@ -184,7 +187,6 @@ export default function CredentialCheckModal({
             ...prev, 
             selectedRepo,
             userInfo,
-            authToken: getRepoInfo()?.authtoken,
             validated: skipRepositorySelection ? true : undefined,
         }));
 
@@ -193,17 +195,16 @@ export default function CredentialCheckModal({
 
     const handleLogout = useCallback(async () => {
         const repoInfo = getRepoInfo();
-        if (!repoInfo?.authtoken) return;
+        const authToken = getCredentialsForRepository('synbiohub', selectedRepo).accessToken;
+        if (!authToken) return;
 
         try {
-            await SBHLogout(repoInfo.authtoken, repoInfo.registryAPI || selectedRepo);
+            await SBHLogout(authToken, repoInfo.registryAPI || selectedRepo);
         } catch (err) {
             console.error('Logout error:', err);
         }
 
-        setDataSBH(dataSBH.map(item => 
-            item.registryURL === selectedRepo ? { ...item, authtoken: '' } : item
-        ));
+        clearInvalidCredentials(selectedRepo);
 
         setIsValid(false);
         setUserInfo(null);
@@ -213,7 +214,7 @@ export default function CredentialCheckModal({
             message: 'You have been logged out successfully.',
             color: 'blue',
         });
-    }, [getRepoInfo, selectedRepo, dataSBH, setDataSBH]);
+    }, [getRepoInfo, selectedRepo]);
 
     if (checking || autoNavigating) {
         return (

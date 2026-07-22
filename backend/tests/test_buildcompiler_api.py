@@ -15,8 +15,74 @@ from buildcompiler.api import (
     SynBioHubResponseError,
 )
 from sbs_server.app import buildcompiler_service
+from sbs_server.app import views
 from sbs_server.app.buildcompiler_service import CAPABILITIES_SCHEMA_VERSION
 from sbs_server.app.main import app
+
+
+def test_collection_members_uses_sparql_for_direct_sbol_members(monkeypatch):
+    captured = {}
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                'results': {
+                    'bindings': [{
+                        's': {'value': 'https://synbiohub.org/user/alice/child_collection/1'},
+                        'displayId': {'value': 'child_collection'},
+                        'name': {'value': 'Child collection'},
+                        'version': {'value': '1'},
+                        'type': {'value': 'http://sbols.org/v2#Collection'},
+                    }],
+                },
+            }
+
+    def get(url, **kwargs):
+        captured['url'] = url
+        captured.update(kwargs)
+        return Response()
+
+    monkeypatch.setattr(views.requests, 'get', get)
+    response = app.test_client().get(
+        '/api/synbiohub/collection-members',
+        query_string={
+            'registry_url': 'https://synbiohub.org',
+            'collection_uri': 'https://synbiohub.org/user/alice/parent/1',
+            'user_graph': 'https://synbiohub.org/user/alice',
+        },
+        headers={'X-SynBioHub-Token': 'test-token'},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()['members'] == [{
+        'uri': 'https://synbiohub.org/user/alice/child_collection/1',
+        'displayId': 'child_collection',
+        'name': 'Child collection',
+        'description': '',
+        'version': '1',
+        'type': 'http://sbols.org/v2#Collection',
+    }]
+    assert 'sbol%3Amember' in captured['url']
+    assert captured['headers']['X-authorization'] == 'test-token'
+    assert captured['timeout'] == 15
+
+
+def test_collection_members_requires_urls_and_token():
+    client = app.test_client()
+    invalid = client.get('/api/synbiohub/collection-members')
+    missing_token = client.get(
+        '/api/synbiohub/collection-members',
+        query_string={
+            'registry_url': 'https://synbiohub.org',
+            'collection_uri': 'https://synbiohub.org/user/alice/parent/1',
+        },
+    )
+
+    assert invalid.status_code == 400
+    assert missing_token.status_code == 401
 
 
 def test_buildcompiler_capabilities_are_versioned_and_json_safe():

@@ -14,6 +14,9 @@ from .version import __version__
 import os
 import json
 from uuid import uuid4
+from urllib.parse import urlencode, urlparse
+
+import requests
 
 
 def _buildcompiler_correlation_id():
@@ -22,6 +25,70 @@ def _buildcompiler_correlation_id():
 
 def _buildcompiler_error_response(error):
     return jsonify(error.payload(_buildcompiler_correlation_id())), error.status
+
+
+def _valid_http_uri(value):
+    if not isinstance(value, str) or not value.strip():
+        return False
+    parsed = urlparse(value)
+    return parsed.scheme in {'http', 'https'} and bool(parsed.netloc) and not any(
+        character.isspace() for character in value
+    )
+
+
+def sbh_get_subcollection_members(sbh_url, sbh_token, collection_uri, user_graph=None):
+    """Return direct SBOL members of a SynBioHub collection via SPARQL.
+
+    SynBioHub's ``/search/collection=...`` endpoint is not a reliable way to
+    enumerate the members of a nested collection. Querying ``sbol:member``
+    directly returns both nested collections and the SBOL objects they contain.
+    """
+    from_graph = f' FROM <{user_graph}>' if user_graph else ''
+    query = (
+        'PREFIX sbol: <http://sbols.org/v2#> '
+        'SELECT DISTINCT ?s ?displayId ?name ?description ?version ?type'
+        f'{from_graph} WHERE {{ '
+        f'<{collection_uri}> sbol:member ?s . '
+        'OPTIONAL { ?s sbol:displayId ?displayId } '
+        'OPTIONAL { ?s sbol:name ?name } '
+        'OPTIONAL { ?s sbol:description ?description } '
+        'OPTIONAL { ?s sbol:version ?version } '
+        'OPTIONAL { ?s a ?type } '
+        '}'
+    )
+    response = requests.get(
+        f"{sbh_url.rstrip('/')}/sparql?{urlencode({'query': query})}",
+        headers={
+            'Accept': 'application/json',
+            'X-authorization': sbh_token,
+        },
+        timeout=15,
+        allow_redirects=False,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _sparql_members(payload):
+    bindings = payload.get('results', {}).get('bindings', []) if isinstance(payload, dict) else []
+    if not isinstance(bindings, list):
+        return []
+
+    members = []
+    for binding in bindings:
+        uri = binding.get('s', {}).get('value')
+        if not uri:
+            continue
+        display_id = binding.get('displayId', {}).get('value') or uri.rstrip('/').split('/')[-2]
+        members.append({
+            'uri': uri,
+            'displayId': display_id,
+            'name': binding.get('name', {}).get('value') or display_id,
+            'description': binding.get('description', {}).get('value') or '',
+            'version': binding.get('version', {}).get('value') or '',
+            'type': binding.get('type', {}).get('value') or '',
+        })
+    return members
 
 
 @app.before_request
@@ -35,6 +102,35 @@ def identify_buildcompiler_request():
 @app.route('/api/status')
 def pin():
     return jsonify({"status": "working", "version": __version__}), 200
+
+
+@app.route('/api/synbiohub/collection-members', methods=['GET'])
+def synbiohub_collection_members():
+    registry_url = request.args.get('registry_url', '').rstrip('/')
+    collection_uri = request.args.get('collection_uri', '')
+    user_graph = request.args.get('user_graph') or None
+    auth_token = request.headers.get('X-SynBioHub-Token')
+
+    if not _valid_http_uri(registry_url) or not _valid_http_uri(collection_uri):
+        return jsonify({'error': 'registry_url and collection_uri must be valid HTTP(S) URLs.'}), 400
+    if user_graph and not _valid_http_uri(user_graph):
+        return jsonify({'error': 'user_graph must be a valid HTTP(S) URL.'}), 400
+    if not auth_token:
+        return jsonify({'error': 'A SynBioHub access token is required.'}), 401
+
+    try:
+        payload = sbh_get_subcollection_members(
+            registry_url,
+            auth_token,
+            collection_uri,
+            user_graph,
+        )
+    except requests.RequestException as error:
+        return jsonify({'error': f'SynBioHub member query failed: {error}'}), 502
+    except ValueError:
+        return jsonify({'error': 'SynBioHub returned an invalid member-query response.'}), 502
+
+    return jsonify({'members': _sparql_members(payload)}), 200
 
 @app.route('/api/buildcompiler/capabilities', methods=['GET'])
 def buildcompiler_capabilities():

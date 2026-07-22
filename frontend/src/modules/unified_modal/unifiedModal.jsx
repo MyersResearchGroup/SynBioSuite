@@ -449,16 +449,7 @@ function UnifiedModal({
             size={getModalSize()}
             styles={getModalStyles()}
         >
-            <Stack spacing="md">
-                {renderModalContent()}
-                
-                <Group position="apart" mt="xl">
-                    {modalHistory.length > 0 && (
-                        <Button variant="default" onClick={goBack}>Back</Button>
-                    )}
-                    <Button variant="subtle" onClick={handleClose} ml="auto">Cancel</Button>
-                </Group>
-            </Stack>
+            {renderModalContent()}
         </Modal>
     );
 }

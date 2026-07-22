@@ -19,7 +19,7 @@ import {
     Tooltip,
     TextInput
 } from '@mantine/core';
-import { searchCollections } from '../../API';
+import { getCollectionMembers, searchCollections } from '../../API';
 import { authCoordinator } from '../auth/authCoordinator.js';
 import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
@@ -179,20 +179,20 @@ export default function CollectionBrowserModal({
 
             const result = await authCoordinator.runWithCredential(
                 { provider: 'synbiohub', registryURL: url },
-                async ({ credentials, authorizationHeaders }) => {
+                async ({ credentials }) => {
                     if (!parentUri) {
                         return searchCollections(registryAPI, credentials.accessToken);
                     }
-                    const searchUrl = `${registryAPI}/search/collection=<${encodeURIComponent(parentUri)}>/?offset=0&limit=1000`;
-                    const response = await fetch(searchUrl, {
-                        method: 'GET',
-                        headers: { 'Accept': 'text/plain', ...authorizationHeaders },
-                        signal: abortController.signal,
-                    });
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
+                    const userGraph = repoInfo?.username
+                        ? `${(repoInfo.registryPrefix || url).replace(/\/$/, '')}/user/${encodeURIComponent(repoInfo.username)}`
+                        : null;
+                    return getCollectionMembers(
+                        registryAPI,
+                        parentUri,
+                        credentials.accessToken,
+                        userGraph,
+                        abortController.signal,
+                    );
                 },
             );
 

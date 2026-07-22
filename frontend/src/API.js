@@ -10,7 +10,7 @@ import {
     synBioHubAdapter,
 } from './modules/auth/providers/index.js'
 
-const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
+const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API || 'http://localhost:5003'
 
 //There is an issue with where the file upload is not being sent correctly to the server
 export async function upload_sbs(metadata, parameters) {
@@ -311,6 +311,21 @@ export async function searchCollections(url, auth) {
         }
         throw error;
     }
+}
+
+export async function getCollectionMembers(registryUrl, collectionUri, authToken, userGraph = null, signal) {
+    const response = await axios.get(`${SBS_Server_Link}/api/synbiohub/collection-members`, {
+        params: {
+            registry_url: registryUrl,
+            collection_uri: collectionUri,
+            ...(userGraph ? { user_graph: userGraph } : {}),
+        },
+        headers: {
+            'X-SynBioHub-Token': authToken,
+        },
+        signal,
+    });
+    return response.data?.members || [];
 }
 
 export async function createCollection(id, version, name, description, citations, auth, url, overwrite) {

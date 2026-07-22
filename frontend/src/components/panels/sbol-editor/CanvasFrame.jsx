@@ -5,7 +5,8 @@ import { useState, useEffect, useRef, useContext } from 'react'
 import { PanelContext } from './SBOLEditorPanel'
 import { usePanelProperty } from "../../../redux/hooks/panelsHooks"
 
-const expectedOrigin = new URL(import.meta.env.VITE_SBOL_CANVAS_URL).origin
+const SBOL_CANVAS_URL = import.meta.env.VITE_SBOL_CANVAS_URL || 'https://sbolcanvas.org'
+const expectedOrigin = new URL(SBOL_CANVAS_URL).origin
 
 
 export default function CanvasFrame({fileTypeObjectId}) {
@@ -72,14 +73,14 @@ export default function CanvasFrame({fileTypeObjectId}) {
             sbolContent ?
                 { sbol: sbolContent, panelType: fileTypeObjectId} : // either send SBOL content
                 {panelType: fileTypeObjectId},         // if no sbolContent, just send in panel type
-            import.meta.env.VITE_SBOL_CANVAS_URL
+            SBOL_CANVAS_URL
         )
     }
 
     return (
         <div style={containerStyle}>
             <iframe
-                src={import.meta.env.VITE_SBOL_CANVAS_URL + '?ignoreHTTPErrors=true'}
+                src={SBOL_CANVAS_URL + '?ignoreHTTPErrors=true'}
                 style={iframeStyle(sbolContentLoaded)}
                 scrolling='no'
                 width="100%"
