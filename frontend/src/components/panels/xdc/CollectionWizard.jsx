@@ -5,16 +5,18 @@ import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
-import { uploadExperiment } from '../../../API'
+import { uploadExperiment, CheckLogin } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
 import { readStudy } from "../../../modules/util";
 import { useSelector } from "react-redux";
+import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
+    const { open, MODAL_TYPES } = useUnifiedModal()
 
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
     const metadataFile = useFile(metadataID)
@@ -55,6 +57,25 @@ export default function CollectionWizard() {
     const registryAPI = study?.registryAPI ?? "";
     const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
 
+    const getStoredToken = () => {
+        try {
+            const stored = localStorage.getItem('SynbioHub');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            return repos.find((repo) => repo.registryURL === selectedRepo)?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const openLoginWorkflow = () => new Promise((resolve) => {
+        open(MODAL_TYPES.SBH_LOGIN, {
+            allowedModals: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
+            props: { selectedRepo },
+            onComplete: (result) => resolve(result || null),
+        });
+    });
+
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
 
@@ -69,12 +90,55 @@ export default function CollectionWizard() {
             return
         }
 
+        let currentToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
+
+        if (!currentToken) {
+            const loginResult = await openLoginWorkflow();
+            if (!loginResult?.completed) {
+                showErrorNotification('Login cancelled', 'Please log in to your SynBioHub repository before updating this Assay.')
+                return
+            }
+            currentToken = getStoredToken() || '';
+        }
+
+        if (!currentToken) {
+            showErrorNotification('Not logged in', 'Please log in to your SynBioHub repository before updating this Assay.')
+            return
+        }
+
+        try {
+            const loginResult = await CheckLogin(selectedRepo, currentToken);
+            if (!loginResult?.valid) {
+                const loginResult = await openLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your SynBioHub repository before updating this Assay.')
+                    return
+                }
+                currentToken = getStoredToken() || '';
+                if (!currentToken) {
+                    showErrorNotification('Not logged in', 'Please log in to your SynBioHub repository before updating this Assay.')
+                    return
+                }
+            }
+        } catch {
+            const loginResult = await openLoginWorkflow();
+            if (!loginResult?.completed) {
+                showErrorNotification('Login cancelled', 'Please log in to your SynBioHub repository before updating this Assay.')
+                return
+            }
+            currentToken = getStoredToken() || '';
+            if (!currentToken) {
+                showErrorNotification('Not logged in', 'Please log in to your SynBioHub repository before updating this Assay.')
+                return
+            }
+        }
+
         setIsSubmitting(true)
         try {
             const response = await uploadExperiment(
                 metadataFile,
                 registryAPI,
-                authToken,
+                currentToken,
                 collectionUrl,
                 null,
                 3,

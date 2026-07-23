@@ -54,10 +54,52 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
 
     async function runImportCollectionWorkflow() {
+        let selectedRepo = null;
+        let expectedEmail = null;
+        let selectedCollectionUri = null;
+        let selectedCollectionName = null;
+        let selectedCollectionId = null;
+
+        try {
+            const jsonFH = await workDir.getFileHandle('study.json');
+            const jsonText = await (await jsonFH.getFile()).text();
+            const studyData = JSON.parse(jsonText);
+            selectedRepo = studyData.registryURL || null;
+            expectedEmail = studyData.userEmail || null;
+            selectedCollectionUri = studyData.collectionUri || null;
+            selectedCollectionName = studyData.name || null;
+            selectedCollectionId = studyData.id || null;
+
+            const stored = JSON.parse(localStorage.getItem('SynbioHub') || '[]');
+            const repoInfo = stored.find(repo => repo.registryURL === selectedRepo);
+            const authToken = repoInfo?.authtoken || null;
+
+            if (selectedRepo && selectedCollectionUri && authToken) {
+                return {
+                    completed: true,
+                    selectedRepo,
+                    authToken,
+                    userInfo: { email: expectedEmail || '' },
+                    collections: [{
+                        uri: selectedCollectionUri,
+                        name: selectedCollectionName || selectedCollectionId || selectedCollectionUri,
+                        displayId: selectedCollectionId || selectedCollectionName || selectedCollectionUri,
+                        selectedRepo,
+                        authToken,
+                    }],
+                }
+            }
+        } catch {
+            // No study.json available or no reusable collection; fall back to the browse workflow.
+        }
+
         return new Promise((resolve) => {
             workflows.browseCollections(resolve, {
                 multiSelect: false,
                 rootOnly: true,
+                selectedRepo,
+                expectedEmail,
+                defaultCollectionUri: selectedCollectionUri,
             })
         })
     }

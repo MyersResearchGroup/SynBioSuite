@@ -242,19 +242,57 @@ export function useUnifiedModal() {
          * }
          */
         browseCollections: useCallback((onComplete, props = {}) => {
-            open(MODAL_TYPES.REPOSITORY_SELECTOR, {
-                allowedModals: [
-                    MODAL_TYPES.REPOSITORY_SELECTOR,
-                    MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                    MODAL_TYPES.COLLECTION_BROWSER,
-                    MODAL_TYPES.ADD_SBH_REPO,
-                    MODAL_TYPES.SBH_LOGIN,
-                    MODAL_TYPES.CREATE_COLLECTION,
-                ],
-                props,
-                onComplete,
-            });
-        }, [open]),
+            const executeBrowseCollections = async () => {
+                const selectedRepo = props.selectedRepo || dataPrimarySBH;
+                const modalProps = {
+                    ...props,
+                    selectedRepo,
+                    skipRepositorySelection: true,
+                    silentCredentialCheck: true,
+                };
+
+                if (selectedRepo) {
+                    const validToken = await validateStoredSBHToken(selectedRepo, props.expectedEmail);
+                    if (validToken) {
+                        open(MODAL_TYPES.COLLECTION_BROWSER, {
+                            allowedModals: [
+                                MODAL_TYPES.COLLECTION_BROWSER,
+                                MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                                MODAL_TYPES.SBH_LOGIN,
+                            ],
+                            props: modalProps,
+                            onComplete,
+                        });
+                        return;
+                    }
+
+                    open(MODAL_TYPES.SBH_CREDENTIAL_CHECK, {
+                        allowedModals: [
+                            MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                            MODAL_TYPES.SBH_LOGIN,
+                        ],
+                        props: modalProps,
+                        onComplete,
+                    });
+                    return;
+                }
+
+                open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+                    allowedModals: [
+                        MODAL_TYPES.REPOSITORY_SELECTOR,
+                        MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                        MODAL_TYPES.COLLECTION_BROWSER,
+                        MODAL_TYPES.ADD_SBH_REPO,
+                        MODAL_TYPES.SBH_LOGIN,
+                        MODAL_TYPES.CREATE_COLLECTION,
+                    ],
+                    props: modalProps,
+                    onComplete,
+                });
+            };
+
+            executeBrowseCollections();
+        }, [open, dataPrimarySBH]),
 
         /**
          * Import to study workflow
