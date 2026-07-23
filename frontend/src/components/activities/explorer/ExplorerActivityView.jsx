@@ -7,7 +7,6 @@ import { useLocalStorage } from '@mantine/hooks'
 import { useDispatch } from 'react-redux'
 import { APP_VERSION } from '../../../version'
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal';
-import { useSelector } from 'react-redux';
 
 export default function ExplorerActivityView({objectTypesToList }) {
     const dispatch = useDispatch()

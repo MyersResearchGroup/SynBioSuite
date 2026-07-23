@@ -497,7 +497,6 @@ export default {
               try {
                 store.dispatch(loadOverlay());
 
-                let response;
                 try {
                   await upload_sbol(
                     file,
