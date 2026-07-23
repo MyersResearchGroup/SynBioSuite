@@ -9,7 +9,7 @@ import { uploadExperiment } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
 import { readStudy } from "../../../modules/util";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)

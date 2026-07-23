@@ -13,7 +13,6 @@ import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
-import store from "../../../redux/store"
 
 export const importedFile = createContext()
 
@@ -189,7 +188,7 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                         authToken,
                         collectionUrl,
                         dirName,
-                        modalResult.sbh_overwrite ?? 0,
+                        3,
                         objectTypeDir.name
                     )
                 } finally {

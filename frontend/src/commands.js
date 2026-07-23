@@ -477,7 +477,6 @@ export default {
             const directory = file.id.split("/")[0];
 
             let jsonData = null;
-            let tempDirectory = null;
 
             try {
               const jsonFH = await dirHandle.getFileHandle("study.json");
@@ -492,7 +491,7 @@ export default {
             const collectionUrl = jsonData.collectionUri;
             const collectionName = jsonData.name;
             const registryAPI = jsonData.registryAPI;
-            const importType = directory.endsWith(".xml")?"designs":directory
+            const importType = directory.endsWith(".xml")?"designs":directory;
 
             async function performUpload(authToken) {
               try {
@@ -500,7 +499,7 @@ export default {
 
                 let response;
                 try {
-                  response = await upload_sbol(
+                  await upload_sbol(
                     file,
                     registryAPI,
                     authToken,

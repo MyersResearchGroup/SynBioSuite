@@ -4,8 +4,6 @@ import ExplorerList from './ExplorerList'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import { IoRefreshOutline } from "react-icons/io5"
 import { useLocalStorage } from '@mantine/hooks'
-import { openUnifiedModal } from '../../../redux/slices/modalSlice'
-import { MODAL_TYPES } from '../../../modules/unified_modal/unifiedModal'
 import { useDispatch } from 'react-redux'
 import { APP_VERSION } from '../../../version'
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal';
@@ -25,12 +23,6 @@ export default function ExplorerActivityView({objectTypesToList }) {
       setFirstTime(false);
       setWorkingDirectory(dirHandle);
     };
-
-    const { open } = useUnifiedModal();
-
-    const selectedRepo = useSelector(
-      state => state.primaryRepository.sbhPrimary
-    );
 
     const handleNewStudy = (dirHandle) => {
       workflows.createStudy(dirHandle, async (data) => {

@@ -35,7 +35,7 @@ export async function upload_sbol(
     sbh_url,
     sbh_token,
     collectionUrl,
-    sbh_overwrite = 0,
+    sbh_overwrite = 3,
     workingDirectory = null,
 ) {
     try {
@@ -59,7 +59,7 @@ export async function upload_sbol(
           collection_url: collectionUrl,
           sbh_overwrite: sbh_overwrite,
           importType: workingDirectory
-        }
+        };
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
         data.append('Params', paramBlob, 'parameters.json');
@@ -92,7 +92,7 @@ export async function upload_resource(
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0,
+    sbh_overwrite = 3,
     importType = null
 ) {
     try {
@@ -126,6 +126,7 @@ export async function upload_resource(
             attachments: {},
             importType: importType 
         }
+      console.log(JSON.stringify(paramsObj))
 
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
@@ -159,7 +160,7 @@ export async function uploadExperiment(
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0,
+    sbh_overwrite = 3,
     extraFiles = {}
 ) {
     try {

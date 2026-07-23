@@ -139,15 +139,6 @@ def sbh_upload(files):
         subCollection.members = subCollection.members + [ uri ]
     for tl in doc:
         subCollection.members = subCollection.members + [ tl.identity ]
-    # if importType == "designs":
-    #     for tl in doc:
-    #         subCollection.members = subCollection.members + [ tl.identity ]
-    # else:
-    #     if importType == "plasmids":
-    #         role = "http://identifiers.org/so/SO:0000637"
-    #     for tl in doc:
-    #         if role in getattr(tl, "roles", []):
-    #             subCollection.members = subCollection.members + [ tl.identity ]
     doc.addCollection(subCollection)
     doc.write(sbol_out_path)
 
@@ -167,6 +158,7 @@ def sbh_upload(files):
                         'overwrite_merge' : sbh_overwrite
                 },
             )
+        close(sbol_out_path)
         if not response.ok:
             raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")
         return sbh_collection_url
@@ -184,13 +176,6 @@ def sbh_upload(files):
             "type": type(e).__name__,
             "repr": repr(e)
         }), 500
-    
-    sbs_upload_response_dict ={
-        "sbh_url": sbh_url,
-        "status": "success"
-    }
-    os.remove(sbol_path)
-    return jsonify(sbs_upload_response_dict)
 
 def _convert_to_sbol(self, sbol_version=2):
     print("converting to SBOL")
