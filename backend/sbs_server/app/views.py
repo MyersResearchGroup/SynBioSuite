@@ -143,24 +143,25 @@ def sbh_upload(files):
     doc.write(sbol_out_path)
 
     try:
-        print('uploading to SBH')
-        response =  requests.post(
-            f'{sbh_url}/submit',
-            headers={
-                'Accept': 'text/plain',
-                'X-authorization': sbh_token
-                },
-                files={
-                    'files': open(sbol_out_path,'rb'),
-                    },
-                    data={
-                        'rootCollections' : sbh_collection_url,
-                        'overwrite_merge' : sbh_overwrite
-                },
-            )
-        close(sbol_out_path)
+        print("uploading to SBH")
+        with open(sbol_out_path, "rb") as f:
+                response = requests.post(
+                f"{sbh_url}/submit",
+                headers={"Accept": "text/plain",
+                         "X-authorization": sbh_token,
+        },
+            files={
+                    "files": f,
+            },
+            data={
+                "rootCollections": sbh_collection_url,
+                "overwrite_merge": sbh_overwrite,
+            },
+        )
         if not response.ok:
-            raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")
+                raise Exception(
+                f"SynBioHub submit failed ({response.status_code}): {response.text}"
+                )
         return sbh_collection_url
     except AttributeError as e:
         os.remove(sbol_path)

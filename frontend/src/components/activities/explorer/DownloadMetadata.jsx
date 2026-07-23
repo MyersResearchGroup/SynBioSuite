@@ -19,8 +19,8 @@ export default function DownloadMetadata({ objectType }) {
             url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Resources.xlsm"
             filename = "Resources.xlsm"
         } else if (objectType?.id == "synbio.object-type.study-data") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Study.xlsm"
-            filename = "Study.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Assay.xlsm"
+            filename = "Assay.xlsm"
         } 
 
         try {

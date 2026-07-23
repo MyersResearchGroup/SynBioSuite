@@ -80,6 +80,7 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
     let contextMenuCommands = importable ? [
         ...(supportsFileView() ? [commands.FileView] : []),
         ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
+        ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
         commands.FileDelete
     ] : [

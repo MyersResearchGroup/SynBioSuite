@@ -142,8 +142,8 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const actualFileName = `${availableBaseName}${ext}`
                 const uploadedFilePath = `${useSubdirectory}/uploads/${actualFileName}`
                 
-              const modalResult = await runImportCollectionWorkflow()
-              console.log(modalResult);
+                const modalResult = await runImportCollectionWorkflow()
+
                 if (!modalResult?.completed) {
                     return
                 }

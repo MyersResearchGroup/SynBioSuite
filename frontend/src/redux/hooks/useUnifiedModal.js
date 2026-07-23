@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { CheckLogin } from '../../API';
 import { openUnifiedModal, closeUnifiedModal, clearPendingCallback } from '../slices/modalSlice';
 import { MODAL_TYPES } from '../../modules/unified_modal/unifiedModal';
 
@@ -20,6 +21,44 @@ export function useUnifiedModal() {
     const dataPrimarySBH = useSelector(
       state => state.primaryRepository.sbhPrimary
     );
+
+    const getStoredSBHToken = (selectedRepo) => {
+        try {
+            const stored = localStorage.getItem('SynbioHub');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            const entry = repos.find(r => r.registryURL === selectedRepo);
+            return entry?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const validateStoredSBHToken = async (selectedRepo, expectedEmail) => {
+        const authToken = getStoredSBHToken(selectedRepo);
+        if (!authToken) return null;
+
+        try {
+            const loginResult = await CheckLogin(selectedRepo, authToken);
+            if (!loginResult.valid) return null;
+
+            if (expectedEmail) {
+                const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+                if (actualEmail !== expectedEmail.toLowerCase()) {
+                    return null;
+                }
+            }
+
+            return { authToken, userInfo: {
+                name: loginResult.profile?.name || 'Unknown',
+                username: loginResult.profile?.username || 'Unknown',
+                email: loginResult.profile?.email || '',
+                affiliation: loginResult.profile?.affiliation || 'N/A',
+            }};
+        } catch {
+            return null;
+        }
+    };
 
     // Handle pending callback execution
     useEffect(() => {
@@ -233,21 +272,40 @@ export function useUnifiedModal() {
          * }
          */
          importToStudy: useCallback((onComplete, props = {}) => {
-           open(MODAL_TYPES.REPOSITORY_SELECTOR, {
-             allowedModals: [
-               MODAL_TYPES.REPOSITORY_SELECTOR,
-               MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-               MODAL_TYPES.SBH_LOGIN,
-             ],
-             props: {
+           const executeImport = async () => {
+             const selectedRepo = props.selectedRepo || dataPrimarySBH;
+             const modalProps = {
                ...props,
-               selectedRepo: dataPrimarySBH,
+               selectedRepo,
                nextModal: null,
                skipRepositorySelection: true,
-             },
-             onComplete,
-           });
-         }, [open]),
+               silentCredentialCheck: true,
+             };
+
+             if (selectedRepo) {
+               const validToken = await validateStoredSBHToken(selectedRepo, props.expectedEmail);
+               if (validToken) {
+                 onComplete?.({
+                   selectedRepo,
+                   authToken: validToken.authToken,
+                   userInfo: validToken.userInfo,
+                   completed: true,
+                 });
+                 return;
+               }
+             }
+
+             open(selectedRepo ? MODAL_TYPES.SBH_CREDENTIAL_CHECK : MODAL_TYPES.REPOSITORY_SELECTOR, {
+               allowedModals: selectedRepo
+                 ? [MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.SBH_LOGIN]
+                 : [MODAL_TYPES.REPOSITORY_SELECTOR, MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.SBH_LOGIN],
+               props: modalProps,
+               onComplete,
+             });
+           };
+
+           executeImport();
+         }, [open, dataPrimarySBH]),
 
         /**
          * Open collection browser workflow for resource selection (plasmids, backbones, etc.)
