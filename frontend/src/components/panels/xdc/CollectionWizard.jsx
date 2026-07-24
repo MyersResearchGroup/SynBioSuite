@@ -55,7 +55,8 @@ export default function CollectionWizard() {
     const collectionUrl = study?.collectionUri ?? "";
     const selectedRepo = study?.registryURL ?? "";
     const registryAPI = study?.registryAPI ?? "";
-    const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
+    const repoInfo = dataSBH.find((repo) => repo.registryURL === selectedRepo);
+    const authToken = repoInfo?.authtoken || '';
 
     const getStoredToken = () => {
         try {
@@ -90,7 +91,9 @@ export default function CollectionWizard() {
             return
         }
 
-        let currentToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
+        const repoInfo = dataSBH.find(repo => repo.registryURL === selectedRepo);
+
+        let currentToken = repoInfo?.authtoken ?? "";
 
         if (!currentToken) {
             const loginResult = await openLoginWorkflow();
@@ -107,7 +110,7 @@ export default function CollectionWizard() {
         }
 
         try {
-            const loginResult = await CheckLogin(selectedRepo, currentToken);
+            const loginResult = await CheckLogin(registryAPI || selectedRepo, currentToken);
             if (!loginResult?.valid) {
                 const loginResult = await openLoginWorkflow();
                 if (!loginResult?.completed) {
