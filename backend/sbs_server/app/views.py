@@ -13,13 +13,21 @@ import tricahue
 import sbol2 as sb2
 import pudu
 import subprocess
+import requests
+import sbol2
+import excel2sbol
 from uuid import uuid4
+from urllib.parse import urlencode
 
 #routes
 #check if the app is running
 @app.route('/api/status')
 def pin():
     return jsonify({"status": "working", "version": __version__}), 200
+
+@app.route('/api/uploadSBOL', methods = ['POST'])
+def upload_sbol():
+    return sbh_upload(request.files)
 
 @app.route('/api/uploadResource', methods = ['POST'])
 def upload_resource():
@@ -56,6 +64,150 @@ def sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, collectionUri, rol
     if not response.ok:
         raise Exception(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")
     return response.json()
+
+'''
+Helper function to upload SBOL to SynBioHub
+'''
+def sbh_upload(files):
+    if 'SBOL' not in files:
+        return 'No file part', 400
+    sbol_file = files['SBOL']
+    if sbol_file.filename == '':
+        return 'No selected file', 400
+    root, extension = os.path.splitext(sbol_file.filename)
+    if not extension == '.xml':
+        return 'Invalid SBOL file format', 400
+
+    # Check params from frontend
+    if 'Params' not in files:
+        return 'No Params file part', 400
+    params_file = files['Params']
+    if params_file.filename == '':
+        return 'No selected Params file', 400
+    params_from_request = json.loads(params_file.read())
+    sbh_url = params_from_request.get('sbh_url')
+    if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
+        params_from_request['sbh_url'] = 'https://' + sbh_url
+
+    required_params = ['sbh_url', 'sbh_token', 'collection_url', 'sbh_overwrite']
+
+    for param in required_params:
+        if param not in params_from_request:
+            return 'Parameter ' + param + ' not found in request', 400
+    if (params_from_request['sbh_token'] is None):
+        return 'No SBH credentials provided', 400
+    sbh_url = params_from_request['sbh_url']
+    sbh_collection_url = params_from_request['collection_url'] 
+    sbh_overwrite = params_from_request['sbh_overwrite'] 
+    sbh_token = params_from_request['sbh_token']
+    importType = params_from_request['importType']
+    parts = sbh_collection_url.split("/")
+    usergraph = "/".join(parts[:5])
+    subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
+
+    upload_dir = os.path.join(os.getcwd(), "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    safe_sbol_filename = secure_filename(sbol_file.filename)
+
+    if safe_sbol_filename == '':
+        return 'Invalid SBOL file name', 400
+
+    sbol_path = os.path.join(
+        upload_dir,
+        f"{uuid4()}_{safe_sbol_filename}"
+    )
+    sbol_out_path = os.path.join(
+        upload_dir,
+        f"{uuid4()}_out_{safe_sbol_filename}"
+    )
+
+    sbol_file.save(sbol_path)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+    homespaces = {
+        "devices": "https://sbolcanvas.org/",
+        "designs": "https://sbolcanvas.org/",
+        "plasmids": "https://example.com/",
+    }
+    sbol2.setHomespace(homespaces.get(importType, "https://synbiosuite.org/"))
+    doc = sbol2.Document()
+    doc.read(sbol_path)
+    subCollection = sbol2.Collection(importType)
+    search_result = sbh_get_subCollection_uris(sbh_url,sbh_token,usergraph,subCollection_url)
+    for binding in search_result["results"]["bindings"]:
+        uri = binding["s"]["value"]
+        subCollection.members = subCollection.members + [ uri ]
+    for tl in doc:
+        subCollection.members = subCollection.members + [ tl.identity ]
+    doc.addCollection(subCollection)
+    doc.write(sbol_out_path)
+
+    try:
+        print("uploading to SBH")
+        with open(sbol_out_path, "rb") as f:
+                response = requests.post(
+                f"{sbh_url}/submit",
+                headers={"Accept": "text/plain",
+                         "X-authorization": sbh_token,
+        },
+            files={
+                    "files": f,
+            },
+            data={
+                "rootCollections": sbh_collection_url,
+                "overwrite_merge": sbh_overwrite,
+            },
+        )
+        if not response.ok:
+                raise Exception(
+                f"SynBioHub submit failed ({response.status_code}): {response.text}"
+                )
+        return sbh_collection_url
+    except AttributeError as e:
+        os.remove(sbol_path)
+        print('Attribute Error: ',str(e))
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+
+        return jsonify({
+            "error": str(e),
+            "type": type(e).__name__,
+            "repr": repr(e)
+        }), 500
+
+def _convert_to_sbol(self, sbol_version=2):
+    print("converting to SBOL")
+    try:
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+        excel2sbol.converter(file_path_in = self.input_excel_path, 
+                        file_path_out = self.file_path_out, homespace=self.homespace, sbol_version=sbol_version)
+        doc = sbol2.Document()
+        doc.read(self.file_path_out)
+        print("conversion complete")
+        self.sbol_doc = doc
+    except Exception as e:
+        print("CONVERSION FAILED --- SEE MESSAGE")
+        print(f"{type(e).__name__}: {e}")
+
+        # Print full traceback so package-level failures are visible.
+        traceback.print_exc()
+
+        # If present, print chained exceptions explicitly for deeper root-cause debugging.
+        if e.__cause__ is not None:
+            print("\nDirect cause:")
+            print(f"{type(e.__cause__).__name__}: {e.__cause__}")
+            print("".join(traceback.format_exception(type(e.__cause__), e.__cause__, e.__cause__.__traceback__)))
+
+        if e.__context__ is not None and e.__context__ is not e.__cause__:
+            print("\nContext:")
+            print(f"{type(e.__context__).__name__}: {e.__context__}")
+            print("".join(traceback.format_exception(type(e.__context__), e.__context__, e.__context__.__traceback__)))
+        raise
 
 '''
 Helper function to upload to SynBioHub and Flapjack using XDC/XDE
@@ -168,7 +320,8 @@ def sbh_fj_upload(files):
                                       fj_overwrite = fj_overwrite, 
                                       fj_user = fj_user, 
                                       fj_pass = fj_pass,
-                                      fj_token = fj_token)
+                                      fj_token = fj_token,
+                                      importType = params_from_request['importType'])
     except AttributeError as e:
         os.remove(metadata_path)
         print('Attribute Error: ',str(e))

@@ -30,13 +30,70 @@ export async function upload_sbs(metadata, parameters) {
     }
 }
 
+export async function upload_sbol(
+    file,
+    sbh_url,
+    sbh_token,
+    collectionUrl,
+    sbh_overwrite = 3,
+    workingDirectory = null,
+) {
+    try {
+        let data = new FormData();
+        if (file) {
+            let fileObject;
+            if (typeof file === 'string') {
+                if (!workingDirectory) {
+                    throw new Error('Working directory handle is required when file is provided as a path string');
+                }
+                fileObject = await readFileFromPath(workingDirectory, file);
+            } else {
+                fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
+            }
+            data.append('SBOL', fileObject);
+        }
+
+        const paramsObj = {
+          sbh_url: sbh_url,
+          sbh_token: sbh_token,
+          collection_url: collectionUrl,
+          sbh_overwrite: sbh_overwrite,
+          importType: workingDirectory
+        };
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/uploadSBOL',
+            data,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              },
+            }
+        );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
+        return response.data;
+    } catch (error) {
+      console.log(error.response?.data);
+      const msg =
+            error.response?.data?.error ||
+            error.message ||
+            'Unknown error';
+      showErrorNotification('SBOL Upload Failed', msg);
+      throw error;
+    }
+}
+
 export async function upload_resource(
     file,
     sbh_url,
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0
+    sbh_overwrite = 3,
+    importType = null
 ) {
     try {
         let data = new FormData();
@@ -66,8 +123,10 @@ export async function upload_resource(
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
-            attachments: {}
+            attachments: {},
+            importType: importType 
         }
+      console.log(JSON.stringify(paramsObj))
 
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
@@ -101,7 +160,7 @@ export async function uploadExperiment(
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0,
+    sbh_overwrite = 3,
     extraFiles = {}
 ) {
     try {
@@ -153,6 +212,7 @@ export async function uploadExperiment(
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
+            importType: "assays",
             attachments: Object.fromEntries(
                 (extraFiles.attachments || [])
                     .filter(Boolean)
@@ -301,9 +361,6 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-      console.log('URL: '+url)
-      console.log('auth: '+auth)
-      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));

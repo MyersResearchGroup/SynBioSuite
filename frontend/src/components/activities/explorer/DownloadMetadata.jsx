@@ -1,7 +1,7 @@
 import { Group, Text } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
-import { AiOutlineDownload } from "react-icons/ai";
+import { FiDownload } from "react-icons/fi";
 
 export default function DownloadMetadata({ objectType }) {
     
@@ -19,8 +19,8 @@ export default function DownloadMetadata({ objectType }) {
             url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Resources.xlsm"
             filename = "Resources.xlsm"
         } else if (objectType?.id == "synbio.object-type.study-data") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Study.xlsm"
-            filename = "Study.xlsm"
+            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Assay.xlsm"
+            filename = "Assay.xlsm"
         } 
 
         try {
@@ -41,7 +41,7 @@ export default function DownloadMetadata({ objectType }) {
 
     return(
         <Group sx={groupStyle} onClick={handleClick}>
-            <AiOutlineDownload />
+            <FiDownload />
             <Text sx={textStyle} size="sm">
                 Download Template
             </Text>

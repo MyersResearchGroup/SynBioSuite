@@ -7,12 +7,12 @@ import { CheckLogin, SBHLogout, clearInvalidCredentials } from '../../API';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
 
-export default function CredentialCheckModal({ 
-    navigateTo, 
-    goBack, 
+export default function CredentialCheckModal({
+    navigateTo,
+    goBack,
     completeWorkflow,
     modalData = {},
-    setModalData 
+    setModalData,
 }) {
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
@@ -37,10 +37,28 @@ export default function CredentialCheckModal({
     const selectedRepo = modalData.selectedRepo || dataPrimarySBH;
     const expectedEmail = modalData.expectedEmail;
     const skipRepositorySelection = modalData.skipRepositorySelection;
+    const silentCredentialCheck = modalData.silentCredentialCheck ?? false;
+
+    const nextModal = modalData.nextModal;
+    
+    const normalizeRepoUrl = (url) => {
+        if (!url) return '';
+        return url.toString().trim().replace(/\/+$/, '').toLowerCase();
+    };
 
     const getRepoInfo = useCallback(() => {
         if (!selectedRepo || !dataSBH.length) return null;
-        return dataSBH.find(r => r.registryURL === selectedRepo);
+        const normalizedSelected = normalizeRepoUrl(selectedRepo);
+
+        return dataSBH.find(r => {
+            const registryURL = normalizeRepoUrl(r.registryURL);
+            const registryAPI = normalizeRepoUrl(r.registryAPI);
+            const registryPrefix = normalizeRepoUrl(r.registryPrefix);
+
+            return registryURL === normalizedSelected
+                || registryAPI === normalizedSelected
+                || registryPrefix === normalizedSelected;
+        });
     }, [selectedRepo, dataSBH]);
 
     useEffect(() => {
@@ -76,40 +94,45 @@ export default function CredentialCheckModal({
                     const actualEmail = repoInfo.email || '';
                     const profileEmail = loginResult.profile?.email || '';
                     
-                    if (expectedEmail && skipRepositorySelection) {
-                        const emailToCheck = profileEmail || actualEmail;
-                        
-                        if (emailToCheck.toLowerCase() !== expectedEmail.toLowerCase()) {
-                            setEmailMismatch(true);
-                            setIsValid(false);
-                            setError(`Email mismatch: Expected ${expectedEmail}, but logged in as ${emailToCheck}`);
-                            setChecking(false);
-                            
-                            showNotification({
-                                title: 'Email Mismatch',
-                                message: `You must be logged in as ${expectedEmail}. Currently logged in as ${emailToCheck}.`,
-                                color: 'red',
-                            });
-                            
-                            clearInvalidCredentials(selectedRepo);
-                            return;
-                        }
-                        
+                    const emailToCheck = profileEmail || actualEmail;
+
+                    if (expectedEmail && skipRepositorySelection && emailToCheck.toLowerCase() !== expectedEmail.toLowerCase()) {
+                        setEmailMismatch(true);
+                        setIsValid(false);
+                        setError(`Email mismatch: Expected ${expectedEmail}, but logged in as ${emailToCheck}`);
+                        setChecking(false);
+
+                        showNotification({
+                            title: 'Email Mismatch',
+                            message: `You must be logged in as ${expectedEmail}. Currently logged in as ${emailToCheck}.`,
+                            color: 'red',
+                        });
+
+                        clearInvalidCredentials(selectedRepo);
+                        return;
+                    }
+
+                    const validatedUserInfo = {
+                        name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                        username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                        email: profileEmail || actualEmail,
+                        affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                    };
+
+                    if (skipRepositorySelection || silentCredentialCheck) {
                         setAutoNavigating(true);
-                        
-                        setModalData?.(prev => ({ 
-                            ...prev, 
-                            userInfo: {
-                                name: loginResult.profile?.name || repoInfo.name || 'Unknown',
-                                username: loginResult.profile?.username || repoInfo.username || 'Unknown',
-                                email: profileEmail || actualEmail,
-                                affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
-                            },
+                        setModalData?.(prev => ({
+                            ...prev,
+                            userInfo: validatedUserInfo,
                             authToken,
                             validated: true,
                         }));
-                        
-                        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
+
+                        if (nextModal) {
+                            navigateTo(nextModal, { selectedRepo });
+                        } else {
+                            completeWorkflow({ authToken });
+                        }
                         return;
                     }
                     
@@ -159,7 +182,7 @@ export default function CredentialCheckModal({
         };
 
         checkCredentials();
-    }, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, setModalData, navigateTo]);
+    }, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, silentCredentialCheck, setModalData, navigateTo]);
 
     const handleLogin = useCallback(() => {
         if (skipRepositorySelection && expectedEmail && emailMismatch) {
@@ -180,15 +203,22 @@ export default function CredentialCheckModal({
     const handleConfirm = useCallback(() => {
         if (!isValid) return;
 
-        setModalData?.(prev => ({ 
-            ...prev, 
-            selectedRepo,
-            userInfo,
-            authToken: getRepoInfo()?.authtoken,
-            validated: skipRepositorySelection ? true : undefined,
+        const repoInfo = getRepoInfo();
+        const authToken = repoInfo?.authtoken;
+
+        setModalData?.(prev => ({
+          ...prev,
+          selectedRepo,
+          userInfo,
+          authToken,
+          validated: skipRepositorySelection ? true : undefined,
         }));
 
-        navigateTo(MODAL_TYPES.COLLECTION_BROWSER, { selectedRepo });
+        if (nextModal) {
+          navigateTo(nextModal, { selectedRepo });
+        } else {
+          completeWorkflow({ authToken });
+        }
     }, [isValid, userInfo, navigateTo, setModalData, getRepoInfo, skipRepositorySelection, selectedRepo]);
 
     const handleLogout = useCallback(async () => {

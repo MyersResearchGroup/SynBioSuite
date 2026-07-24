@@ -7,14 +7,14 @@ import DragObject from '../../DragObject'
 import { getPanelTypeForObject } from '../../../panels'
 
 
-export default function ExplorerListItem({ fileId, icon, importable }) {
+export default function ExplorerListItem({ fileId, icon }) {
 
     const file = useFile(fileId)
 
     // handle opening of file
     const openPanel = useOpenPanel()
     const handleOpenFile = async () => {
-        const hasWorkflowPanel = !!getPanelTypeForObject(file?.objectType)
+        const hasWorkflowPanel = !!getPanelTypeForObject(file)
         if (hasWorkflowPanel) {
             openPanel(file)
             return
@@ -46,14 +46,42 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
         return false
     }
 
+    const supportsFileUpdate = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
+            return true
+        }
+        if (/\.json$/i.test(fileName)) {
+            return true
+        }
+        return false
+    }
+
+    const supportsFileUpload = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.xml$/i.test(fileName) && !/_sbml\.xml$/i.test(fileName)) {
+          return true;
+        }
+        return false
+    }
+
+    const supportsFileDownload = () => {
+        const fileName = file.name.toLowerCase()
+        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
+            return true
+        }
+        if (/\.json$/i.test(fileName)) {
+            return true
+        }
+        return false
+    }
+
     // command list
-    let contextMenuCommands = importable ? [
-        commands.FileDownload,
-        ...(supportsFileView() ? [commands.FileUpdate] : []),
+    let contextMenuCommands = [
         ...(supportsFileView() ? [commands.FileView] : []),
-        commands.FileDelete
-    ] : [
-        commands.FileDownload,
+        ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
+        ...(supportsFileUpload() ? [commands.FileUpload] : []),
+        ...(supportsFileDownload() ? [commands.FileDownload] : []),
         commands.FileDelete
     ];
 

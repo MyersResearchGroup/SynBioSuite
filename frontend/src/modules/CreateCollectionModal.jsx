@@ -40,6 +40,8 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     const instance = instanceData.find((inst) => inst.registryURL === url);
                     const auth = instance ? instance.authtoken : null;
                     const registryAPI = instance?.registryAPI || url;
+                    const registryURL = instance?.registryURL || url;
+                    const registryPrefix = instance?.registryPrefix || url;
                     if (!url) {
                         showNotification({
                             title: 'No Instance Selected',
@@ -50,13 +52,25 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     }
                     
                     try {
-                        await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
+                        
+                      await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
 
-                        if (goBack) {
-                            goBack();
-                        } else {
-                            onClose();
-                        }
+                      const collectionUri =
+                            `${registryPrefix}/user/${instance.username}/${id}/${id}_collection/${version}`;
+
+                      const payload = {
+                        collectionUri,
+                        id,
+                        version,
+                        name,
+                        description,
+                        citations,
+                        registryURL,
+                        registryAPI,
+                        registryPrefix,
+                      };
+                      onClose(payload);
+
                     } catch (error) {
                         showNotification({
                             title: 'Error',

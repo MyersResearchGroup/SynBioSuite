@@ -24,3 +24,9 @@ export function showErrorNotification(title, message) {
         autoClose: false,
     });
 }
+
+export async function readStudy(directoryHandle) {
+    const jsonFH = await directoryHandle.getFileHandle("study.json");
+    const jsonText = await (await jsonFH.getFile()).text();
+    return JSON.parse(jsonText);
+}

@@ -6,11 +6,14 @@ import { usePanelProperty } from '../../redux/hooks/panelsHooks'
 import store from '../../redux/store'
 import { createFileInDirectory, writeToFileHandle } from '../../redux/hooks/workingDirectoryHooks'
 import { ObjectTypes } from '../../objectTypes'
+import { useSelector } from "react-redux";
+
 
 export default function SeqImproveFrame({ fileTypeObjectId }) {
     const { url, panelId } = useContext(PanelContext)
     const [sbolContent, setSBOLContent] = usePanelProperty(panelId, 'sbol', false)
-
+    const subdirectory = useSelector(state => state.panels.entities[panelId]?.subdirectory)
+ 
     const iframeRef = useRef()
 
     const [iframeLoaded, setIFrameLoaded] = useState(false)
@@ -41,12 +44,12 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
                         }
 
                         const safeName = data.displayID + '.xml'
-                        const plasmidsSubdir = ObjectTypes.Plasmids.subdirectory
+                        const plasmidsSubdir = subdirectory
                         const plasmidsDir = await workDir.getDirectoryHandle(plasmidsSubdir, { create: true })
                         const fileHandle = await createFileInDirectory(
                             plasmidsDir,
                             safeName,
-                            ObjectTypes.Plasmids.id,
+                            subdirectory=='plasmids'?ObjectTypes.Plasmids.id:ObjectTypes.Devices.id,
                             store.dispatch,
                             plasmidsSubdir,
                         )

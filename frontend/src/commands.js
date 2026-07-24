@@ -7,7 +7,7 @@ import { showNotification } from "@mantine/notifications"
 import { openUnifiedModal } from "./redux/slices/modalSlice"
 import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
 import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
-import { upload_resource, CheckLogin } from "./API"
+import { upload_resource, upload_sbol, CheckLogin } from "./API"
 
 const EXCEL_VIEWER_PANEL_TYPE = 'synbio.panel-type.excel-viewer'
 
@@ -458,6 +458,79 @@ export default {
             URL.revokeObjectURL(url);
         }
     },
+    FileUpload: {
+        id: createId('file-upload'),
+        title: "Upload File",
+        shortTitle: "Upload",
+        description: "Upload file to SynBioHub collection",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            }
+        ],
+        execute: async fileNameOrId => {
+            const file = findFileByNameOrId(fileNameOrId);
+            if (!file) return "File doesn't exist.";
+
+            const dirHandle = store.getState().workingDirectory.directoryHandle;
+            const directory = file.id.split("/")[0];
+
+            let jsonData = null;
+
+            try {
+              const jsonFH = await dirHandle.getFileHandle("study.json");
+              const jsonText = await (await jsonFH.getFile()).text();
+              jsonData = JSON.parse(jsonText);
+            } catch (e) {
+              showErrorNotification("Failed to read study.json file", e.message);
+              return "Failed to read study.json file.";
+            }
+            const selectedRepo = jsonData.registryURL;
+            const expectedEmail = jsonData.userEmail || null;
+            const collectionUrl = jsonData.collectionUri;
+            const collectionName = jsonData.name;
+            const registryAPI = jsonData.registryAPI;
+            const importType = directory.endsWith(".xml")?"designs":directory;
+
+            async function performUpload(authToken) {
+              try {
+                store.dispatch(loadOverlay());
+
+                try {
+                  await upload_sbol(
+                    file,
+                    registryAPI,
+                    authToken,
+                    collectionUrl,
+                    3,
+                    importType
+                  );
+                } finally {
+                  store.dispatch(closeOverlay());
+                }
+
+                showNotification({
+                  title: "File uploaded",
+                  message: `${file.name} uploaded successfully to ${collectionName} study.`,
+                  color: "green",
+                });
+
+                return "File updated successfully.";
+                
+              } catch (err) {
+                showErrorNotification("Failed to upload file", err.message);
+                return "Failed to upload file: " + err.message;
+              }
+            }
+            const authToken = await resolveAuthToken(selectedRepo,expectedEmail);
+            if (!authToken) {
+                return "Authentication token not available.";
+            }
+
+            return await performUpload(authToken);
+        }
+    },
     FileUpdate: {
         id: createId('file-update'),
         title: "Update File",
@@ -512,85 +585,6 @@ export default {
                     return selectedRepo;
                 }
             })();
-
-            function getStoredToken() {
-                try {
-                    const stored = localStorage.getItem('SynbioHub');
-                    if (!stored) return null;
-                    const repos = JSON.parse(stored);
-                    const entry = repos.find(r => r.registryURL === selectedRepo);
-                    return entry?.authtoken || null;
-                } catch { return null; }
-            }
-
-            async function resolveAuthToken() {
-                const storedToken = getStoredToken();
-
-                if (storedToken) {
-                    try {
-                        const loginResult = await CheckLogin(selectedRepo, storedToken);
-                        const actualEmail = (loginResult.profile?.email || '').toLowerCase();
-                        if (loginResult.valid) {
-                            if (!expectedEmail || actualEmail === expectedEmail.toLowerCase()) {
-                                return storedToken;
-                            }
-
-                            showErrorNotification(
-                                "Authentication failed",
-                                `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
-                            );
-                            return null;
-                        }
-                    } catch {}
-                }
-
-                const modalResult = await new Promise((resolve) => {
-                    store.dispatch(openUnifiedModal({
-                        modalType: MODAL_TYPES.SBH_LOGIN,
-                        allowedModals: [
-                            MODAL_TYPES.SBH_LOGIN,
-                            MODAL_TYPES.ADD_SBH_REPO,
-                        ],
-                        props: {
-                            selectedRepo,
-                        },
-                        callback: (result) => resolve(result || null),
-                    }));
-                });
-
-                if (!modalResult?.completed) {
-                    showNotification({ title: "Update cancelled", message: "Login was cancelled." });
-                    return null;
-                }
-
-                const refreshedToken = getStoredToken();
-                if (!refreshedToken) {
-                    showErrorNotification("Authentication failed", "No token found after login.");
-                    return null;
-                }
-
-                try {
-                    const loginResult = await CheckLogin(selectedRepo, refreshedToken);
-                    if (!loginResult.valid) {
-                        showErrorNotification("Authentication failed", "Token is invalid or expired after login.");
-                        return null;
-                    }
-
-                    const actualEmail = (loginResult.profile?.email || '').toLowerCase();
-                    if (expectedEmail && actualEmail !== expectedEmail.toLowerCase()) {
-                        showErrorNotification(
-                            "Authentication failed",
-                            `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
-                        );
-                        return null;
-                    }
-
-                    return refreshedToken;
-                } catch (err) {
-                    showErrorNotification("Authentication failed", err.message || "Unable to validate login token.");
-                    return null;
-                }
-            }
 
             async function performUpdate(authToken) {
                 return new Promise((resolve) => {
@@ -650,7 +644,8 @@ export default {
                                     authToken,
                                     collectionUrl,
                                     dirHandle,
-                                    3
+                                    3,
+                                    `${directory}`
                                 );
                             } finally {
                                 store.dispatch(closeOverlay());
@@ -715,7 +710,7 @@ export default {
                 });
             }
 
-            const authToken = await resolveAuthToken();
+            const authToken = await resolveAuthToken(selectedRepo,expectedEmail);
             if (!authToken) {
                 return "Authentication token not available.";
             }
@@ -737,4 +732,83 @@ function createId(name) {
 function findFileByNameOrId(idOrName) {
     return store.getState().workingDirectory.entities[idOrName]
         || Object.values(store.getState().workingDirectory.entities).find(f => f.name == idOrName)
+}
+
+function getStoredToken(selectedRepo) {
+  try {
+    const stored = localStorage.getItem('SynbioHub');
+    if (!stored) return null;
+    const repos = JSON.parse(stored);
+    const entry = repos.find(r => r.registryURL === selectedRepo);
+    return entry?.authtoken || null;
+  } catch { return null; }
+}
+
+async function resolveAuthToken(selectedRepo,expectedEmail) {
+  const storedToken = getStoredToken(selectedRepo);
+  
+  if (storedToken) {
+    try {
+      const loginResult = await CheckLogin(selectedRepo, storedToken);
+      const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+      if (loginResult.valid) {
+        if (!expectedEmail || actualEmail === expectedEmail.toLowerCase()) {
+          return storedToken;
+        }
+        
+        showErrorNotification(
+          "Authentication failed",
+          `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+        );
+        return null;
+      }
+    } catch {}
+  }
+  
+  const modalResult = await new Promise((resolve) => {
+    store.dispatch(openUnifiedModal({
+      modalType: MODAL_TYPES.SBH_LOGIN,
+      allowedModals: [
+        MODAL_TYPES.SBH_LOGIN,
+        MODAL_TYPES.ADD_SBH_REPO,
+      ],
+      props: {
+        selectedRepo,
+      },
+      callback: (result) => resolve(result || null),
+    }));
+  });
+  
+  if (!modalResult?.completed) {
+    showNotification({ title: "Update cancelled", message: "Login was cancelled." });
+    return null;
+  }
+  
+  const refreshedToken = getStoredToken(selectedRepo);
+  if (!refreshedToken) {
+    showErrorNotification("Authentication failed", "No token found after login.");
+    return null;
+  }
+  
+  try {
+    const loginResult = await CheckLogin(selectedRepo, refreshedToken);
+    if (!loginResult.valid) {
+      showErrorNotification("Authentication failed", "Token is invalid or expired after login.");
+      return null;
+    }
+    
+    const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+    if (expectedEmail && actualEmail !== expectedEmail.toLowerCase()) {
+      showErrorNotification(
+        "Authentication failed",
+        `Logged in user (${actualEmail || 'unknown'}) does not match expected user (${expectedEmail}).`
+      );
+      return null;
+    }
+    
+    return refreshedToken;
+  } catch (err) {
+    showErrorNotification("Authentication failed", err.message || "Unable to validate login token.");
+    return null;
+  }
 }
