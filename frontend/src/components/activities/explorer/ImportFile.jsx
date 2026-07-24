@@ -1,5 +1,6 @@
 import { Group } from "@mantine/core";
-import { AiOutlinePlus } from "react-icons/ai";
+import { AiOutlineImport } from "react-icons/ai";
+import { FiUpload } from "react-icons/fi";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { createContext, useState } from "react";
 import { classifyFile, ObjectTypes } from "../../../objectTypes";
@@ -33,7 +34,7 @@ async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, ma
     throw new Error(`Unable to find available base name after ${maxAttempts} attempts.`);
 }
 
-export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
+export default function ImportFile({ onSelect, text, importable, useSubdirectory = false }) {
     const [selectedFile, setSelectedFile] = useState(null)
     const dirName = useSelector(state => state.workingDirectory.directoryHandle)
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
@@ -227,18 +228,30 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
             }
         }
     }
-        
-
-    return (
-        <Group sx={groupStyle} onClick={handleClick}>
-            <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
-            <AiOutlinePlus />
-            <Text size="sm" sx={textStyle} >
+    if (importable) {
+        return (
+            <Group sx={groupStyle} onClick={handleClick}>
+                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
+                <AiOutlineImport />
+                <Text size="sm" sx={textStyle} >
                     {text}
                 </Text> 
-            </importedFile.Provider>
-        </Group>
-    );
+                </importedFile.Provider>
+            </Group>
+        );
+    } else {
+        return (
+            <Group sx={groupStyle} onClick={handleClick}>
+                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
+                <FiUpload />
+                <Text size="sm" sx={textStyle} >
+                    {text}
+                </Text> 
+                </importedFile.Provider>
+            </Group>
+        );
+
+    }
 }
 
 const groupStyle = (theme) => ({

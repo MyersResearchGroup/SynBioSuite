@@ -159,6 +159,20 @@ export function getPanelType(id) {
     return Object.values(PanelTypes).find(pt => pt.id == id)
 }
 
-export function getPanelTypeForObject(objectType) {
-    return Object.values(PanelTypes).find(pt => Array.isArray(pt.objectTypes) && pt.objectTypes.includes(objectType))
+export function getPanelTypeForObject(file) {
+    const objectType = file.objectType;
+    const fileName = file.name.toLowerCase();
+
+    if (
+        objectType === ObjectTypes.Resources.id &&
+        fileName.endsWith(".xml")
+    ) {
+        return PanelTypes.SBOLEditor;
+    }
+
+    return Object.values(PanelTypes).find(
+        pt =>
+            Array.isArray(pt.objectTypes) &&
+            pt.objectTypes.includes(objectType)
+    );
 }

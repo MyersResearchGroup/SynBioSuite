@@ -7,14 +7,14 @@ import DragObject from '../../DragObject'
 import { getPanelTypeForObject } from '../../../panels'
 
 
-export default function ExplorerListItem({ fileId, icon, importable }) {
+export default function ExplorerListItem({ fileId, icon }) {
 
     const file = useFile(fileId)
 
     // handle opening of file
     const openPanel = useOpenPanel()
     const handleOpenFile = async () => {
-        const hasWorkflowPanel = !!getPanelTypeForObject(file?.objectType)
+        const hasWorkflowPanel = !!getPanelTypeForObject(file)
         if (hasWorkflowPanel) {
             openPanel(file)
             return
@@ -77,13 +77,9 @@ export default function ExplorerListItem({ fileId, icon, importable }) {
     }
 
     // command list
-    let contextMenuCommands = importable ? [
+    let contextMenuCommands = [
         ...(supportsFileView() ? [commands.FileView] : []),
         ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
-        ...(supportsFileUpload() ? [commands.FileUpload] : []),
-        ...(supportsFileDownload() ? [commands.FileDownload] : []),
-        commands.FileDelete
-    ] : [
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
         commands.FileDelete

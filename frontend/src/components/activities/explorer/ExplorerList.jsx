@@ -163,12 +163,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
     
     // generate DragObjects based on data
-    const createListItems = (files, Icon, importable) => files.map((file, i) =>
+    const createListItems = (files, Icon) => files.map((file, i) =>
         <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
-            importable={importable}
         />
     )
 
@@ -199,23 +198,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
-                                        {objectType.downloadable &&
-                                            <DownloadMetadata objectType={objectType}>
-                                            </DownloadMetadata>
-                                        }
-                                        {objectType.importable && objectType.iframeImport &&
-                                            <OpenSeqImproveButton
-                                                text={`Import ${objectType.title}`}
-                                                url={objectType.iframeUrl}>
-                                            </OpenSeqImproveButton>
-                                        }
-                                        {objectType.importable && !objectType.iframeImport &&
-                                            <ImportFile
-                                            onSelect={finalImport}
-                                            text={`Import ${objectType.title}`}
-                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
-                                            </ImportFile>
-                                        }
                                         {objectType.createable &&
                                             <CreateNewButton
                                                 onCreate={handleCreateObject(objectType)}
@@ -223,8 +205,35 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
+                                        }  
+                                        {objectType.annotatable &&
+                                            <OpenSeqImproveButton
+                                                text={`Annotate ${objectType.title}`}
+                                                subdirectory={objectType.subdirectory}
+                                                url={objectType.iframeUrl}>
+                                            </OpenSeqImproveButton>
+                                        }                                      
+                                        {objectType.downloadable &&
+                                            <DownloadMetadata objectType={objectType}>
+                                            </DownloadMetadata>
                                         }
-                                        {createListItems(filesOfType, objectType.icon, objectType.importable)}
+                                        {objectType.uploadable &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Upload ${objectType.title}`}
+                                            importable={false}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }
+                                        {objectType.importable &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Import ${objectType.title}`}
+                                            importable={true}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }
+                                        {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository ?
                                         <Registries 
                                             typeOfRegistry={objectType.listTitle}

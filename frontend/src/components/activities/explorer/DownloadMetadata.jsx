@@ -1,7 +1,7 @@
 import { Group, Text } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
-import { AiOutlineDownload } from "react-icons/ai";
+import { FiDownload } from "react-icons/fi";
 
 export default function DownloadMetadata({ objectType }) {
     
@@ -41,7 +41,7 @@ export default function DownloadMetadata({ objectType }) {
 
     return(
         <Group sx={groupStyle} onClick={handleClick}>
-            <AiOutlineDownload />
+            <FiDownload />
             <Text sx={textStyle} size="sm">
                 Download Template
             </Text>
