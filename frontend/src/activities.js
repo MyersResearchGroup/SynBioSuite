@@ -30,7 +30,8 @@ export const Activities = {
         icon: HiOutlinePuzzlePiece,
         objectTypesToList: [
             "synbio.object-type.synbiohub",
-            ObjectTypes.Resources.id
+            ObjectTypes.Resources.id,
+            ObjectTypes.Devices.id
         ] 
     },
     Design: {

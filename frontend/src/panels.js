@@ -73,7 +73,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.sbol-editor",
         title: "SBOL Canvas",
         component: SBOLEditorPanel,
-        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id ],
+        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id, ObjectTypes.Devices.id ],
         icon: CanvasIcon,
 
         deserialize: content => ({
@@ -164,7 +164,7 @@ export function getPanelTypeForObject(file) {
     const fileName = file.name.toLowerCase();
 
     if (
-        objectType === ObjectTypes.Resources.id &&
+        objectType === ObjectTypes.Devices.id &&
         fileName.endsWith(".xml")
     ) {
         return PanelTypes.SBOLEditor;

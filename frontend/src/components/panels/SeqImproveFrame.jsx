@@ -49,7 +49,7 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
                         const fileHandle = await createFileInDirectory(
                             plasmidsDir,
                             safeName,
-                            subdirectory=='plasmids'?ObjectTypes.Plasmids.id:ObjectTypes.Resources.id,
+                            subdirectory=='plasmids'?ObjectTypes.Plasmids.id:ObjectTypes.Devices.id,
                             store.dispatch,
                             plasmidsSubdir,
                         )

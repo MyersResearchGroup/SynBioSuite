@@ -152,7 +152,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
 
-        if (objectType.id === ObjectTypes.SBOL.id) {
+        if (objectType.id === ObjectTypes.SBOL.id || objectType.id === ObjectTypes.Devices.id) {
             const directory = tempDirectory || workDir
             createFile(fileName + "_sbol.xml", objectType.id, directory)
             const sbmlHandle = await createFileInDirectory(directory, fileName + "_sbml.xml", ObjectTypes.SBML.id, dispatch)
@@ -205,14 +205,14 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
-                                        }  
+                                        }   
                                         {objectType.annotatable &&
                                             <OpenSeqImproveButton
                                                 text={`Annotate ${objectType.title}`}
                                                 subdirectory={objectType.subdirectory}
                                                 url={objectType.iframeUrl}>
                                             </OpenSeqImproveButton>
-                                        }                                      
+                                        }                              
                                         {objectType.downloadable &&
                                             <DownloadMetadata objectType={objectType}>
                                             </DownloadMetadata>
@@ -232,7 +232,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             importable={true}
                                             {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
                                             </ImportFile>
-                                        }
+                                        }       
                                         {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository ?
                                         <Registries 

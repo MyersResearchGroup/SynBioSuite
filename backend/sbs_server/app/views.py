@@ -126,6 +126,7 @@ def sbh_upload(files):
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
     homespaces = {
+        "devices": "https://sbolcanvas.org/",
         "designs": "https://sbolcanvas.org/",
         "plasmids": "https://example.com/",
     }
