@@ -14,6 +14,7 @@ import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
+import { readStudy } from "../../../modules/util";
 
 export const importedFile = createContext()
 
@@ -151,13 +152,10 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
 
                 let jsonData
                 try {
-                  const dirHandle = dirName
-                  const jsonFH = await dirHandle.getFileHandle("study.json");
-                  const jsonText = await (await jsonFH.getFile()).text();
-                  jsonData = JSON.parse(jsonText);
+                  jsonData = await readStudy(dirName);
                 } catch (e) {
-                  showErrorNotification("Failed to read study.json file", e.message);
-                  return "Failed to read study.json file.";
+                  showErrorNotification("Failed to read study file", e.message);
+                  return "Failed to read study file.";
                 }
 
                 const selectedCollectionUri = jsonData.collectionUri

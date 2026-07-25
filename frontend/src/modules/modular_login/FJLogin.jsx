@@ -57,12 +57,15 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
     const handleSubmit = async (values) => {
         if (form.isValid()){
             try {
-                const info = await login(selected, values.username, values.password);
+                const existing = instanceData.find(item => item.registryURL === selected) || {};
+                const registryAPI = existing.registryAPI || selected;
+                const info = await login(registryAPI, values.username, values.password);
                 const updatedInstance = { 
-                    registryURL: selected, 
-                    registryAPI: selected,
-                    registryPrefix: selected,
-                    username: values.username, 
+                    ...existing,
+                    registryURL: selected,
+                    registryAPI: registryAPI,
+                    registryPrefix: existing.registryPrefix || selected,
+                    username: values.username,
                     email: info.email,
                     authtoken: info.authtoken,
                     refresh: info.refresh 
@@ -82,7 +85,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                 goBack(false)
             } catch (error) {
                 console.error('Login failed:', error);
-                if(error.status === 401){
+                if(error.response?.status === 401){
                     cleanNotifications();
                     showNotification({
                         title: 'Login failed',

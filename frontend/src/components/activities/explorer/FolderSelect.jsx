@@ -1,5 +1,6 @@
 import { Button, Center, Text } from '@mantine/core'
 import React from 'react'
+import { readStudy } from "../../../modules/util";
 
 export default function FolderSelect({ onOpenStudy, onNewStudy, children }) {
 
@@ -11,7 +12,7 @@ export default function FolderSelect({ onOpenStudy, onNewStudy, children }) {
       });
 
       try {
-        await directoryHandle.getFileHandle("study.json");
+        await readStudy(directoryHandle);
 
         await onOpenStudy?.(directoryHandle);
 

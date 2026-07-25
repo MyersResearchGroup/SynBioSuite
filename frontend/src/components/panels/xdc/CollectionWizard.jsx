@@ -46,7 +46,7 @@ export default function CollectionWizard() {
           const study = await readStudy(dirName);
           setStudy(study);
         } catch (e) {
-          console.error("Failed to read study.json", e);
+          console.error("Failed to read study file", e);
         }
       }
       loadStudy();

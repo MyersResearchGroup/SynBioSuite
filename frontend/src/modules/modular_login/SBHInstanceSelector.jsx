@@ -27,19 +27,18 @@ const SBHInstanceSelector = ({onClose, setRepoSelection }) => {
     };
 
     const stripData = (uri, showNotificationFlag = false) => {
-        const updatedInstance = {
-            registryURL: uri,
-            registryAPI: uri,
-            registryPrefix: uri,
-            email: '',
-            authtoken: '',
-            name: '',
-            username: '',
-            affiliation: ''
-        };
         const updatedInstanceData = instanceData.map((item) =>
-            item.registryURL === uri ? updatedInstance : item
+            item.registryURL === uri? {
+                ...item,
+                email: '',
+                authtoken: '',
+                name: '',
+                username: '',
+                affiliation: '',
+            }
+            : item
         );
+
         setInstanceData(updatedInstanceData);
         
         if (!showNotificationFlag) {

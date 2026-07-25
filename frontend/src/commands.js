@@ -8,6 +8,7 @@ import { openUnifiedModal } from "./redux/slices/modalSlice"
 import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
 import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
 import { upload_resource, upload_sbol, CheckLogin } from "./API"
+import { readStudy } from "./modules/util";
 
 const EXCEL_VIEWER_PANEL_TYPE = 'synbio.panel-type.excel-viewer'
 
@@ -443,7 +444,6 @@ export default {
             }
 
             if (!fileData) {
-                console.log("File data not found.");
                 return "File data not found.";
             }
 
@@ -479,12 +479,10 @@ export default {
             let jsonData = null;
 
             try {
-              const jsonFH = await dirHandle.getFileHandle("study.json");
-              const jsonText = await (await jsonFH.getFile()).text();
-              jsonData = JSON.parse(jsonText);
+              jsonData = await readStudy(dirHandle);
             } catch (e) {
-              showErrorNotification("Failed to read study.json file", e.message);
-              return "Failed to read study.json file.";
+              showErrorNotification("Failed to read study file", e.message);
+              return "Failed to read study file.";
             }
             const selectedRepo = jsonData.registryURL;
             const expectedEmail = jsonData.userEmail || null;

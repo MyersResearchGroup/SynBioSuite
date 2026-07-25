@@ -76,7 +76,6 @@ export async function upload_sbol(
         // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-      console.log(error.response?.data);
       const msg =
             error.response?.data?.error ||
             error.message ||
@@ -126,7 +125,6 @@ export async function upload_resource(
             attachments: {},
             importType: importType 
         }
-      console.log(JSON.stringify(paramsObj))
 
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
@@ -144,7 +142,6 @@ export async function upload_resource(
         // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-      console.log(error.response?.data);
       const msg =
             error.response?.data?.error ||
             error.message ||
@@ -287,8 +284,6 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
 }
 
 export async function submitBuild(wizardInput, assemblyPlan) {
-    console.log(wizardInput)
-    console.log(assemblyPlan)
     
     var formdata = new FormData()
 

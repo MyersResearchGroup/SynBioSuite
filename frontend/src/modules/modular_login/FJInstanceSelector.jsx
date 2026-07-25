@@ -26,18 +26,17 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     };
 
     const stripData = (uri, showNotificationFlag = false) => {
-        const updatedInstance = {
-            authtoken:"",
-            email:"",
-            registryURL: uri,
-            registryAPI: uri,
-            registryPrefix: uri,
-            refresh:"",
-            username:"",
-        };
         const updatedInstanceData = instanceData.map((item) =>
-            item.registryURL === uri ? updatedInstance : item
+            item.registryURL === uri? {
+                ...item,
+                email: '',
+                authtoken: '',
+                refresh: '',
+                username: '',
+            }
+            : item
         );
+
         setInstanceData(updatedInstanceData);
 
         if (!showNotificationFlag) {

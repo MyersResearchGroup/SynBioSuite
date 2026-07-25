@@ -12,6 +12,7 @@ import DownloadMetadata from './DownloadMetadata.jsx'
 import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
+import { readStudy } from "../../../modules/util";
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -61,9 +62,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         let selectedCollectionId = null;
 
         try {
-            const jsonFH = await workDir.getFileHandle('study.json');
-            const jsonText = await (await jsonFH.getFile()).text();
-            const studyData = JSON.parse(jsonText);
+            const studyData = await readStudy(workDir);
             selectedRepo = studyData.registryURL || null;
             expectedEmail = studyData.userEmail || null;
             selectedCollectionUri = studyData.collectionUri || null;
@@ -90,7 +89,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 }
             }
         } catch {
-            // No study.json available or no reusable collection; fall back to the browse workflow.
+            // No study available or no reusable collection; fall back to the browse workflow.
         }
 
         return new Promise((resolve) => {
