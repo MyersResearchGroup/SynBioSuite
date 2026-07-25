@@ -112,7 +112,7 @@ export default function CollectionBrowserModal({
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(repoInfo.registryAPI || selectedRepo, authToken);
 
                 if (!loginResult.valid) {
                     clearInvalidCredentials(selectedRepo);
@@ -342,12 +342,32 @@ export default function CollectionBrowserModal({
     const handleComplete = useCallback(() => {
         if (selectedCollections.size === 0) return;
 
+        const repository = dataSBH.find((item) => item.registryURL === selectedRepo);
+        if (!repository?.authtoken) {
+            showNotification({
+                title: 'Credentials Required',
+                message: 'Please log in to the selected SynBioHub repository before continuing.',
+                color: 'orange',
+            });
+            navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK, { selectedRepo });
+            return;
+        }
+
         completeWorkflow({
             collections: Array.from(selectedCollections.values()),
             count: selectedCollections.size,
             sbh_overwrite: overwrite ? 2 : 0,
+            selectedRepo: repository.registryURL,
+            registryAPI: repository.registryAPI || repository.registryURL,
+            repository: {
+                registryURL: repository.registryURL,
+                registryAPI: repository.registryAPI || repository.registryURL,
+                registryPrefix: repository.registryPrefix || repository.registryURL,
+            },
+            authToken: repository.authtoken,
+            userInfo: modalData.userInfo || null,
         });
-    }, [selectedCollections, overwrite, completeWorkflow]);
+    }, [selectedCollections, overwrite, completeWorkflow, dataSBH, selectedRepo, navigateTo, modalData.userInfo]);
 
     const handleCancel = useCallback(() => {
         onCancel ? onCancel() : goBack();

@@ -8,4 +8,7 @@ export default defineConfig({
     build: {
         target: 'es2022', // Support top-level await
     },
+    test: {
+        environment: 'jsdom',
+    },
 })

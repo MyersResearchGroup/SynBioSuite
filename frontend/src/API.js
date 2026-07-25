@@ -301,9 +301,6 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-      console.log('URL: '+url)
-      console.log('auth: '+auth)
-      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));

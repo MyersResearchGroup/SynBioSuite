@@ -68,7 +68,7 @@ export default function CredentialCheckModal({
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(repoInfo.registryAPI || selectedRepo, authToken);
 
                 if (!isMountedRef.current) return;
 
