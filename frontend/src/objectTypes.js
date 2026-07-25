@@ -1,14 +1,14 @@
-import { BiWorld } from "react-icons/bi"
+import { BiWorld, BiSpreadsheet } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
 import { PiTreeStructureFill } from "react-icons/pi"
 import { GiSewingMachine } from "react-icons/gi"
 import { GiThorHammer} from "react-icons/gi"
-import { RiGitRepositoryLine } from "react-icons/ri";
-import { GrTestDesktop } from "react-icons/gr";
-import { MdAlignVerticalTop } from "react-icons/md";
-import { VscOutput } from "react-icons/vsc";
-import { FaFileArchive } from "react-icons/fa";
+import { AiOutlineExperiment } from "react-icons/ai";
+import { MdAlignVerticalTop, MdOutlineViewModule } from "react-icons/md";
+import { VscOutput, VscGraphLine } from "react-icons/vsc";
+import { FaFileArchive, FaDna } from "react-icons/fa";
+import { FiDatabase, FiArchive } from "react-icons/fi";
 
 const SEQ_IMPROVE_LINK = import.meta.env.VITE_SEQIMPROVE_URL
 
@@ -39,7 +39,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.synbiohub",
         title: "Repository",
         listTitle: "SynBioHub Repositories",
-        icon: RiGitRepositoryLine,
+        icon: FiDatabase,
         isRepository: true,
     },
     Resources: {
@@ -47,7 +47,7 @@ export const ObjectTypes = {
         title: "Resources",
         listTitle: "Resources",
         fileNameMatch: /\.json$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         iframeUrl: SEQ_IMPROVE_LINK,
         createable: false,
         importable: false,
@@ -62,7 +62,7 @@ export const ObjectTypes = {
         title: "Devices",
         listTitle: "Devices",
         fileMatch: /<sbol:/,
-        icon: TbComponents,
+        icon: FaDna,
         iframeUrl: SEQ_IMPROVE_LINK,
         createable: true,
         uploadable: false,
@@ -75,7 +75,7 @@ export const ObjectTypes = {
         title: "Design",
         listTitle: "Designs",
         fileMatch: /<sbol:/,
-        icon: TbComponents,
+        icon: MdOutlineViewModule,
         createable: true,
         uploadable: false,
         extension: '.xml',
@@ -95,7 +95,7 @@ export const ObjectTypes = {
         title: "Archive",
         listTitle: "Archives",
         fileNameMatch: /\.omex$/,
-        icon: BiWorld,
+        icon: FiArchive,
         importable: true,
         badgeLabel: "OMEX",
     },
@@ -104,7 +104,7 @@ export const ObjectTypes = {
         title: "Analysis",
         listTitle: "Analyses",
         fileNameMatch: /\.analysis$/,
-        icon: IoAnalyticsSharp,
+        icon: VscGraphLine,
         createable: true,
         uploadable: false,
         extension: '.analysis',
@@ -119,7 +119,7 @@ export const ObjectTypes = {
         iframeImport: true,
         iframeUrl: SEQ_IMPROVE_LINK,
         extension: '.xml',
-        icon: TbComponents,
+        icon: FaDna,
         fileNameMatch: /\.xml$/,
         badgeLabel: "PLASMID",
         subdirectory: "plasmids"
@@ -129,7 +129,7 @@ export const ObjectTypes = {
         title: "Strains",
         listTitle: "Strains",
         fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         extension: '.json',
         createable: false,
         importable: false,
@@ -153,7 +153,7 @@ export const ObjectTypes = {
         title: "Sample Designs",
         listTitle: "Sample Designs",
         fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         extension: '.json',
         createable: false,
         importable: false,
@@ -166,7 +166,7 @@ export const ObjectTypes = {
         title: "Metadata",
         listTitle: "Assay Metadata",
         fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         createable: false,
         importable: true,
         subdirectory: "assays",
@@ -197,7 +197,7 @@ export const ObjectTypes = {
         title: "Assays",
         listTitle: "Assays",
         fileNameMatch: /\.xdc$/,
-        icon: GrTestDesktop,
+        icon: AiOutlineExperiment,
         createable: true,
         extension: ".xdc",
         subdirectory: "xdc"
@@ -206,7 +206,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.flapjack",
         title: "Repository",
         listTitle: "Flapjack Repositories",
-        icon: RiGitRepositoryLine,
+        icon: FiDatabase,
         isRepository: true,
     },
 }
