@@ -346,8 +346,8 @@ function UnifiedModal({
                     <CreateCollectionModal
                         opened={true}
                         onClose={completeWorkflow}
-                        libraryName={modalProps.libraryName}
-                        libraryDescription={modalProps.libraryDescription}
+                        studyName={modalProps.studyName}
+                        studyDescription={modalProps.studyDescription}
                         {...commonProps}
                     />
                 );

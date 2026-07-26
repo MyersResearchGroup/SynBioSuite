@@ -150,7 +150,7 @@ export function useUnifiedModal() {
          * Open create collection workflow
          * Allows: CREATE_COLLECTION -> SBH_LOGIN -> ADD_SBH_REPO
          */
-        createCollection: useCallback((libraryName, libraryDescription, onComplete) => {
+        createCollection: useCallback((studyName, studyDescription, onComplete) => {
             open(MODAL_TYPES.CREATE_COLLECTION, {
                 allowedModals: [
                     MODAL_TYPES.CREATE_COLLECTION, 
@@ -158,7 +158,7 @@ export function useUnifiedModal() {
                     MODAL_TYPES.ADD_SBH_REPO,
                     MODAL_TYPES.COLLECTION_BROWSER,
                 ],
-                props: { libraryName, libraryDescription },
+                props: { studyName, studyDescription },
                 onComplete,
             });
         }, [open]),
@@ -189,6 +189,7 @@ export function useUnifiedModal() {
               skipRepositorySelection: true,
               nextModal: MODAL_TYPES.CREATE_COLLECTION,
               studyDirectory,
+              studyName: studyDirectory.name,
             },
             onComplete,
           });
