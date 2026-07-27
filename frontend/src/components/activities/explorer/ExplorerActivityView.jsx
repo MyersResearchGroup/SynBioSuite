@@ -29,7 +29,7 @@ export default function ExplorerActivityView({objectTypesToList }) {
         if (!data?.collectionUri) {
           return;
         }
-        
+
         const {
           collectionUri,
           id,
@@ -39,7 +39,8 @@ export default function ExplorerActivityView({objectTypesToList }) {
           citations,
           registryURL,
           registryAPI,
-          registryPrefix
+          registryPrefix,
+          FJid,
         } = data;
         
         const fh = await dirHandle.getFileHandle("study.json", {
@@ -58,7 +59,8 @@ export default function ExplorerActivityView({objectTypesToList }) {
             citations,
             registryURL,
             registryAPI,
-            registryPrefix
+            registryPrefix,
+            FJid,
           }, null, 2)
         );
         

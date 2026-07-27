@@ -180,6 +180,7 @@ export function useUnifiedModal() {
               MODAL_TYPES.REPOSITORY_SELECTOR,
               MODAL_TYPES.SBH_CREDENTIAL_CHECK,
               MODAL_TYPES.SBH_LOGIN,
+              MODAL_TYPES.FJ_LOGIN,
               MODAL_TYPES.ADD_SBH_REPO,
               MODAL_TYPES.CREATE_COLLECTION,
             ],

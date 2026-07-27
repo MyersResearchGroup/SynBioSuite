@@ -3,7 +3,7 @@ import { Stack, Button, Group, Text, Alert, Loader, Center, Paper, Avatar } from
 import { FaExclamationCircle, FaCheck, FaTimes } from 'react-icons/fa';
 import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
-import { CheckLogin, SBHLogout, clearInvalidCredentials } from '../../API';
+import { CheckLogin, CheckFJLogin, SBHLogout, clearInvalidCredentials } from '../../API';
 import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
 
@@ -16,6 +16,8 @@ export default function CredentialCheckModal({
 }) {
     const [dataSBH, setDataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
+    const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
+    const dataPrimaryFJ = useSelector(state => state.primaryRepository.fjPrimary);
     
     const [checking, setChecking] = useState(true);
     const [isValid, setIsValid] = useState(null);
@@ -35,6 +37,7 @@ export default function CredentialCheckModal({
     }, []);
 
     const selectedRepo = modalData.selectedRepo || dataPrimarySBH;
+    const selectedFJRepo = modalData.selectedFJRepo || dataPrimaryFJ;
     const expectedEmail = modalData.expectedEmail;
     const skipRepositorySelection = modalData.skipRepositorySelection;
     const silentCredentialCheck = modalData.silentCredentialCheck ?? false;
@@ -61,13 +64,34 @@ export default function CredentialCheckModal({
         });
     }, [selectedRepo, dataSBH]);
 
+    const verifyService = useCallback(async (repoInfo, loginFn, serviceName) => {
+        if (!repoInfo) {
+            return {
+                valid: false,
+                error: `${serviceName} repository not found`
+            };
+        }
+
+        if (!repoInfo.authtoken) {
+            return {
+                valid: false,
+                error: `${serviceName} not logged in`
+            };
+        }
+
+        return loginFn(
+            repoInfo.registryAPI,
+            repoInfo.authtoken
+        );
+    }, []); 
+
     useEffect(() => {
         const checkCredentials = async () => {
             setChecking(true);
             setError(null);
 
             const repoInfo = getRepoInfo();
-            
+
             if (!repoInfo) {
                 setError('Repository not found');
                 setChecking(false);
@@ -86,7 +110,22 @@ export default function CredentialCheckModal({
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await verifyService(repoInfo, CheckLogin, "SynBioHub");
+
+                // TODO: this should be passed in here.  Note this is not working correctly.
+                const checkFlapjackStudy = false;
+                if (checkFlapjackStudy) {
+                    const fjRepo = dataFJ.find(r => normalizeRepoUrl(r.registryURL) === normalizeRepoUrl(selectedFJRepo));
+                    const fjResult = await verifyService(fjRepo,CheckFJLogin,"Flapjack");
+                    if (!fjResult.valid) {
+                        navigateTo(MODAL_TYPES.FJ_LOGIN, { 
+                            selectedRepo,
+                            returnTo: MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                            checkFlapjack: true,
+                        });
+                        return;
+                    }
+                }
 
                 if (!isMountedRef.current) return;
 
@@ -182,7 +221,7 @@ export default function CredentialCheckModal({
         };
 
         checkCredentials();
-    }, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, silentCredentialCheck, setModalData, navigateTo]);
+}, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, silentCredentialCheck, setModalData, navigateTo]);
 
     const handleLogin = useCallback(() => {
         if (skipRepositorySelection && expectedEmail && emailMismatch) {

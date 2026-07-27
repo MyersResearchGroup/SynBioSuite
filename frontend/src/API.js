@@ -372,41 +372,54 @@ export async function searchCollections(url, auth) {
     }
 }
 
-export async function createCollection(id, version, name, description, citations, auth, url, overwrite) {
+export async function createStudyFJ(id, version, name, description, doi, auth, url, overwrite) {
     try {
-        if(url == "") return;
-        const formdata = new FormData();
-        formdata.append('id', id);
-        formdata.append('version', version);
-        formdata.append('name', name);
-        formdata.append('description', description);
-        formdata.append('citations', citations);
-        formdata.append('overwrite_merge', overwrite ? 1 : 0);
-
         const response = await axios.post(
-            `${url}/submit`,
-            formdata,
+            `${url}/api/study/`,
+            {
+                name: name,
+                description: description ?? "",
+                public: false,
+            },
             {
                 headers: {
-                    "Accept": "text/plain",
-                    "X-authorization": auth
-                }
+                    Authorization: `Bearer ${auth}`,
+                    "Content-Type": "application/json",
+                },
             }
-        );        
-        showNotification({
-            title: 'Collection Created',
-            message: `Collection "${name}" created successfully.`,
-            color: 'green',
-        });
-        return response.data;
+        );
+        return response.data.id;
     } catch (error) {
-        if (error.response && error.response.status == 401 && error.response.data == "Login required"){
-            showErrorNotification('Your SynbioHub Credentials Have Expired', "Try logging out and logging back in again")
+        if (error.response && error.response.status == 401){
+            showErrorNotification('Flapjack Login Required', "Try logging out and logging back in again")
         } else {
-            showErrorNotification('Create Collection Error', error.response.data);
+            showErrorNotification('Flapjack Error', error.message);
         }
         throw error;
     }
+}
+
+export async function createStudySBH(id, version, name, description, citations, auth, url, overwrite) {
+    if(url == "") return;
+    const formdata = new FormData();
+    formdata.append('id', id);
+    formdata.append('version', version);
+    formdata.append('name', name);
+    formdata.append('description', description);
+    formdata.append('citations', citations);
+    formdata.append('overwrite_merge', overwrite ? 1 : 0);
+
+    const response = await axios.post(
+        `${url}/submit`,
+        formdata,
+        {
+            headers: {
+                "Accept": "text/plain",
+                "X-authorization": auth
+            }
+        }
+    );        
+    return response.data;
 }
 
 export async function SBHLogout(auth, url) {
@@ -454,6 +467,37 @@ export async function FJLogin(instance, username, password){
     }
 };
 
+
+export async function CheckFJLogin(instance, authToken){
+    try {
+        if (!authToken) {
+            return { valid: false }
+        }
+
+        const response = await axios.get(`${instance}/api/auth/user_info/`, {
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        // Return user profile information for email verification
+        return { 
+            valid: true, 
+            profile: response.data
+        };
+    } catch (error) {
+        if (error.response?.status === 401) {
+            return { valid: false };
+        }   
+
+        console.error("CheckFJLogin error:", error);
+        showErrorNotification('Flapjack Login Error', error.message);
+        throw error;
+    }
+}
+
+
 export async function CheckLogin(instance, authToken){
     try {
         if (!authToken) {
@@ -477,8 +521,7 @@ export async function CheckLogin(instance, authToken){
             return { valid: false };
         }
 
-        console.error("CheckLogin error:", error);
-        showErrorNotification('Login Error', error.message);
+        showErrorNotification('SynBioHub Login Error', error.message);
         throw error;
     }
 }

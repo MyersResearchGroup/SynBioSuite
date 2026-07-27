@@ -3,13 +3,16 @@ import { TextInput, Button, Group, Space, Checkbox } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
 import { showNotification } from '@mantine/notifications';
-import { createCollection } from '../API';
+import { createStudySBH, createStudyFJ } from '../API';
 import { useState } from 'react';
 
 function CreateCollectionModal({ opened, onClose, studyName, studyDescription, goBack }) {    
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [instanceDataFJ, setInstanceDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     const [overwrite, setOverwrite] = useState(false);
+    const [createFlapjackStudy, setCreateFlapjackStudy] = useState(false);
     const studyId = makeIdentifier(studyName || "");
 
     function makeIdentifier(text) {
@@ -51,46 +54,75 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                         });
                         return;
                     }
-
                     const url = selected && selected.trim() !== "" ? selected : null;
                     const instance = instanceData.find((inst) => inst.registryURL === url);
                     const auth = instance ? instance.authtoken : null;
                     const registryAPI = instance?.registryAPI || url;
                     const registryURL = instance?.registryURL || url;
                     const registryPrefix = instance?.registryPrefix || url;
+
+                    const urlFJ = selectedFJ && selectedFJ.trim() !== "" ? selectedFJ : null;
+                    const instanceFJ  = instanceDataFJ.find((inst) => inst.registryURL === urlFJ);
+                    const authFJ = instanceFJ ? instanceFJ.authtoken : null;
+                    const registryAPIFJ = instanceFJ?.registryAPI || urlFJ;
+                    const registryURLFJ = instanceFJ?.registryURL || urlFJ;
+                    const registryPrefixFJ = instanceFJ?.registryPrefix || urlFJ;
+
                     if (!url) {
                         showNotification({
-                            title: 'No Instance Selected',
-                            message: 'Please select a SynbioHub instance before creating a collection.',
+                            title: 'No SynBioHub Instance Selected',
+                            message: 'Please select a SynbioHub instance before creating a study.',
+                            color: 'red',
+                        });
+                        return;
+                    }
+
+                    if (createFlapjackStudy && !urlFJ) {
+                        showNotification({
+                            title: 'No Flapjack Instance Selected',
+                            message: 'Please select a Flapject instance before creating a study.',
                             color: 'red',
                         });
                         return;
                     }
                     
                     try {
-                        
-                      await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
 
-                      const collectionUri =
-                            `${registryPrefix}/user/${instance.username}/${id}/${id}_collection/${version}`;
+                        await createStudySBH(id, version, name, description, citations, auth, registryAPI, overwrite);
 
-                      const payload = {
-                        collectionUri,
-                        id,
-                        version,
-                        name,
-                        description,
-                        citations,
-                        registryURL,
-                        registryAPI,
-                        registryPrefix,
-                      };
-                      onClose(payload);
+                        let FJid = null;
+                        if (createFlapjackStudy) {
+                            FJid = await createStudyFJ(id, version, name, description, citations, authFJ, registryAPIFJ, overwrite);
+                        }
+
+                        showNotification({
+                            title: 'Study Created',
+                            message: `Study "${name}" created successfully.`,
+                            color: 'green',
+                        });
+
+                        const collectionUri =
+                                `${registryPrefix}/user/${instance.username}/${id}/${id}_collection/${version}`;
+
+                        const payload = {
+                            collectionUri,
+                            id,
+                            version,
+                            name,
+                            description,
+                            citations,
+                            registryURL,
+                            registryAPI,
+                            registryPrefix,
+                            FJid,
+                        };
+
+                        onClose(payload);
 
                     } catch (error) {
                         showNotification({
-                            title: 'Error',
-                            message: error.message || 'Failed to create collection',
+                            title: 'Error Creating Study',
+                            message: error.message || 'Failed to create study',
                             color: 'red',
                         });
                     }
@@ -139,6 +171,13 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                         label="Overwrite Existing Study and Remove All Prior Contents"
                         checked={overwrite}
                         onChange={(event) => setOverwrite(event.currentTarget.checked)}
+                    />
+                </Group>
+                <Group position="right" mt="md">
+                    <Checkbox
+                        label="Create Flapjack Study"
+                        checked={createFlapjackStudy}
+                        onChange={(event) => setCreateFlapjackStudy(event.currentTarget.checked)}
                     />
                 </Group>
                 <Group position="apart">
