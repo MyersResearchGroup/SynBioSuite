@@ -2,6 +2,22 @@ import { Group, Text } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { AiOutlineDownload } from "react-icons/ai";
+import * as XLSX from "xlsx";
+import { sbhGetSubCollectionUris } from "./FetchInfo";
+
+const SHEETS_TO_FILL = {
+    "synbio.object-type.sample-designs": [
+        // { sheetName: "Strains",   collectionKey: "strains"   },
+        // { sheetName: "Media",     collectionKey: "media"     },
+        // { sheetName: "Chemicals", collectionKey: "chemicals" },
+    ],
+    "synbio.object-type.strains": [
+        // { sheetName: "Chassis",  collectionKey: "chassis"  },
+        { sheetName: "Plasmids", collectionKey: "plasmids" },
+    ],
+    "synbio.object-type.resources": [],
+    "synbio.object-type.study-data": [],
+};
 
 export default function DownloadMetadata({ objectType }) {
     
