@@ -1,5 +1,4 @@
 import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
-// import { Notifications } from '@mantine/notifications'
 import { useContext, useState } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
@@ -75,16 +74,6 @@ export default function CollectionWizard({ onUploadSuccess }) {
 
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
             setUploadSuccess(true)
-
-            // notifications.show({
-            //     title: 'Upload successful',
-            //     message: 'Your collection has been uploaded.',
-            //     color: 'green',
-            //     action: {
-            //         label: 'See Results',
-            //         onClick: onUploadSuccess
-            //     }
-            // })
 
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
