@@ -151,7 +151,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             tempDirectory = await workDir.getDirectoryHandle(objectType.subdirectory, { create: true });
         }
 
-        if (objectType.id === ObjectTypes.SBOL.id || objectType.id === ObjectTypes.Devices.id) {
+        if (objectType.id === ObjectTypes.SBOL.id) {
             const directory = tempDirectory || workDir
             createFile(fileName + "_sbol.xml", objectType.id, directory)
             const sbmlHandle = await createFileInDirectory(directory, fileName + "_sbml.xml", ObjectTypes.SBML.id, dispatch)
