@@ -55,7 +55,6 @@ export default function CollectionWizard() {
     const collectionUrl = study?.collectionUri ?? "";
     const selectedRepo = study?.registryURL ?? "";
     const registryAPI = study?.registryAPI ?? "";
-    const repoInfo = dataSBH.find((repo) => repo.registryURL === selectedRepo);
 
     const getStoredToken = () => {
         try {
