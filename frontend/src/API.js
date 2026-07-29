@@ -524,7 +524,7 @@ export async function CheckLogin(instance, authToken){
             return { valid: false }
         }
 
-        const response = await axios.get(`${instance}/profile`, {
+        let response = await axios.get(`${instance}/profile`, {
             headers: {
                 "Accept": "text/plain",
                 "X-authorization": authToken
