@@ -121,32 +121,31 @@ def sbh_upload(files):
         upload_dir,
         f"{uuid4()}_out_{safe_sbol_filename}"
     )
-
-    sbol_file.save(sbol_path)
-    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
-    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
-    homespaces = {
-        "devices": "https://example.com/",
-        "designs": "https://sbolcanvas.org/",
-        "plasmids": "https://example.com/",
-    }
-    sbol2.setHomespace(homespaces.get(importType, "https://synbiosuite.org/"))
-    doc = sbol2.Document()
-    doc.read(sbol_path)
-    subCollection = sbol2.Collection(importType)
-    search_result = sbh_get_subCollection_uris(sbh_url,sbh_token,usergraph,subCollection_url)
-    for binding in search_result["results"]["bindings"]:
-        uri = binding["s"]["value"]
-        subCollection.members = subCollection.members + [ uri ]
-    for tl in doc:
-        subCollection.members = subCollection.members + [ tl.identity ]
-    doc.addCollection(subCollection)
-    doc.write(sbol_out_path)
-
     try:
+        sbol_file.save(sbol_path)
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+        homespaces = {
+            "Devices": "https://example.com/",
+            "Designs": "https://sbolcanvas.org/",
+            "Plasmids": "https://example.com/",
+        }
+        sbol2.setHomespace(homespaces.get(importType, "https://synbiosuite.org/"))
+        doc = sbol2.Document()
+        doc.read(sbol_path)
+        subCollection = sbol2.Collection(importType)
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_token,usergraph,subCollection_url)
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            subCollection.members = subCollection.members + [ uri ]
+        for tl in doc:
+            subCollection.members = subCollection.members + [ tl.identity ]
+        doc.addCollection(subCollection)
+        doc.write(sbol_out_path)
+
         print("uploading to SBH")
         with open(sbol_out_path, "rb") as f:
-                response = requests.post(
+            response = requests.post(
                 f"{sbh_url}/submit",
                 headers={"Accept": "text/plain",
                          "X-authorization": sbh_token,
@@ -160,12 +159,11 @@ def sbh_upload(files):
             },
         )
         if not response.ok:
-                raise Exception(
+            raise Exception(
                 f"SynBioHub submit failed ({response.status_code}): {response.text}"
-                )
+            )
         return sbh_collection_url
     except AttributeError as e:
-        os.remove(sbol_path)
         print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400
     except Exception as e:
@@ -178,6 +176,13 @@ def sbh_upload(files):
             "type": type(e).__name__,
             "repr": repr(e)
         }), 500
+    finally:
+        for path in (sbol_path, sbol_out_path):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception as cleanup_error:
+                print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
 
 def _convert_to_sbol(self, sbol_version=2):
     print("converting to SBOL")

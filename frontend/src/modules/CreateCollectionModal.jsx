@@ -115,6 +115,9 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                             registryAPI,
                             registryPrefix,
                             FJid,
+                            registryURLFJ,
+                            registryAPIFJ,
+                            registryPrefixFJ,
                         };
 
                         onClose(payload);

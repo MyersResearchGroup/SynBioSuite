@@ -6,6 +6,10 @@ import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 
 const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
 
+function capitalizeFirst(str) {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
 //There is an issue with where the file upload is not being sent correctly to the server
 export async function upload_sbs(metadata, parameters) {
     try {
@@ -58,7 +62,7 @@ export async function upload_sbol(
           sbh_token: sbh_token,
           collection_url: collectionUrl,
           sbh_overwrite: sbh_overwrite,
-          importType: workingDirectory
+          importType: capitalizeFirst(workingDirectory)
         };
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
@@ -123,7 +127,7 @@ export async function upload_resource(
             fj_overwrite: 1,
             version: "",
             attachments: {},
-            importType: importType 
+            importType: capitalizeFirst(importType) 
         }
 
         const paramsJson = JSON.stringify(paramsObj);
@@ -209,7 +213,7 @@ export async function uploadExperiment(
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
-            importType: "assays",
+            importType: "Assays",
             attachments: Object.fromEntries(
                 (extraFiles.attachments || [])
                     .filter(Boolean)
@@ -374,20 +378,36 @@ export async function searchCollections(url, auth) {
 
 export async function createStudyFJ(id, version, name, description, doi, auth, url, overwrite) {
     try {
-        const response = await axios.post(
+         const response = await axios.get(
             `${url}/api/study/`,
             {
-                name: name,
-                description: description ?? "",
+                params: {
+                name,
                 public: false,
-            },
-            {
+                },
                 headers: {
-                    Authorization: `Bearer ${auth}`,
-                    "Content-Type": "application/json",
+                Authorization: `Bearer ${auth}`,
                 },
             }
         );
+        if (response.data.count == 0) {
+            response = await axios.post(
+                `${url}/api/study/`,
+                {
+                    name: name,
+                    description: description ?? "",
+                    public: false,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+        } else {
+            return response.data.results[0].id
+        }
         return response.data.id;
     } catch (error) {
         if (error.response && error.response.status == 401){
