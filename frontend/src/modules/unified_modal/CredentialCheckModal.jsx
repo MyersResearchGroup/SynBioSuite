@@ -121,7 +121,7 @@ export default function CredentialCheckModal({
                         navigateTo(MODAL_TYPES.FJ_LOGIN, { 
                             selectedRepo,
                             returnTo: MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                            checkFlapjack: true,
+                            checkFlapjackStudy: true,
                         });
                         return;
                     }
@@ -221,7 +221,7 @@ export default function CredentialCheckModal({
         };
 
         checkCredentials();
-}, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, expectedEmail, skipRepositorySelection, silentCredentialCheck, setModalData, navigateTo]);
+}, [selectedRepo, getRepoInfo, dataSBH, setDataSBH, dataFJ, setDataFJ, expectedEmail, skipRepositorySelection, silentCredentialCheck, setModalData, navigateTo]);
 
     const handleLogin = useCallback(() => {
         if (skipRepositorySelection && expectedEmail && emailMismatch) {
