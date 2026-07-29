@@ -378,7 +378,7 @@ export async function searchCollections(url, auth) {
 
 export async function createStudyFJ(id, version, name, description, doi, auth, url, overwrite) {
     try {
-         const response = await axios.get(
+         let response = await axios.get(
             `${url}/api/study/`,
             {
                 params: {
@@ -524,7 +524,7 @@ export async function CheckLogin(instance, authToken){
             return { valid: false }
         }
 
-        let response = await axios.get(`${instance}/profile`, {
+        const response = await axios.get(`${instance}/profile`, {
             headers: {
                 "Accept": "text/plain",
                 "X-authorization": authToken
