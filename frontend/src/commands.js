@@ -521,7 +521,7 @@ export default {
                 return "Failed to upload file: " + err.message;
               }
             }
-            const authToken = await resolveAuthToken(selectedRepo,expectedEmail);
+            const authToken = await resolveAuthToken(selectedRepo,registryAPI,expectedEmail);
             if (!authToken) {
                 return "Authentication token not available.";
             }
@@ -708,7 +708,7 @@ export default {
                 });
             }
 
-            const authToken = await resolveAuthToken(selectedRepo,expectedEmail);
+            const authToken = await resolveAuthToken(selectedRepo,registryAPI,expectedEmail);
             if (!authToken) {
                 return "Authentication token not available.";
             }
@@ -742,12 +742,12 @@ function getStoredToken(selectedRepo) {
   } catch { return null; }
 }
 
-async function resolveAuthToken(selectedRepo,expectedEmail) {
+async function resolveAuthToken(selectedRepo,registryAPI,expectedEmail) {
   const storedToken = getStoredToken(selectedRepo);
   
   if (storedToken) {
     try {
-      const loginResult = await CheckLogin(selectedRepo, storedToken);
+      const loginResult = await CheckLogin(registryAPI || selectedRepo, storedToken);
       const actualEmail = (loginResult.profile?.email || '').toLowerCase();
       if (loginResult.valid) {
         if (!expectedEmail || actualEmail === expectedEmail.toLowerCase()) {
@@ -789,7 +789,7 @@ async function resolveAuthToken(selectedRepo,expectedEmail) {
   }
   
   try {
-    const loginResult = await CheckLogin(selectedRepo, refreshedToken);
+    const loginResult = await CheckLogin(registryAPI || selectedRepo, refreshedToken);
     if (!loginResult.valid) {
       showErrorNotification("Authentication failed", "Token is invalid or expired after login.");
       return null;
