@@ -3,7 +3,7 @@ import {Text, Group, Menu} from '@mantine/core'
 import {useDispatch} from "react-redux";
 import { useState } from 'react'
 import commands from '../../../commands.js';
-import {panelsSlice} from "../../../redux/store.js"
+import panelsSlice from '../../../redux/slices/panelsSlice'
 const { actions } = panelsSlice
 import { FiDatabase } from "react-icons/fi";
 

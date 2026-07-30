@@ -8,7 +8,7 @@ import { Text } from "@mantine/core";
 import { useSelector, useDispatch } from "react-redux";
 import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
-import { workingDirectorySlice } from "../../../redux/store";
+import workingDirectorySlice from "../../../redux/slices/workingDirectorySlice";
 import { useLocalStorage } from "@mantine/hooks";
 import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";

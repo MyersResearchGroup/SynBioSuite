@@ -7,6 +7,8 @@ import { useLocalStorage } from '@mantine/hooks'
 import { useDispatch } from 'react-redux'
 import { APP_VERSION } from '../../../version'
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal';
+import { readStudy } from '../../../modules/util';
+import { setSBHPrimary, setFJPrimary } from '../../../redux/slices/primaryRepositorySlice';
 
 export default function ExplorerActivityView({objectTypesToList }) {
     const dispatch = useDispatch()
@@ -17,10 +19,21 @@ export default function ExplorerActivityView({objectTypesToList }) {
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
   
     const { workflows } = useUnifiedModal();
-  
-    const handleOpenStudy = dirHandle => {
-      setFirstTime(false);
-      setWorkingDirectory(dirHandle);
+
+    async function loadStudyContext(dirHandle, dispatch) {
+        const study = await readStudy(dirHandle);
+
+        dispatch(setSBHPrimary(study.registryURL));
+        // dispatch(setFJPrimary(study.registryURLFJ || ''));
+        // optionally store the whole study in redux if you want
+
+        return study;
+    } 
+
+    const handleOpenStudy = async (dirHandle) => {
+        setFirstTime(false);
+        await loadStudyContext(dirHandle, dispatch);
+        setWorkingDirectory(dirHandle);
     };
 
     const handleNewStudy = (dirHandle) => {
@@ -71,7 +84,8 @@ export default function ExplorerActivityView({objectTypesToList }) {
         );
         
         await writable.close();
-        
+
+        await loadStudyContext(dirHandle, dispatch);
         setFirstTime(false);
         setWorkingDirectory(dirHandle);
       });

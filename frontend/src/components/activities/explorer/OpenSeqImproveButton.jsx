@@ -2,7 +2,7 @@ import { Group, Text } from "@mantine/core";
 import { FiEdit } from "react-icons/fi";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { useDispatch } from "react-redux";
-import { panelsSlice } from "../../../redux/store.js";
+import panelsSlice from '../../../redux/slices/panelsSlice'
 
 const { actions } = panelsSlice;
 const SEQ_IMPROVE_PANEL_ID = "seqimprove-panel";
