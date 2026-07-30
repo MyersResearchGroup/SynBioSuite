@@ -36,8 +36,8 @@ export default function CredentialCheckModal({
 
     const selectedRepo = modalData.selectedRepo || dataPrimarySBH;
     const expectedEmail = modalData.expectedEmail;
-    const skipRepositorySelection = modalData.skipRepositorySelection ?? true;
-    const silentCredentialCheck = modalData.silentCredentialCheck ?? true;
+    const skipRepositorySelection = modalData.skipRepositorySelection ?? false;
+    const silentCredentialCheck = modalData.silentCredentialCheck ?? false;
 
     const nextModal = modalData.nextModal;
     

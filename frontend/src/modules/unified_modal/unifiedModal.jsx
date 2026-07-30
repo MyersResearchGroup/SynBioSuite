@@ -105,11 +105,15 @@ function UnifiedModal({
         if (opened) {
             setCurrentModal(initialModal);
             setModalHistory([]);
-            setModalData({});
+
+            setModalData({
+                [initialModal]: modalProps,
+            });
+
             completedRef.current = false;
         }
-    }, [opened, initialModal]);
-
+    }, [opened, initialModal, modalProps]);
+    
     useEffect(() => {
         if (currentModal !== MODAL_TYPES.SBH_LOGIN) {
             return;

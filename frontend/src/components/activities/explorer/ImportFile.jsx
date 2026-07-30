@@ -113,10 +113,12 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
     }
 
     async function runImportCollectionWorkflow() {
+        const study = await readStudy(dirName);
         return new Promise((resolve) => {
             workflows.importToStudy(resolve, {
                 multiSelect: false,
                 rootOnly: true,
+                selectedRepo: study.registryURL,
             })
         })
     }

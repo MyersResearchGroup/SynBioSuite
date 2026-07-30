@@ -18,10 +18,12 @@ export default function DownloadMetadata({ objectType }) {
     const { workflows } = useUnifiedModal()
 
     async function runDownloadTemplateWorkflow() {
+        const study = await readStudy(dirName);
         return new Promise((resolve) => {
             workflows.importToStudy(resolve, {
                 multiSelect: false,
                 rootOnly: true,
+                selectedRepo: study.registryURL,
             })
         })
     }
