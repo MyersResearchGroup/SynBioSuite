@@ -159,7 +159,7 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
                                 {findInstance(selected)?.authtoken ?
                                     (<>
                                         <Button mr="md" onClick={() => {stripData(selected)}}>Log Out</Button>
-                                        <Button ml="auto" onClick={() => {/*login(selected, findInstance(selected)?.refresh)*/; setRepoSelection("")}}>Select</Button>
+                                        <Button ml="auto" onClick={() => onClose?.()}>Select</Button>
                                     </>)
                                 :
                                     <Button mr="md" onClick={() => {setShowLogin(true)}}>Login</Button>}

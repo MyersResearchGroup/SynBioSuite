@@ -12,7 +12,6 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     const [overwrite, setOverwrite] = useState(false);
-    const [createFlapjackStudy, setCreateFlapjackStudy] = useState(false);
     const studyId = makeIdentifier(studyName || "");
 
     function makeIdentifier(text) {
@@ -76,22 +75,13 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                         });
                         return;
                     }
-
-                    if (createFlapjackStudy && !urlFJ) {
-                        showNotification({
-                            title: 'No Flapjack Instance Selected',
-                            message: 'Please select a Flapject instance before creating a study.',
-                            color: 'red',
-                        });
-                        return;
-                    }
                     
                     try {
 
                         await createStudySBH(id, version, name, description, citations, auth, registryAPI, overwrite);
 
                         let FJid = null;
-                        if (createFlapjackStudy) {
+                        if (urlFJ) {
                             FJid = await createStudyFJ(id, version, name, description, citations, authFJ, registryAPIFJ, overwrite);
                         }
 
@@ -174,13 +164,6 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                         label="Overwrite Existing Study and Remove All Prior Contents"
                         checked={overwrite}
                         onChange={(event) => setOverwrite(event.currentTarget.checked)}
-                    />
-                </Group>
-                <Group position="right" mt="md">
-                    <Checkbox
-                        label="Create Flapjack Study"
-                        checked={createFlapjackStudy}
-                        onChange={(event) => setCreateFlapjackStudy(event.currentTarget.checked)}
                     />
                 </Group>
                 <Group position="apart">

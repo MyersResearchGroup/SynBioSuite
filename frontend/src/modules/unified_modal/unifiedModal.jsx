@@ -11,6 +11,7 @@ import SBHInstanceSelector from '../modular_login/SBHInstanceSelector';
 import FJInstanceSelector from '../modular_login/FJInstanceSelector';
 import RepositorySelectorModal from './RepositorySelectorModal';
 import CredentialCheckModal from './CredentialCheckModal';
+import FlapjackOptionsModal from './FlapjackOptionsModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
 import AddRegistryModal from './AddRegistryModal';
 import WellLocationsConfigModal from './WellLocationsConfigModal';
@@ -28,6 +29,7 @@ export const MODAL_TYPES = {
     SBH_CREDENTIAL_CHECK: 'sbh_credential_check',
     COLLECTION_BROWSER: 'collection_browser',
     WELL_LOCATIONS_CONFIG: 'well_locations_config',
+    FLAPJACK_OPTIONS: 'flapjack_options',
 };
 
 const MODAL_FLOWS = {
@@ -37,12 +39,13 @@ const MODAL_FLOWS = {
     [MODAL_TYPES.ADD_FJ_REPO]: [MODAL_TYPES.FJ_LOGIN],
     [MODAL_TYPES.CREATE_COLLECTION]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
-    [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO],
+    [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.DIRECTORY_SELECT]: [],
     [MODAL_TYPES.REPOSITORY_SELECTOR]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
-    [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.COLLECTION_BROWSER, MODAL_TYPES.CREATE_COLLECTION],
+    [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.COLLECTION_BROWSER, MODAL_TYPES.FLAPJACK_OPTIONS],
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
     [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.CREATE_COLLECTION],
+    [MODAL_TYPES.FLAPJACK_OPTIONS]: [MODAL_TYPES.FJ_INSTANCE_SELECTOR,MODAL_TYPES.CREATE_COLLECTION],
 };
 
 const titles = {
@@ -58,6 +61,7 @@ const titles = {
     [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'Verify Credentials',
     [MODAL_TYPES.COLLECTION_BROWSER]: 'Browse Collections',
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'Well Locations & Advanced Configurations',
+    [MODAL_TYPES.FLAPJACK_OPTIONS]: "Flapjack Options",
 };
 
 const sizes = {
@@ -364,9 +368,10 @@ function UnifiedModal({
             case MODAL_TYPES.FJ_INSTANCE_SELECTOR:
                 return (
                     <FJInstanceSelector
-                        onClose={completeWorkflow}
-                        setRepoSelection={(selection) => setModalData(prev => ({ ...prev, selectedRepo: selection }))}
-                        {...commonProps}
+                        onClose={() => {navigateTo(MODAL_TYPES.CREATE_COLLECTION);}}
+                        setRepoSelection={(selection) =>
+                            setModalData(prev => ({...prev,selectedFJRepo: selection}))
+                        }
                     />
                 );
 
@@ -421,6 +426,13 @@ function UnifiedModal({
                         completeWorkflow={completeWorkflow}
                         modalData={modalData}
                         onCancel={handleClose}
+                        {...commonProps}
+                    />
+                );
+
+            case MODAL_TYPES.FLAPJACK_OPTIONS:
+                return (
+                    <FlapjackOptionsModal
                         {...commonProps}
                     />
                 );
