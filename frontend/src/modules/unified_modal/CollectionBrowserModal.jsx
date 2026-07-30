@@ -100,6 +100,7 @@ export default function CollectionBrowserModal({
             }
 
             const authToken = repoInfo.authtoken;
+            const registryAPI = repoInfo.registryAPI;
 
             if (!authToken) {
                 setModalData?.(prev => ({
@@ -113,7 +114,7 @@ export default function CollectionBrowserModal({
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(registryAPI || selectedRepo, authToken);
 
                 if (!loginResult.valid) {
                     clearInvalidCredentials(selectedRepo);

@@ -220,7 +220,9 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
 
             onSelect?.(fileMetadata)
         } catch (err) {
-            console.warn("File selection canceled or failed", err)
+            if (err?.name === "NotFoundError" || err?.name === "AbortError") {
+                return; // user canceled
+            }
             if (err?.message) {
                 showErrorNotification("Upload failed", err.message)
             }

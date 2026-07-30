@@ -39,7 +39,9 @@ export function useUnifiedModal() {
         if (!authToken) return null;
 
         try {
-            const loginResult = await CheckLogin(selectedRepo, authToken);
+            const entry = repos.find(r => r.registryURL === selectedRepo);
+            const registryAPI = entry?.registryAPI;
+            const loginResult = await CheckLogin(registryAPI || selectedRepo, authToken);
             if (!loginResult.valid) return null;
 
             if (expectedEmail) {
