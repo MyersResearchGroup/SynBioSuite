@@ -34,6 +34,61 @@ export async function upload_sbs(metadata, parameters) {
     }
 }
 
+
+export async function download_template(
+    sbh_url,
+    sbh_token,
+    collectionUrl,
+    templateType) {
+    try {
+        let data = new FormData();
+
+        const paramsObj = {
+          sbh_url: sbh_url,
+          sbh_token: sbh_token,
+          collection_url: collectionUrl,
+          template_type: templateType
+        };
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/downloadTemplate',
+            data,
+            {
+                responseType: "blob",
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+            }
+        );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
+        return response;
+    } catch (error) {
+        let msg = error.message;
+
+        if (error.response?.data instanceof Blob) {
+            try {
+                const text = await error.response.data.text();
+
+                try {
+                    msg = JSON.parse(text).error;
+                } catch {
+                    msg = text;
+                }
+            } catch {
+                // Ignore blob parsing errors
+            }
+        } else {
+            msg = error.response?.data?.error || msg;
+        }
+
+        showErrorNotification("Template Download Failed", msg);
+        throw error;
+    }
+}
+
 export async function upload_sbol(
     file,
     sbh_url,
