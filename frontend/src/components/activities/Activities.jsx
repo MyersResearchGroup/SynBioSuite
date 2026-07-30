@@ -29,6 +29,7 @@ export default function Activities() {
             : DEFAULT_PANEL_WIDTH
     })
     const isResizing = useRef(false);
+    const [isHovering, setIsHovering] = useState(false);
     
     // start resizing
     const handleResizeStart = useCallback(e => {
@@ -178,21 +179,38 @@ export default function Activities() {
                 {tabPanels}
             </Tabs>
 
-            {activeActivity && (
-                <div
-                    onMouseDown={handleResizeStart}
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        bottom: 0,
-                        right: -3,
-                        width: 6,
-                        cursor: 'col-resize',
-                        zIndex: 200,
-                    }}
-                />
-            )}
+    {activeActivity && (
+        <div
+            onMouseDown={handleResizeStart}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+            style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                right: -3,
+                width: 6,
+                cursor: 'col-resize',
+                zIndex: 200,
+                display: 'flex',
+                justifyContent: 'center',
+            }}
+        >
+        {/* the visible resize bar */}
+        <div
+            style={{
+                width: 2,
+                height: '100%',
+                backgroundColor: (isHovering || isResizing.current) ? '#3B5BDB' : 'transparent',
+                boxShadow: (isHovering || isResizing.current)
+                    ? '0 0 0px 1px #3B5BDB'
+                    : 'none',
+                transition: 'background-color 0.15s ease, box-shadow 0.15s ease',
+            }}
+        />
         </div>
+    )}
+    </div>
     )
 }
 
