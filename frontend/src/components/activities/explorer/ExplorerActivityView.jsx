@@ -8,7 +8,7 @@ import { useDispatch } from 'react-redux'
 import { APP_VERSION } from '../../../version'
 import { useUnifiedModal } from '../../../redux/hooks/useUnifiedModal';
 import { readStudy } from '../../../modules/util';
-import { setSBHPrimary, setFJPrimary } from '../../../redux/slices/primaryRepositorySlice';
+import { setSBHPrimary } from '../../../redux/slices/primaryRepositorySlice';
 
 export default function ExplorerActivityView({objectTypesToList }) {
     const dispatch = useDispatch()
@@ -24,8 +24,6 @@ export default function ExplorerActivityView({objectTypesToList }) {
         const study = await readStudy(dirHandle);
 
         dispatch(setSBHPrimary(study.registryURL));
-        // dispatch(setFJPrimary(study.registryURLFJ || ''));
-        // optionally store the whole study in redux if you want
 
         return study;
     } 
