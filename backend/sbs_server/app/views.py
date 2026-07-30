@@ -1,9 +1,9 @@
 from __future__ import annotations 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from .main import app
-from .utils import abstract_design_2_plasmids, sbol2build_moclo #, generate_transformation_metadata
+from .utils import abstract_design_2_plasmids, sbol2build_moclo 
 from .version import __version__
 import sys
 import os
@@ -18,7 +18,6 @@ import sbol2
 import excel2sbol
 from uuid import uuid4
 from urllib.parse import urlencode
-from flask import Response
 from io import BytesIO
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
