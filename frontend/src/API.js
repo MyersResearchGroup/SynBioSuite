@@ -6,6 +6,10 @@ import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 
 const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
 
+function capitalizeFirst(str) {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
 //There is an issue with where the file upload is not being sent correctly to the server
 export async function upload_sbs(metadata, parameters) {
     try {
@@ -30,13 +34,133 @@ export async function upload_sbs(metadata, parameters) {
     }
 }
 
+
+export async function download_template(
+    sbh_url,
+    sbh_token,
+    collectionUrl,
+    templateType) {
+    try {
+        let data = new FormData();
+
+        const paramsObj = {
+          sbh_url: sbh_url,
+          sbh_token: sbh_token,
+          collection_url: collectionUrl,
+          template_type: templateType
+        };
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/downloadTemplate',
+            data,
+            {
+                responseType: "blob",
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+            }
+        );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
+        return response;
+    } catch (error) {
+        let msg = error.message;
+
+        if (error.response?.data instanceof Blob) {
+            try {
+                const text = await error.response.data.text();
+
+                try {
+                    msg = JSON.parse(text).error;
+                } catch {
+                    msg = text;
+                }
+            } catch {
+                // Ignore blob parsing errors
+            }
+        } else {
+            msg = error.response?.data?.error || msg;
+        }
+
+        showErrorNotification("Template Download Failed", msg);
+        throw error;
+    }
+}
+
+export async function upload_sbol(
+    file,
+    sbh_url,
+    sbh_token,
+    collectionUrl,
+    sbh_overwrite = 3,
+    workingDirectory = null,
+) {
+    try {
+        let data = new FormData();
+        if (file) {
+            let fileObject;
+            if (typeof file === 'string') {
+                if (!workingDirectory) {
+                    throw new Error('Working directory handle is required when file is provided as a path string');
+                }
+                fileObject = await readFileFromPath(workingDirectory, file);
+            } else {
+                fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
+            }
+            if (file.objectType=='synbio.object-type.sbml') {
+                data.append('SBML', fileObject);
+            } else {
+                data.append('SBOL', fileObject);
+            }
+        }
+
+        const paramsObj = {
+          sbh_url: sbh_url,
+          sbh_token: sbh_token,
+          collection_url: collectionUrl,
+          sbh_overwrite: sbh_overwrite,
+          importType: capitalizeFirst(workingDirectory)
+        };
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/uploadSBOL',
+            data,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              },
+            }
+        );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
+        return response.data;
+    } catch (error) {
+        let msg = "Unknown error";
+
+        if (typeof error.response?.data === "string") {
+            msg = error.response.data;
+        } else if (error.response?.data?.error) {
+            msg = error.response.data.error;
+        } else if (error.message) {
+            msg = error.message;
+        } 
+        showErrorNotification("SBOL Upload Failed", msg);
+        throw error;
+    }
+}
+
 export async function upload_resource(
     file,
     sbh_url,
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0
+    sbh_overwrite = 3,
+    importType = null
 ) {
     try {
         let data = new FormData();
@@ -66,7 +190,8 @@ export async function upload_resource(
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
-            attachments: {}
+            attachments: {},
+            importType: capitalizeFirst(importType) 
         }
 
         const paramsJson = JSON.stringify(paramsObj);
@@ -85,7 +210,6 @@ export async function upload_resource(
         // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-      console.log(error.response?.data);
       const msg =
             error.response?.data?.error ||
             error.message ||
@@ -101,7 +225,7 @@ export async function uploadExperiment(
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0,
+    sbh_overwrite = 3,
     extraFiles = {}
 ) {
     try {
@@ -153,6 +277,7 @@ export async function uploadExperiment(
             sbh_overwrite: sbh_overwrite,
             fj_overwrite: 1,
             version: "",
+            importType: "Assays",
             attachments: Object.fromEntries(
                 (extraFiles.attachments || [])
                     .filter(Boolean)
@@ -227,8 +352,6 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
 }
 
 export async function submitBuild(wizardInput, assemblyPlan) {
-    console.log(wizardInput)
-    console.log(assemblyPlan)
     
     var formdata = new FormData()
 
@@ -301,9 +424,6 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-      console.log('URL: '+url)
-      console.log('auth: '+auth)
-      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
             return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
@@ -320,41 +440,70 @@ export async function searchCollections(url, auth) {
     }
 }
 
-export async function createCollection(id, version, name, description, citations, auth, url, overwrite) {
+export async function createStudyFJ(id, version, name, description, doi, auth, url, overwrite) {
     try {
-        if(url == "") return;
-        const formdata = new FormData();
-        formdata.append('id', id);
-        formdata.append('version', version);
-        formdata.append('name', name);
-        formdata.append('description', description);
-        formdata.append('citations', citations);
-        formdata.append('overwrite_merge', overwrite ? 1 : 0);
-
-        const response = await axios.post(
-            `${url}/submit`,
-            formdata,
+         let response = await axios.get(
+            `${url}/api/study/`,
             {
+                params: {
+                name,
+                public: false,
+                },
                 headers: {
-                    "Accept": "text/plain",
-                    "X-authorization": auth
-                }
+                Authorization: `Bearer ${auth}`,
+                },
             }
-        );        
-        showNotification({
-            title: 'Collection Created',
-            message: `Collection "${name}" created successfully.`,
-            color: 'green',
-        });
-        return response.data;
-    } catch (error) {
-        if (error.response && error.response.status == 401 && error.response.data == "Login required"){
-            showErrorNotification('Your SynbioHub Credentials Have Expired', "Try logging out and logging back in again")
+        );
+        if (response.data.count == 0) {
+            response = await axios.post(
+                `${url}/api/study/`,
+                {
+                    name: name,
+                    description: description ?? "",
+                    public: false,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
         } else {
-            showErrorNotification('Create Collection Error', error.response.data);
+            return response.data.results[0].id
+        }
+        return response.data.id;
+    } catch (error) {
+        if (error.response && error.response.status == 401){
+            showErrorNotification('Flapjack Login Required', "Try logging out and logging back in again")
+        } else {
+            showErrorNotification('Flapjack Error', error.message);
         }
         throw error;
     }
+}
+
+export async function createStudySBH(id, version, name, description, citations, auth, url, overwrite) {
+    if(url == "") return;
+    const formdata = new FormData();
+    formdata.append('id', id);
+    formdata.append('version', version);
+    formdata.append('name', name);
+    formdata.append('description', description);
+    formdata.append('citations', citations);
+    formdata.append('overwrite_merge', overwrite ? 1 : 0);
+
+    const response = await axios.post(
+        `${url}/submit`,
+        formdata,
+        {
+            headers: {
+                "Accept": "text/plain",
+                "X-authorization": auth
+            }
+        }
+    );        
+    return response.data;
 }
 
 export async function SBHLogout(auth, url) {
@@ -402,6 +551,37 @@ export async function FJLogin(instance, username, password){
     }
 };
 
+
+export async function CheckFJLogin(instance, authToken){
+    try {
+        if (!authToken) {
+            return { valid: false }
+        }
+
+        const response = await axios.get(`${instance}/api/auth/user_info/`, {
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        // Return user profile information for email verification
+        return { 
+            valid: true, 
+            profile: response.data
+        };
+    } catch (error) {
+        if (error.response?.status === 401) {
+            return { valid: false };
+        }   
+
+        console.error("CheckFJLogin error:", error);
+        showErrorNotification('Flapjack Login Error', error.message);
+        throw error;
+    }
+}
+
+
 export async function CheckLogin(instance, authToken){
     try {
         if (!authToken) {
@@ -425,8 +605,7 @@ export async function CheckLogin(instance, authToken){
             return { valid: false };
         }
 
-        console.error("CheckLogin error:", error);
-        showErrorNotification('Login Error', error.message);
+        showErrorNotification('SynBioHub Login Error', error.message);
         throw error;
     }
 }

@@ -6,7 +6,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 import { MODAL_TYPES } from './unifiedModal';
 
-export default function RepositorySelectorModal({ 
+export default function RepositorySelectorModal({
+    modalData = {},
     navigateTo, 
     goBack, 
     completeWorkflow,

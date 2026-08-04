@@ -58,7 +58,7 @@ export function useOpenPanel() {
     // Use default local file source, but allow onedrive saving
     return async (fileHandle, source = 'local') => {
 
-        const panelTypeDef = getPanelTypeForObject(fileHandle.objectType)
+        const panelTypeDef = getPanelTypeForObject(fileHandle)
 
         // show error notification if there's no panel type
         if (!panelTypeDef) {

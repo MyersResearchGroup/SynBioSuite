@@ -18,6 +18,7 @@ const panelsSlice = createSlice({
                     const existingPanel = state.entities[existingSeqImprovePanelId]
                     existingPanel.url = action.payload.url ?? existingPanel.url
                     existingPanel.name = action.payload.name ?? existingPanel.name
+                    existingPanel.subdirectory = action.payload.subdirectory ?? existingPanel.subdirectory
                     state.active = existingSeqImprovePanelId
                     return
                 }

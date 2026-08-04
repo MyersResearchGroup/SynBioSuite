@@ -3,9 +3,9 @@ import {Text, Group, Menu} from '@mantine/core'
 import {useDispatch} from "react-redux";
 import { useState } from 'react'
 import commands from '../../../commands.js';
-import {panelsSlice} from "../../../redux/store.js"
+import panelsSlice from '../../../redux/slices/panelsSlice'
 const { actions } = panelsSlice
-import { RiGitRepositoryLine } from "react-icons/ri";
+import { FiDatabase } from "react-icons/fi";
 
 
 /**
@@ -54,7 +54,7 @@ export default function ListRegistries({registry, defaultRegistry, onConfirmDele
                     onDoubleClick={onDoubleClick}
                     onContextMenu={handleRightClick}
                     >
-                        <RiGitRepositoryLine/>
+                        <FiDatabase/>
                         <Text size='sm' sx={textStyle}>{registry.startsWith('https://') ? registry.slice(8) : registry}</Text>
                 </Group>
             </Menu.Target>

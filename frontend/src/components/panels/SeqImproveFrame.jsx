@@ -10,7 +10,7 @@ import { ObjectTypes } from '../../objectTypes'
 export default function SeqImproveFrame({ fileTypeObjectId }) {
     const { url, panelId } = useContext(PanelContext)
     const [sbolContent, setSBOLContent] = usePanelProperty(panelId, 'sbol', false)
-
+ 
     const iframeRef = useRef()
 
     const [iframeLoaded, setIFrameLoaded] = useState(false)
@@ -41,12 +41,13 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
                         }
 
                         const safeName = data.displayID + '.xml'
-                        const plasmidsSubdir = ObjectTypes.Plasmids.subdirectory
+                        const currentPanel = store.getState().panels.entities[panelId];
+                        const plasmidsSubdir = currentPanel?.subdirectory;
                         const plasmidsDir = await workDir.getDirectoryHandle(plasmidsSubdir, { create: true })
                         const fileHandle = await createFileInDirectory(
                             plasmidsDir,
                             safeName,
-                            ObjectTypes.Plasmids.id,
+                            plasmidsSubdir === 'plasmids' ? ObjectTypes.Plasmids.id : ObjectTypes.Devices.id,
                             store.dispatch,
                             plasmidsSubdir,
                         )

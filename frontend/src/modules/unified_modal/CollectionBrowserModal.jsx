@@ -53,6 +53,7 @@ export default function CollectionBrowserModal({
     const [currentPath, setCurrentPath] = useState([]);
     const [overwrite, setOverwrite] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const defaultCollectionUri = modalData.defaultCollectionUri || modalData.collectionUri || null;
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
@@ -99,6 +100,7 @@ export default function CollectionBrowserModal({
             }
 
             const authToken = repoInfo.authtoken;
+            const registryAPI = repoInfo.registryAPI;
 
             if (!authToken) {
                 setModalData?.(prev => ({
@@ -112,7 +114,7 @@ export default function CollectionBrowserModal({
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(registryAPI || selectedRepo, authToken);
 
                 if (!loginResult.valid) {
                     clearInvalidCredentials(selectedRepo);
@@ -266,6 +268,15 @@ export default function CollectionBrowserModal({
         if (!authToken) return;
         fetchCollections();
     }, [fetchCollections, dataSBH, getAuthToken]);
+
+    useEffect(() => {
+        if (!defaultCollectionUri || collections.length === 0) return;
+
+        const matchingCollection = collections.find(collection => collection.uri === defaultCollectionUri);
+        if (!matchingCollection) return;
+
+        setSelectedCollections(new Map([[matchingCollection.uri, matchingCollection]]));
+    }, [collections, defaultCollectionUri]);
 
     const toggleSelection = useCallback((collection) => {
         setSelectedCollections(prev => {

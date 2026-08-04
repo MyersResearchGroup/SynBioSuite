@@ -12,6 +12,7 @@ import DownloadMetadata from './DownloadMetadata.jsx'
 import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
+import { readStudy } from "../../../modules/util";
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -54,10 +55,50 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
 
     async function runImportCollectionWorkflow() {
+        let selectedRepo = null;
+        let expectedEmail = null;
+        let selectedCollectionUri = null;
+        let selectedCollectionName = null;
+        let selectedCollectionId = null;
+
+        try {
+            const studyData = await readStudy(workDir);
+            selectedRepo = studyData.registryURL || null;
+            expectedEmail = studyData.userEmail || null;
+            selectedCollectionUri = studyData.collectionUri || null;
+            selectedCollectionName = studyData.name || null;
+            selectedCollectionId = studyData.id || null;
+
+            const stored = JSON.parse(localStorage.getItem('SynbioHub') || '[]');
+            const repoInfo = stored.find(repo => repo.registryURL === selectedRepo);
+            const authToken = repoInfo?.authtoken || null;
+
+            if (selectedRepo && selectedCollectionUri && authToken) {
+                return {
+                    completed: true,
+                    selectedRepo,
+                    authToken,
+                    userInfo: { email: expectedEmail || '' },
+                    collections: [{
+                        uri: selectedCollectionUri,
+                        name: selectedCollectionName || selectedCollectionId || selectedCollectionUri,
+                        displayId: selectedCollectionId || selectedCollectionName || selectedCollectionUri,
+                        selectedRepo,
+                        authToken,
+                    }],
+                }
+            }
+        } catch {
+            // No study available or no reusable collection; fall back to the browse workflow.
+        }
+
         return new Promise((resolve) => {
             workflows.browseCollections(resolve, {
                 multiSelect: false,
                 rootOnly: true,
+                selectedRepo,
+                expectedEmail,
+                defaultCollectionUri: selectedCollectionUri,
             })
         })
     }
@@ -68,8 +109,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const openPanel = useOpenPanel()
 
     async function createStudyWorkflowFile(fileName, modalResult) {
-        const directory = await workDir.getDirectoryHandle(ObjectTypes.Studies.subdirectory, { create: true })
-        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Studies.extension, ObjectTypes.Studies.id, dispatch)
+        const directory = await workDir.getDirectoryHandle(ObjectTypes.Assays.subdirectory, { create: true })
+        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Assays.extension, ObjectTypes.Assays.id, dispatch)
 
         const selectedCollection = modalResult.collections?.[0]
 
@@ -97,7 +138,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         let modalResult = null;
-        if (objectType.id === ObjectTypes.Studies.id) {
+        if (objectType.id === ObjectTypes.Assays.id) {
             modalResult = await runImportCollectionWorkflow()
             if (!modalResult?.completed) {
                 return
@@ -121,12 +162,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
     
     // generate DragObjects based on data
-    const createListItems = (files, Icon, importable) => files.map((file, i) =>
+    const createListItems = (files, Icon) => files.map((file, i) =>
         <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
-            importable={importable}
         />
     )
 
@@ -157,23 +197,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
-                                        {objectType.downloadable &&
-                                            <DownloadMetadata objectType={objectType}>
-                                            </DownloadMetadata>
-                                        }
-                                        {objectType.importable && objectType.iframeImport &&
-                                            <OpenSeqImproveButton
-                                                text={`Import ${objectType.title}`}
-                                                url={objectType.iframeUrl}>
-                                            </OpenSeqImproveButton>
-                                        }
-                                        {objectType.importable && !objectType.iframeImport &&
-                                            <ImportFile
-                                            onSelect={finalImport}
-                                            text={`Import ${objectType.title}`}
-                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
-                                            </ImportFile>
-                                        }
                                         {objectType.createable &&
                                             <CreateNewButton
                                                 onCreate={handleCreateObject(objectType)}
@@ -181,8 +204,35 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
+                                        }   
+                                        {objectType.annotatable &&
+                                            <OpenSeqImproveButton
+                                                text={`Annotate ${objectType.title}`}
+                                                subdirectory={objectType.subdirectory}
+                                                url={objectType.iframeUrl}>
+                                            </OpenSeqImproveButton>
+                                        }                              
+                                        {objectType.downloadable &&
+                                            <DownloadMetadata objectType={objectType}>
+                                            </DownloadMetadata>
                                         }
-                                        {createListItems(filesOfType, objectType.icon, objectType.importable)}
+                                        {objectType.uploadable &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Upload ${objectType.title}`}
+                                            importable={false}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }
+                                        {objectType.importable &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Import ${objectType.title}`}
+                                            importable={true}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }       
+                                        {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository ?
                                         <Registries 
                                             typeOfRegistry={objectType.listTitle}

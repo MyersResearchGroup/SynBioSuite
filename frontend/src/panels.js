@@ -73,7 +73,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.sbol-editor",
         title: "SBOL Canvas",
         component: SBOLEditorPanel,
-        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id ],
+        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id, ObjectTypes.Devices.id ],
         icon: CanvasIcon,
 
         deserialize: content => ({
@@ -112,7 +112,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",
         component: CollectionPanel,
-        objectTypes: [ ObjectTypes.Studies.id ],
+        objectTypes: [ ObjectTypes.Assays.id ],
         icon: FcAddDatabase,
 
         //To be implemented
@@ -159,6 +159,20 @@ export function getPanelType(id) {
     return Object.values(PanelTypes).find(pt => pt.id == id)
 }
 
-export function getPanelTypeForObject(objectType) {
-    return Object.values(PanelTypes).find(pt => Array.isArray(pt.objectTypes) && pt.objectTypes.includes(objectType))
+export function getPanelTypeForObject(file) {
+    const objectType = file.objectType;
+    const fileName = file.name.toLowerCase();
+
+    if (
+        objectType === ObjectTypes.Devices.id &&
+        fileName.endsWith(".xml")
+    ) {
+        return PanelTypes.SBOLEditor;
+    }
+
+    return Object.values(PanelTypes).find(
+        pt =>
+            Array.isArray(pt.objectTypes) &&
+            pt.objectTypes.includes(objectType)
+    );
 }

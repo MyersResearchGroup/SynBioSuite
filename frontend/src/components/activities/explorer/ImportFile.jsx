@@ -1,5 +1,6 @@
 import { Group } from "@mantine/core";
-import { AiOutlinePlus } from "react-icons/ai";
+import { AiOutlineImport } from "react-icons/ai";
+import { FiUpload } from "react-icons/fi";
 import { getPrimaryColor } from "../../../modules/colorScheme";
 import { createContext, useState } from "react";
 import { classifyFile, ObjectTypes } from "../../../objectTypes";
@@ -7,12 +8,13 @@ import { Text } from "@mantine/core";
 import { useSelector, useDispatch } from "react-redux";
 import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
-import { workingDirectorySlice } from "../../../redux/store";
+import workingDirectorySlice from "../../../redux/slices/workingDirectorySlice";
 import { useLocalStorage } from "@mantine/hooks";
 import { showErrorNotification } from "../../../modules/util";
 import { upload_resource } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
+import { readStudy } from "../../../modules/util";
 
 export const importedFile = createContext()
 
@@ -33,7 +35,7 @@ async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, ma
     throw new Error(`Unable to find available base name after ${maxAttempts} attempts.`);
 }
 
-export default function ImportFile({ onSelect, text, useSubdirectory = false }) {
+export default function ImportFile({ onSelect, text, importable, useSubdirectory = false }) {
     const [selectedFile, setSelectedFile] = useState(null)
     const dirName = useSelector(state => state.workingDirectory.directoryHandle)
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
@@ -111,10 +113,12 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
     }
 
     async function runImportCollectionWorkflow() {
+        const study = await readStudy(dirName);
         return new Promise((resolve) => {
-            workflows.browseCollections(resolve, {
+            workflows.importToStudy(resolve, {
                 multiSelect: false,
                 rootOnly: true,
+                selectedRepo: study.registryURL,
             })
         })
     }
@@ -122,9 +126,10 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
     const handleClick = async () => {
         try {
             const [fileHandle] = await window.showOpenFilePicker({
+                id: "import-files",
                 types: [],
                 multiple: false,
-                startIn: 'desktop'
+                startIn: 'documents'
             })
 
             const fileMetadata = await addFileMetadata(fileHandle)
@@ -140,27 +145,37 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                 const availableBaseName = await getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext)
                 const actualFileName = `${availableBaseName}${ext}`
                 const uploadedFilePath = `${useSubdirectory}/uploads/${actualFileName}`
-
+                
                 const modalResult = await runImportCollectionWorkflow()
+
                 if (!modalResult?.completed) {
                     return
                 }
 
-                const selectedCollection = modalResult.collections?.[0]
-                const selectedRepo = modalResult.selectedRepo
+                let jsonData
+                try {
+                  jsonData = await readStudy(dirName);
+                } catch (e) {
+                  showErrorNotification("Failed to read study file", e.message);
+                  return "Failed to read study file.";
+                }
+
+                const selectedCollectionUri = jsonData.collectionUri
+                const selectedCollectionId = jsonData.id
+                const selectedCollectionName = jsonData.name
+                const selectedRepo = jsonData.registryURL;
                 const authToken = modalResult.authToken
                 const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
-
-                if (!selectedCollection?.uri || !selectedRepo || !authToken) {
+              
+                if (!selectedCollectionUri || !selectedRepo || !authToken) {
                     showErrorNotification("Import aborted", "Missing repository, credentials, or collection selection.")
                     return
                 }
 
-                const collectionUrl = selectedCollection.uri
-                const collectionDisplayId = selectedCollection.displayId
-                    || collectionUrl.split('/').slice(-2, -1)[0]
-                    || selectedCollection.name
-                    || collectionUrl
+                const collectionDisplayId = selectedCollectionId
+                    || selectedCollectionUri.split('/').slice(-2, -1)[0]
+                    || selectedCollectionName
+                    || collselectedCollectionUriectionUrl
 
                 await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
 
@@ -171,27 +186,28 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
                         uploadedFilePath,
                         registryAPI,
                         authToken,
-                        collectionUrl,
+                        selectedCollectionUri,
                         dirName,
-                        modalResult.sbh_overwrite ?? 0
+                        3,
+                        objectTypeDir.name
                     )
                 } finally {
                     dispatch(closeOverlay())
                 }
 
                 const collectionData = {
-                    name: selectedCollection.name || collectionDisplayId,
+                    name: selectedCollectionName || collectionDisplayId,
                     displayId: collectionDisplayId,
-                    uri: collectionUrl,
+                    uri: selectedCollectionUri,
                     selectedRepo,
                     userEmail: modalResult.userInfo?.email || null,
                 }
 
                 const initialUpload = {
                     collectionName: collectionData.name,
-                    collectionUri: collectionUrl,
+                    collectionUri: selectedCollectionUri,
                     collectionDisplayId,
-                    uri: uploadResponse?.sbh_url || collectionUrl,
+                    uri: uploadResponse?.sbh_url || selectedCollectionUri,
                     file: uploadedFilePath,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
@@ -205,24 +221,38 @@ export default function ImportFile({ onSelect, text, useSubdirectory = false }) 
 
             onSelect?.(fileMetadata)
         } catch (err) {
-            console.warn("File selection canceled or failed", err)
+            if (err?.name === "NotFoundError" || err?.name === "AbortError") {
+                return; // user canceled
+            }
             if (err?.message) {
-                showErrorNotiviation("Upload failed", err.message)
+                showErrorNotification("Upload failed", err.message)
             }
         }
     }
-        
-
-    return (
-        <Group sx={groupStyle} onClick={handleClick}>
-            <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
-            <AiOutlinePlus />
-            <Text size="sm" sx={textStyle} >
+    if (importable) {
+        return (
+            <Group sx={groupStyle} onClick={handleClick}>
+                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
+                <AiOutlineImport />
+                <Text size="sm" sx={textStyle} >
                     {text}
                 </Text> 
-            </importedFile.Provider>
-        </Group>
-    );
+                </importedFile.Provider>
+            </Group>
+        );
+    } else {
+        return (
+            <Group sx={groupStyle} onClick={handleClick}>
+                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
+                <FiUpload />
+                <Text size="sm" sx={textStyle} >
+                    {text}
+                </Text> 
+                </importedFile.Provider>
+            </Group>
+        );
+
+    }
 }
 
 const groupStyle = (theme) => ({

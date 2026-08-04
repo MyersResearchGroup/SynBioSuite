@@ -1,47 +1,93 @@
 import { Group, Text } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { getPrimaryColor } from "../../../modules/colorScheme";
-import { AiOutlineDownload } from "react-icons/ai";
+import { FiDownload } from "react-icons/fi";
+import { download_template } from "../../../API";
+import { useSelector } from "react-redux";
+import { showErrorNotification } from '../../../modules/util';
+import { readStudy } from "../../../modules/util";
+import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
+import { useLocalStorage } from "@mantine/hooks";
 
 export default function DownloadMetadata({ objectType }) {
+
+    const dirName = useSelector(state => state.workingDirectory.directoryHandle);
+
+    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
+
+    const { workflows } = useUnifiedModal()
+
+    async function runDownloadTemplateWorkflow() {
+        const study = await readStudy(dirName);
+        return new Promise((resolve) => {
+            workflows.importToStudy(resolve, {
+                multiSelect: false,
+                rootOnly: true,
+                selectedRepo: study.registryURL,
+            })
+        })
+    }
     
     const handleClick = async () => {
         let url;
         let filename;
         
         if (objectType?.id == "synbio.object-type.sample-designs") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/SampleDesign.xlsm"
             filename = "SampleDesign.xlsm"
         } else if (objectType?.id == "synbio.object-type.strains") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Strains.xlsm"
             filename = "Strain.xlsm"
         } else if (objectType?.id == "synbio.object-type.resources") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Resources.xlsm"
             filename = "Resources.xlsm"
         } else if (objectType?.id == "synbio.object-type.study-data") {
-            url = "https://raw.github.com/SynBioDex/Excel-to-SBOL/master/resources/templates/Study.xlsm"
-            filename = "Study.xlsm"
+            filename = "Assay.xlsm"
         } 
 
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const link = document.createElement("a");
+        const modalResult = await runDownloadTemplateWorkflow()
+
+        if (!modalResult?.completed) {
+            return
+        }
         
+        let jsonData
+        try {
+            jsonData = await readStudy(dirName);
+        } catch (e) {
+            showErrorNotification("Failed to read study file", e.message);
+            return "Failed to read study file.";
+        }
+        
+        const collectionUrl = jsonData.collectionUri
+        const selectedRepo = jsonData.registryURL;
+        const authToken = modalResult.authToken
+        const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
+                      
+        if (!collectionUrl || !selectedRepo || !authToken) {
+            showErrorNotification("Download aborted", "Missing repository, credentials, or collection selection.")
+            return
+        }
+
+        try {
+            const response = await download_template(registryAPI,authToken,collectionUrl,objectType?.id);
+            const blob = new Blob([response.data], {
+                type: "application/vnd.ms-excel.sheet.macroEnabled.12"
+            });
+            const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.download = filename;
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
         } catch(error){
-            window.open(url, '_blank');
+            showErrorNotification("Download Failed", error.message);
+            return
         }
     }
 
     return(
         <Group sx={groupStyle} onClick={handleClick}>
-            <AiOutlineDownload />
+            <FiDownload />
             <Text sx={textStyle} size="sm">
                 Download Template
             </Text>

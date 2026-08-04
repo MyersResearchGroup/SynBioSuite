@@ -3,16 +3,34 @@ import { TextInput, Button, Group, Space, Checkbox } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
 import { showNotification } from '@mantine/notifications';
-import { createCollection } from '../API';
+import { createStudySBH, createStudyFJ } from '../API';
 import { useState } from 'react';
 
-function CreateCollectionModal({ opened, onClose, libraryName, libraryDescription, goBack }) {    
+function CreateCollectionModal({ opened, onClose, studyName, studyDescription, goBack }) {    
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+    const [instanceDataFJ, setInstanceDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
+    const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     const [overwrite, setOverwrite] = useState(false);
+    const studyId = makeIdentifier(studyName || "");
+
+    function makeIdentifier(text) {
+        let id = text.trim()
+            .replace(/[^A-Za-z0-9]+/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_+|_+$/g, "");
+
+        if (id === "") {
+            id = "_";
+        } else if (!/^[A-Za-z_]/.test(id)) {
+            id = "_" + id;
+        }
+
+        return id;
+    }
 
     return (
-        <Modal opened={opened} onClose={onClose} title="Create Collection" size="lg">
+        <Modal opened={opened} onClose={onClose} title="Create Study" size="lg">
             <form
                 onSubmit={async (e) => {
                     e.preventDefault();
@@ -35,32 +53,69 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                         });
                         return;
                     }
-
                     const url = selected && selected.trim() !== "" ? selected : null;
                     const instance = instanceData.find((inst) => inst.registryURL === url);
                     const auth = instance ? instance.authtoken : null;
                     const registryAPI = instance?.registryAPI || url;
+                    const registryURL = instance?.registryURL || url;
+                    const registryPrefix = instance?.registryPrefix || url;
+
+                    const urlFJ = selectedFJ && selectedFJ.trim() !== "" ? selectedFJ : null;
+                    const instanceFJ  = instanceDataFJ.find((inst) => inst.registryURL === urlFJ);
+                    const authFJ = instanceFJ ? instanceFJ.authtoken : null;
+                    const registryAPIFJ = instanceFJ?.registryAPI || urlFJ;
+                    const registryURLFJ = instanceFJ?.registryURL || urlFJ;
+                    const registryPrefixFJ = instanceFJ?.registryPrefix || urlFJ;
+
                     if (!url) {
                         showNotification({
-                            title: 'No Instance Selected',
-                            message: 'Please select a SynbioHub instance before creating a collection.',
+                            title: 'No SynBioHub Instance Selected',
+                            message: 'Please select a SynbioHub instance before creating a study.',
                             color: 'red',
                         });
                         return;
                     }
                     
                     try {
-                        await createCollection(id, version, name, description, citations, auth, registryAPI, overwrite);
 
-                        if (goBack) {
-                            goBack();
-                        } else {
-                            onClose();
+                        await createStudySBH(id, version, name, description, citations, auth, registryAPI, overwrite);
+
+                        let FJid = null;
+                        if (urlFJ) {
+                            FJid = await createStudyFJ(id, version, name, description, citations, authFJ, registryAPIFJ, overwrite);
                         }
+
+                        showNotification({
+                            title: 'Study Created',
+                            message: `Study "${name}" created successfully.`,
+                            color: 'green',
+                        });
+
+                        const collectionUri =
+                                `${registryPrefix}/user/${instance.username}/${id}/${id}_collection/${version}`;
+
+                        const payload = {
+                            collectionUri,
+                            id,
+                            version,
+                            name,
+                            description,
+                            citations,
+                            registryURL,
+                            registryAPI,
+                            registryPrefix,
+                            FJid,
+                            registryURLFJ,
+                            registryAPIFJ,
+                            registryPrefixFJ,
+                        };
+
+                        onClose(payload);
+
                     } catch (error) {
                         showNotification({
-                            title: 'Error',
-                            message: error.message || 'Failed to create collection',
+                            title: 'Error Creating Study',
+                            message: error.message || 'Failed to create study',
                             color: 'red',
                         });
                     }
@@ -69,8 +124,8 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                 <TextInput
                     label="ID"
                     name="id"
-                    placeholder="BBa_R0010"
-                    defaultValue={libraryName}
+                    placeholder="Study ID"
+                    defaultValue={studyId}
                     required
                 />
                 <Space h="md" />
@@ -78,22 +133,24 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                     label="Version"
                     name="version"
                     placeholder="1"
+                    defaultValue="1"
                     required
                 />
                 <Space h="md" />
                 <TextInput
                     label="Name"
                     name="name"
-                    placeholder="Collection Name"
+                    placeholder="Study Name"
                     required
-                    defaultValue={libraryName}
+                    defaultValue={studyName}
                 />
                 <Space h="md" />
                 <TextInput
                     label="Description"
                     name="description"
-                    placeholder="Describe the collection"
-                    defaultValue={libraryDescription}
+                    placeholder="Describe the study"
+                    required
+                    defaultValue={studyDescription ? studyDescription : studyName}
                 />
                 <Space h="md" />
                 <TextInput
@@ -104,7 +161,7 @@ function CreateCollectionModal({ opened, onClose, libraryName, libraryDescriptio
                 <Space h="md" />
                 <Group position="right" mt="md">
                     <Checkbox
-                        label="Overwrite existing files in the collection"
+                        label="Overwrite Existing Study and Remove All Prior Contents"
                         checked={overwrite}
                         onChange={(event) => setOverwrite(event.currentTarget.checked)}
                     />
