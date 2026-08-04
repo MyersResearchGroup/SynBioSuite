@@ -109,7 +109,11 @@ export async function upload_sbol(
             } else {
                 fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
             }
-            data.append('SBOL', fileObject);
+            if (file.objectType=='synbio.object-type.sbml') {
+                data.append('SBML', fileObject);
+            } else {
+                data.append('SBOL', fileObject);
+            }
         }
 
         const paramsObj = {
@@ -135,12 +139,17 @@ export async function upload_sbol(
         // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-      const msg =
-            error.response?.data?.error ||
-            error.message ||
-            'Unknown error';
-      showErrorNotification('SBOL Upload Failed', msg);
-      throw error;
+        let msg = "Unknown error";
+
+        if (typeof error.response?.data === "string") {
+            msg = error.response.data;
+        } else if (error.response?.data?.error) {
+            msg = error.response.data.error;
+        } else if (error.message) {
+            msg = error.message;
+        } 
+        showErrorNotification("SBOL Upload Failed", msg);
+        throw error;
     }
 }
 

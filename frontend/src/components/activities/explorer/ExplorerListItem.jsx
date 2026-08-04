@@ -60,6 +60,8 @@ export default function ExplorerListItem({ fileId, icon }) {
     const supportsFileUpload = () => {
         const fileName = file.name.toLowerCase()
         if (/\.xml$/i.test(fileName) && !/_sbml\.xml$/i.test(fileName)) {
+            /* TODO: add support for SBML files in the future */
+        /* if (/\.xml$/i.test(fileName)) {*/
           return true;
         }
         return false
