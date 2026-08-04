@@ -172,11 +172,10 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     return
                 }
 
-                const collectionUrl = selectedCollectionUri
                 const collectionDisplayId = selectedCollectionId
-                    || collectionUrl.split('/').slice(-2, -1)[0]
+                    || selectedCollectionUri.split('/').slice(-2, -1)[0]
                     || selectedCollectionName
-                    || collectionUrl
+                    || collselectedCollectionUriectionUrl
 
                 await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
 
@@ -187,7 +186,7 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                         uploadedFilePath,
                         registryAPI,
                         authToken,
-                        collectionUrl,
+                        selectedCollectionUri,
                         dirName,
                         3,
                         objectTypeDir.name
@@ -199,16 +198,16 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                 const collectionData = {
                     name: selectedCollectionName || collectionDisplayId,
                     displayId: collectionDisplayId,
-                    uri: collectionUrl,
+                    uri: selectedCollectionUri,
                     selectedRepo,
                     userEmail: modalResult.userInfo?.email || null,
                 }
 
                 const initialUpload = {
                     collectionName: collectionData.name,
-                    collectionUri: collectionUrl,
+                    collectionUri: selectedCollectionUri,
                     collectionDisplayId,
-                    uri: uploadResponse?.sbh_url || collectionUrl,
+                    uri: uploadResponse?.sbh_url || selectedCollectionUri,
                     file: uploadedFilePath,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
