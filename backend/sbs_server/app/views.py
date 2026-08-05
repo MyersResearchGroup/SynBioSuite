@@ -10,7 +10,7 @@ import sys
 import os
 import json
 import xml.etree.ElementTree as ET
-import tricahue
+from . import xdc
 import sbol2 as sb2
 import pudu
 import subprocess
@@ -595,7 +595,7 @@ def sbh_fj_upload(files):
             data_path = os.path.join(upload_dir, safe_data_filename)
             file.save(data_path)
             filenames.append(data_path)
-        xde = tricahue.XDE()
+        xde = xdc.XDE()
         xde.run(filenames, params_from_request['sheet_name'], data_cols_offset=2)
         print(filenames)
         for data_filename in filenames[1:]:
@@ -603,9 +603,9 @@ def sbh_fj_upload(files):
 
     # instantiate the XDC class using the params_from_request dictionary
     try:
-        xdc = tricahue.XDC(input_excel_path = metadata_path, attachments=attachments)
+        xdcX = xdc.XDC(input_excel_path = metadata_path, attachments=attachments)
         # print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
-        sbh_url, fj_url = xdc.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
+        sbh_url, fj_url = xdcX.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
                                       collection_url = params_from_request['collection_url'], 
                                       sbh_overwrite = params_from_request['sbh_overwrite'], 
                                       sbh_user = params_from_request['sbh_user'],
