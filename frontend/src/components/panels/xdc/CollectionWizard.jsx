@@ -12,7 +12,7 @@ import { readStudy } from "../../../modules/util";
 import { useSelector } from "react-redux";
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
 
-export default function CollectionWizard() {
+export default function CollectionWizard({ onUploadSuccess }) {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
@@ -31,6 +31,7 @@ export default function CollectionWizard() {
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
 
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [uploadSuccess, setUploadSuccess] = useState(false)
 
     const dirName = useSelector(
       state => state.workingDirectory.directoryHandle
@@ -160,6 +161,8 @@ export default function CollectionWizard() {
             }
 
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
+            setUploadSuccess(true)
+
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
         } finally {
@@ -205,6 +208,17 @@ export default function CollectionWizard() {
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
             </Group>
+
+            {uploadSuccess && (
+            <Button 
+                onClick={onUploadSuccess}
+                color="green"
+                style={{ marginTop: 20 }}
+            >
+                See Results
+            </Button>
+            )}
+
         </Container>
     )
 }
