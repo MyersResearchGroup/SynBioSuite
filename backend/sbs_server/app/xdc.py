@@ -166,10 +166,6 @@ class XDC:
                     'password' : self.sbh_pass,
                     }
             )
-            print("status:", response.status_code)
-            print("headers:", response.headers)
-            print("body:", response.text)
-            print("content: ", response.content)
             if not response.ok:
                 raise Exception(f"SynBioHub login failed ({response.status_code}): {response.text}")
             self.sbh_token = response.text
@@ -183,10 +179,6 @@ class XDC:
                 'X-authorization': self.sbh_token
                 }
             )
-        print("status:", response.status_code)
-        print("headers:", response.headers)
-        print("body:", response.text)
-        print("content: ", response.content)
         if not response.ok:
             raise Exception(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
         self.sbh_user = response.json()["username"]
@@ -410,6 +402,7 @@ class XDC:
                 fobj = getattr(file, 'stream', None) or getattr(file, 'file', None) or file
                 upload_file = {'file': (filename, fobj)}
                 collectionID = self.collection_url.split("/")[-3]
+                collectionDisplayId = collectionID + "_collection"
                 if self.experimentId is not None:
                     collectionDisplayId = self.experimentId
                 collectionVersion = self.collection_url.split("/")[-1]
@@ -434,7 +427,7 @@ class XDC:
             raise AttributeError("Unable to login to SynBioHub")
 
 
-        if self.fj_token:
+        if self.fj_url:
             try:
                 self._log_in_fj()
             except Exception as e:
