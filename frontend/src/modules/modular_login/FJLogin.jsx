@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Box, Modal } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Modal } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
