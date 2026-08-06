@@ -137,6 +137,7 @@ export const ObjectTypes = {
         subdirectory: "strains",
         downloadable: true,
     },
+    /*
     BuildPlans: {
         id: "synbio.object-type.buildplans",
         title: "Build Plans",
@@ -148,6 +149,7 @@ export const ObjectTypes = {
         subdirectory: "buildPlans",
         visible: false
     },
+    */
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
         title: "Sample Designs",
