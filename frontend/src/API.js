@@ -314,8 +314,13 @@ export async function uploadExperiment(
         );
         return response.data;
     } catch (error) {
-        console.error("Upload Experiment error:", error);
-        throw error;
+        const backendData = error.response?.data;
+        const backendMessage =
+          typeof backendData === 'string'
+            ? backendData
+            : backendData?.error || backendData?.message || error.message;
+        console.error("Upload Experiment error:", backendMessage, error);
+        throw new Error(backendMessage);
     }
 }
 

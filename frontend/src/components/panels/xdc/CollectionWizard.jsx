@@ -56,9 +56,9 @@ export default function CollectionWizard() {
     const collectionUrl = study?.collectionUri ?? "";
     const selectedRepo = study?.registryURL ?? "";
     const registryAPI = study?.registryAPI ?? "";
-    const studyFJid = study?.FJid ?? "";
+    let studyFJid = study?.FJid ?? "";
     const selectedFJRepo = study?.registryURLFJ ?? "";
-    const registryAPIFJ = study?.registryAPIFJ ?? "";
+    let registryAPIFJ = study?.registryAPIFJ ?? "";
 
     const getStoredToken = () => {
         try {
@@ -160,16 +160,17 @@ export default function CollectionWizard() {
         const repoInfoFJ = dataFJ.find(repo => repo.registryURL === selectedFJRepo);
 
         let currentFJToken = repoInfoFJ?.authtoken ?? "";
-/*
-        if (!currentFJToken) {
-            const loginResult = await openFJLoginWorkflow();
-            if (!loginResult?.completed) {
-                showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
-                return
+
+        if (plateOutputFile) {
+            if (!currentFJToken) {
+                const loginResult = await openFJLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
             }
             currentFJToken = getStoredFJToken() || '';
-        }
-
+/*
         if (!currentFJToken) {
             showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
             return
@@ -202,6 +203,11 @@ export default function CollectionWizard() {
             }
         }
 */
+        } else {
+            registryAPIFJ = null;
+            studyFJid = null;
+        }
+
         setIsSubmitting(true)
         try {
             const response = await uploadExperiment(

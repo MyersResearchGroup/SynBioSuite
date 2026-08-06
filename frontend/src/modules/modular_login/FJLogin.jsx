@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Box, Modal } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
@@ -37,7 +37,7 @@ const login = async (instance, username, password) => {
     }
 };
 
-const FJInstanceLogin = ({ goBack, setRepoSelection, selectedRepo, selectedFJRepo, onLoginSuccess }) => {
+const FJInstanceLogin = ({ opened, onClose, goBack, setRepoSelection, selectedRepo, selectedFJRepo, onLoginSuccess }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.fjPrimary);
@@ -62,6 +62,13 @@ const FJInstanceLogin = ({ goBack, setRepoSelection, selectedRepo, selectedFJRep
             password: (value) => (value ? null : 'Password is required')
         },
     });
+
+    // Reset form when modal is opened
+    useEffect(() => {
+        if (opened) {
+            form.reset();
+        }
+    }, [opened]);
 
     const handleSubmit = async (values) => {
         if (!repoToUse) {
@@ -128,7 +135,11 @@ const FJInstanceLogin = ({ goBack, setRepoSelection, selectedRepo, selectedFJRep
     };
 
     return (
-        <Box sx={{ maxWidth: 300 }} mx="auto">
+        <Modal
+            opened={opened}
+            onClose={onClose}
+            title="Login to Flapjack"
+        >
             <form
                 onSubmit={form.onSubmit((values) => {handleSubmit(values)})}
             >
@@ -151,7 +162,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection, selectedRepo, selectedFJRep
                     Back
                 </Button>
             </form>
-        </Box>
+        </Modal>
     );
 };
 
