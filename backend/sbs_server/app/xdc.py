@@ -1,4 +1,3 @@
-from excel2flapjack.main import X2F
 import excel2sbol
 import sbol2
 import requests
@@ -81,10 +80,10 @@ class XDC:
         Runs the XDC process internally
 
     """
-    def __init__(self, input_excel_path, attachments=None, homespace='https://example.org/'):
+    def __init__(self, input_excel_path, attachments=None, plate_reader_attachments=None, homespace='https://example.org/'):
         self.input_excel_path = input_excel_path
         self.attachments = attachments
-        self.x2f = None
+        self.plate_reader_attachments = plate_reader_attachments
         self.sbol_doc = sbol2.Document()
         self.sbol_fj_doc = sbol2.Document()
         self.sbol_graph_uri = None
@@ -99,15 +98,14 @@ class XDC:
 
         # Set defaults
         self.fj_url = None
-        self.fj_user = None
-        self.fj_pass = None
         self.fj_overwrite = False
         self.fj_token = None
+        self.fj_study_id = None
 
         self.sbh_url = None
-        self.sbh_user = None
-        self.sbh_pass = None
         self.sbh_token = None
+        self.sbh_user = None
+        self.sbol_graph_uri = None
         self.sbh_description = None
         self.sbh_overwrite_num = 0
         self.sbh_collection_url = None
@@ -123,67 +121,6 @@ class XDC:
         except Exception as e:
             print('SBOL Conversion Failed')
             raise Exception(f"Error during SBOL conversion: {e}") from e
-
-    def _log_in_fj(self):
-        print("logging into fj")
-        if not self.fj_url:
-            print('No Flapjack URL provided')
-            self.fj_token = None
-            return
-        
-        self.x2f = X2F(excel_path=self.input_excel_path, 
-                       fj_url=self.fj_url, 
-                       overwrite=self.fj_overwrite)
-        
-        if self.fj_token:
-            self.x2f.fj.log_in_token(username=self.fj_user, 
-                                     access_token=None, 
-                                     refresh_token=self.fj_token)
-            self.x2f.fj.refresh()
-
-        elif self.fj_user and self.fj_pass:
-            self.x2f.fj.log_in(username=self.fj_user, password=self.fj_pass)
-            self.fj_token = self.x2f.fj.refresh_token
-        
-        else:
-            print('Unable to authenticate into Flapjack')
-            self.fj_token = None
-            #TODO check token validity
-        
-
-    def _log_in_sbh(self):
-        # SBH Login
-        print("logging into SBH")
-        if self.sbh_token:
-            pass
-            # already logged in, checks validity in next step
-        elif self.sbh_user and self.sbh_pass:
-            response = requests.post(
-                f'{self.sbh_url}/login',
-                headers={'Accept': 'text/plain'},
-                data={
-                    'email': self.sbh_user,
-                    'password' : self.sbh_pass,
-                    }
-            )
-            if not response.ok:
-                raise Exception(f"SynBioHub login failed ({response.status_code}): {response.text}")
-            self.sbh_token = response.text
-        else:
-            print("Unable to login to SynBioHub")
-            raise Exception(f"Unable to login to SynBioHub")
-        response = requests.get(
-            f'{self.sbh_url}/profile',
-            headers={
-                'Accept': 'text/plain',
-                'X-authorization': self.sbh_token
-                }
-            )
-        if not response.ok:
-            raise Exception(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
-        self.sbh_user = response.json()["username"]
-        print(self.sbh_user)
-        self.sbol_graph_uri = response.json()['graphUri']
 
     def _convert_to_sbol(self, sbol_version=2):
         print("converting to SBOL")
@@ -214,49 +151,6 @@ class XDC:
                 print(f"{type(e.__context__).__name__}: {e.__context__}")
                 print("".join(traceback.format_exception(type(e.__context__), e.__context__, e.__context__.__traceback__)))
             raise
-
-    def _generate_sbol_hash_map(self):
-        print("generating sbol hash map")
-        # Pull graph uri from synbiohub
-        response = requests.get(
-            f'{self.sbh_url}/profile',
-            headers={
-                'Accept': 'text/plain',
-                'X-authorization': self.sbh_token
-                }
-        )
-        print("status:", response.status_code)
-        print("headers:", response.headers)
-        print("body:", response.text)
-        print("content: ", response.content)
-        if not response.ok:
-            raise Exception(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
-        self.sbh_user = response.json()["username"]
-        print(self.sbh_user)
-        self.sbol_graph_uri = response.json()['graphUri']
-        sbol_collec_url = f'{self.sbol_graph_uri}/{self.sbh_collection_name}'
-
-        # create hashmap of flapjack id to sbol uri
-        self.sbol_hash_map = {}
-        for tl in self.sbol_doc:
-            #if 'https://flapjack.rudge-lab.org/ID' in tl.properties:
-            sbol_uri = tl.properties['http://sbols.org/v2#persistentIdentity'][0]
-            sbol_uri = sbol_uri.replace(self.homespace, sbol_collec_url)
-            sbol_uri = f'{sbol_uri}/1'
-
-            sbol_name = str(tl.properties['http://sbols.org/v2#displayId'][0])
-            self.sbol_hash_map[sbol_name] = sbol_uri
-
-
-    def _upload_to_fj(self, header_rows=3):
-        print("")
-        self.x2f.sbol_hash_map = self.sbol_hash_map
-        self.x2f.generate_sheets_to_object_mapping()
-        self.x2f.index_skiprows = header_rows
-        self.x2f.create_df()
-        # change to upload_object_in_sheets
-        # self.x2f.upload_all() 
-        self.x2f.upload_objects_in_sheets()
     
     '''
     Helper function to perform SPARQL queries to fetch URIs from SynBioHub
@@ -411,41 +305,33 @@ class XDC:
                     raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
                 print(f'Uploaded attachment {upload_file["file"][0]}: {response.status_code}')
 
+    def _get_sbh_user(self):
+        response = requests.get(
+            f'{self.sbh_url}/profile',
+                headers={
+                    'Accept': 'text/plain',
+                    'X-authorization': self.sbh_token
+                }
+        )
+        if not response.ok:
+            raise Exception(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
+        self.sbh_user = response.json()["username"]
+        self.sbol_graph_uri = response.json()['graphUri']
 
     def run(self, existing):
 
         print("Starting XDC run")
 
-        try:
-            self._log_in_sbh()
-        except Exception as e:
-            print('Error logging into SynBioHub')
-            raise RuntimeError(f"Error logging into SynBioHub: {e}") from e
-
         if not self.sbh_token:
             print('Unable to login to SynBioHub')
             raise AttributeError("Unable to login to SynBioHub")
 
-
-        if self.fj_url:
-            try:
-                self._log_in_fj()
-            except Exception as e:
-                print('Error logging into Flapjack')
-                raise RuntimeError(f"Error logging into Flapjack: {e}") from e
-
-            try:
-                self._generate_sbol_hash_map()
-                print("sbol hash map generated")
-            except Exception as e:
-                print('Error generating SBOL hash map')
-                raise RuntimeError(f"Error generating SBOL hash map: {e}") from e
-
-            try:
-                self._upload_to_fj()
-            except Exception as e:
-                print('Error uploading to Flapjack')
-                raise RuntimeError(f"Error uploading to Flapjack: {e}") from e
+        try:
+            self._get_sbh_user()
+            print(f"Logged into SynBioHub as user: {self.sbh_user}")
+        except Exception as e:
+            print('Error logging into SynBioHub')
+            raise RuntimeError(f"Error logging into SynBioHub: {e}") from e
 
         try:
             self.collection_url = self._upload_to_sbh(existing)
@@ -463,323 +349,35 @@ class XDC:
                 print('Error uploading attachments to SynBioHub')
                 raise RuntimeError(f"Error uploading attachments to SynBioHub: {e}") from e
 
+        if self.fj_study_id is not None and self.fj_url is not None and self.fj_token is not None and self.plate_reader_attachments:
+            try:
+                print('TODO: support upload to Flapjack')
+                print('Uploading to Flapjack is not yet implemented in this version of XDC.')
+                print('Study id: ' + str(self.fj_study_id))
+                print('Flapjack URL: ' + str(self.fj_url))
+                print('Flapjack token: ' + str(self.fj_token))
+                print('Plate reader attachments: ' + str(self.plate_reader_attachments))
+            except Exception as e:
+                print('Error uploading to Flapjack')
+                raise RuntimeError(f"Error uploading to Flapjack: {e}") from e
+
         print("XDC run complete")
         return (self.collection_url, None)
-   
-    def get_sbol_document(self):
-        return self.sbol_doc
-
-
-    def upload_to_new_collection(self, sbh_url, sbh_collection_name, sbh_overwrite: bool, sbh_description=None,
-                          sbh_user=None, sbh_pass=None, sbh_token=None,  
-                          fj_url=None, fj_overwrite=None, 
-                          fj_user=None, fj_pass=None, fj_token=None):
-        
-        self.sbh_url = sbh_url
-        self.sbh_user = sbh_user
-        self.sbh_pass = sbh_pass
-        self.sbh_token = sbh_token
-
-        self.sbh_collection_name = sbh_collection_name
-        if sbh_description is None:
-            self.sbh_description = 'Collection of SBOL files uploaded by XDC'
-        else:
-            self.sbh_description = sbh_description
-        self.sbh_overwrite_num = 1 if sbh_overwrite else 0
-
-        self.fj_url = fj_url
-        self.fj_user = fj_user
-        self.fj_pass = fj_pass
-        self.fj_token = fj_token
-        # TODO: Flapjack overwrite settings
-        self.fj_overwrite = fj_overwrite
-
-        return self.run(existing=False)
     
-
-    def upload_to_existing_collection(self, sbh_url, collection_url, sbh_overwrite: bool, 
-                          sbh_user=None, sbh_pass=None, sbh_token=None,  
-                          fj_url=None, fj_overwrite=None, 
-                          fj_user=None, fj_pass=None, fj_token=None, importType=None):
+    def upload_to_existing_collection(self, sbh_url=None, sbh_token=None, collection_url=None, sbh_overwrite: bool=None, 
+                        fj_url=None, fj_token=None, fj_study_id=None, fj_overwrite=None, importType=None):
 
         self.sbh_url = sbh_url
-        self.sbh_user = sbh_user
-        self.sbh_pass = sbh_pass
         self.sbh_token = sbh_token
-
         self.sbh_collection_url = collection_url
         self.sbh_overwrite_num = 3 if sbh_overwrite else 2
 
         self.fj_url = fj_url
-        self.fj_user = fj_user
-        self.fj_pass = fj_pass
         self.fj_token = fj_token
-        # TODO: Flapjack overwrite settings
+        self.fj_study_id = fj_study_id
         self.fj_overwrite = fj_overwrite
+
         self.importType = importType
 
         return self.run(existing=True)
 
-
-
-class XDE:
-
-    """XDE (Experimental Data Extractor) class to extract experimental data from
-    plate reader excel output and writes it in an XDC template.
-
-    ...
-
-    Attributes
-    ----------
-
-
-    Methods
-    -------
-    getFileNameFromString(string)
-        Extracts the file name from a string
-    generateSampleData(file_list,sheet_to_read_from,time_col_name,data_cols_offset)
-        Generates sample data from the input excel files
-    getNumRows(dataframe,starting_row_idx,starting_col_idx)
-        Gets the number of rows for the data
-    buildFinalDF(file_list,sample_data_list,time_col_name,data_cols_offset,num_rows_btwn_data,sheet_to_read_from)
-        Builds the final dataframe
-    writeToMeasurements(XDC_file_name,final_dataframe)
-        Writes the final dataframe to the measurements sheet
-    extractData(file_list,sheet_to_read_from,time_col_name,data_cols_offset,num_rows_btwn_data)
-        Full run; extracts data from the input excel files and writes it to the XDC sheet
-
-    """
-    def getFileNameFromString(self, string):
-        pattern = r'[\w-]+?(?=\.)'
-        # searching the pattern
-        result = re.search(pattern, string)
-    
-        return result.group()
-
-    def generateSampleData(self, file_list, sheet_to_read_from, time_col_name, data_cols_offset=0): 
-        num_assays = len(file_list) - 1
-        file_name_list = []
-
-        for i in range(num_assays):
-            file_name_list.append(self.getFileNameFromString(file_list[i + 1]))
-
-        #final products
-        result = pd.DataFrame()
-        sample_data_list = []
-
-        #components:result
-        assay_id = []
-        column = []
-        row = []
-        sample_id = []
-
-        #componenets:sample_data_list
-        columnID = []
-        assay_num = []
-
-        #processing:main
-        current_sample_id = 1
-
-        for i in range(num_assays):
-
-            current_num_assay = i + 1
-
-            #locating instances of time_col_name
-            raw_df = pd.read_excel(file_list[i+1],sheet_to_read_from)
-            rows, cols = np.where(raw_df == time_col_name)
-            time_col_locations = list(zip(rows, cols))
-            num_rows = self.getNumRows(raw_df,rows[0],cols[0])
-            
-            #extracting signal 1 data to check for blank columns
-            start_row = time_col_locations[0][0] + 1
-            start_col = data_cols_offset
-            num_cols = 96
-            working_df = raw_df.iloc[start_row:start_row + num_rows, start_col:start_col + num_cols] #maybe subtract 1 from num rows
-
-            # Check for completely blank (all NaN) columns using numpy
-            is_blank = working_df.isna().all().to_numpy()
-
-            # Get the indices of non-blank columns
-            data_col_IDX = np.where(~is_blank)[0]
-            
-            #add to lists
-            for j in range(len(data_col_IDX)):
-                #result
-                assay_id.append(file_name_list[i])
-                column.append(data_col_IDX[j] % 12 + 1) #IDX % 12 + 1
-                row.append((data_col_IDX[j]//12) + 1)   #IDX // 12 + 1
-                sample_id.append(f"Sample{current_sample_id}")
-                current_sample_id += 1
-
-                #sample_data_list
-                columnID.append(data_col_IDX[j])
-                assay_num.append(current_num_assay)
-
-        #assembly:result
-        result.insert(0, "Assay ID", assay_id)
-        result.insert(0, "Column", column)
-        result.insert(0, "Row", row)
-        result.insert(0, "Sample ID", sample_id)
-        
-        #assembly:sample_data_list
-        for i in range(len(result)):
-            temp_tuple = (sample_id[i],columnID[i],assay_num[i])
-            sample_data_list.append(temp_tuple)
-        
-        with pd.ExcelWriter(file_list[0], mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
-            result.to_excel(writer,'Sample',startrow=3,index=False)
-
-        return sample_data_list
-
-    def getNumRows(self, dataframe, starting_row_idx, starting_col_idx):
-        num_rows = 0
-        counter = 1
-        time_col_value = dataframe.iloc[starting_row_idx, starting_col_idx]
-
-        while True:
-            current_cell = dataframe.iloc[starting_row_idx + counter, starting_col_idx]
-            if pd.isna(current_cell) or current_cell == time_col_value:
-                break
-            if(len(dataframe) <= counter + starting_row_idx + 1): #edge case for if there is only one signal, IDK why i have to add a +1
-                num_rows += 1
-                break
-
-            counter += 1
-            num_rows += 1
-            
-        return num_rows 
-
-    def buildFinalDF(self, file_list, sample_data_list, time_col_name, data_cols_offset, num_rows_btwn_data, sheet_to_read_from):
-        print(file_list)
-        output = pd.DataFrame() 
-        time_col_locations = []
-        num_rows_per_assay = []
-        dataframe_list = []
-        num_assays = len(file_list) - 1
-
-        for i in range(num_assays):
-            raw_df = pd.read_excel(file_list[i+1],sheet_to_read_from)
-            rows, cols = np.where(raw_df == time_col_name)
-            temp = list(zip(rows, cols))
-            num_rows_per_assay.append(self.getNumRows(raw_df,rows[0],cols[0]))
-            time_col_locations.append(temp)
-            dataframe_list.append(pd.read_excel(file_list[i + 1],sheet_to_read_from))
-            
-        for i in range(len(sample_data_list)):  #initilizing information about the current sample and its results
-            rows_to_be_read = []
-            current_sample_id = str(sample_data_list[i][0])               
-            current_col = sample_data_list[i][1]
-            current_assay = sample_data_list[i][2]
-            current_first_row = time_col_locations[current_assay - 1][0][0] + 1
-            current_time_col = time_col_locations[current_assay - 1][0][1]
-            current_num_rows = num_rows_per_assay[current_assay - 1]
-            current_num_signals = len(time_col_locations[current_assay - 1])
-
-            for j in range(current_num_signals): 
-                rows_to_be_read.extend(list(range(current_first_row + ((current_num_rows + num_rows_btwn_data + 1)* j), current_first_row + current_num_rows + ((current_num_rows + num_rows_btwn_data + 1)* j))))
-            working_df = dataframe_list[current_assay - 1].iloc[rows_to_be_read,[current_time_col,current_col + data_cols_offset]].copy() # at this point it will be the time col and current col for both signals
-            working_df.columns = ["Time", "Value"]
-            #add signal label
-            signal_id = []
-            for k in range(current_num_signals):
-                signal_id.extend([f"Signal{k + 1}"] * current_num_rows)
-            working_df.insert(0, "Signal ID", signal_id)
-
-            #add sample label
-            sample_id = [current_sample_id] * len(working_df)
-            working_df.insert(0, "Sample ID", sample_id)
-
-            #concat working_df and output
-            output = pd.concat([output, working_df], ignore_index=True)
-
-        #add measurement
-        measurement_id = []
-        for i in range(len(output)):
-            measurement_id.append(f"Measurement{i}")
-        output.insert(0, "Measurement ID", measurement_id)
-
-        return output
-
-    def buildFinalDFCSV(self, file_list, sample_data_list, time_col_name, data_cols_offset, num_rows_btwn_data):
-        output = pd.DataFrame() 
-        time_col_locations = []
-        num_rows_per_assay = []
-        dataframe_list = []
-        num_assays = len(file_list) - 1
-
-        for i in range(num_assays):
-            raw_df = pd.read_csv(file_list[i+1])
-            rows, cols = np.where(raw_df == time_col_name)
-            temp = list(zip(rows, cols))
-            num_rows_per_assay.append(self.getNumRows(raw_df,rows[0],cols[0]))
-            time_col_locations.append(temp)
-            dataframe_list.append(pd.read_csv(file_list[i + 1]))
-            
-        for i in range(len(sample_data_list)):  #initilizing information about the current sample and its results
-            rows_to_be_read = []
-            current_sample_id = sample_data_list[i][0]               
-            current_col = sample_data_list[i][1]
-            current_assay = sample_data_list[i][2]
-            current_first_row = time_col_locations[current_assay - 1][0][0] + 1
-            current_time_col = time_col_locations[current_assay - 1][1][1]
-            current_num_rows = num_rows_per_assay[current_assay - 1]
-            current_num_signals = len(time_col_locations[current_assay - 1])
-
-            for j in range(current_num_signals): 
-                rows_to_be_read.extend(list(range(current_first_row + ((current_num_rows + num_rows_btwn_data + 1)* j), current_first_row + current_num_rows + ((current_num_rows + num_rows_btwn_data + 1)* j))))
-            
-            working_df = dataframe_list[current_assay - 1].iloc[rows_to_be_read,[current_time_col,current_col + data_cols_offset]].copy() # at this point it will be the time col and current col for both signals
-            working_df.columns = ["Time", "Value"]
-
-            #add signal label
-            signal_id = []
-            for k in range(current_num_signals):
-                signal_id.extend([f"Signal{k + 1}"] * current_num_rows)
-            working_df.insert(0, "Signal ID", signal_id)
-
-            #add sample label
-            sample_id = [current_sample_id] * len(working_df)
-            working_df.insert(0, "Sample ID", sample_id)
-
-            #concat working_df and output
-            output = pd.concat([output, working_df], ignore_index=True)
-
-        #add measurement
-        measurement_id = []
-        for i in range(len(output)):
-            measurement_id.append(f"Measurement{i}")
-        output.insert(0, "Measurement ID", measurement_id)
-
-        return output
-
-
-    def writeToMeasurements(self, XDC_file_name, final_dataframe):
-        book = load_workbook(XDC_file_name)
-        sheet = book['Measurement']
-
-        # Clear the existing data in the 'Measurement' sheet
-        sheet.delete_rows(1, sheet.max_row)
-
-        # Write three blank rows before writing the data
-        for _ in range(3):
-            sheet.append([''] * 5)
-
-        # Write the headers
-        sheet.append(['Measurement ID', 'Sample ID', 'Signal ID', 'Time', 'Value'])
-
-        # Write the data
-        for row in final_dataframe.itertuples(index=False):
-            sheet.append(list(row))
-
-        book.save(XDC_file_name)
-        book.close()
-
-        return
-    
-    def run(self, file_list, sheet_to_read_from, time_col_name='Time', data_cols_offset=0, num_rows_btwn_data=0):
-        """
-        Full run; extracts data from the input excel files and writes it to the XDC sheet.
-        """
-        sample_list = self.generateSampleData(file_list, sheet_to_read_from, time_col_name, data_cols_offset)
-        output_df = self.buildFinalDF(file_list, sample_list, time_col_name, data_cols_offset, num_rows_btwn_data, sheet_to_read_from)
-        self.writeToMeasurements(file_list[0], output_df)

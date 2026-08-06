@@ -180,14 +180,11 @@ export async function upload_resource(
         const paramsObj = {
             sbh_url: sbh_url,
             sbh_token: sbh_token,
-            fj_url: null,
-            sbh_user: null,
-            sbh_pass: null,
-            fj_token: null,
-            fj_user: null,
-            fj_pass: null,
             collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
+            fj_url: null,
+            fj_token: null,
+            fj_study_id: null,
             fj_overwrite: 1,
             version: "",
             attachments: {},
@@ -224,6 +221,9 @@ export async function uploadExperiment(
     sbh_url,
     sbh_token,
     collectionUrl,
+    fj_url = null,
+    fj_token = null,
+    fj_study_id = null,
     workingDirectory = null,
     sbh_overwrite = 3,
     extraFiles = {}
@@ -267,14 +267,11 @@ export async function uploadExperiment(
         const paramsObj = {
             sbh_url: sbh_url,
             sbh_token: sbh_token,
-            fj_url: null,
-            sbh_user: null,
-            sbh_pass: null,
-            fj_token: null,
-            fj_user: null,
-            fj_pass: null,
             collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
+            fj_url: fj_url,
+            fj_token: fj_token,
+            fj_study_id: fj_study_id,
             fj_overwrite: 1,
             version: "",
             importType: "Assays",
@@ -288,8 +285,19 @@ export async function uploadExperiment(
                         return [attachmentName, attachmentName];
                     })
             ),
+            plateReaderOutputs: Object.fromEntries(
+                (extraFiles.plateReaderOutputs || [])
+                    .filter(Boolean)
+                    .map((attachmentFile) => {
+                        const attachmentName = typeof attachmentFile === 'string'
+                            ? attachmentFile.split('/').pop()
+                            : attachmentFile.name;
+                        return [attachmentName, attachmentName];
+                    })
+            ),
             ...(extraFiles.sheetName ? { sheet_name: extraFiles.sheetName } : {})
         }
+        console.log("uploadExperiment paramsObj:", paramsObj);
 
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });

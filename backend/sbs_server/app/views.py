@@ -524,51 +524,33 @@ def sbh_fj_upload(files):
     if params_file.filename == '':
         return 'No selected Params file', 400
     params_from_request = json.loads(params_file.read())
-    sbh_url = params_from_request.get('sbh_url')
-    if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
-        params_from_request['sbh_url'] = 'https://' + sbh_url
 
-    required_params = ['sbh_url', 'sbh_token', 'sbh_user', 'sbh_pass',
-                       'collection_url', 'sbh_overwrite']
+    required_params = ['sbh_url', 'sbh_token', 'fj_url', 'fj_token', 'collection_url', 'fj_study_id', 
+                        'sbh_overwrite', 'fj_overwrite', 'importType']
 
     for param in required_params:
         if param not in params_from_request:
             return 'Parameter ' + param + ' not found in request', 400
-    if (params_from_request['sbh_token'] is None and 
-        params_from_request['sbh_user'] is None and
-        params_from_request['sbh_pass'] is None):
-        return 'No SBH credentials provided', 400
-    
+
+    sbh_url = params_from_request.get('sbh_url')
+    sbh_token = params_from_request.get('sbh_token')
+    sbh_overwrite = params_from_request.get('sbh_overwrite', 1)
+    collection_url = params_from_request.get('collection_url')    
     fj_url = params_from_request.get('fj_url')
     fj_token = params_from_request.get('fj_token')
-    fj_user = params_from_request.get('fj_user')
-    fj_pass = params_from_request.get('fj_pass')
     fj_overwrite = params_from_request.get('fj_overwrite', 1)
+    fj_study_id = params_from_request.get('fj_study_id')
+    importType = params_from_request.get('importType')
+
+    if (params_from_request['sbh_token'] is None):
+        return 'No SynBioHub credentials provided', 400
 
     if not fj_url:
         fj_url = None
         fj_token = None
-        fj_user = None
-        fj_pass = None
-    elif not fj_token and not (fj_user and fj_pass):
-        return jsonify({
-            "error": "Flapjack URL was provided, but no Flapjack credentials were provided"
-        }), 400
-
-    # Attachment files to upload to SBH
-    if 'Attachments' in files and 'attachments' in params_from_request:
-        attachment_files = files.getlist("Attachments")
-        attachments = {}
-        for file in attachment_files:
-            if file.filename not in params_from_request['attachments']:
-                return (
-                    f"Attachment metadata for file '{file.filename}' not found in request",
-                    400,
-                )
-            attachments[params_from_request['attachments'][file.filename]] = file
-    else:
-        attachments = None
-
+    elif not fj_token:
+        return "Flapjack URL was provided, but no Flapjack credentials were provided", 400
+    
     upload_dir = os.path.join(os.getcwd(), "uploads")
     os.makedirs(upload_dir, exist_ok=True)
 
@@ -584,39 +566,42 @@ def sbh_fj_upload(files):
 
     metadata_file.save(metadata_path)
 
+    # Attachment files to upload to SBH
+    if 'Attachments' in files and 'attachments' in params_from_request:
+        attachment_files = files.getlist("Attachments")
+        attachments = {}
+        for file in attachment_files:
+            if file.filename not in params_from_request['attachments']:
+                return (
+                    f"Attachment metadata for file '{file.filename}' not found in request",
+                    400,
+                )
+            attachments[params_from_request['attachments'][file.filename]] = file
+    else:
+        attachments = None
+
     # Plate reader data to upload to FJ
-    if 'Plate_Reader_Output' in request.files and 'sheet_name' in params_from_request:
-        filenames = [metadata_path]
-        for file in files.getlist("Plate_Reader_Output"):
-            # TODO - adapt XDE to work with the file object to avoid unneccesary writes
-            safe_data_filename = secure_filename(file.filename)
-            if safe_data_filename == '':
-                return 'Invalid Plate Reader Output file name', 400
-            data_path = os.path.join(upload_dir, safe_data_filename)
-            file.save(data_path)
-            filenames.append(data_path)
-        xde = xdc.XDE()
-        xde.run(filenames, params_from_request['sheet_name'], data_cols_offset=2)
-        print(filenames)
-        for data_filename in filenames[1:]:
-            os.remove(data_filename)
+    if 'Plate_Reader_Output' in files and 'plateReaderOutputs' in params_from_request:
+        plate_reader_files = files.getlist("Plate_Reader_Output")
+        plate_reader_attachments = {}
+        for file in plate_reader_files:
+            if file.filename not in params_from_request['plateReaderOutputs']:
+                return (
+                    f"Plate Reader Output metadata for file '{file.filename}' not found in request",
+                    400,
+                )
+            plate_reader_attachments[params_from_request['plateReaderOutputs'][file.filename]] = file
+    else:
+        plate_reader_attachments = None
 
     # instantiate the XDC class using the params_from_request dictionary
     try:
-        xdcX = xdc.XDC(input_excel_path = metadata_path, attachments=attachments)
+        xdcObj = xdc.XDC(input_excel_path = metadata_path, attachments=attachments, plate_reader_attachments=plate_reader_attachments)  
         # print(params_from_request['sbh_url'], params_from_request['collection_url'], params_from_request['sbh_overwrite'], params_from_request['sbh_user'],params_from_request['sbh_pass'], params_from_request['sbh_pass'],params_from_request['fj_url'], params_from_request['fj_overwrite'], params_from_request['fj_user'], params_from_request['fj_pass'],params_from_request['fj_token'])
-        sbh_url, fj_url = xdcX.upload_to_existing_collection(sbh_url = params_from_request['sbh_url'],
-                                      collection_url = params_from_request['collection_url'], 
-                                      sbh_overwrite = params_from_request['sbh_overwrite'], 
-                                      sbh_user = params_from_request['sbh_user'],
-                                      sbh_pass = params_from_request['sbh_pass'], 
-                                      sbh_token = params_from_request['sbh_token'],
-                                      fj_url = fj_url,
-                                      fj_overwrite = fj_overwrite, 
-                                      fj_user = fj_user, 
-                                      fj_pass = fj_pass,
-                                      fj_token = fj_token,
-                                      importType = params_from_request['importType'])
+        sbh_url, fj_url = xdcObj.upload_to_existing_collection(
+                            sbh_url, sbh_token, collection_url, sbh_overwrite, 
+                            fj_url, fj_token, fj_study_id, fj_overwrite, importType)
+
     except AttributeError as e:
         os.remove(metadata_path)
         print('Attribute Error: ',str(e))
