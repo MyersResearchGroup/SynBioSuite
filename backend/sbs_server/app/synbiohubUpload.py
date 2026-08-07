@@ -27,7 +27,7 @@ def upload_sbh_attachments(sbh_token, sbh_collection_url, file, importType, coll
     response = requests.post(f'{collection_url}/attach', headers=headers, files=file)
     if not response.ok:
         raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
-        print(f'Uploaded attachment {upload_file["file"][0]}: {response.status_code}')
+    print(f'Uploaded attachment {upload_file["file"][0]}: {response.status_code}')
 
 '''
 Helper function to upload SBOL to SynBioHub

@@ -1,6 +1,6 @@
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
-from flask import request, jsonify, send_file
+from flask import jsonify, send_file
 import requests
 from .utils import sbh_get_subCollection_uris
 import json
