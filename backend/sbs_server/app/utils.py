@@ -1,4 +1,7 @@
+import traceback
+
 import sbol2
+import excel2sbol
 import sbol2build as s2b
 from sbol2build import abstract_translator as at
 # from sbol2build import bacterial_transformation
@@ -39,6 +42,34 @@ def make_identifier(text: str) -> str:
 
     return identifier
 
+
+def get_sbh_user(sbh_url, sbh_token): 
+    response = requests.get(
+        f'{sbh_url}/profile',
+            headers={
+                'Accept': 'text/plain',
+                'X-authorization': sbh_token
+            }
+    )
+    if not response.ok:
+        raise Exception(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
+    return { 'user': response.json()["username"],
+            'graph': response.json()['graphUri'] }
+
+def sparql_query(sbh_url, sbh_token, query):
+    print(f"Performing SPARQL query on SynBioHub: {query}")
+    url = f"{sbh_url}/sparql?{urlencode({'query': query})}"
+    response =  requests.get(
+        url,
+        headers={
+            'Accept': 'application/json',
+            'X-authorization': sbh_token
+        },
+    )
+    if not response.ok:
+        raise Exception(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")
+    return response.json()
+
 '''
 Helper function to perform SPARQL queries to fetch URIs from SynBioHub
 '''
@@ -52,17 +83,41 @@ def sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, collectionUri, rol
     else:
         query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s ?id FROM <{usergraph}> WHERE {{ ?s sbol:type <{type}> . ?s sbol:role <{role}> . <{collectionUri}> sbol:member ?s . ?s sbol:displayId ?id }}'
 
-    url = f"{sbh_url}/sparql?{urlencode({'query': query})}"
-    response =  requests.get(
-        url,
-        headers={
-            'Accept': 'application/json',
-            'X-authorization': sbh_token
-            },
-        )
-    if not response.ok:
-        raise Exception(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")
-    return response.json()
+    return sparql_query(sbh_url, sbh_token, query)
+ 
+def sbh_get_attachment_uri(sbh_url, sbh_token, usergraph, collectionUri, attachmentName):
+    query = f'PREFIX sbol: <http://sbols.org/v2#> PREFIX dcterms: <http://purl.org/dc/terms/> SELECT ?s FROM <{usergraph}> WHERE {{ ?s dcterms:title "{attachmentName}" . <{collectionUri}> sbol:member ?s }}'
+    return sparql_query(sbh_url, sbh_token, query)
+
+def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
+    print("converting to SBOL")
+    try:
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+        excel2sbol.converter(file_path_in = input_excel_path, 
+        file_path_out = file_path_out, homespace=homespace, sbol_version=2)
+        doc = sbol2.Document()
+        doc.read(file_path_out)
+        print("conversion complete")
+        return doc
+    except Exception as e:
+        print("CONVERSION FAILED --- SEE MESSAGE")
+        print(f"{type(e).__name__}: {e}")
+
+        # Print full traceback so package-level failures are visible.
+        traceback.print_exc()
+
+        # If present, print chained exceptions explicitly for deeper root-cause debugging.
+        if e.__cause__ is not None:
+            print("\nDirect cause:")
+            print(f"{type(e.__cause__).__name__}: {e.__cause__}")
+            print("".join(traceback.format_exception(type(e.__cause__), e.__cause__, e.__cause__.__traceback__)))
+
+        if e.__context__ is not None and e.__context__ is not e.__cause__:
+            print("\nContext:")
+            print(f"{type(e.__context__).__name__}: {e.__context__}")
+            print("".join(traceback.format_exception(type(e.__context__), e.__context__, e.__context__.__traceback__)))
+        raise
 
 def abstract_design_2_plasmids(abstract_design_uri: str, plasmid_collection_uri: str, plasmid_vector_uri: str, sbh: sbol2.PartShop) -> Tuple[List[sbol2.Document], sbol2.Document, str]:
     abstract_design_doc = sbol2.Document()

@@ -1,10 +1,10 @@
-from backend.sbs_server import app
 from flask import request, jsonify
-from .utils import abstract_design_2_plasmids, sbol2build_moclo
 import json
 import sbol2 as sb2
 import sbol2build
 import os
+from .main import app
+from .utils import abstract_design_2_plasmids, sbol2build_moclo
 
 @app.route('/sbol_2_build_golden_gate', methods=['POST'])
 def sbol_2_build_golden_gate():

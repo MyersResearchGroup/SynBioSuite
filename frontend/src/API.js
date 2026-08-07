@@ -497,7 +497,8 @@ export async function createStudyFJ(id, version, name, description, doi, auth, u
 }
 
 export async function createStudySBH(id, version, name, description, citations, auth, url, overwrite) {
-    if(url == "") return;
+    if (url === "") return;
+
     const formdata = new FormData();
     formdata.append('id', id);
     formdata.append('version', version);
@@ -506,17 +507,29 @@ export async function createStudySBH(id, version, name, description, citations, 
     formdata.append('citations', citations);
     formdata.append('overwrite_merge', overwrite ? 1 : 0);
 
-    const response = await axios.post(
-        `${url}/submit`,
-        formdata,
-        {
-            headers: {
-                "Accept": "text/plain",
-                "X-authorization": auth
+    try {
+        const response = await axios.post(
+            `${url}/submit`,
+            formdata,
+            {
+                headers: {
+                    "Accept": "text/plain",
+                    "X-authorization": auth
+                }
             }
-        }
-    );        
-    return response.data;
+        );
+        return response.data;
+    } catch (error) {
+        const backendMessage =
+            (typeof error?.response?.data === 'string' && error.response.data)
+            || error?.response?.data?.error
+            || error?.response?.data?.message
+            || error?.message
+            || 'Failed to create SynBioHub study';
+
+        console.error('createStudySBH error:', error);
+        throw new Error(backendMessage);
+    }
 }
 
 export async function SBHLogout(auth, url) {

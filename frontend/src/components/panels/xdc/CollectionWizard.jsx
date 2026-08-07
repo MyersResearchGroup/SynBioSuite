@@ -229,7 +229,7 @@ export default function CollectionWizard() {
 
             const uploadEntry = {
                 collectionName: collection?.name || collection?.displayId || collectionUrl,
-                uri: response?.sbh_url || collectionUrl,
+                uri: collectionUrl,
                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                 file: metadataFile.name,
                 selectedRepo,

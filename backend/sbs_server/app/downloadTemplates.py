@@ -76,21 +76,21 @@ Helper function to download Excel template and populate tables from SynBioHub
 '''
 def sbh_download_template(files):
     if 'Params' not in files:
-        return 'No Params file part', 400
+        return jsonify({"error": "No Params file part"}), 400
 
     params_file = files['Params']
     if params_file.filename == '':
-        return 'No selected Params file', 400
+        return jsonify({"error": "No selected Params file"}), 400
 
     params_from_request = json.loads(params_file.read())
 
     required_params = ['template_type', 'sbh_url', 'sbh_token', 'collection_url']
     for param in required_params:
         if param not in params_from_request:
-            return f'Parameter {param} not found in request', 400
+            return jsonify({"error": f"Parameter {param} not found in request"}), 400
 
     if params_from_request['sbh_token'] is None:
-        return 'No SBH credentials provided', 400
+        return jsonify({"error": "No SBH credentials provided"}), 400
 
     sbh_url = params_from_request['sbh_url']
     sbh_collection_url = params_from_request['collection_url'] 
