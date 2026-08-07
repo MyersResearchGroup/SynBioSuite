@@ -12,7 +12,7 @@ from . import xdc
 def upload_sbh_attachments(sbh_token, sbh_collection_url, file, importType, collection_url, experimentId):
     print("uploading attachments")
  
-    version = '1'
+#    version = '1'
  
 #    parts = sbh_collection_url.split("/")
 #    subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
