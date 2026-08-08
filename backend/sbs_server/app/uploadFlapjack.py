@@ -183,6 +183,10 @@ def get_flapjack_client(
     flapjack = Flapjack(url_base=url)
     if access_token:
         flapjack.log_in_token(username, access_token, refresh_token)
+        if not refresh_token:
+            # the client calls refresh() before every get/create/delete; with no refresh
+            # token, keep the supplied (already-fresh) access token instead of failing
+            flapjack.refresh = lambda: None
     elif password:
         flapjack.log_in(username=username, password=password)
     else:

@@ -184,16 +184,35 @@ def xdc_run(files):
 
     if fj_study_id is not None and fj_url is not None and fj_token is not None and plate_reader_attachments:
         try:
-            print('TODO: support upload to Flapjack')
-            print('Uploading to Flapjack is not yet implemented in this version of XDC.')
-            print('Metadata file: ' + str(metadata_path))
-            print('SynBioHub URL: ' + str(sbh_url))
-            print('SynBioHub token: ' + str(sbh_token))
-            print('SynBioHub collection URL: ' + str(sbh_collection_url))
-            print('Flapjack URL: ' + str(fj_url))
-            print('Flapjack token: ' + str(fj_token))
-            print('Study id: ' + str(fj_study_id))
-            print('Plate reader attachments: ' + str(plate_reader_attachments))
+            from . import uploadFlapjack as fj_import
+
+            # SynBioHub client (token) + Flapjack client (access token only)
+            shop = fj_import.get_sbh_client(token=sbh_token, url=sbh_url)
+            flapjack = fj_import.get_flapjack_client(
+                access_token=fj_token, url=fj_url.split('://')[-1])
+
+            # plate_reader_attachments is {name: file object}; save each for the reader
+            plate_paths = []
+            for pr_file in plate_reader_attachments.values():
+                pr_path = os.path.join(upload_dir, f"{uuid4()}_{secure_filename(pr_file.filename)}")
+                pr_file.save(pr_path)
+                plate_paths.append(pr_path)
+
+            # one plate file per populated assay (in order), uploaded into the SBS study
+            for (assay_id, assay_name, temperature), plate in zip(
+                    fj_import.read_assays(metadata_path), plate_paths):
+                template_out = os.path.join(upload_dir, f"{uuid4()}_flapjack_input.xlsx")
+                fj_import.import_study(
+                    shop, flapjack, metadata_path, plate,
+                    int(fj_study_id), assay_name, template_out,
+                    assay_id=assay_id, temperature=temperature or 37)
+                os.remove(template_out)
+
+            for plate in plate_paths:
+                try:
+                    os.remove(plate)
+                except OSError:
+                    pass
         except Exception as e:
             print('Error uploading to Flapjack')
             return jsonify({"error": f"Error uploading to Flapjack: {e}"}), 400
