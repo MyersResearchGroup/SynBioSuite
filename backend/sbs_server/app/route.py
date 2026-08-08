@@ -1,10 +1,8 @@
 from __future__ import annotations
-from fileinput import filename
 import os
 from flask import request, jsonify
 import json
 import requests
-import json
 from werkzeug.utils import secure_filename
 from uuid import uuid4
 from flask import jsonify
@@ -365,3 +363,4 @@ def sbol_upload(files):
                         os.remove(path)
                 except Exception as cleanup_error:
                     print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
+    return jsonify({"message": "SBOL upload successful"}), 200

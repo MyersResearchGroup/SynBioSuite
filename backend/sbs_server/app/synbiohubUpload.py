@@ -1,9 +1,8 @@
 import sbol2
 import sbol2.model
-from .utils import sbh_get_subCollection_uris, make_identifier, sbh_get_attachment_uri, get_sbh_user
+from .utils import sbh_get_subCollection_uris, sbh_get_attachment_uri
 import requests
 import os
-from uuid import uuid4
 
 def upload_sbh_attachments(sbh_url, sbh_token, sbh_user, sbh_user_graph, sbh_collection_url, attachments, experimentId=None):
         print(f"Uploading attachments to SynBioHub collection: {sbh_collection_url}")
@@ -81,20 +80,21 @@ def upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, import
         subCollection.members = subCollection.members + [ tl.identity ]
     doc.addCollection(subCollection)
     doc.write(file_path_out_final)
-    response =  requests.post(
-        f'{sbh_url}/submit',
-        headers={
-            'Accept': 'text/plain',
-            'X-authorization': sbh_token
-        },
-        files={
-            'files': open(file_path_out_final,'rb'),
-        },
-        data={
-            'rootCollections' : sbh_collection_url,
-            'overwrite_merge' : sbh_overwrite_num
-        },
-    )
+    with open(file_path_out_final, 'rb') as fobj:
+        response = requests.post(
+            f'{sbh_url}/submit',
+            headers={
+                'Accept': 'text/plain',
+                'X-authorization': sbh_token
+            },
+            files={
+                'files': fobj,
+            },
+            data={
+                'rootCollections': sbh_collection_url,
+                'overwrite_merge': sbh_overwrite_num
+            },
+        )
     if not response.ok:
         raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")
     return sbh_collection_url
