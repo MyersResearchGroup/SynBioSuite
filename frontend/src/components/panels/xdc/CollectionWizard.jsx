@@ -5,7 +5,7 @@ import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
 import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
-import { uploadExperiment, CheckLogin } from '../../../API'
+import { uploadExperiment, CheckLogin, CheckFJLogin } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone from '../../Dropzone'
 import { readStudy } from "../../../modules/util";
@@ -15,7 +15,8 @@ import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
-    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
+    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })     
+    const [dataFJ] = useLocalStorage({ key: 'Flapjack', defaultValue: [] })
     const { open, MODAL_TYPES } = useUnifiedModal()
 
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
@@ -55,6 +56,9 @@ export default function CollectionWizard() {
     const collectionUrl = study?.collectionUri ?? "";
     const selectedRepo = study?.registryURL ?? "";
     const registryAPI = study?.registryAPI ?? "";
+    let studyFJid = study?.FJid ?? "";
+    const selectedFJRepo = study?.registryURLFJ ?? "";
+    let registryAPIFJ = study?.registryAPIFJ ?? "";
 
     const getStoredToken = () => {
         try {
@@ -67,10 +71,29 @@ export default function CollectionWizard() {
         }
     };
 
+    const getStoredFJToken = () => {
+        try {
+            const stored = localStorage.getItem('Flapjack');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            return repos.find((repo) => repo.registryURL === selectedFJRepo)?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
     const openLoginWorkflow = () => new Promise((resolve) => {
         open(MODAL_TYPES.SBH_LOGIN, {
             allowedModals: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
             props: { selectedRepo },
+            onComplete: (result) => resolve(result || null),
+        });
+    });
+
+    const openFJLoginWorkflow = () => new Promise((resolve) => {
+        open(MODAL_TYPES.FJ_LOGIN, {
+            allowedModals: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO],
+            props: { selectedRepo: selectedFJRepo, selectedFJRepo },
             onComplete: (result) => resolve(result || null),
         });
     });
@@ -134,6 +157,57 @@ export default function CollectionWizard() {
             }
         }
 
+        const repoInfoFJ = dataFJ.find(repo => repo.registryURL === selectedFJRepo);
+
+        let currentFJToken = repoInfoFJ?.authtoken ?? "";
+
+        if (plateOutputFile) {
+            if (!currentFJToken) {
+                const loginResult = await openFJLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
+            }
+            currentFJToken = getStoredFJToken() || '';
+/*
+        if (!currentFJToken) {
+            showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+            return
+        }
+
+        try {
+            const loginResult = await CheckFJLogin(registryAPIFJ || selectedFJRepo, currentFJToken);
+            if (!loginResult?.valid) {
+                const loginResult = await openFJLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
+                currentFJToken = getStoredFJToken() || '';
+                if (!currentFJToken) {
+                    showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
+            }
+        } catch {
+            const loginResult = await openFJLoginWorkflow();
+            if (!loginResult?.completed) {
+                showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                return
+            }
+            currentFJToken = getStoredFJToken() || '';
+            if (!currentFJToken) {
+                showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                return
+            }
+        }
+*/
+        } else {
+            registryAPIFJ = null;
+            studyFJid = null;
+        }
+
         setIsSubmitting(true)
         try {
             const response = await uploadExperiment(
@@ -141,6 +215,9 @@ export default function CollectionWizard() {
                 registryAPI,
                 currentToken,
                 collectionUrl,
+                registryAPIFJ,
+                currentFJToken,
+                studyFJid || null,
                 null,
                 3,
                 //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
@@ -152,7 +229,7 @@ export default function CollectionWizard() {
 
             const uploadEntry = {
                 collectionName: collection?.name || collection?.displayId || collectionUrl,
-                uri: response?.sbh_url || collectionUrl,
+                uri: collectionUrl,
                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                 file: metadataFile.name,
                 selectedRepo,

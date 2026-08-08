@@ -87,6 +87,7 @@ export const PanelTypes = {
             return panel.sbol;
         }
     },
+    /*
     BuildPlans: {
         id: "synbio.panel-type.buildplans",
         title: "Build Plans",
@@ -108,6 +109,7 @@ export const PanelTypes = {
             return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
+    */
     Experiment: {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",

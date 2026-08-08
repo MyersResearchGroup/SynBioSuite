@@ -128,7 +128,18 @@ const FJInstanceSelector = ({onClose, setRepoSelection }) => {
     return (
         <>
             {showLogin ? (
-                <FJInstanceLogin onClose={onClose} goBack={setShowLogin} setRepoSelection={setRepoSelection}/>
+                <FJInstanceLogin
+                    opened={true}
+                    onClose={onClose}
+                    goBack={setShowLogin}
+                    setRepoSelection={setRepoSelection}
+                    selectedRepo={selected}
+                    selectedFJRepo={selected}
+                    onLoginSuccess={() => {
+                        setShowLogin(false);
+                        setRepoSelection?.("");
+                    }}
+                />
             ) : (
                 <>
                     <AddRegistryModal
