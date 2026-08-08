@@ -207,13 +207,15 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     collectionName: collectionData.name,
                     collectionUri: selectedCollectionUri,
                     collectionDisplayId,
-                    uri: uploadResponse?.sbh_url || selectedCollectionUri,
+                    uri: selectedCollectionUri,
                     file: uploadedFilePath,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
                     userEmail: modalResult.userInfo?.email || null,
                     type: 'initial',
                 }
+                console.log("Initial upload metadata:", initialUpload)
+                console.log("Collection data:", collectionData)
 
                 await createWorkflowJSON(availableBaseName, useSubdirectory, uploadedFilePath, collectionData, initialUpload)
                 return

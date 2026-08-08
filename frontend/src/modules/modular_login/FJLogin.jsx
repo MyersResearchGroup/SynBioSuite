@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { TextInput, PasswordInput, Button, Box } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Modal } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import axios from 'axios';
 import { showNotification, cleanNotifications } from '@mantine/notifications';
@@ -36,11 +37,19 @@ const login = async (instance, username, password) => {
     }
 };
 
-const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
+const FJInstanceLogin = ({ opened, onClose, goBack, setRepoSelection, selectedRepo, selectedFJRepo, onLoginSuccess }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.fjPrimary);
     const setSelected = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selected) : value));
+
+    const repoToUse = selectedRepo || selectedFJRepo || selected;
+
+    useEffect(() => {
+        if (repoToUse && repoToUse !== selected) {
+            setSelected(repoToUse);
+        }
+    }, [repoToUse, selected, setSelected]);
 
     const form = useForm({
         initialValues: {
@@ -54,17 +63,33 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
         },
     });
 
+    // Reset form when modal is opened
+    useEffect(() => {
+        if (opened) {
+            form.reset();
+        }
+    }, [opened]);
+
     const handleSubmit = async (values) => {
+        if (!repoToUse) {
+            showNotification({
+                title: 'Login failed',
+                message: 'No Flapjack repository selected. Please choose a repository before logging in.',
+                color: 'red',
+            });
+            return;
+        }
+
         if (form.isValid()){
             try {
-                const existing = instanceData.find(item => item.registryURL === selected) || {};
-                const registryAPI = existing.registryAPI || selected;
+                const existing = instanceData.find(item => item.registryURL === repoToUse) || {};
+                const registryAPI = existing.registryAPI || repoToUse;
                 const info = await login(registryAPI, values.username, values.password);
                 const updatedInstance = { 
                     ...existing,
-                    registryURL: selected,
+                    registryURL: repoToUse,
                     registryAPI: registryAPI,
-                    registryPrefix: existing.registryPrefix || selected,
+                    registryPrefix: existing.registryPrefix || repoToUse,
                     username: values.username,
                     email: info.email,
                     authtoken: info.authtoken,
@@ -72,7 +97,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                 };
 
                 const updatedInstanceData = instanceData.map((item) =>
-                    item.registryURL === selected ? updatedInstance : item
+                    item.registryURL === repoToUse ? updatedInstance : item
                 );
                 setInstanceData(updatedInstanceData);
                 cleanNotifications();
@@ -82,7 +107,11 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                     color: 'green',
                 });
                 setSelected(updatedInstance.registryURL);
-                goBack(false)
+                if (typeof onLoginSuccess === 'function') {
+                    onLoginSuccess();
+                } else {
+                    goBack(false);
+                }
             } catch (error) {
                 console.error('Login failed:', error);
                 if(error.response?.status === 401){
@@ -106,7 +135,11 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
     };
 
     return (
-        <Box sx={{ maxWidth: 300 }} mx="auto">
+        <Modal
+            opened={opened}
+            onClose={onClose}
+            title="Login to Flapjack"
+        >
             <form
                 onSubmit={form.onSubmit((values) => {handleSubmit(values)})}
             >
@@ -129,7 +162,7 @@ const FJInstanceLogin = ({ goBack, setRepoSelection }) => {
                     Back
                 </Button>
             </form>
-        </Box>
+        </Modal>
     );
 };
 

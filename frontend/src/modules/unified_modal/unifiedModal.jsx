@@ -6,6 +6,7 @@ import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 // Todo: Modernize the following legacy modals
 import SBHLogin from '../modular_login/SBHOnly';
+import FJLogin from '../modular_login/FJLogin';
 import CreateCollectionModal from '../CreateCollectionModal';
 import SBHInstanceSelector from '../modular_login/SBHInstanceSelector';
 import FJInstanceSelector from '../modular_login/FJInstanceSelector';
@@ -300,6 +301,18 @@ function UnifiedModal({
 
                             shouldReturnToCredentialCheck ? goBack() : completeWorkflow();
                         }}
+                        {...commonProps}
+                    />
+                );
+
+            case MODAL_TYPES.FJ_LOGIN:
+                return (
+                    <FJLogin
+                        opened={true}
+                        onClose={() => {
+                            completeWorkflow();
+                        }}
+                        onLoginSuccess={completeWorkflow}
                         {...commonProps}
                     />
                 );
