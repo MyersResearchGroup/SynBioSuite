@@ -186,9 +186,13 @@ def xdc_run(files):
         try:
             print('TODO: support upload to Flapjack')
             print('Uploading to Flapjack is not yet implemented in this version of XDC.')
-            print('Study id: ' + str(fj_study_id))
+            print('Metadata file: ' + str(metadata_path))
+            print('SynBioHub URL: ' + str(sbh_url))
+            print('SynBioHub token: ' + str(sbh_token))
+            print('SynBioHub collection URL: ' + str(sbh_collection_url))
             print('Flapjack URL: ' + str(fj_url))
             print('Flapjack token: ' + str(fj_token))
+            print('Study id: ' + str(fj_study_id))
             print('Plate reader attachments: ' + str(plate_reader_attachments))
         except Exception as e:
             print('Error uploading to Flapjack')
