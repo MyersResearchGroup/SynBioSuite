@@ -1,10 +1,7 @@
-import traceback
-
 import sbol2
 import excel2sbol
 import sbol2build as s2b
 from sbol2build import abstract_translator as at
-# from sbol2build import bacterial_transformation
 from urllib.parse import urlencode
 import re
 import requests
