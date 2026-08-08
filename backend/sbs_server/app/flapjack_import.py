@@ -9,17 +9,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
+import pandas as pd
 import sbol2
-import tricahue
 import websockets
 from flapjack import Flapjack
 from openpyxl import Workbook, load_workbook
 
-# NCIT role codes that classify a sample-design module. The role URIs aren't
-# uniform (medium uses ``NCIT:C48164``, strain uses ``NCIT_C97158``), so callers
-# match with ``endswith`` rather than splitting on a separator.
-MEDIUM_ROLE = "C48164"
-STRAIN_ROLES = "C14419"  #or bare chassis (C14419)
+# NCIT role codes that classify a sample-design module. Role URIs aren't uniform
+# (medium uses ``NCIT:C48164``, the strain/chassis use ``NCIT_C97158``/``NCIT_C14419``),
+# so callers match with ``endswith`` rather than splitting on a separator. A design's
+# strain is modeled as an *engineered strain* (C97158) that carries the plasmid(s) as
+# functional components and nests the host *chassis* (C14419) one level down; Flapjack's
+# "strain" is that chassis, so :func:`resolve` descends into the engineered strain to it.
+MEDIUM_ROLE = "C48164"    # growth medium
+STRAIN_ROLE = "C97158"    # engineered strain: its functional components are the plasmids
+CHASSIS_ROLE = "C14419"   # host chassis nested in the strain -> Flapjack's "strain"
 
 # 96-well plate layout: rows A-H, cols 1-12, wells in A1..A12,B1..H12 order.
 PLATE_ROWS = tuple("ABCDEFGH")
@@ -70,9 +74,10 @@ class Supplement:
 class SampleDesign:
     """A sample design resolved from SBOL: media, strain, plasmids, supplements.
 
-    ``media``/``strain`` are ``(name, uri)``; ``strain`` is the *engineered*
-    strain (role C97158) whose plasmids become Flapjack DNA. Each field is enough
-    to get-or-create the matching Flapjack object.
+    ``media``/``strain`` are ``(name, uri)``; ``strain`` is the host **chassis**
+    (role C14419), nested inside the engineered strain (C97158) whose functional
+    components become the Flapjack DNA (plasmids). Each field is enough to
+    get-or-create the matching Flapjack object.
     """
 
     id: str  # the design name
@@ -110,10 +115,12 @@ def _concentration(module_definition) -> Optional[float]:
 def resolve(shop: sbol2.PartShop, name: str, uri: str) -> SampleDesign:
     """Get a sample design from SBH and resolve it into a :class:`SampleDesign`.
 
-    One recursive pull, then a purely local walk: classify each module of the
-    design as medium (role C48164), strain (C97158/C14419, whose functional
-    components are the plasmids), or supplement (no role but a concentration,
-    whose functional component is the chemical).
+    One recursive pull, then a purely local walk of the design's modules: classify
+    each as medium (role C48164), engineered strain (C97158), or supplement (no
+    role but a concentration, whose functional component is the chemical). The
+    engineered strain's functional components are the plasmids, and its nested
+    chassis (C14419) is the host strain Flapjack keys on -- so the strain field is
+    that chassis, not the engineered-strain wrapper.
     """
     # one recursive pull brings the whole design tree (design + medium + strain +
     # chassis) in a single round-trip; plasmids/chemicals ride as URI references
@@ -125,12 +132,25 @@ def resolve(shop: sbol2.PartShop, name: str, uri: str) -> SampleDesign:
         sub = by_uri[str(module.definition)]
         if _has_role(sub, MEDIUM_ROLE):
             design.media = (sub.displayId, sub.identity)
-        elif _has_role(sub, STRAIN_ROLES):
-            design.strain = (sub.displayId, sub.identity)
+        elif _has_role(sub, STRAIN_ROLE):
+            # the engineered strain carries the plasmids as functional components;
+            # Flapjack's strain is the chassis (C14419) nested one level inside it
             design.plasmids = [
                 (_name_from_uri(str(fc.definition)), str(fc.definition))
                 for fc in sub.functionalComponents
             ]
+            chassis = None
+            for child_module in sub.modules:
+                child = by_uri.get(str(child_module.definition))
+                if child is not None and _has_role(child, CHASSIS_ROLE):
+                    chassis = child
+                    break
+            if chassis is None:
+                raise ValueError(
+                    "engineered strain {0!r} has no chassis (role {1}) submodule"
+                    .format(sub.displayId, CHASSIS_ROLE)
+                )
+            design.strain = (chassis.displayId, chassis.identity)
         elif (concentration := _concentration(sub)) is not None:
             for fc in sub.functionalComponents:
                 uri_ = str(fc.definition)
@@ -146,7 +166,7 @@ def resolve(shop: sbol2.PartShop, name: str, uri: str) -> SampleDesign:
 # Flapjack client + get-or-create
 # --------------------------------------------------------------------------- #
 def get_flapjack_client(
-    username: str,
+    username: Optional[str] = None,
     password: Optional[str] = None,
     *,
     access_token: Optional[str] = None,
@@ -155,9 +175,10 @@ def get_flapjack_client(
 ) -> Flapjack:
     """Return an authenticated Flapjack client (the API host, not the web host).
 
-    Pass an ``access_token`` (+ ``refresh_token``) -- the intended workflow, via
-    Flapjack's ``log_in_token`` -- or fall back to ``password``. Flapjack tokens
-    are JWTs; the only way to mint one is Flapjack's own ``/api/auth/log_in/``.
+    Pass an ``access_token`` -- the intended workflow, via Flapjack's ``log_in_token``
+    (``username`` is optional and a ``refresh_token`` is only needed if the client later
+    refreshes) -- or fall back to ``username`` + ``password``. Flapjack tokens are JWTs;
+    the only way to mint one is Flapjack's own ``/api/auth/log_in/``.
     """
     flapjack = Flapjack(url_base=url)
     if access_token:
@@ -322,6 +343,49 @@ def read_signals(workbook_path: Union[str, Path]) -> List[Tuple[str, str, str]]:
     return signals
 
 
+def read_study(workbook_path: Union[str, Path]) -> Tuple[str, Optional[str]]:
+    """``(study name, description)`` from the workbook's ``study`` sheet (first data row)."""
+    workbook = load_workbook(workbook_path, data_only=True, read_only=True)
+    try:
+        sheet = _find_sheet(workbook, "study")
+        cols = _header_index(sheet)
+        row = next(sheet.iter_rows(min_row=2, values_only=True))
+        name = str(row[cols["study name"]])
+        desc = row[cols["study description"]] if "study description" in cols else None
+        return name, (str(desc) if desc else None)
+    finally:
+        workbook.close()
+
+
+def read_assays(workbook_path: Union[str, Path]) -> List[Tuple[str, str, Optional[float]]]:
+    """``[(assay_id, assay_name, temperature)]`` for assays that have wells in ``sample``.
+
+    The ``assay`` sheet lists every planned assay; only those actually populated in the
+    ``sample`` sheet are returned (first-seen order), each paired with its name and
+    temperature from the ``assay`` sheet (falling back to the id / None).
+    """
+    workbook = load_workbook(workbook_path, data_only=True, read_only=True)
+    try:
+        samples = _find_sheet(workbook, "sample")
+        scols = _header_index(samples)
+        present = list(dict.fromkeys(
+            str(r[scols["assay id"]])
+            for r in samples.iter_rows(min_row=2, values_only=True)
+            if r[scols["assay id"]]
+        ))
+        assay = _find_sheet(workbook, "assay")
+        acols = _header_index(assay)
+        meta: Dict[str, Tuple[str, Optional[float]]] = {}
+        for r in assay.iter_rows(min_row=2, values_only=True):
+            aid = r[acols["assay id"]]
+            if aid:
+                temp = r[acols["temperature"]] if "temperature" in acols else None
+                meta[str(aid)] = (str(r[acols["assay name"]]), temp)
+        return [(aid, *meta.get(aid, (aid, None))) for aid in present]
+    finally:
+        workbook.close()
+
+
 # --------------------------------------------------------------------------- #
 # Construct WB -- build the Flapjack input template (no Flapjack writes)
 # --------------------------------------------------------------------------- #
@@ -377,6 +441,44 @@ def _write_grid(sheet, title, well_values, start_row: int = 1, blank_missing: bo
         sheet.cell(row, col, value)
 
 
+def _read_neo(neo_path):
+    """Parse a BioTek Synergy Neo kinetic export (.txt) into a long measurement frame.
+
+    Comma-delimited with a metadata preamble and one ``Read N:...`` block per signal
+    (wells across the columns, time down the rows, a temperature column between Time
+    and the wells). Returns a DataFrame [Measurement ID, Sample ID, Signal ID, Time,
+    Value] where Sample ID is the well (A1..H12), Signal ID is the read label, Time is
+    hours.
+    """
+    with open(neo_path, encoding="utf-8", errors="replace") as handle:
+        lines = handle.readlines()
+
+    def to_hours(text):                                # 'H:MM:SS' -> hours
+        parts = [float(p) for p in str(text).split(":")] + [0.0, 0.0]
+        return parts[0] + parts[1] / 60 + parts[2] / 3600
+
+    records = []
+    for i, line in enumerate(lines):
+        if not (line.strip().lower().startswith("time,") and "read" in line.lower()):
+            continue
+        # the signal label is the nearest preceding 'Read ...' line
+        label = next((lines[j].strip() for j in range(i - 1, max(0, i - 5), -1)
+                      if lines[j].strip().lower().startswith("read")), None)
+        j = i + 1
+        while j < len(lines) and lines[j].strip():
+            parts = lines[j].rstrip("\n").split(",")
+            time_h = to_hours(parts[0])                # parts[1] is the temperature column
+            for k, value in enumerate(parts[2:2 + 96]):
+                well = "{0}{1}".format("ABCDEFGH"[k // 12], k % 12 + 1)
+                records.append({"Sample ID": well, "Signal ID": label,
+                                "Time": time_h, "Value": value})
+            j += 1
+
+    frame = pd.DataFrame(records)
+    frame.insert(0, "Measurement ID", ["Measurement{0}".format(i) for i in range(len(frame))])
+    return frame
+
+
 def construct_wb(
     workbook_path: Union[str, Path],
     plate_file: Union[str, Path],
@@ -416,7 +518,7 @@ def construct_wb(
     data.append([])
 
     # Data sheet: one block per signal, from read_neo on the same file
-    frame = tricahue.XDE().read_neo(str(plate_file))
+    frame = _read_neo(plate_file)
     for reader_signal, clean_name in block_names.items():
         wide = (
             frame[frame["Signal ID"] == reader_signal]
@@ -467,7 +569,8 @@ def construct_wb(
 # --------------------------------------------------------------------------- #
 async def _upload_wb(flapjack, wb_file, study_id, assay_name, machine, temperature,
                      description, signal_ids, dna_ids, chemical_ids):
-    flapjack.refresh()                                   # a fresh access token for the ws url
+    if getattr(flapjack, "refresh_token", None):         # refresh only when we have a refresh token
+        flapjack.refresh()                               # (a fresh access token for the ws url)
     file_bytes = Path(wb_file).read_bytes()
     form = {
         "study": study_id, "name": assay_name, "machine": machine,
@@ -586,7 +689,7 @@ def import_study(
     signals = read_signals(workbook_path)
     if block_names is None:
         # reader channels in read order (first appearance in the plate file)
-        frame = tricahue.XDE().read_neo(str(plate_file))
+        frame = _read_neo(plate_file)
         channels = list(dict.fromkeys(frame["Signal ID"]))
         if not signals:
             raise ValueError("No signals: fill the workbook 'signal' sheet, or pass block_names.")
