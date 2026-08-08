@@ -57,7 +57,6 @@ def get_sbh_user(sbh_url, sbh_token):
             'graph': response.json()['graphUri'] }
 
 def sparql_query(sbh_url, sbh_token, query):
-    print(f"Performing SPARQL query on SynBioHub: {query}")
     url = f"{sbh_url}/sparql?{urlencode({'query': query})}"
     response =  requests.get(
         url,
@@ -102,21 +101,6 @@ def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -
         return doc
     except Exception as e:
         print("CONVERSION FAILED --- SEE MESSAGE")
-        print(f"{type(e).__name__}: {e}")
-
-        # Print full traceback so package-level failures are visible.
-        traceback.print_exc()
-
-        # If present, print chained exceptions explicitly for deeper root-cause debugging.
-        if e.__cause__ is not None:
-            print("\nDirect cause:")
-            print(f"{type(e.__cause__).__name__}: {e.__cause__}")
-            print("".join(traceback.format_exception(type(e.__cause__), e.__cause__, e.__cause__.__traceback__)))
-
-        if e.__context__ is not None and e.__context__ is not e.__cause__:
-            print("\nContext:")
-            print(f"{type(e.__context__).__name__}: {e.__context__}")
-            print("".join(traceback.format_exception(type(e.__context__), e.__context__, e.__context__.__traceback__)))
         raise
 
 def abstract_design_2_plasmids(abstract_design_uri: str, plasmid_collection_uri: str, plasmid_vector_uri: str, sbh: sbol2.PartShop) -> Tuple[List[sbol2.Document], sbol2.Document, str]:

@@ -105,10 +105,7 @@ def xdc_run(files):
     if (params_from_request['sbh_token'] is None):
         return jsonify({"error": "No SynBioHub credentials provided"}), 400
 
-    if not fj_url:
-        fj_url = None
-        fj_token = None
-    elif not fj_token:
+    if fj_url and not fj_token:
         return jsonify({"error": "Flapjack URL was provided, but no Flapjack credentials were provided"}), 400
 
     upload_dir = os.path.join(os.getcwd(), "uploads")
@@ -180,7 +177,6 @@ def xdc_run(files):
                 if isinstance(tl, sbol2.Experiment):
                     experimentId = tl.displayId
                     break
-            print(f"Experiment ID for attachment upload: {experimentId}")
             upload_sbh_attachments(sbh_url, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, attachments, experimentId)
         except Exception as e:
             print('Error uploading attachments to SynBioHub')
@@ -324,10 +320,6 @@ def sbol_upload(files):
                         f"({response.status_code}): {response.text}"
                     )
 
-                print(
-                    f"Uploaded attachment {os.path.basename(sbml_path)} "
-                    f"({response.status_code})"
-                )
                 #print(f"{subCollection_url}/attach")
                 #print(response)
                 #display_id = make_identifier(sbml_file.filename)
@@ -341,8 +333,6 @@ def sbol_upload(files):
         print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return jsonify({
             "error": str(e),
             "type": type(e).__name__,
