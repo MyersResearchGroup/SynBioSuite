@@ -7,6 +7,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+import traceback
 from typing import Dict, List, Optional, Tuple, Union
 
 import pandas as pd
@@ -682,6 +683,7 @@ async def _upload_wb(flapjack, wb_file, study_id, assay_name, machine, temperatu
                     flapjack.delete("assay", assay_id, confirm=False)
                 except Exception:
                     # don't mask the original exception if the delete fails, but log it
+                    print("Failed to delete assay {0} after upload error: {1}".format(assay_id, traceback.format_exc()))
                     pass
             raise
 
