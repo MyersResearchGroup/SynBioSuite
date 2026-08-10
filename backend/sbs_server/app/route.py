@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import traceback
 from flask import request, jsonify
 import json
 import requests
@@ -93,11 +94,13 @@ def xdc_run(files):
             return jsonify({"error": f"Parameter {param} not found in request"}), 400
 
     sbh_url = params_from_request.get('sbh_url')
+    sbh_prefix = params_from_request.get('sbh_prefix')
     sbh_token = params_from_request.get('sbh_token')
     sbh_overwrite_num = 3 if params_from_request.get('sbh_overwrite', 1) else 2
     sbh_collection_url = params_from_request.get('collection_url')    
     fj_url = params_from_request.get('fj_url')
     fj_token = params_from_request.get('fj_token')
+    fj_refresh_token = params_from_request.get('fj_refresh_token')
     fj_overwrite = params_from_request.get('fj_overwrite', 1)
     fj_study_id = params_from_request.get('fj_study_id')
     importType = params_from_request.get('importType')
@@ -186,10 +189,13 @@ def xdc_run(files):
         try:
             from . import uploadFlapjack as fj_import
 
+            if fj_url=="http://localhost:8000":
+                fj_url = "http://flapjack2-api-1:8000"
+
             # SynBioHub client (token) + Flapjack client (access token only)
-            shop = fj_import.get_sbh_client(token=sbh_token, url=sbh_url)
+            shop = fj_import.get_sbh_client(token=sbh_token, url=sbh_url, prefix=sbh_prefix)
             flapjack = fj_import.get_flapjack_client(
-                access_token=fj_token, url=fj_url.split('://')[-1])
+                access_token=fj_token, refresh_token=fj_refresh_token, url=fj_url.split('://')[-1])
 
             # plate_reader_attachments is {name: file object}; save each for the reader
             plate_paths = []
@@ -214,6 +220,7 @@ def xdc_run(files):
                 except OSError:
                     pass
         except Exception as e:
+            traceback.print_exc()
             print('Error uploading to Flapjack')
             return jsonify({"error": f"Error uploading to Flapjack: {e}"}), 400
 

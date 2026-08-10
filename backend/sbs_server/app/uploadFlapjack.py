@@ -35,28 +35,18 @@ WELLS = ["{0}{1}".format(row, col) for row in PLATE_ROWS for col in PLATE_COLS]
 # SynBioHub client (PartShop)
 # --------------------------------------------------------------------------- #
 def get_sbh_client(
-    email: Optional[str] = None,
-    password: Optional[str] = None,
-    *,
     token: Optional[str] = None,
     url: str = "https://synbiohub.org",
+    prefix: Optional[str] = None,
 ) -> sbol2.PartShop:
-    """Return an authenticated PartShop -- the SBH client.
 
-    Pass a SynBioHub ``token`` (the intended workflow -- pySBOL2 sends it as the
-    ``X-authorization`` header), or fall back to ``email``/``password``. The only
-    function that takes SynBioHub credentials; :func:`resolve` reuses the returned
-    PartShop and never needs auth again.
-    """
-    shop = sbol2.PartShop(url)
+    print("Connecting to SynBioHub at {0!r}".format(url))
+    shop = sbol2.PartShop(url, prefix)
     if token:
         shop.key = token
-    elif email and password:
-        shop.login(email, password)
     else:
-        raise ValueError("get_sbh_client needs a token, or an email + password")
+        raise ValueError("get_sbh_client needs a token")
     return shop
-
 
 # --------------------------------------------------------------------------- #
 # The one design-domain object type + resolving it from SBOL
@@ -166,31 +156,21 @@ def resolve(shop: sbol2.PartShop, name: str, uri: str) -> SampleDesign:
 # Flapjack client + get-or-create
 # --------------------------------------------------------------------------- #
 def get_flapjack_client(
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    *,
     access_token: Optional[str] = None,
     refresh_token: Optional[str] = None,
-    url: str = "charmmefj-api.synbiohub.org",
+    url: str = None,
 ) -> Flapjack:
-    """Return an authenticated Flapjack client (the API host, not the web host).
 
-    Pass an ``access_token`` -- the intended workflow, via Flapjack's ``log_in_token``
-    (``username`` is optional and a ``refresh_token`` is only needed if the client later
-    refreshes) -- or fall back to ``username`` + ``password``. Flapjack tokens are JWTs;
-    the only way to mint one is Flapjack's own ``/api/auth/log_in/``.
-    """
+    print("Connecting to Flapjack at {0!r}".format(url))
     flapjack = Flapjack(url_base=url)
     if access_token:
-        flapjack.log_in_token(username, access_token, refresh_token)
+        flapjack.log_in_token(None, access_token, refresh_token)
         if not refresh_token:
             # the client calls refresh() before every get/create/delete; with no refresh
             # token, keep the supplied (already-fresh) access token instead of failing
             flapjack.refresh = lambda: None
-    elif password:
-        flapjack.log_in(username=username, password=password)
     else:
-        raise ValueError("get_flapjack_client needs an access_token, or a password")
+        raise ValueError("get_flapjack_client needs an access_token")
     return flapjack
 
 
@@ -444,42 +424,109 @@ def _write_grid(sheet, title, well_values, start_row: int = 1, blank_missing: bo
             value = "None"
         sheet.cell(row, col, value)
 
-
 def _read_neo(neo_path):
-    """Parse a BioTek Synergy Neo kinetic export (.txt) into a long measurement frame.
+    """Parse comma- or tab-delimited BioTek Synergy Neo kinetic exports."""
 
-    Comma-delimited with a metadata preamble and one ``Read N:...`` block per signal
-    (wells across the columns, time down the rows, a temperature column between Time
-    and the wells). Returns a DataFrame [Measurement ID, Sample ID, Signal ID, Time,
-    Value] where Sample ID is the well (A1..H12), Signal ID is the read label, Time is
-    hours.
-    """
     with open(neo_path, encoding="utf-8", errors="replace") as handle:
         lines = handle.readlines()
 
-    def to_hours(text):                                # 'H:MM:SS' -> hours
+    def to_hours(text):
         parts = [float(p) for p in str(text).split(":")] + [0.0, 0.0]
         return parts[0] + parts[1] / 60 + parts[2] / 3600
 
     records = []
+
     for i, line in enumerate(lines):
-        if not (line.strip().lower().startswith("time,") and "read" in line.lower()):
+
+        # Neo exports appear to be either comma- or tab-delimited.
+        delimiter = "\t" if "\t" in line else ","
+        fields = line.rstrip("\r\n").split(delimiter)
+
+        # Find:
+        #
+        # Time    T° Read 1:569    593    A1 ...
+        #
+        # or:
+        #
+        # Time,T° Read 1:569,593,A1,...
+        #
+        if not fields or fields[0].strip().lower() != "time":
             continue
-        # the signal label is the nearest preceding 'Read ...' line
-        label = next((lines[j].strip() for j in range(i - 1, max(0, i - 5), -1)
-                      if lines[j].strip().lower().startswith("read")), None)
+
+        if not any("read" in str(field).lower() for field in fields):
+            continue
+
+        # Find the preceding "Read ..." line.
+        label = None
+
+        for j in range(i - 1, max(-1, i - 5), -1):
+            candidate = lines[j].strip()
+
+            if candidate.lower().startswith("read"):
+                candidate_delimiter = "\t" if "\t" in candidate else ","
+
+                label_parts = [
+                    p.strip()
+                    for p in candidate.split(candidate_delimiter)
+                    if p.strip()
+                ]
+
+                label = ":".join(label_parts)
+                break
+
+        if label is None:
+            continue
+
         j = i + 1
+
         while j < len(lines) and lines[j].strip():
-            parts = lines[j].rstrip("\n").split(",")
-            time_h = to_hours(parts[0])                # parts[1] is the temperature column
+            row = lines[j].rstrip("\r\n")
+            parts = row.split(delimiter)
+
+            # A measurement row must at least contain
+            # Time + Temperature + one well.
+            if len(parts) < 3:
+                break
+
+            try:
+                time_h = to_hours(parts[0])
+            except (ValueError, TypeError):
+                break
+
             for k, value in enumerate(parts[2:2 + 96]):
-                well = "{0}{1}".format("ABCDEFGH"[k // 12], k % 12 + 1)
-                records.append({"Sample ID": well, "Signal ID": label,
-                                "Time": time_h, "Value": value})
+                well = "{}{}".format(
+                    "ABCDEFGH"[k // 12],
+                    k % 12 + 1,
+                )
+
+                records.append({
+                    "Sample ID": well,
+                    "Signal ID": label,
+                    "Time": time_h,
+                    "Value": value,
+                })
+
             j += 1
 
-    frame = pd.DataFrame(records)
-    frame.insert(0, "Measurement ID", ["Measurement{0}".format(i) for i in range(len(frame))])
+    frame = pd.DataFrame(
+        records,
+        columns=[
+            "Sample ID",
+            "Signal ID",
+            "Time",
+            "Value",
+        ],
+    )
+
+    frame.insert(
+        0,
+        "Measurement ID",
+        [
+            "Measurement{}".format(i)
+            for i in range(len(frame))
+        ],
+    )
+
     return frame
 
 
@@ -503,7 +550,6 @@ def construct_wb(
     Media/Strains/DNA/Chemicals sheets are 96-well grids from ``designs``.
     """
     well_design, _ = _read_well_designs(workbook_path, assay_id)
-
     def per_well(pick):
         return {well: pick(designs[name]) for well, name in well_design.items()}
 
@@ -523,7 +569,9 @@ def construct_wb(
 
     # Data sheet: one block per signal, from read_neo on the same file
     frame = _read_neo(plate_file)
+
     for reader_signal, clean_name in block_names.items():
+        signal_frame = frame[frame["Signal ID"] == reader_signal]
         wide = (
             frame[frame["Signal ID"] == reader_signal]
             .pivot_table(index="Time", columns="Sample ID", values="Value", aggfunc="first")
@@ -564,6 +612,20 @@ def construct_wb(
             )
 
     output = Path(output)
+
+    for reader_signal, clean_name in block_names.items():
+        signal_frame = frame[frame["Signal ID"] == reader_signal]
+
+        wide = (
+            signal_frame
+            .pivot_table(
+                index="Time",
+                columns="Sample ID",
+                values="Value",
+                aggfunc="first"
+            )
+            .reindex(columns=WELLS)
+        )
     workbook.save(output)
     return output
 
@@ -580,8 +642,12 @@ async def _upload_wb(flapjack, wb_file, study_id, assay_name, machine, temperatu
         "study": study_id, "name": assay_name, "machine": machine,
         "description": description or assay_name, "temperature": temperature,
     }
-    uri = (flapjack.ws_url_base.replace("ws://", "wss://")
-           + "/ws/registry/upload?token=" + flapjack.access_token)
+    uri = (
+        flapjack.ws_url_base.rstrip("/")
+        + "/ws/registry/upload?token="
+        + flapjack.access_token
+    )
+    print("Connecting to Flapjack WebSocket:", uri)
     assay_id = None
     async with websockets.connect(uri, max_size=int(1e10)) as socket:
         await socket.send(json.dumps({"type": "init_upload", "data": form}))
@@ -686,6 +752,7 @@ def import_study(
             dna_ids[plasmid_name] = dna_id
         for supplement, chemical_id in zip(design.supplements, provisioned["chemical"]):
             chemical_ids[supplement.chemical] = chemical_id
+            chemical_ids[supplement.chemical + " chemical"] = chemical_id
 
     # Signals come from the workbook's 'signal' sheet; the reader-channel -> name
     # mapping (block_names) is matched by ORDER (reader read order <-> sheet row
