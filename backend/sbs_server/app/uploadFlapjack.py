@@ -571,7 +571,6 @@ def construct_wb(
     frame = _read_neo(plate_file)
 
     for reader_signal, clean_name in block_names.items():
-        signal_frame = frame[frame["Signal ID"] == reader_signal]
         wide = (
             frame[frame["Signal ID"] == reader_signal]
             .pivot_table(index="Time", columns="Sample ID", values="Value", aggfunc="first")
@@ -682,6 +681,7 @@ async def _upload_wb(flapjack, wb_file, study_id, assay_name, machine, temperatu
                 try:
                     flapjack.delete("assay", assay_id, confirm=False)
                 except Exception:
+                    # don't mask the original exception if the delete fails, but log it
                     pass
             raise
 

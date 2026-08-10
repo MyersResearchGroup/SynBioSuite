@@ -218,6 +218,8 @@ def xdc_run(files):
                 try:
                     os.remove(plate)
                 except OSError:
+                    # Don't fail the whole process if we can't delete a temporary file; just log it
+                    traceback.print_exc()
                     pass
         except Exception as e:
             traceback.print_exc()
