@@ -190,6 +190,20 @@ def get_or_create(flapjack: Flapjack, model: str, match: dict, fields: dict) -> 
     return int(created.id.values[0])
 
 
+def get_and_delete(flapjack: Flapjack, model: str, match: dict) -> None:
+    """Check for existence of a Flapjack object and delete it if found.
+
+    ``match`` is the identity filter for the existence check -- the identity key
+    *only* (``name`` for media/strain/study, ``sboluri`` for dna/chemical), never
+    the full body, or an object with a differing description would be missed and
+    duplicated. ``fields`` is the body POSTed when the object doesn't exist.
+    """
+    existing = flapjack.get(model, **match)
+    if len(existing):
+        flapjack.delete(model, id=existing.id.values[0], confirm=False)
+        return 
+    return 
+
 def provision(flapjack: Flapjack, design: SampleDesign) -> Dict[str, object]:
     """Get-or-create every Flapjack object a :class:`SampleDesign` references.
 
@@ -273,7 +287,6 @@ def _read_well_designs(
     finally:
         workbook.close()
     return well_design, uris
-
 
 def read_unique_designs(
     workbook_path: Union[str, Path],
@@ -781,6 +794,7 @@ def import_study(
                             {"name": name, "description": description, "color": color})
         for name, description, color in signals
     }
+    get_and_delete(flapjack, "assay", {"name": assay_name})
 
     workbook = construct_wb(workbook_path, plate_file, designs, output,
                             block_names=block_names, assay_id=assay_id, temperature=temperature)
