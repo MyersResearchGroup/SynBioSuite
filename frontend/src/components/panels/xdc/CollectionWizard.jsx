@@ -56,6 +56,7 @@ export default function CollectionWizard() {
     const collectionUrl = study?.collectionUri ?? "";
     const selectedRepo = study?.registryURL ?? "";
     const registryAPI = study?.registryAPI ?? "";
+    const registryPrefix = study?.registryPrefix ?? "";
     let studyFJid = study?.FJid ?? "";
     const selectedFJRepo = study?.registryURLFJ ?? "";
     let registryAPIFJ = study?.registryAPIFJ ?? "";
@@ -77,6 +78,17 @@ export default function CollectionWizard() {
             if (!stored) return null;
             const repos = JSON.parse(stored);
             return repos.find((repo) => repo.registryURL === selectedFJRepo)?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const getStoredFJRefreshToken = () => {
+        try {
+            const stored = localStorage.getItem('Flapjack');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            return repos.find((repo) => repo.registryURL === selectedFJRepo)?.refresh || null;
         } catch {
             return null;
         }
@@ -160,6 +172,7 @@ export default function CollectionWizard() {
         const repoInfoFJ = dataFJ.find(repo => repo.registryURL === selectedFJRepo);
 
         let currentFJToken = repoInfoFJ?.authtoken ?? "";
+        let currentFJRefreshToken = repoInfoFJ?.refresh ?? "";
 
         if (plateOutputFile) {
             if (!currentFJToken) {
@@ -170,6 +183,7 @@ export default function CollectionWizard() {
                 }
             }
             currentFJToken = getStoredFJToken() || '';
+            currentFJRefreshToken = getStoredFJRefreshToken() || '';
 /*
         if (!currentFJToken) {
             showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
@@ -213,10 +227,12 @@ export default function CollectionWizard() {
             const response = await uploadExperiment(
                 metadataFile,
                 registryAPI,
+                registryPrefix,
                 currentToken,
                 collectionUrl,
                 registryAPIFJ,
                 currentFJToken,
+                currentFJRefreshToken,
                 studyFJid || null,
                 null,
                 3,

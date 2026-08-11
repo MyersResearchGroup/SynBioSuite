@@ -219,10 +219,12 @@ export async function upload_resource(
 export async function uploadExperiment(
     file,
     sbh_url,
+    sbh_prefix,
     sbh_token,
     collectionUrl,
     fj_url = null,
     fj_token = null,
+    fj_refresh_token = null,
     fj_study_id = null,
     workingDirectory = null,
     sbh_overwrite = 3,
@@ -266,11 +268,13 @@ export async function uploadExperiment(
 
         const paramsObj = {
             sbh_url: sbh_url,
+            sbh_prefix: sbh_prefix,
             sbh_token: sbh_token,
             collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
             fj_url: fj_url,
             fj_token: fj_token,
+            fj_refresh_token: fj_refresh_token,
             fj_study_id: fj_study_id,
             fj_overwrite: 1,
             version: "",
