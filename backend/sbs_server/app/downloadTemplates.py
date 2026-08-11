@@ -102,6 +102,15 @@ def sbh_download_template(files):
 
     try:
         template_bytes, filename = fetch_template_bytes(template_type)
+        
+        if template_type == "synbio.object-type.resources":
+            return send_file(
+                BytesIO(template_bytes),
+                as_attachment=True,
+                download_name=filename,
+                mimetype="application/vnd.ms-excel.sheet.macroEnabled.12",
+            )
+
         wb = load_workbook(BytesIO(template_bytes), keep_vba=True)
 
         if template_type == "synbio.object-type.strains":
