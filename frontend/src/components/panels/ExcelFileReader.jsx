@@ -3,6 +3,15 @@ import { read, utils } from 'xlsx';
 import { PanelContext } from "./ExcelFIlePanel";
 import { usePanelProperty } from "../../redux/hooks/panelsHooks";
 
+const HIDDEN_SHEETS = new Set([
+    "Init",
+    "flapjack_cols",
+    "column_definitions",
+    "ontology_terms",
+    "organism_terms",
+    "molecule_types"
+]);
+
 export default function ExcelFileReader() {
     const panelId = useContext(PanelContext)
     const excelFile = usePanelProperty(panelId, "file")
@@ -25,9 +34,16 @@ export default function ExcelFileReader() {
             }
 
             const wb = read(workbookData, { type: 'array' });
-            setSheetNames(wb.SheetNames);
-            const initialSheet = wb.SheetNames[0];
-            setSelectedSheet(initialSheet);
+            const visibleSheetNames = wb.SheetNames.filter(
+                name => !HIDDEN_SHEETS.has(name)
+            );
+            setSheetNames(visibleSheetNames);
+            const initialSheet = visibleSheetNames[0];
+            if (!initialSheet) {
+                setSelectedSheet(initialSheet);
+                setData([]);
+                return;
+            }
             const ws = wb.Sheets[initialSheet];
             // Set header:1 to get all rows as arrays, including the first row
             const content = utils.sheet_to_json(ws, { header: 1, blankrows: true, defval: null });
@@ -130,7 +146,7 @@ const styles = {
         flexDirection: "column",
         flex: 1,
         gap: 12,
-        height: "100%",
+        height: "calc(100vh - 100px)",
         minHeight: 0,
         padding: 12,
         background: "#f5f7fb",
