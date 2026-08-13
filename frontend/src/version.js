@@ -40,19 +40,30 @@ export async function checkAndClearOnVersionMismatch() {
             localStorage.setItem(key, val)
         }
 
-        try {
-            const existingRegistries = localStorage.getItem('SynbioHub');
-            if (!existingRegistries || JSON.parse(existingRegistries).length === 0) {
-                const registries = await getWebOfRegistries();
-                localStorage.setItem('SynbioHub', JSON.stringify(registries));
-            }
-        } catch (error) {
-            console.error('Failed to initialize Web of Registries:', error);
-        }
-
         localStorage.setItem(VERSION_STORAGE_KEY, APP_VERSION)
-        return true
+    } 
+
+    try {
+        const existingRegistries = localStorage.getItem('SynbioHub');
+        if (!existingRegistries || JSON.parse(existingRegistries).length === 0) {
+            const registries = await getWebOfRegistries();
+            localStorage.setItem('SynbioHub', JSON.stringify(registries));
+        }
+    } catch (error) {
+        console.error('Failed to initialize Web of Registries:', error);
     }
 
-    return false
+    try {
+        const existingFJInstances = localStorage.getItem('Flapjack');
+        if (!existingFJInstances || JSON.parse(existingFJInstances).length === 0) { 
+            const flapjackInstances = [{ registryAPI: "https://flapjack.synbiohub.org", 
+                registryURL: "https://flapjack.synbiohub.org",
+                registryPrefix: "https://flapjack.synbiohub.org"}];
+            localStorage.setItem('Flapjack', JSON.stringify(flapjackInstances));
+        }
+    } catch (error) {
+        console.error('Failed to initialize Flapjack instances:', error);
+    }
+
+    return shouldReset
 }
