@@ -180,7 +180,7 @@ export function useUnifiedModal() {
           open(MODAL_TYPES.REPOSITORY_SELECTOR, {
             allowedModals: [
               MODAL_TYPES.REPOSITORY_SELECTOR,
-              MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+              MODAL_TYPES.FLAPJACK_OPTIONS,
               MODAL_TYPES.SBH_LOGIN,
               MODAL_TYPES.FJ_LOGIN,
               MODAL_TYPES.ADD_SBH_REPO,
@@ -263,7 +263,7 @@ export function useUnifiedModal() {
                         open(MODAL_TYPES.COLLECTION_BROWSER, {
                             allowedModals: [
                                 MODAL_TYPES.COLLECTION_BROWSER,
-                                MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                                MODAL_TYPES.FLAPJACK_OPTIONS,
                                 MODAL_TYPES.SBH_LOGIN,
                             ],
                             props: modalProps,
@@ -272,9 +272,9 @@ export function useUnifiedModal() {
                         return;
                     }
 
-                    open(MODAL_TYPES.SBH_CREDENTIAL_CHECK, {
+                    open(MODAL_TYPES.FLAPJACK_OPTIONS, {
                         allowedModals: [
-                            MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                            MODAL_TYPES.FLAPJACK_OPTIONS,
                             MODAL_TYPES.SBH_LOGIN,
                         ],
                         props: modalProps,
@@ -283,10 +283,10 @@ export function useUnifiedModal() {
                     return;
                 }
 
-                open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+                    open(MODAL_TYPES.REPOSITORY_SELECTOR, {
                     allowedModals: [
                         MODAL_TYPES.REPOSITORY_SELECTOR,
-                        MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                        MODAL_TYPES.FLAPJACK_OPTIONS,
                         MODAL_TYPES.COLLECTION_BROWSER,
                         MODAL_TYPES.ADD_SBH_REPO,
                         MODAL_TYPES.SBH_LOGIN,
@@ -339,10 +339,10 @@ export function useUnifiedModal() {
                }
              }
 
-             open(selectedRepo ? MODAL_TYPES.SBH_CREDENTIAL_CHECK : MODAL_TYPES.REPOSITORY_SELECTOR, {
-               allowedModals: selectedRepo
-                 ? [MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.SBH_LOGIN]
-                 : [MODAL_TYPES.REPOSITORY_SELECTOR, MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.SBH_LOGIN],
+                             open(selectedRepo ? MODAL_TYPES.FLAPJACK_OPTIONS : MODAL_TYPES.REPOSITORY_SELECTOR, {
+                             allowedModals: selectedRepo
+                                 ? [MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.SBH_LOGIN]
+                                 : [MODAL_TYPES.REPOSITORY_SELECTOR, MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.SBH_LOGIN],
                props: modalProps,
                onComplete,
              });
