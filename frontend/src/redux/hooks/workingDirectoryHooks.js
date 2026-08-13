@@ -2,14 +2,17 @@ import { workingDirectorySlice } from '../store'
 import { useSelector, useDispatch, shallowEqual } from 'react-redux'
 import { classifyFile } from "../../objectTypes"
 import { useOpenPanel, useCloseAllPanels, usePanelIds, useClosePanel, panelsSelectors } from "./panelsHooks"
+import { createSelector } from '@reduxjs/toolkit'
 
 const { actions, selectors } = workingDirectorySlice
 const SEQ_IMPROVE_PANEL_TYPE = "synbio.panel-type.seqimprove"
 
 
 // Selector hooks
-
-export const useFiles = () => useSelector(selectors.selectAll)
+export const selectVisibleFiles = createSelector(
+    [selectors.selectAll],
+    files => files.filter(file => !file.name.startsWith('.')))
+export const useFiles = () => useSelector(selectVisibleFiles)
 export const useFile = id => useSelector(state => selectors.selectById(state, id))
 
 export function useWorkingDirectory() {

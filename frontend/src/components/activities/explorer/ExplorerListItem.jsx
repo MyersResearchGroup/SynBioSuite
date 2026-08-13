@@ -48,9 +48,6 @@ export default function ExplorerListItem({ fileId, icon }) {
 
     const supportsFileUpdate = () => {
         const fileName = file.name.toLowerCase()
-        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
-            return true
-        }
         if (/\.json$/i.test(fileName)) {
             return true
         }
@@ -68,14 +65,7 @@ export default function ExplorerListItem({ fileId, icon }) {
     }
 
     const supportsFileDownload = () => {
-        const fileName = file.name.toLowerCase()
-        if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
-            return true
-        }
-        if (/\.json$/i.test(fileName)) {
-            return true
-        }
-        return false
+        return true
     }
 
     // command list
