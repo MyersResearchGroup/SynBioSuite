@@ -4,8 +4,11 @@ import svgr from '@honkhonk/vite-plugin-svgr'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [svgr(), react()],
-    build: {
-        target: 'es2022', // Support top-level await
-    },
+  plugins: [svgr(), react()],
+    server: {
+    port: 3001,
+  },
+  build: {
+    target: 'es2022', // Support top-level await
+  },
 })

@@ -184,15 +184,27 @@ export default function CollectionWizard() {
             }
             currentFJToken = getStoredFJToken() || '';
             currentFJRefreshToken = getStoredFJRefreshToken() || '';
-/*
-        if (!currentFJToken) {
-            showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
-            return
-        }
 
-        try {
-            const loginResult = await CheckFJLogin(registryAPIFJ || selectedFJRepo, currentFJToken);
-            if (!loginResult?.valid) {
+            if (!currentFJToken) {
+                showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                return
+             }
+
+            try {
+                const loginResult = await CheckFJLogin(registryAPIFJ || selectedFJRepo, currentFJToken);
+                if (!loginResult?.valid) {
+                    const loginResult = await openFJLoginWorkflow();
+                    if (!loginResult?.completed) {
+                        showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                        return
+                    }
+                    currentFJToken = getStoredFJToken() || '';
+                    if (!currentFJToken) {
+                        showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                        return
+                    }
+                }
+            } catch {
                 const loginResult = await openFJLoginWorkflow();
                 if (!loginResult?.completed) {
                     showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
@@ -204,19 +216,7 @@ export default function CollectionWizard() {
                     return
                 }
             }
-        } catch {
-            const loginResult = await openFJLoginWorkflow();
-            if (!loginResult?.completed) {
-                showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
-                return
-            }
-            currentFJToken = getStoredFJToken() || '';
-            if (!currentFJToken) {
-                showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
-                return
-            }
-        }
-*/
+
         } else {
             registryAPIFJ = null;
             studyFJid = null;
