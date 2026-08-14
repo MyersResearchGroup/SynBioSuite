@@ -174,16 +174,6 @@ export const ObjectTypes = {
         subdirectory: "assays",
         downloadable: true,
     },
-    Results: {
-        id: "synbio.object-type.experimental-results",
-        title: "Experimental Results",
-        listTitle: "Experimental Results",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: VscOutput,
-        createable: false,
-        importable: true,
-        subdirectory: "experimentalResults",
-    },
     PlateReader: {
         id: "synbio.object-type.plate-reader",
         title: "Plate Reader Output",
@@ -193,6 +183,16 @@ export const ObjectTypes = {
         createable: false,
         importable: true,
         subdirectory: "plateReaderOutputs",
+    },
+    Results: {
+        id: "synbio.object-type.experimental-results",
+        title: "Experimental Results",
+        listTitle: "Other Experimental Results",
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: VscOutput,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalResults",
     },
     Assays: {
         id: "synbio.object-type.experiment",

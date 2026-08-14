@@ -108,7 +108,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
 
-    async function createStudyWorkflowFile(fileName, modalResult) {
+    async function createAssayWorkflowFile(fileName, modalResult) {
         const directory = await workDir.getDirectoryHandle(ObjectTypes.Assays.subdirectory, { create: true })
         const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Assays.extension, ObjectTypes.Assays.id, dispatch)
 
@@ -144,7 +144,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 return
             }
 
-            await createStudyWorkflowFile(fileName, modalResult)
+            await createAssayWorkflowFile(fileName, modalResult)
             return
         }
         if(objectType.subdirectory){
@@ -207,6 +207,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         }   
                                         {objectType.annotatable &&
                                             <OpenSeqImproveButton
+                                                id={`Annotate_${objectType.title}`}
+                                                name={`Annotate ${objectType.title}`}
                                                 text={`Annotate ${objectType.title}`}
                                                 subdirectory={objectType.subdirectory}
                                                 url={objectType.iframeUrl}>
