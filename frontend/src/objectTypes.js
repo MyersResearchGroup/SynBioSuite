@@ -59,7 +59,7 @@ export const ObjectTypes = {
     },
      Devices: {
         id: "synbio.object-type.devices",
-        title: "Devices",
+        title: "Device",
         listTitle: "Devices",
         fileMatch: /<sbol:/,
         icon: FaDna,
@@ -177,7 +177,7 @@ export const ObjectTypes = {
     PlateReader: {
         id: "synbio.object-type.plate-reader",
         title: "Plate Reader Output",
-        listTitle: "Plate Reader Output",
+        listTitle: "Plate Reader Outputs",
         fileNameMatch: /\.(xlsm|xlsx)$/,
         icon: VscOutput,
         createable: false,
@@ -196,7 +196,7 @@ export const ObjectTypes = {
     },
     Assays: {
         id: "synbio.object-type.experiment",
-        title: "Assays",
+        title: "Assay",
         listTitle: "Assays",
         fileNameMatch: /\.xdc$/,
         icon: AiOutlineExperiment,
