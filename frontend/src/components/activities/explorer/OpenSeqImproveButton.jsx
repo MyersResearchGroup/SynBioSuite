@@ -7,15 +7,15 @@ import panelsSlice from '../../../redux/slices/panelsSlice'
 const { actions } = panelsSlice;
 const SEQ_IMPROVE_PANEL_ID = "seqimprove-panel";
 
-export default function OpenSeqImproveButton({ text, url, subdirectory }) {
+export default function OpenSeqImproveButton({ id, name, text, url, subdirectory }) {
     const dispatch = useDispatch();
 
     const handleClick = () => {
         dispatch(actions.openPanel({
-            id: SEQ_IMPROVE_PANEL_ID,
+            id: id,
             type: "synbio.panel-type.seqimprove",
             url: url,
-            name: "SeqImprove",
+            name: name,
             subdirectory: subdirectory,
         }));
     };

@@ -1,13 +1,13 @@
 import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
 import { useContext, useState, useEffect } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
-import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
+import { useFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
 import { uploadExperiment, CheckLogin, CheckFJLogin } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
-import Dropzone from '../../Dropzone'
+import Dropzone, { MultiDropzone } from '../../Dropzone'
 import { readStudy } from "../../../modules/util";
 import { useSelector } from "react-redux";
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
@@ -22,8 +22,11 @@ export default function CollectionWizard() {
     const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
     const metadataFile = useFile(metadataID)
 
-    const [resultsID, setResultsID] = usePanelProperty(panelId, 'results', false)
-    const resultsFile = useFile(resultsID)
+    const [resultsIDsRaw, setResultsIDsRaw] = usePanelProperty(panelId, 'results', false, [])
+    const files = useFiles()
+    // normalize stored shape: allow single id, array of ids, or falsy
+    const resultsIDs = Array.isArray(resultsIDsRaw) ? resultsIDsRaw : (resultsIDsRaw ? [resultsIDsRaw] : [])
+    const resultsFiles = (resultsIDs || []).map(id => files.find(f => f.id === id)).filter(Boolean)
 
     const [plateOutputID, setPlateOutputID] = usePanelProperty(panelId, 'plateOutput', false)
     const plateOutputFile = useFile(plateOutputID)
@@ -238,7 +241,7 @@ export default function CollectionWizard() {
                 3,
                 //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
-                    attachments: resultsFile ? [resultsFile] : [],
+                    attachments: (resultsFiles && resultsFiles.length) ? resultsFiles : [],
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
                 }
             )
@@ -263,30 +266,30 @@ export default function CollectionWizard() {
     return (
         <Container style={stepperContainerStyle}>
             <Stack gap="xl">
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <Dropzone
                         allowedTypes={[ObjectTypes.Metadata.id]}
                         item={metadataFile?.name}
                         onItemChange={setMetadataID}
                     >
-                        Drag & drop Study Metadata from the explorer
+                        Drag & drop assay metadata from the explorer
                     </Dropzone>
-                    <Space h="lg" />
-                    <Dropzone
-                        allowedTypes={[ObjectTypes.Results.id]}
-                        item={resultsFile?.name}
-                        onItemChange={setResultsID}
-                    >
-                        Drag & drop Experimental Results from the explorer
-                    </Dropzone>
-                    <Space h="lg" />
                     <Dropzone
                         allowedTypes={[ObjectTypes.PlateReader.id]}
                         item={plateOutputFile?.name}
                         onItemChange={setPlateOutputID}
                     >
-                        Drag & drop Plate Reader Output from the explorer
+                        Drag & drop plate reader output from the explorer
                     </Dropzone>
+                    <MultiDropzone
+                        allowedTypes={[ObjectTypes.Results.id]}
+                        items={resultsIDs}
+                        onItemsChange={setResultsIDsRaw}
+                        onRemoveItem={item => setResultsIDsRaw((current) => (Array.isArray(current) ? current : (current ? [current] : [])).filter(x => x !== item))}
+                        labelForItem={id => (files.find(f => f.id === id)?.name) || id}
+                    >
+                        Drag & drop other experimental results from the explorer
+                    </MultiDropzone>
                 </div>
             </Stack>
             <Group position="center" style={{ width: '100%', marginTop: 20 }}>
