@@ -254,7 +254,6 @@ export default function CollectionWizard() {
                 selectedRepo,
                 status: response?.status || 'success',
             }
-
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
@@ -266,7 +265,7 @@ export default function CollectionWizard() {
     return (
         <Container style={stepperContainerStyle}>
             <Stack gap="xl">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div>
                     <Dropzone
                         allowedTypes={[ObjectTypes.Metadata.id]}
                         item={metadataFile?.name}

@@ -4,7 +4,7 @@ from .utils import sbh_get_subCollection_uris, sbh_get_attachment_uri
 import requests
 import os
 
-def upload_sbh_attachments(sbh_url, sbh_token, sbh_user, sbh_user_graph, sbh_collection_url, attachments, experimentId=None):
+def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_graph, sbh_collection_url, attachments, experimentId=None):
         headers = {'Accept': 'text/plain', 'X-authorization': sbh_token}
 
         for attachment_name, file in attachments.items():
@@ -15,6 +15,7 @@ def upload_sbh_attachments(sbh_url, sbh_token, sbh_user, sbh_user_graph, sbh_col
             search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_user_graph, sbh_collection_url, resolved_name)
             for binding in search_result["results"]["bindings"]:
                 uri = binding["s"]["value"]
+                uri = uri.replace(sbh_prefix,sbh_url)
                 response = requests.get(f'{uri}/remove', headers=headers)
                 if not response.ok:
                     raise Exception(f"Deleting existing attachment failed ({response.status_code}): {response.text}")

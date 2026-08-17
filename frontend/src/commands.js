@@ -9,6 +9,7 @@ import { loadOverlay, closeOverlay } from "./redux/slices/loadingOverlay"
 import { MODAL_TYPES } from "./modules/unified_modal/unifiedModal"
 import { upload_resource, upload_sbol, CheckLogin } from "./API"
 import { readStudy } from "./modules/util";
+import { workingDirectorySlice } from './redux/store'
 
 const EXCEL_VIEWER_PANEL_TYPE = 'synbio.panel-type.excel-viewer'
 
@@ -350,6 +351,7 @@ export default {
                 return "Panel isn't open."
 
             await writeToFileHandle(file, serializePanel(file.id))
+            store.dispatch(workingDirectorySlice.actions.uploadChanged())
 
             if (file.objectType === ObjectTypes.SBOL.id) {
                 const panel = panelsSelectors.selectById(store.getState(), file.id)
@@ -363,7 +365,6 @@ export default {
                     const dirHandle = store.getState().workingDirectory.directoryHandle
                     sbmlFile = await createFileInDirectory(dirHandle, sbmlFileName, ObjectTypes.SBML.id, store.dispatch)
                 }
-
                 await writeToFileHandle(sbmlFile, sbmlContent)
             }
         }
@@ -487,6 +488,7 @@ export default {
             const selectedRepo = jsonData.registryURL;
             const expectedEmail = jsonData.userEmail || null;
             const collectionUrl = jsonData.collectionUri;
+            const collectionId = jsonData.collectionId;
             const collectionName = jsonData.name;
             const registryAPI = jsonData.registryAPI;
             const importType = directory.endsWith(".xml")?"designs":directory;
@@ -507,6 +509,43 @@ export default {
                 } finally {
                   store.dispatch(closeOverlay());
                 }
+
+                const collectionEntry = {
+                    name: collectionName,
+                    displayId: collectionId,
+                    uri: collectionUrl,
+                    selectedRepo,
+                    userEmail: expectedEmail
+                }
+
+                const uploadEntry = {
+                    collectionName,
+                    collectionUri: collectionUrl,
+                    uri: collectionUrl,
+                    file: file.id,
+                    date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                    selectedRepo,
+                    userEmail: expectedEmail,
+                    type: 'upload',
+                };
+
+                const updatedJson = {
+                    file: file.id,
+                    collection: collectionEntry,
+                    uploads: [uploadEntry]
+                };
+
+                const jsonPath = file.id.replace(/\.xml$/i, '.json');
+                const parts = jsonPath.split('/');
+                const fileName = parts.pop();
+                let currentDir = dirHandle;
+                for (const part of parts) {
+                    currentDir = await currentDir.getDirectoryHandle(part);
+                }
+                const jsonFH = await currentDir.getFileHandle(fileName, { create: true });
+                await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
+
+                store.dispatch(workingDirectorySlice.actions.uploadChanged())
 
                 showNotification({
                   title: "File uploaded",

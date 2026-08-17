@@ -19,6 +19,24 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     // grab file handles
     const files = useFiles()
 
+    const filteredFiles = files.filter(file => {
+        // Is this object type supposed to appear in this list?
+        if (!objectTypesToList.includes(file.objectType)) {
+            return false
+        }
+
+        // Find its object-type definition
+        const objectType = Object.values(ObjectTypes).find(
+            type => type.id === file.objectType
+        )
+
+        if (!objectType?.fileNameMatch) {
+            return false
+        }
+
+        return objectType.fileNameMatch.test(file.name)
+    })
+
     const { workflows } = useUnifiedModal()
 
     const [importedFile, setImportedFile] = useState(null)
@@ -189,7 +207,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
-                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                            const filesOfType = filteredFiles.filter(file => file.objectType == objectType.id)
                                 .sort((a, b) => a.name?.localeCompare(b.name))
                             return (    
                                 <Accordion.Item value={objectType.id} key={i}>

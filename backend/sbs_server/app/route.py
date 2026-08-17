@@ -86,7 +86,7 @@ def xdc_run(files):
         return jsonify({"error": "No selected Params file"}), 400
     params_from_request = json.loads(params_file.read())
 
-    required_params = ['sbh_url', 'sbh_token', 'fj_url', 'fj_token', 'collection_url', 'fj_study_id', 
+    required_params = ['sbh_url', 'sbh_prefix', 'sbh_token', 'fj_url', 'fj_token', 'collection_url', 'fj_study_id', 
                         'sbh_overwrite', 'fj_overwrite', 'importType']
 
     for param in required_params:
@@ -180,7 +180,7 @@ def xdc_run(files):
                 if isinstance(tl, sbol2.Experiment):
                     experimentId = tl.displayId
                     break
-            upload_sbh_attachments(sbh_url, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, attachments, experimentId)
+            upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, attachments, experimentId)
         except Exception as e:
             print('Error uploading attachments to SynBioHub')
             return jsonify({"error": f"Error uploading attachments to SynBioHub: {e}"}), 400
