@@ -7,7 +7,6 @@ import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirector
 import DragObject from '../../DragObject'
 import { getPanelTypeForObject } from '../../../panels'
 import store from '../../../redux/store'
-import { ObjectTypes } from "../../../objectTypes"
 
 export default function ExplorerListItem({ fileId, icon }) {
 
