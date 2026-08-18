@@ -2,6 +2,7 @@ import JSZip from 'jszip'
 
 const RO_CRATE_VERSION = 'https://w3id.org/ro/crate/1.2'
 const IGNORED_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
+const WORKFLOW_JSON_DIRECTORIES = new Set(['resources', 'strains', 'sampleDesigns'])
 
 async function withErrorContext(context, operation) {
     try {
@@ -24,6 +25,17 @@ function isPreviewFile(path) {
     return path === 'ro-crate-preview.html' || path.startsWith('ro-crate-preview_files/')
 }
 
+function getOwnedJsonType(path) {
+    if (path.toLowerCase().endsWith('.xdc')) return 'assay workflow'
+    if (path === 'study.json') return 'study metadata'
+
+    const parts = path.split('/')
+    if (parts.length === 2 && WORKFLOW_JSON_DIRECTORIES.has(parts[0]) && parts[1].toLowerCase().endsWith('.json')) {
+        return 'workflow'
+    }
+    return null
+}
+
 function addAssay(assays, workflow, workflowDirectory) {
     if (!workflow.metadata) return
     const basePath = workflowDirectory.split('/').slice(0, -1).join('/')
@@ -38,8 +50,16 @@ function addAssay(assays, workflow, workflowDirectory) {
 
 function sanitizeWorkflow(workflow, filePath) {
     const sanitized = JSON.parse(JSON.stringify(workflow))
-    if (sanitized.collection && Object.hasOwn(sanitized.collection, 'authToken')) {
-        sanitized.collection.authToken = null
+
+    if (filePath === 'study.json') delete sanitized.userEmail
+    if (sanitized.collection && typeof sanitized.collection === 'object') {
+        delete sanitized.collection.authToken
+        delete sanitized.collection.userEmail
+    }
+    if (Array.isArray(sanitized.uploads)) {
+        for (const upload of sanitized.uploads) {
+            if (upload && typeof upload === 'object') delete upload.userEmail
+        }
     }
 
     const findSensitiveField = (value, path = []) => {
@@ -77,12 +97,13 @@ async function addDirectory(zip, directoryHandle, path = '', files = [], assays 
             await addDirectory(zip, entry, entryPath, files, assays)
         } else if (!shouldIgnore(entry.name, path)) {
             const file = await withErrorContext(`Could not read file "${entryPath}"`, () => entry.getFile())
-            if (entry.name.toLowerCase().endsWith('.xdc')) {
+            const ownedJsonType = getOwnedJsonType(entryPath)
+            if (ownedJsonType) {
                 const text = await withErrorContext(`Could not read file "${entryPath}"`, () => (
                     typeof file.text === 'function' ? file.text() : new TextDecoder().decode(file)
                 ))
-                const workflow = await withErrorContext(`Could not parse assay workflow "${entryPath}"`, () => JSON.parse(text))
-                addAssay(assays, workflow, path)
+                const workflow = await withErrorContext(`Could not parse ${ownedJsonType} "${entryPath}"`, () => JSON.parse(text))
+                if (ownedJsonType === 'assay workflow') addAssay(assays, workflow, path)
                 const workflowText = JSON.stringify(sanitizeWorkflow(workflow, entryPath), null, 2)
                 zip.file(entryPath, workflowText)
                 files.push({
