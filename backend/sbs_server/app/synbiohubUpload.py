@@ -15,7 +15,8 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
             search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_user_graph, sbh_collection_url, resolved_name)
             for binding in search_result["results"]["bindings"]:
                 uri = binding["s"]["value"]
-                uri = uri.replace(sbh_prefix,sbh_url)
+                if sbh_prefix:
+                    uri = uri.replace(sbh_prefix,sbh_url)
                 response = requests.get(f'{uri}/remove', headers=headers)
                 if not response.ok:
                     raise Exception(f"Deleting existing attachment failed ({response.status_code}): {response.text}")

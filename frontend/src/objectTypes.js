@@ -123,6 +123,7 @@ export const ObjectTypes = {
         iframeUrl: SEQ_IMPROVE_LINK,
         extension: '.xml',
         icon: FaDna,
+        fileMatch: /<sbol:/,
         fileNameMatch: /\.xml$/,
         badgeLabel: "PLASMID",
         subdirectory: "plasmids"
@@ -247,10 +248,10 @@ export async function classifyFile(file, subDirectoryName) {
         )?.id
     }
     else if (subDirectoryName) {
-        // try to match by subdirectory name
         const matchFromSubdirectory = getOBjectBySubdirectory(subDirectoryName)
-        if (matchFromSubdirectory) {
+        if (matchFromSubdirectory?.fileNameMatch?.test(file.name)) {
             return matchFromSubdirectory.id
         }
+        return null
     }
 }

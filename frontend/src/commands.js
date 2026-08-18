@@ -30,32 +30,68 @@ export default {
             const file = findFileByNameOrId(fileNameOrId)
             if (!file)
                 return "File doesn't exist."
-            
-            const dirHandle = store.getState().workingDirectory.directoryHandle
-            const directory = file.id.split("/")[0]
 
-            try {
-                const tempDirectory = await dirHandle.getDirectoryHandle(directory);
+            const dirHandle =
+                store.getState().workingDirectory.directoryHandle
 
-                let uploadedFilePath = null;
+            // Resolve the directory containing the file
+            const parts = file.id.split('/')
+            const fileName = parts.pop()
+
+            let currentDir = dirHandle
+
+            for (const part of parts) {
+                currentDir = await currentDir.getDirectoryHandle(part)
+            }
+
+            // If this is a JSON workflow file, preserve your existing
+            // behavior of finding an uploaded file referenced by it.
+            let uploadedFilePath = null
+
+            if (fileName.toLowerCase().endsWith('.json')) {
                 try {
-                    const jsonFH = await tempDirectory.getFileHandle(file.name);
-                    const jsonText = await (await jsonFH.getFile()).text();
-                    const jsonData = JSON.parse(jsonText);
-                    uploadedFilePath = jsonData.file || null;
-                } catch (e) {}
+                    const jsonFH = await currentDir.getFileHandle(fileName)
+                    const jsonText = await (await jsonFH.getFile()).text()
+                    const jsonData = JSON.parse(jsonText)
 
-                await tempDirectory.removeEntry(file.name);
+                    uploadedFilePath = jsonData.file || null
+                } catch (e) {
+                    // Not a readable workflow JSON file
+                }
+            }
+
+            // Delete the selected file
+            await currentDir.removeEntry(fileName)
+
+            // If deleting an XML source, also delete its upload sidecar.
+            if (fileName.toLowerCase().endsWith('.xml')) {
+                const sidecarName = fileName.replace(/\.xml$/i, '.json')
+                const sidecarId = [...parts, sidecarName].join('/')
 
                 try {
-                    if (uploadedFilePath) {
-                        const uploadsDir = await tempDirectory.getDirectoryHandle('uploads');
-                        const uploadFileName = uploadedFilePath.split('/').pop();
-                        await uploadsDir.removeEntry(uploadFileName);
+                    await currentDir.removeEntry(sidecarName)
+                } catch (e) {
+                    if (e.name !== 'NotFoundError') {
+                        console.warn(`Could not delete sidecar ${sidecarId}:`, e)
                     }
-                } catch (e) {}
-            } catch {
-                await dirHandle?.removeEntry(file.name);
+                }
+
+                store.dispatch(workDirActions.removeFile(sidecarId))
+            }
+
+            // Preserve your existing uploads/ cleanup.
+            if (uploadedFilePath) {
+                try {
+                    const uploadsDir =
+                        await currentDir.getDirectoryHandle('uploads')
+
+                    const uploadFileName =
+                        uploadedFilePath.split('/').pop()
+
+                    await uploadsDir.removeEntry(uploadFileName)
+                } catch (e) {
+                    // Uploaded file may already be gone.
+                }
             }
 
             store.dispatch(panelsActions.closePanel(file.id))
