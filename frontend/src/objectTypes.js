@@ -62,6 +62,7 @@ export const ObjectTypes = {
         title: "Device",
         listTitle: "Devices",
         fileMatch: /<sbol:/,
+        fileNameMatch: /\.xml$/,
         icon: FaDna,
         iframeUrl: SEQ_IMPROVE_LINK,
         createable: true,
@@ -75,6 +76,7 @@ export const ObjectTypes = {
         title: "Design",
         listTitle: "Designs",
         fileMatch: /<sbol:/,
+        fileNameMatch: /\_sbol.xml$/,
         icon: MdOutlineViewModule,
         createable: true,
         uploadable: false,
@@ -86,6 +88,7 @@ export const ObjectTypes = {
         title: "Model",
         listTitle: "Models",
         fileMatch: /<sbml/,
+        fileNameMatch: /\_sbml.xml$/,
         icon: PiTreeStructureFill,
         importable: true,
         badgeLabel: "SBML",
@@ -120,6 +123,7 @@ export const ObjectTypes = {
         iframeUrl: SEQ_IMPROVE_LINK,
         extension: '.xml',
         icon: FaDna,
+        fileMatch: /<sbol:/,
         fileNameMatch: /\.xml$/,
         badgeLabel: "PLASMID",
         subdirectory: "plasmids"
@@ -128,7 +132,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.strains",
         title: "Strains",
         listTitle: "Strains",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
+        fileNameMatch: /\.json$/,
         icon: BiSpreadsheet,
         extension: '.json',
         createable: false,
@@ -154,7 +158,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.sample-designs",
         title: "Sample Designs",
         listTitle: "Sample Designs",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
+        fileNameMatch: /\.json$/,
         icon: BiSpreadsheet,
         extension: '.json',
         createable: false,
@@ -178,7 +182,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.plate-reader",
         title: "Plate Reader Output",
         listTitle: "Plate Reader Outputs",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
+        fileNameMatch: /\.(xlsm|xlsx|txt|csv)$/,
         icon: VscOutput,
         createable: false,
         importable: true,
@@ -188,7 +192,7 @@ export const ObjectTypes = {
         id: "synbio.object-type.experimental-results",
         title: "Experimental Results",
         listTitle: "Other Experimental Results",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
+        fileNameMatch: /.*/,
         icon: VscOutput,
         createable: false,
         importable: true,
@@ -244,10 +248,10 @@ export async function classifyFile(file, subDirectoryName) {
         )?.id
     }
     else if (subDirectoryName) {
-        // try to match by subdirectory name
         const matchFromSubdirectory = getOBjectBySubdirectory(subDirectoryName)
-        if (matchFromSubdirectory) {
+        if (matchFromSubdirectory?.fileNameMatch?.test(file.name)) {
             return matchFromSubdirectory.id
         }
+        return null
     }
 }

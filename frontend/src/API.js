@@ -301,7 +301,6 @@ export async function uploadExperiment(
             ),
             ...(extraFiles.sheetName ? { sheet_name: extraFiles.sheetName } : {})
         }
-        console.log("uploadExperiment paramsObj:", paramsObj);
 
         const paramsJson = JSON.stringify(paramsObj);
         const paramBlob = new Blob([paramsJson], { type: 'application/json' });
