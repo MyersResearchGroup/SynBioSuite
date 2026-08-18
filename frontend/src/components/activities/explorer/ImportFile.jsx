@@ -18,7 +18,7 @@ import { readStudy } from "../../../modules/util";
 
 export const importedFile = createContext()
 
-const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns', 'experimentalSetups']
+const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns']
 
 async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, maxAttempts = 1000) {
     let candidate = baseName;
@@ -214,8 +214,6 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     userEmail: modalResult.userInfo?.email || null,
                     type: 'initial',
                 }
-                console.log("Initial upload metadata:", initialUpload)
-                console.log("Collection data:", collectionData)
 
                 await createWorkflowJSON(availableBaseName, useSubdirectory, uploadedFilePath, collectionData, initialUpload)
                 return
@@ -231,30 +229,16 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
             }
         }
     }
-    if (importable) {
-        return (
-            <Group sx={groupStyle} onClick={handleClick}>
-                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
-                <AiOutlineImport />
-                <Text size="sm" sx={textStyle} >
+    return (
+        <Group sx={groupStyle} onClick={handleClick}>
+            <importedFile.Provider value={{ selectedFile, setSelectedFile }}>
+                {importable ? <AiOutlineImport /> : <FiUpload />}
+                <Text size="sm" sx={textStyle}>
                     {text}
-                </Text> 
-                </importedFile.Provider>
-            </Group>
-        );
-    } else {
-        return (
-            <Group sx={groupStyle} onClick={handleClick}>
-                <importedFile.Provider value = {{selectedFile, setSelectedFile}}>
-                <FiUpload />
-                <Text size="sm" sx={textStyle} >
-                    {text}
-                </Text> 
-                </importedFile.Provider>
-            </Group>
-        );
-
-    }
+                </Text>
+            </importedFile.Provider>
+        </Group>
+    );
 }
 
 const groupStyle = (theme) => ({

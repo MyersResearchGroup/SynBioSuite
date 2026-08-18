@@ -43,7 +43,7 @@ const MODAL_FLOWS = {
     [MODAL_TYPES.DIRECTORY_SELECT]: [],
     [MODAL_TYPES.REPOSITORY_SELECTOR]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
-    [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.CREATE_COLLECTION],
+    [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.FLAPJACK_OPTIONS]: [MODAL_TYPES.FJ_INSTANCE_SELECTOR,MODAL_TYPES.CREATE_COLLECTION],
 };
 
@@ -176,15 +176,23 @@ function UnifiedModal({
     }, [handleClose]);
 
     const completeWorkflow = useCallback((data = {}) => {
-        const merged = { ...modalData, ...data, completed: true };
-        setModalData(merged);
+        const merged = {
+            ...modalData,
+            ...data,
+            completed: true
+        };
+
         completedRef.current = true;
-        
+
+        if (onComplete && typeof onComplete === 'function') {
+            onComplete(merged);
+        }
+
         dispatch(closeUnifiedModal({ modalData: merged }));
         setCurrentModal(initialModal);
         setModalHistory([]);
         setModalData({});
-    }, [dispatch, modalData, initialModal]);
+    }, [dispatch, modalData, initialModal, onComplete]);
 
     const getModalTitle = () => {
         return titles[currentModal] || 'Modal';
@@ -273,7 +281,7 @@ function UnifiedModal({
                 return (
                     <SBHLogin
                         opened={true}
-                        onClose={() => {
+                        onClose={(result = {}) => {
                             if (shouldNavigateToValidator) {
                                 const nextSelectedRepo = loginModalData.selectedRepo || modalData.selectedRepo;
                                 if (nextSelectedRepo) {
@@ -292,7 +300,7 @@ function UnifiedModal({
                                 return;
                             }
 
-                            shouldReturnToCredentialCheck ? goBack() : completeWorkflow();
+                            shouldReturnToCredentialCheck ? goBack() : completeWorkflow(result);
                         }}
                         {...commonProps}
                     />

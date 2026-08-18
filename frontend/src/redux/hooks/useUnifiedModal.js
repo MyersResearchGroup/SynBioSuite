@@ -22,28 +22,27 @@ export function useUnifiedModal() {
       state => state.primaryRepository.sbhPrimary
     );
 
-    const getStoredSBHToken = (selectedRepo) => {
+    const getStoredSBHEntry = (selectedRepo) => {
         try {
-            const stored = localStorage.getItem('SynbioHub');
-            if (!stored) return null;
-            const repos = JSON.parse(stored);
-            const entry = repos.find(r => r.registryURL === selectedRepo);
-            return entry?.authtoken || null;
+            const repos = JSON.parse(localStorage.getItem('SynbioHub') || '[]');
+            return repos.find(r => r.registryURL === selectedRepo) || null;
         } catch {
             return null;
         }
     };
 
     const validateStoredSBHToken = async (selectedRepo, expectedEmail) => {
-        const authToken = getStoredSBHToken(selectedRepo);
+        const entry = getStoredSBHEntry(selectedRepo);
+        const authToken = entry?.authtoken;
+
         if (!authToken) return null;
 
         try {
-            const entry = repos.find(r => r.registryURL === selectedRepo);
-            const registryAPI = entry?.registryAPI;
-            const loginResult = await CheckLogin(registryAPI || selectedRepo, authToken);
-            if (!loginResult.valid) return null;
-
+            const registryAPI = entry.registryAPI || selectedRepo;
+            const loginResult = await CheckLogin(registryAPI, authToken);
+            if (!loginResult?.valid) {
+                return null;
+            }
             if (expectedEmail) {
                 const actualEmail = (loginResult.profile?.email || '').toLowerCase();
                 if (actualEmail !== expectedEmail.toLowerCase()) {
@@ -51,13 +50,16 @@ export function useUnifiedModal() {
                 }
             }
 
-            return { authToken, userInfo: {
-                name: loginResult.profile?.name || 'Unknown',
-                username: loginResult.profile?.username || 'Unknown',
-                email: loginResult.profile?.email || '',
-                affiliation: loginResult.profile?.affiliation || 'N/A',
-            }};
-        } catch {
+            return {
+                authToken,
+                userInfo: {
+                    name: loginResult.profile?.name || 'Unknown',
+                    username: loginResult.profile?.username || 'Unknown',
+                    email: loginResult.profile?.email || '',
+                    affiliation: loginResult.profile?.affiliation || 'N/A',
+                },
+            };
+        } catch (error) {
             return null;
         }
     };
@@ -185,7 +187,6 @@ export function useUnifiedModal() {
               MODAL_TYPES.FJ_LOGIN,
               MODAL_TYPES.ADD_SBH_REPO,
               MODAL_TYPES.CREATE_COLLECTION,
-              MODAL_TYPES.FLAPJACK_OPTIONS,
               MODAL_TYPES.FJ_INSTANCE_SELECTOR,
             ],
             props: {
@@ -283,7 +284,7 @@ export function useUnifiedModal() {
                     return;
                 }
 
-                    open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+                open(MODAL_TYPES.REPOSITORY_SELECTOR, {
                     allowedModals: [
                         MODAL_TYPES.REPOSITORY_SELECTOR,
                         MODAL_TYPES.FLAPJACK_OPTIONS,
@@ -315,41 +316,47 @@ export function useUnifiedModal() {
          *   completed: true
          * }
          */
-         importToStudy: useCallback((onComplete, props = {}) => {
-           const executeImport = async () => {
-             const selectedRepo = props.selectedRepo || dataPrimarySBH;
-             const modalProps = {
-               ...props,
-               selectedRepo,
-               nextModal: null,
-               skipRepositorySelection: true,
-               silentCredentialCheck: true,
-             };
-
-             if (selectedRepo) {
-               const validToken = await validateStoredSBHToken(selectedRepo, props.expectedEmail);
-               if (validToken) {
-                 onComplete?.({
-                   selectedRepo,
-                   authToken: validToken.authToken,
-                   userInfo: validToken.userInfo,
-                   completed: true,
-                 });
-                 return;
-               }
-             }
-
-                             open(selectedRepo ? MODAL_TYPES.FLAPJACK_OPTIONS : MODAL_TYPES.REPOSITORY_SELECTOR, {
-                             allowedModals: selectedRepo
-                                 ? [MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.SBH_LOGIN]
-                                 : [MODAL_TYPES.REPOSITORY_SELECTOR, MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.SBH_LOGIN],
-               props: modalProps,
-               onComplete,
-             });
-           };
-
-           executeImport();
-         }, [open, dataPrimarySBH]),
+        importToStudy: useCallback((onComplete, props = {}) => {
+            const executeImport = async () => {
+                const selectedRepo = props.selectedRepo;
+                if (!selectedRepo) {
+                    onComplete?.({completed: false, error: 'Study has no configured SynBioHub repository.',});
+                    return;
+                }
+                // First see if we already have valid credentials.
+                const validToken = await validateStoredSBHToken(selectedRepo,props.expectedEmail);
+                if (validToken) {
+                    onComplete?.({
+                        selectedRepo,
+                        authToken: validToken.authToken,
+                        userInfo: validToken.userInfo,
+                        completed: true,
+                    });
+                    return;
+                }
+                open(MODAL_TYPES.SBH_LOGIN, {
+                    allowedModals: [MODAL_TYPES.SBH_LOGIN,],
+                    props: {
+                        ...props,
+                        selectedRepo,
+                        skipRepositorySelection: true,
+                    },
+                    onComplete: result => {
+                        if (!result?.authToken) {
+                            onComplete?.({completed: false, error: 'SynBioHub login did not return credentials.',})
+                            return
+                        }
+                        onComplete?.({
+                            selectedRepo,
+                            authToken: result.authToken,
+                            userInfo: result.userInfo,
+                            completed: true,
+                        })
+                    },
+                })
+            };
+            executeImport();
+        }, [open]),
 
         /**
          * Open collection browser workflow for resource selection (plasmids, backbones, etc.)
