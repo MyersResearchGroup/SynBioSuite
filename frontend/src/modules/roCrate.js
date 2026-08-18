@@ -1,0 +1,169 @@
+import JSZip from 'jszip'
+
+const RO_CRATE_VERSION = 'https://w3id.org/ro/crate/1.2'
+const IGNORED_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
+
+async function withErrorContext(context, operation) {
+    try {
+        return await operation()
+    } catch (error) {
+        throw new Error(`${context}:\n${error?.message || 'An unexpected error occurred'}`)
+    }
+}
+
+function shouldIgnore(name, path) {
+    return IGNORED_FILES.has(name) || name.startsWith('._') ||
+        (!path && name === 'ro-crate-metadata.json')
+}
+
+function encodePath(path) {
+    return path.split('/').map(encodeURIComponent).join('/')
+}
+
+function isPreviewFile(path) {
+    return path === 'ro-crate-preview.html' || path.startsWith('ro-crate-preview_files/')
+}
+
+function addAssay(assays, workflow, workflowDirectory) {
+    if (!workflow.metadata) return
+    const basePath = workflowDirectory.split('/').slice(0, -1).join('/')
+    const resolvePath = value => basePath && value ? `${basePath}/${value}` : value
+    const assay = {
+        assayMetadata: resolvePath(workflow.metadata),
+        experimentalData: (Array.isArray(workflow.results) ? workflow.results : (workflow.results ? [workflow.results] : [])).map(resolvePath),
+        plateReaderData: (Array.isArray(workflow.plateOutput) ? workflow.plateOutput : (workflow.plateOutput ? [workflow.plateOutput] : [])).map(resolvePath),
+    }
+    assays.push(assay)
+}
+
+function sanitizeWorkflow(workflow, filePath) {
+    const sanitized = JSON.parse(JSON.stringify(workflow))
+    if (sanitized.collection && Object.hasOwn(sanitized.collection, 'authToken')) {
+        sanitized.collection.authToken = null
+    }
+
+    const findSensitiveField = (value, path = []) => {
+        if (!value || typeof value !== 'object') return null
+        for (const [key, child] of Object.entries(value)) {
+            const childPath = [...path, key]
+            if (/token|password|secret|credential|refresh|email|username|affiliation/i.test(key) && child != null && child !== '') {
+                return childPath.join('.')
+            }
+            const nested = findSensitiveField(child, childPath)
+            if (nested) return nested
+        }
+        return null
+    }
+
+    const sensitiveField = findSensitiveField(sanitized)
+    if (sensitiveField) {
+        throw new Error(`Cannot export workflow "${filePath}": sensitive field "${sensitiveField}" contains a value. Remove the field value and retry.`)
+    }
+    return sanitized
+}
+
+async function addDirectory(zip, directoryHandle, path = '', files = [], assays = []) {
+    const directoryPath = path || directoryHandle.name || '.'
+    const entries = await withErrorContext(`Could not read directory "${directoryPath}"`, async () => {
+        const directoryEntries = []
+        for await (const entry of directoryHandle.values()) directoryEntries.push(entry)
+        return directoryEntries
+    })
+    entries.sort((a, b) => a.name.localeCompare(b.name))
+
+    for (const entry of entries) {
+        const entryPath = path ? `${path}/${entry.name}` : entry.name
+        if (entry.kind === 'directory') {
+            await addDirectory(zip, entry, entryPath, files, assays)
+        } else if (!shouldIgnore(entry.name, path)) {
+            const file = await withErrorContext(`Could not read file "${entryPath}"`, () => entry.getFile())
+            if (entry.name.toLowerCase().endsWith('.xdc')) {
+                const text = await withErrorContext(`Could not read file "${entryPath}"`, () => (
+                    typeof file.text === 'function' ? file.text() : new TextDecoder().decode(file)
+                ))
+                const workflow = await withErrorContext(`Could not parse assay workflow "${entryPath}"`, () => JSON.parse(text))
+                addAssay(assays, workflow, path)
+                const workflowText = JSON.stringify(sanitizeWorkflow(workflow, entryPath), null, 2)
+                zip.file(entryPath, workflowText)
+                files.push({
+                    path: entryPath,
+                    file: { name: entry.name, size: new TextEncoder().encode(workflowText).length, type: 'application/json' },
+                })
+            } else {
+                zip.file(entryPath, file)
+                files.push({ path: entryPath, file })
+            }
+        }
+    }
+    return files
+}
+
+function createMetadata(study, directoryName, files, exportedAt) {
+    const citations = (Array.isArray(study.citations) ? study.citations : [])
+        .map(String).map(value => value.trim()).filter(Boolean)
+    const citationEntities = citations.map(pmid => ({
+        '@id': `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(pmid)}/`,
+        '@type': 'ScholarlyArticle',
+        identifier: `PMID:${pmid}`,
+        name: `PubMed record ${pmid}`,
+    }))
+    const payloadFiles = files.filter(({ path }) => !isPreviewFile(path))
+
+    return {
+        '@context': `${RO_CRATE_VERSION}/context`,
+        '@graph': [
+            {
+                '@id': 'ro-crate-metadata.json',
+                '@type': 'CreativeWork',
+                conformsTo: { '@id': RO_CRATE_VERSION },
+                about: { '@id': './' },
+            },
+            {
+                '@id': './',
+                '@type': 'Dataset',
+                name: study.name || directoryName,
+                description: study.description || study.name || directoryName,
+                datePublished: exportedAt.toISOString(),
+                identifier: study.collectionUri || study.id,
+                version: study.version,
+                hasPart: payloadFiles.map(({ path }) => ({ '@id': encodePath(path) })),
+                ...(citationEntities.length && {
+                    citation: citationEntities.map(({ '@id': id }) => ({ '@id': id })),
+                }),
+            },
+            ...payloadFiles.map(({ path, file }) => ({
+                '@id': encodePath(path),
+                '@type': 'File',
+                name: file.name,
+                contentSize: String(file.size),
+                ...(file.type && { encodingFormat: file.type }),
+            })),
+            ...citationEntities,
+        ],
+    }
+}
+
+export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new Date()) {
+    const zip = new JSZip()
+    const assays = []
+    const files = await addDirectory(zip, directoryHandle, '', [], assays)
+    if (assays.length) {
+        const assayText = JSON.stringify({ version: 1, assays }, null, 2)
+        zip.file('assays.json', assayText)
+        files.push({
+            path: 'assays.json',
+            file: { name: 'assays.json', size: new TextEncoder().encode(assayText).length, type: 'application/json' },
+        })
+    }
+    const metadata = createMetadata(study, directoryHandle.name, files, exportedAt)
+    zip.file('ro-crate-metadata.json', JSON.stringify(metadata, null, 2))
+
+    const fallbackName = study.id || directoryHandle.name || 'study'
+    const safeName = String(fallbackName).trim().replace(/[\\/:*?"<>|]+/g, '_') || 'study'
+    return {
+        blob: await withErrorContext('Could not create ZIP archive', () => (
+            zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+        )),
+        fileName: `${safeName}-ro-crate.zip`,
+    }
+}
