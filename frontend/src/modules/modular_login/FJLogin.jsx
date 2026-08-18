@@ -159,6 +159,9 @@ const FJInstanceLogin = ({ opened, onClose, goBack, setRepoSelection, selectedRe
                     Login
                 </Button>
                 <Button variant="outline" mt="md" ml="sm" onClick={() => {if(instanceData.length == 0) {setRepoSelection("")} else goBack(false)}}>
+                    Register
+                </Button>
+                <Button variant="outline" mt="md" ml="sm" onClick={() => {if(instanceData.length == 0) {setRepoSelection("")} else goBack(false)}}>
                     Back
                 </Button>
             </form>

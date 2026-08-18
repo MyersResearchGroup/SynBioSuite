@@ -221,6 +221,32 @@ export default function CredentialCheckModal({
         });
     }, [navigateTo, skipRepositorySelection, expectedEmail, emailMismatch]);
 
+    const handleRegister = () => {
+        open(MODAL_TYPES.SBH_REGISTER, {
+            allowedModals: [
+                MODAL_TYPES.SBH_REGISTER,
+                MODAL_TYPES.SBH_LOGIN,
+            ],
+            props: {
+                selectedRepo,
+            },
+            onComplete: (result) => {
+                if (!result?.completed) return
+
+                open(MODAL_TYPES.SBH_LOGIN, {
+                    allowedModals: [
+                        MODAL_TYPES.SBH_LOGIN,
+                        MODAL_TYPES.ADD_SBH_REPO,
+                    ],
+                    props: {
+                        selectedRepo,
+                        username: result.username,
+                    },
+                })
+            },
+        })
+    }
+
     const handleConfirm = useCallback(() => {
         if (!isValid) return;
 
@@ -346,7 +372,10 @@ export default function CredentialCheckModal({
                         </Button>
                     )}
                     {isValid === false ? (
-                        <Button onClick={handleLogin}>Log In</Button>
+                        <>
+                            <Button variant="default" onClick={handleRegister}>Register</Button>
+                            <Button onClick={handleLogin}>Log In</Button>
+                        </>
                     ) : (
                         <Button onClick={handleConfirm}>Confirm & Continue</Button>
                     )}

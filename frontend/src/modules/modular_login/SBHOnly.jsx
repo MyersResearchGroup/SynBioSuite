@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
 import { SBHLogin, CheckLogin } from '../../API';
 
-const SBHOnly = ({opened, onClose, goBack}) => {
+const SBHOnly = ({opened, onClose, goBack, navigateTo, selectedRepo}) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
@@ -110,6 +110,12 @@ const SBHOnly = ({opened, onClose, goBack}) => {
         }
     };
 
+    const handleRegister = () => {
+        navigateTo('sbh-register', {
+            selectedRepo: selected
+        })
+    }
+
     return (
         <Modal
             opened={opened}
@@ -133,13 +139,28 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                 />
                 <Group position="apart" mt="xl">
                     {goBack && (
-                        <Button variant="default" onClick={goBack}>
+                        <Button
+                            type="button"
+                            variant="default"
+                            onClick={goBack}
+                        >
                             Back
                         </Button>
                     )}
-                    <Button type="submit" ml={goBack ? undefined : "auto"}>
-                        Login
-                    </Button>
+
+                    <Group ml={goBack ? undefined : "auto"}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleRegister}
+                        >
+                            Register
+                        </Button>
+
+                        <Button type="submit">
+                            Login
+                        </Button>
+                    </Group>
                 </Group>
             </form>
         </Modal>

@@ -54,7 +54,7 @@ const getProfile = async (instance, auth) => {
     }
 };
 
-const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
+const SBHInstanceLogin = ({ selectedRepo, navigateTo, goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] });
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
@@ -141,17 +141,13 @@ const SBHInstanceLogin = ({ goBack, setRepoSelection }) => {
                 <Button type="submit" mt="md">
                     Login
                 </Button>
-                <Button
-                    variant="outline"
-                    mt="md"
-                    ml="sm"
-                    onClick={() => {
-                        if (instanceData.length === 0) {
-                            setRepoSelection('');
-                        } else {
-                            goBack(false);
-                        }
-                    }}
+                <Button variant="outline" mt="md" ml="sm" onClick={() => {
+                    if (instanceData.length === 0) {
+                        setRepoSelection('');
+                    } else {
+                        goBack(false);
+                    }
+                }}
                 >
                     Back
                 </Button>

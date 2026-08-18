@@ -16,9 +16,11 @@ import FlapjackOptionsModal from './FlapjackOptionsModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
 import AddRegistryModal from './AddRegistryModal';
 import WellLocationsConfigModal from './WellLocationsConfigModal';
+import SBHRegister from '../modular_login/SBHRegister'
 
 export const MODAL_TYPES = {
     SBH_LOGIN: 'sbh_login',
+    SBH_REGISTER: 'sbh-register',
     FJ_LOGIN: 'fj_login',
     ADD_SBH_REPO: 'add_sbh_repo',
     ADD_FJ_REPO: 'add_fj_repo',
@@ -34,7 +36,8 @@ export const MODAL_TYPES = {
 };
 
 const MODAL_FLOWS = {
-    [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
+    [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.SBH_REGISTER],
+    [MODAL_TYPES.SBH_REGISTER]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.FJ_LOGIN]: [MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
     [MODAL_TYPES.ADD_SBH_REPO]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.ADD_FJ_REPO]: [MODAL_TYPES.FJ_LOGIN],
@@ -51,6 +54,7 @@ const MODAL_FLOWS = {
 
 const titles = {
     [MODAL_TYPES.SBH_LOGIN]: 'Login to SynBioHub',
+    [MODAL_TYPES.SBH_REGISTER]: 'Create an Account on SynBioHub',
     [MODAL_TYPES.FJ_LOGIN]: 'Login to Flapjack',
     [MODAL_TYPES.ADD_SBH_REPO]: 'Add SynBioHub Repository',
     [MODAL_TYPES.ADD_FJ_REPO]: 'Add Flapjack Repository',
@@ -228,11 +232,11 @@ function UnifiedModal({
 
     const renderModalContent = () => {
         const commonProps = {
+            ...modalProps,
+            modalData: modalData[currentModal] || {},
             navigateTo,
             goBack,
             completeWorkflow,
-            modalData: modalData[currentModal] || {},
-            ...modalProps,
         };
 
         const getStoredRegistries = (key) => {
@@ -304,6 +308,13 @@ function UnifiedModal({
                         {...commonProps}
                     />
                 );
+
+            case MODAL_TYPES.SBH_REGISTER:
+                return (
+                    <SBHRegister
+                        {...commonProps}
+                    />
+                )
 
             case MODAL_TYPES.FJ_LOGIN:
                 return (
@@ -466,6 +477,7 @@ function UnifiedModal({
 
     const selfContainedModals = [
         MODAL_TYPES.SBH_LOGIN,
+        MODAL_TYPES.SBH_REGISTER,
         MODAL_TYPES.ADD_SBH_REPO,
         MODAL_TYPES.ADD_FJ_REPO,
         MODAL_TYPES.CREATE_COLLECTION,
