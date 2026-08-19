@@ -88,7 +88,12 @@ const SBHOnly = ({opened, onClose, goBack}) => {
                     message: 'You have successfully logged in.',
                     color: 'green',
                 });                
-                onClose()
+                onClose({
+                    selectedRepo: updatedInstance.registryURL,
+                    authToken,
+                    userInfo: info,
+                    completed: true,
+                });
             } catch (error) {
                 cleanNotifications();
                 console.error('Login failed:', error);

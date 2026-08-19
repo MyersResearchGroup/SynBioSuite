@@ -109,7 +109,10 @@ export default function CollectionBrowserModal({
                     expectedEmail,
                     skipRepositorySelection: true,
                 }));
-                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                    selectedRepo,
+                    returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                });
                 return;
             }
 
@@ -129,7 +132,10 @@ export default function CollectionBrowserModal({
                         message: 'Your login credentials have expired or are invalid. Please log in again.',
                         color: 'orange',
                     });
-                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                        selectedRepo,
+                        returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                    });
                     return;
                 }
 
@@ -150,7 +156,10 @@ export default function CollectionBrowserModal({
                         expectedEmail,
                         skipRepositorySelection: true,
                     }));
-                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                        selectedRepo,
+                        returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                    });
                     return;
                 }
 
@@ -181,7 +190,10 @@ export default function CollectionBrowserModal({
                     expectedEmail,
                     skipRepositorySelection: true,
                 }));
-                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                    selectedRepo,
+                    returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                });
             }
         };
 

@@ -11,7 +11,6 @@ import CreateCollectionModal from '../CreateCollectionModal';
 import SBHInstanceSelector from '../modular_login/SBHInstanceSelector';
 import FJInstanceSelector from '../modular_login/FJInstanceSelector';
 import RepositorySelectorModal from './RepositorySelectorModal';
-import CredentialCheckModal from './CredentialCheckModal';
 import FlapjackOptionsModal from './FlapjackOptionsModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
 import AddRegistryModal from './AddRegistryModal';
@@ -34,18 +33,17 @@ export const MODAL_TYPES = {
 };
 
 const MODAL_FLOWS = {
-    [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
-    [MODAL_TYPES.FJ_LOGIN]: [MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
+    [MODAL_TYPES.SBH_LOGIN]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.FLAPJACK_OPTIONS],
+    [MODAL_TYPES.FJ_LOGIN]: [MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.FLAPJACK_OPTIONS],
     [MODAL_TYPES.ADD_SBH_REPO]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.ADD_FJ_REPO]: [MODAL_TYPES.FJ_LOGIN],
     [MODAL_TYPES.CREATE_COLLECTION]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.DIRECTORY_SELECT]: [],
-    [MODAL_TYPES.REPOSITORY_SELECTOR]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.SBH_CREDENTIAL_CHECK],
-    [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.COLLECTION_BROWSER, MODAL_TYPES.FLAPJACK_OPTIONS],
+    [MODAL_TYPES.REPOSITORY_SELECTOR]: [MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.FLAPJACK_OPTIONS, MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
-    [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_CREDENTIAL_CHECK, MODAL_TYPES.CREATE_COLLECTION],
+    [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.FLAPJACK_OPTIONS]: [MODAL_TYPES.FJ_INSTANCE_SELECTOR,MODAL_TYPES.CREATE_COLLECTION],
 };
 
@@ -97,15 +95,19 @@ function UnifiedModal({
 }) {
 
     const [currentModal, setCurrentModal] = useState(initialModal);
+    const currentModalRef = useRef(currentModal);
     const [modalHistory, setModalHistory] = useState([]);
+    const suppressAutoRef = useRef({});
     const [modalData, setModalData] = useState({});
     const completedRef = useRef(false);
     const dispatch = useDispatch();
 
     useEffect(() => {
         if (opened) {
-            setCurrentModal(initialModal);
             setModalHistory([]);
+
+            // Ensure current modal updates when the modal is opened with a new initialModal
+            setCurrentModal(initialModal);
 
             setModalData({
                 [initialModal]: modalProps,
@@ -114,6 +116,11 @@ function UnifiedModal({
             completedRef.current = false;
         }
     }, [opened, initialModal, modalProps]);
+
+    // keep a ref in sync to avoid stale closures when child components call navigateTo
+    useEffect(() => {
+        currentModalRef.current = currentModal;
+    }, [currentModal]);
     
     useEffect(() => {
         if (currentModal !== MODAL_TYPES.SBH_LOGIN) {
@@ -130,40 +137,18 @@ function UnifiedModal({
         }
     }, [currentModal, modalData, modalProps.selectedRepo, dispatch]);
 
-    const navigateTo = useCallback((modalType, data = {}) => {
-      const currentFlow = MODAL_FLOWS[currentModal] || [];
+        const navigateTo = useCallback((modalType, data = {}) => {
+                const sourceModal = currentModalRef.current || initialModal;
+                const allowedFlow = MODAL_FLOWS[sourceModal] || [];
+                const bypassAllowedModalsFor = [MODAL_TYPES.SBH_LOGIN];
+                const skipAllowedModalsCheck = bypassAllowedModalsFor.includes(modalType);
+                if (!allowedFlow.includes(modalType) || (!skipAllowedModalsCheck && !allowedModals.includes(modalType))) return false;
 
-      if (!currentFlow.includes(modalType)) {
-        console.warn(
-          `Navigation from ${currentModal} to ${modalType} not allowed by flow`
-        );
-        return false;
-      }
-
-      if (!allowedModals.includes(modalType)) {
-        console.warn(
-          `Modal ${modalType} not allowed by workflow constraints`
-        );
-        return false;
-      }
-      
-      setModalHistory(prev => [...prev, currentModal]);
-      setCurrentModal(modalType);
-
-      setModalData(prev => {
-        const currentState = prev[currentModal] || modalProps;
-
-        return {
-          ...prev,
-          [modalType]: {
-            ...currentState,
-            ...data,
-          },
-        };
-      });
-      
-      return true;
-    }, [currentModal, allowedModals, modalProps]);
+            setModalHistory(prev => [...prev, sourceModal]);
+            setCurrentModal(modalType);
+            setModalData(prev => ({ ...prev, [modalType]: { ...(prev[sourceModal] || modalProps), ...data } }));
+            return true;
+        }, [allowedModals, modalProps]);
   
     const handleClose = useCallback(() => {
         dispatch(closeUnifiedModal());
@@ -181,26 +166,33 @@ function UnifiedModal({
     }, [dispatch, modalData, initialModal, onClose]);
 
     const goBack = useCallback(() => {
-        if (modalHistory.length === 0) {
-            handleClose();
-            return;
-        }
-
-        const previousModal = modalHistory[modalHistory.length - 1];
-        setModalHistory(prev => prev.slice(0, -1));
-        setCurrentModal(previousModal);
-    }, [modalHistory, handleClose]);
+        setModalHistory(prev => {
+            if (!prev || prev.length === 0) { handleClose(); return []; }
+            const previousModal = prev[prev.length - 1];
+            suppressAutoRef.current = { ...(suppressAutoRef.current || {}), [previousModal]: true };
+            setCurrentModal(previousModal);
+            return prev.slice(0, -1);
+        });
+    }, [handleClose]);
 
     const completeWorkflow = useCallback((data = {}) => {
-        const merged = { ...modalData, ...data, completed: true };
-        setModalData(merged);
+        const merged = {
+            ...modalData,
+            ...data,
+            completed: true
+        };
+
         completedRef.current = true;
-        
+
+        if (onComplete && typeof onComplete === 'function') {
+            onComplete(merged);
+        }
+
         dispatch(closeUnifiedModal({ modalData: merged }));
         setCurrentModal(initialModal);
         setModalHistory([]);
         setModalData({});
-    }, [dispatch, modalData, initialModal]);
+    }, [dispatch, modalData, initialModal, onComplete]);
 
     const getModalTitle = () => {
         return titles[currentModal] || 'Modal';
@@ -231,6 +223,15 @@ function UnifiedModal({
             navigateTo,
             goBack,
             completeWorkflow,
+            shouldSuppressAutoNavigation: (modal) => {
+                const key = modal || currentModalRef.current;
+                const val = !!(suppressAutoRef.current && suppressAutoRef.current[key]);
+                if (val) {
+                    // clear after reading
+                    suppressAutoRef.current = { ...(suppressAutoRef.current || {}), [key]: false };
+                }
+                return val;
+            },
             modalData: modalData[currentModal] || {},
             ...modalProps,
         };
@@ -271,16 +272,16 @@ function UnifiedModal({
 
         switch (currentModal) {
             case MODAL_TYPES.SBH_LOGIN:
-                const shouldReturnToCredentialCheck = modalHistory.includes(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                const shouldReturnToCredentialCheck = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
                 const loginModalData = modalData[MODAL_TYPES.SBH_LOGIN] || {};
                 const shouldNavigateToValidator =
-                    loginModalData.returnTo === MODAL_TYPES.SBH_CREDENTIAL_CHECK
-                    && allowedModals.includes(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    loginModalData.returnTo === MODAL_TYPES.FLAPJACK_OPTIONS
+                    && allowedModals.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
 
                 return (
                     <SBHLogin
                         opened={true}
-                        onClose={() => {
+                        onClose={(result = {}) => {
                             if (shouldNavigateToValidator) {
                                 const nextSelectedRepo = loginModalData.selectedRepo || modalData.selectedRepo;
                                 if (nextSelectedRepo) {
@@ -291,7 +292,7 @@ function UnifiedModal({
                                     selectedRepo: nextSelectedRepo,
                                 }));
 
-                                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK, {
+                                navigateTo(MODAL_TYPES.FLAPJACK_OPTIONS, {
                                     selectedRepo: nextSelectedRepo,
                                     expectedEmail: modalData.expectedEmail,
                                     skipRepositorySelection: modalData.skipRepositorySelection,
@@ -299,7 +300,7 @@ function UnifiedModal({
                                 return;
                             }
 
-                            shouldReturnToCredentialCheck ? goBack() : completeWorkflow();
+                            shouldReturnToCredentialCheck ? goBack() : completeWorkflow(result);
                         }}
                         {...commonProps}
                     />
@@ -318,7 +319,7 @@ function UnifiedModal({
                 );
 
             case MODAL_TYPES.ADD_SBH_REPO:
-                const hasCredentialCheckInHistory = modalHistory.includes(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                const hasCredentialCheckInHistory = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
                 const hasRepoSelectorInHistory = modalHistory.includes(MODAL_TYPES.REPOSITORY_SELECTOR);
                 const shouldReturnToValidator = hasCredentialCheckInHistory || hasRepoSelectorInHistory;
                 return (
@@ -334,7 +335,7 @@ function UnifiedModal({
                             if (shouldReturnToValidator) {
                                 navigateTo(MODAL_TYPES.SBH_LOGIN, {
                                     selectedRepo: data.registryURL,
-                                    returnTo: MODAL_TYPES.SBH_CREDENTIAL_CHECK,
+                                    returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
                                 });
                                 return;
                             }
@@ -410,17 +411,7 @@ function UnifiedModal({
                     />
                 );
 
-            case MODAL_TYPES.SBH_CREDENTIAL_CHECK:
-                return (
-                    <CredentialCheckModal
-                        navigateTo={navigateTo}
-                        goBack={goBack}
-                        completeWorkflow={completeWorkflow}
-                        modalData={modalData}
-                        setModalData={setModalData}
-                        {...commonProps}
-                    />
-                );
+            /* SBH_CREDENTIAL_CHECK removed: flows now go directly to FLAPJACK_OPTIONS */
 
             case MODAL_TYPES.COLLECTION_BROWSER:
                 return (
