@@ -22,7 +22,7 @@ export default function ROCrateExportButton() {
             } catch (error) {
                 throw new Error(`Could not read study metadata "study.json":\n${error?.message || 'An unexpected error occurred'}`)
             }
-            const { blob, fileName } = await buildStudyRoCrate(directoryHandle, study)
+            const { blob, fileName, licenseLabel } = await buildStudyRoCrate(directoryHandle, study)
             try {
                 await browserDownload(blob, fileName)
             } catch (error) {
@@ -30,7 +30,7 @@ export default function ROCrateExportButton() {
             }
             showNotification({
                 title: 'RO-Crate exported',
-                message: fileName,
+                message: `${fileName} — Data license: ${licenseLabel}`,
                 color: 'teal',
             })
         } catch (error) {

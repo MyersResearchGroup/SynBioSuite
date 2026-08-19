@@ -1,6 +1,18 @@
 import JSZip from 'jszip'
 
 const RO_CRATE_VERSION = 'https://w3id.org/ro/crate/1.2'
+const DATA_LICENSE_FILE = 'DATA_LICENSE.md'
+const CC_BY_4_0 = {
+    id: 'https://creativecommons.org/licenses/by/4.0/',
+    name: 'Creative Commons Attribution 4.0 International',
+    description: 'Permits sharing and adaptation for any purpose, provided appropriate credit is given.',
+}
+const DEFAULT_DATA_LICENSE_NOTICE = `# Data License
+
+Unless otherwise noted, the contents of this exported study dataset are licensed under the [Creative Commons Attribution 4.0 International license](${CC_BY_4_0.id}).
+
+This license applies to the dataset contents, not to SynBioSuite software, which is licensed separately under the Apache License 2.0.
+`
 const IGNORED_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
 const WORKFLOW_JSON_DIRECTORIES = new Set(['resources', 'strains', 'sampleDesigns'])
 
@@ -119,7 +131,7 @@ async function addDirectory(zip, directoryHandle, path = '', files = [], assays 
     return files
 }
 
-function createMetadata(study, directoryName, files, exportedAt) {
+function createMetadata(study, directoryName, files, exportedAt, hasCustomDataLicense) {
     const citations = (Array.isArray(study.citations) ? study.citations : [])
         .map(String).map(value => value.trim()).filter(Boolean)
     const citationEntities = citations.map(pmid => ({
@@ -147,6 +159,9 @@ function createMetadata(study, directoryName, files, exportedAt) {
                 datePublished: exportedAt.toISOString(),
                 identifier: study.collectionUri || study.id,
                 version: study.version,
+                license: {
+                    '@id': hasCustomDataLicense ? DATA_LICENSE_FILE : CC_BY_4_0.id,
+                },
                 hasPart: payloadFiles.map(({ path }) => ({ '@id': encodePath(path) })),
                 ...(citationEntities.length && {
                     citation: citationEntities.map(({ '@id': id }) => ({ '@id': id })),
@@ -160,6 +175,12 @@ function createMetadata(study, directoryName, files, exportedAt) {
                 ...(file.type && { encodingFormat: file.type }),
             })),
             ...citationEntities,
+            ...(!hasCustomDataLicense ? [{
+                '@id': CC_BY_4_0.id,
+                '@type': 'CreativeWork',
+                name: CC_BY_4_0.name,
+                description: CC_BY_4_0.description,
+            }] : []),
         ],
     }
 }
@@ -168,6 +189,18 @@ export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new
     const zip = new JSZip()
     const assays = []
     const files = await addDirectory(zip, directoryHandle, '', [], assays)
+    const hasCustomDataLicense = files.some(({ path }) => path === DATA_LICENSE_FILE)
+    if (!hasCustomDataLicense) {
+        zip.file(DATA_LICENSE_FILE, DEFAULT_DATA_LICENSE_NOTICE)
+        files.push({
+            path: DATA_LICENSE_FILE,
+            file: {
+                name: DATA_LICENSE_FILE,
+                size: new TextEncoder().encode(DEFAULT_DATA_LICENSE_NOTICE).length,
+                type: 'text/markdown',
+            },
+        })
+    }
     if (assays.length) {
         const assayText = JSON.stringify({ version: 1, assays }, null, 2)
         zip.file('assays.json', assayText)
@@ -176,7 +209,7 @@ export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new
             file: { name: 'assays.json', size: new TextEncoder().encode(assayText).length, type: 'application/json' },
         })
     }
-    const metadata = createMetadata(study, directoryHandle.name, files, exportedAt)
+    const metadata = createMetadata(study, directoryHandle.name, files, exportedAt, hasCustomDataLicense)
     zip.file('ro-crate-metadata.json', JSON.stringify(metadata, null, 2))
 
     const fallbackName = study.id || directoryHandle.name || 'study'
@@ -186,5 +219,6 @@ export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new
             zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
         )),
         fileName: `${safeName}-ro-crate.zip`,
+        licenseLabel: hasCustomDataLicense ? 'Custom terms in DATA_LICENSE.md' : 'CC BY 4.0',
     }
 }

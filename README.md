@@ -4,6 +4,12 @@
 
 A web app for the design and analysis of genetic circuits. This repository is just the SPA, and doesn't include SBOLCanvas or the iBioSim API. See _Environment Variables_ in the frontend section below.
 
+## Licensing SynBioSuite and Exported Data
+
+SynBioSuite software is licensed under the Apache License 2.0. Study data exported as an RO-Crate is licensed by default under the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/).
+
+Creative Commons licenses are generally irrevocable. Only someone authorized to license the study data should apply the default license. To use different terms, add a custom file named exactly `DATA_LICENSE.md` to the study root before exporting; the export will preserve that file and link to it as the dataset license. Uploaded third-party material may retain separate terms, which researchers remain responsible for respecting.
+
 ## Public Instance
 
 A version of SynBioSuite is available at https://synbiosuite.org.
