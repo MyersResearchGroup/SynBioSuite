@@ -256,8 +256,6 @@ def sbol_upload(files):
         return jsonify({"error": "No selected file"}), 400
     if not extension == '.xml':
         return jsonify({"error": "Invalid file format"}), 400
-    if sbml_file and sbml_file.filename != '':
-        sbmlRoot, sbmlExtension = os.path.splitext(sbml_file.filename)
 
     # Check params from frontend
     if 'Params' not in files:
@@ -317,10 +315,6 @@ def sbol_upload(files):
         sbml_path = os.path.join(
             upload_dir,
             f"{uuid4()}_{safe_sbml_filename}"
-        )
-        sbml_out_path = os.path.join(
-            upload_dir,
-            f"{uuid4()}_out_{safe_sbml_filename}"
         )
 
     try:
