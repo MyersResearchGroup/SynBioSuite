@@ -91,7 +91,9 @@ export async function download_template(
 
 export async function upload_sbol(
     file,
+    sbmlFile,
     sbh_url,
+    sbh_prefix,
     sbh_token,
     collectionUrl,
     sbh_overwrite = 3,
@@ -109,15 +111,24 @@ export async function upload_sbol(
             } else {
                 fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
             }
-            if (file.objectType=='synbio.object-type.sbml') {
-                data.append('SBML', fileObject);
+            data.append('SBOL', fileObject);
+        }
+        if (sbmlFile) {
+            let sbmlFileObject;
+            if (typeof sbmlFile === 'string') {
+                if (!workingDirectory) {
+                    throw new Error('Working directory handle is required when file is provided as a path string');
+                }
+                sbmlFileObject = await readFileFromPath(workingDirectory, sbmlFile);
             } else {
-                data.append('SBOL', fileObject);
+                sbmlFileObject = typeof sbmlFile.getFile === 'function' ? await sbmlFile.getFile() : sbmlFile;
             }
+            data.append('SBML', sbmlFileObject);
         }
 
         const paramsObj = {
           sbh_url: sbh_url,
+          sbh_prefix: sbh_prefix,
           sbh_token: sbh_token,
           collection_url: collectionUrl,
           sbh_overwrite: sbh_overwrite,

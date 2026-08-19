@@ -509,6 +509,7 @@ export default {
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
             if (!file) return "File doesn't exist.";
+            const sbmlFile = findFileByNameOrId(fileNameOrId.replace('_sbol.xml','_sbml.xml'));
 
             const dirHandle = store.getState().workingDirectory.directoryHandle;
             const directory = file.id.split("/")[0];
@@ -527,6 +528,7 @@ export default {
             const collectionId = jsonData.collectionId;
             const collectionName = jsonData.name;
             const registryAPI = jsonData.registryAPI;
+            const registryPrefix = jsonData.registryPrefix;
             const importType = directory.endsWith(".xml")?"designs":directory;
 
             async function performUpload(authToken) {
@@ -536,7 +538,9 @@ export default {
                 try {
                   await upload_sbol(
                     file,
+                    sbmlFile,
                     registryAPI,
+                    registryPrefix,
                     authToken,
                     collectionUrl,
                     3,
