@@ -23,7 +23,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                 if (file?.objectType === 'synbio.object-type.study-data' ||
                     file?.objectType === 'synbio.object-type.plate-reader' ||
                     file?.objectType === 'synbio.object-type.experimental-results') {
-                    const state = store.getState().workingDirectory
+                     const state = store.getState().workingDirectory
                     const xdcFiles = Object.values(state.entities)
                         .filter(f => f?.name?.toLowerCase().endsWith('.xdc'))
                     for (const xdcHandle of xdcFiles) {
@@ -65,10 +65,14 @@ export default function ExplorerListItem({ fileId, icon }) {
                     return
                 } else if (file?.name?.toLowerCase().endsWith('.json')||
                     file?.name?.toLowerCase().endsWith('.xdc')) {
-                    // The selected file is already the JSON metadata file
                     jsonFile = await file.getFile();
                 } else if (file?.name?.toLowerCase().endsWith('.xml')) {
-                    const jsonPath = file.id.replace(/\.xml$/i, '.json');
+                    let jsonPath
+                    if (file?.name?.toLowerCase().endsWith('_sbml.xml')) {
+                        jsonPath = file.id.replace(/\_sbml.xml$/i, '_sbol.json');
+                    } else {
+                        jsonPath = file.id.replace(/\.xml$/i, '.json');
+                    }
                     const parts = jsonPath.split('/');
                     const fileName = parts.pop();
                     const rootHandle =

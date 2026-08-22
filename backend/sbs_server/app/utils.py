@@ -85,6 +85,25 @@ def sbh_get_attachment_uri(sbh_url, sbh_token, usergraph, collectionUri, attachm
     query = f'PREFIX sbol: <http://sbols.org/v2#> PREFIX dcterms: <http://purl.org/dc/terms/> SELECT ?s FROM <{usergraph}> WHERE {{ ?s dcterms:title "{attachmentName}" . <{collectionUri}> sbol:member ?s }}'
     return sparql_query(sbh_url, sbh_token, query)
 
+def find_root_module_definitions(doc):
+    module_definitions = list(doc.moduleDefinitions)
+
+    # Identities of ModuleDefinitions referenced by Modules
+    referenced = {
+        str(module.definition)
+        for md in module_definitions
+        for module in md.modules
+        if module.definition
+    }
+
+    # Root ModuleDefinitions are not referenced by another Module
+    roots = [
+        md for md in module_definitions
+        if str(md.identity) not in referenced
+    ]
+
+    return roots
+
 def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
     print("converting to SBOL")
     try:

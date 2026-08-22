@@ -14,7 +14,7 @@ from .main import app
 from .version import __version__
 from .downloadTemplates import sbh_download_template
 from .synbiohubUpload import upload_sbh_attachments, upload_to_sbh
-from .utils import get_sbh_user, convert_to_sbol
+from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions
 
 #routes
 #check if the app is running
@@ -243,17 +243,15 @@ Helper function to upload SBOL to SynBioHub
 def sbol_upload(files):
     if 'SBOL' in files:
         sbol_file = files['SBOL']
-        sbml_file = None
-    elif 'SBML' in files:
-        sbml_file = files['SBML']
-        sbol_file = None
     else:
-        return jsonify({"error": "No file part"}), 400
+        return jsonify({"error": "No SBOL file provided"}), 400
+    if 'SBML' in files:
+        sbml_file = files['SBML']
+    else:
+        sbml_file = None
 
     if sbol_file and sbol_file.filename != '':
         root, extension = os.path.splitext(sbol_file.filename)
-    elif sbml_file and sbml_file.filename != '':
-        root, extension = os.path.splitext(sbml_file.filename)
     else:
         return jsonify({"error": "No selected file"}), 400
     if not extension == '.xml':
@@ -270,7 +268,7 @@ def sbol_upload(files):
     if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
         params_from_request['sbh_url'] = 'https://' + sbh_url
 
-    required_params = ['sbh_url', 'sbh_token', 'collection_url', 'sbh_overwrite']
+    required_params = ['sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite']
 
     for param in required_params:
         if param not in params_from_request:
@@ -278,6 +276,7 @@ def sbol_upload(files):
     if (params_from_request['sbh_token'] is None):
         return jsonify({"error": "No SBH credentials provided"}), 400
     sbh_url = params_from_request['sbh_url']
+    sbh_prefix = params_from_request.get('sbh_prefix')
     sbh_collection_url = params_from_request['collection_url'] 
     sbh_overwrite = params_from_request['sbh_overwrite'] 
     sbh_token = params_from_request['sbh_token']
@@ -286,23 +285,30 @@ def sbol_upload(files):
     usergraph = "/".join(parts[:5])
     subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
 
+    try:
+        sbh_user_info = get_sbh_user(sbh_url, sbh_token)
+        sbh_user = sbh_user_info['user']
+        sbh_graph_uri = sbh_user_info['graph']
+    except Exception as e:
+        print('Error logging into SynBioHub')
+        return jsonify({"error": f"Error logging into SynBioHub: {e}"}), 400
+
     upload_dir = os.path.join(os.getcwd(), "uploads")
     os.makedirs(upload_dir, exist_ok=True)
 
-    if sbol_file and sbol_file.filename != '':
-        safe_sbol_filename = secure_filename(sbol_file.filename)
-        if safe_sbol_filename == '':
-            return jsonify({"error": "Invalid SBOL file name"}), 400
-        sbol_path = os.path.join(
-            upload_dir,
-            f"{uuid4()}_{safe_sbol_filename}"
-        )
-        sbol_out_path = os.path.join(
-            upload_dir,
-            f"{uuid4()}_out_{safe_sbol_filename}"
-        )
-        sbml_path = None
-    else:
+    safe_sbol_filename = secure_filename(sbol_file.filename)
+    if safe_sbol_filename == '':
+        return jsonify({"error": "Invalid SBOL file name"}), 400
+    sbol_path = os.path.join(
+        upload_dir,
+        f"{uuid4()}_{safe_sbol_filename}"
+    )
+    sbol_out_path = os.path.join(
+        upload_dir,
+        f"{uuid4()}_out_{safe_sbol_filename}"
+    )
+    sbml_path = None
+    if sbml_file and sbml_file.filename != '':
         safe_sbml_filename = secure_filename(sbml_file.filename)
         if safe_sbml_filename == '':
             return 'Invalid SBML file name', 400
@@ -310,16 +316,10 @@ def sbol_upload(files):
             upload_dir,
             f"{uuid4()}_{safe_sbml_filename}"
         )
-        sbol_out_path = os.path.join(
-            upload_dir,
-            f"{uuid4()}_out_{safe_sbml_filename}"
-        )
-        sbol_path = None
 
     try:
-        if sbol_file and sbol_file.filename != '':
-            sbol_file.save(sbol_path)
-        else:
+        sbol_file.save(sbol_path)
+        if sbml_file and sbml_file.filename != '':
             sbml_file.save(sbml_path)
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
@@ -331,35 +331,26 @@ def sbol_upload(files):
         }
         sbol2.setHomespace(homespaces.get(importType, "https://synbiosuite.org/"))
         doc = sbol2.Document()
-        if sbol_file and sbol_file.filename != '':
-            doc.read(sbol_path)
-        else:
-            with open(sbml_path, "rb") as fobj:
-                response = requests.post(
-                    f"{subCollection_url}/attach",
-                    headers={
-                        "Accept": "text/plain",
-                        "X-authorization": sbh_token,
-                    },
-                    files={
-                        "file": (os.path.basename(sbml_path), fobj),
-                    },
-                )
-
-                if not response.ok:
-                    raise Exception(
-                        f"Uploading attachment to SynBioHub failed "
-                        f"({response.status_code}): {response.text}"
-                    )
-
-                #print(f"{subCollection_url}/attach")
-                #print(response)
-                #display_id = make_identifier(sbml_file.filename)
-                #model = sbol2.model.Model(uri=display_id)
-                #model.source = sbml_file.filename
-                #model.language = "http://identifiers.org/edam/format_2585"
-                #model.framework = "http://identifiers.org/biomodels.sbo/SBO:0000062"
-                #doc.addModel(model)
+        doc.read(sbol_path)
+        if sbml_file and sbml_file.filename != '':
+            sbml_file.stream.seek(0)
+            attachments = {}
+            attachments[sbml_file.filename] = sbml_file
+            upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_graph_uri, sbh_collection_url, attachments)
+            search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_graph_uri, sbh_collection_url, sbml_file.filename)
+            for binding in search_result["results"]["bindings"]:
+                sourceUri = binding["s"]["value"]
+            print({sourceUri})
+            display_id = make_identifier(sbml_file.filename)
+            model = sbol2.model.Model(uri=display_id)
+            model.source = sourceUri
+            model.language = "http://identifiers.org/edam/format_2585"
+            model.framework = "http://identifiers.org/biomodels.sbo/SBO:0000062"
+            doc.addModel(model)
+            roots = find_root_module_definitions(doc)
+            for root in roots:
+                print(root.displayId, root.identity)
+                root.models = root.models + [model.identity]
         upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
     except AttributeError as e:
         print('Attribute Error: ',str(e))
@@ -378,7 +369,7 @@ def sbol_upload(files):
                         os.remove(path)
                 except Exception as cleanup_error:
                     print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
-        elif sbml_path is not None and os.path.exists(sbml_path):
+        if sbml_path is not None and os.path.exists(sbml_path):
             for path in (sbml_path, sbol_out_path):
                 try:
                     if os.path.exists(path):
