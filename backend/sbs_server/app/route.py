@@ -346,6 +346,7 @@ def sbol_upload(files):
             model.source = sourceUri
             model.language = "http://identifiers.org/edam/format_2585"
             model.framework = "http://identifiers.org/biomodels.sbo/SBO:0000062"
+            model.attachments = model.attachments + [sourceUri]
             doc.addModel(model)
             roots = find_root_module_definitions(doc)
             for root in roots:
