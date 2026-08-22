@@ -333,6 +333,7 @@ def sbol_upload(files):
         doc = sbol2.Document()
         doc.read(sbol_path)
         if sbml_file and sbml_file.filename != '':
+            sbml_file.stream.seek(0)
             attachments = {}
             attachments[sbml_file.filename] = sbml_file
             upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_graph_uri, sbh_collection_url, attachments)

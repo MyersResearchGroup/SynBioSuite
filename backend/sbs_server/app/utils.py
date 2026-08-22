@@ -86,21 +86,23 @@ def sbh_get_attachment_uri(sbh_url, sbh_token, usergraph, collectionUri, attachm
     return sparql_query(sbh_url, sbh_token, query)
 
 def find_root_module_definitions(doc):
-    # All ModuleDefinitions in the document
-    module_definitions = set(doc.moduleDefinitions)
+    module_definitions = list(doc.moduleDefinitions)
 
-    # ModuleDefinitions referenced by some Module
+    # Identities of ModuleDefinitions referenced by Modules
     referenced = {
-        module.definition
-        for md in doc.moduleDefinitions
+        str(module.definition)
+        for md in module_definitions
         for module in md.modules
-        if module.definition is not None
+        if module.definition
     }
 
     # Root ModuleDefinitions are not referenced by another Module
-    roots = module_definitions - referenced
+    roots = [
+        md for md in module_definitions
+        if str(md.identity) not in referenced
+    ]
 
-    return list(roots)
+    return roots
 
 def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
     print("converting to SBOL")
