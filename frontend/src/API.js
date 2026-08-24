@@ -167,6 +167,7 @@ export async function upload_sbol(
 export async function upload_resource(
     file,
     sbh_url,
+    sbh_prefix,
     sbh_token,
     collectionUrl,
     workingDirectory = null,
@@ -190,6 +191,7 @@ export async function upload_resource(
 
         const paramsObj = {
             sbh_url: sbh_url,
+            sbh_prefix: sbh_prefix,
             sbh_token: sbh_token,
             collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,

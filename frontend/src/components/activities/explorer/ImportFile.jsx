@@ -166,7 +166,8 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                 const selectedRepo = jsonData.registryURL;
                 const authToken = modalResult.authToken
                 const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
-              
+                const registryPrefix = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryPrefix || selectedRepo
+  
                 if (!selectedCollectionUri || !selectedRepo || !authToken) {
                     showErrorNotification("Import aborted", "Missing repository, credentials, or collection selection.")
                     return
@@ -185,6 +186,7 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     uploadResponse = await upload_resource(
                         uploadedFilePath,
                         registryAPI,
+                        registryPrefix,
                         authToken,
                         selectedCollectionUri,
                         dirName,

@@ -662,6 +662,16 @@ export default {
                     return selectedRepo;
                 }
             })();
+            const registryPrefix = (() => {
+                try {
+                    const stored = localStorage.getItem('SynbioHub');
+                    if (!stored) return selectedRepo;
+                    const repos = JSON.parse(stored);
+                    return repos.find(r => r.registryURL === selectedRepo)?.registryPrefix || selectedRepo;
+                } catch {
+                    return selectedRepo;
+                }
+            })();
 
             async function performUpdate(authToken) {
                 return new Promise((resolve) => {
@@ -718,6 +728,7 @@ export default {
                                 response = await upload_resource(
                                     uploadPath,
                                     registryAPI,
+                                    registryPrefix,
                                     authToken,
                                     collectionUrl,
                                     dirHandle,
