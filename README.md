@@ -4,11 +4,15 @@
 
 A web app for the design and analysis of genetic circuits. This repository is just the SPA, and doesn't include SBOLCanvas or the iBioSim API. See _Environment Variables_ in the frontend section below.
 
-## Licensing SynBioSuite and Exported Data
+## Exporting RO-Crates and Licensing
 
-SynBioSuite software is licensed under the Apache License 2.0. Study data exported as an RO-Crate is licensed by default under the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/).
+With a saved study open, use the package button labeled **Export RO Crate** to download the study. The downloaded `.omex` file is a ZIP-compatible package that contains both RO-Crate JSON-LD metadata (`ro-crate-metadata.json`) and a COMBINE Archive manifest (`manifest.xml`), along with the study files.
 
-Creative Commons licenses are generally irrevocable. Only someone authorized to license the study data should apply the default license. To use different terms, add a custom file named exactly `DATA_LICENSE.md` to the study root before exporting; the export will preserve that file and link to it as the dataset license. Uploaded third-party material may retain separate terms, which researchers remain responsible for respecting.
+The export omits SynBioSuite's internal `study.json`, any stale generated `assays.json`, and the workflow JSON sidecars directly under `resources`, `strains`, and `sampleDesigns`; scientific JSON files elsewhere remain part of the archive. Assay `.xdc` files are included in a compact form containing only the selected assay metadata, experimental-results, and plate-reader file paths. This lets collaborators restore those selections after recreating the files at the same relative paths, while repository connections and authentication come from their own SynBioSuite study.
+
+SynBioSuite software is licensed under the Apache License 2.0. During export, SynBioSuite automatically selects the data license. If the study root contains a file named exactly `DATA_LICENSE.md`, the exporter preserves it and links to it as the dataset license. Otherwise, the exporter creates a license notice and applies the [Creative Commons Attribution 4.0 International license](https://creativecommons.org/licenses/by/4.0/) by default.
+
+To replace the default license, add or replace `DATA_LICENSE.md` at the study root with the desired terms before exporting. Remove that custom file to return to the default CC BY 4.0 license. Creative Commons licenses are generally irrevocable, so only someone authorized to license the study data should apply the default license. Uploaded third-party material may retain separate terms, which researchers remain responsible for respecting.
 
 ## Public Instance
 

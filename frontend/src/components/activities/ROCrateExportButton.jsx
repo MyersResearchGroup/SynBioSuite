@@ -29,19 +29,19 @@ export default function ROCrateExportButton() {
                 throw new Error(`Archive created, but the browser could not start the download.\n${error?.message || 'An unexpected error occurred'}`)
             }
             showNotification({
-                title: 'RO-Crate exported',
+                title: 'RO-Crate + COMBINE Archive exported',
                 message: `${fileName} — Data license: ${licenseLabel}`,
                 color: 'teal',
             })
         } catch (error) {
-            showErrorNotification('RO-Crate export failed', error?.message || 'An unexpected error occurred')
+            showErrorNotification('RO-Crate + COMBINE Archive export failed', error?.message || 'An unexpected error occurred')
         } finally {
             setIsExporting(false)
         }
     }
 
     return (
-        <Tooltip label={directoryHandle ? 'Export saved study as RO-Crate' : 'Open a study to export'} color="gray" position="right" withArrow>
+        <Tooltip label={directoryHandle ? 'Export RO Crate' : 'Open a study to export'} color="gray" position="right" withArrow>
             <ActionIcon
                 onClick={exportStudy}
                 disabled={!directoryHandle || isSaving || isExporting}

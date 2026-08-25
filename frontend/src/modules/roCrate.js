@@ -1,6 +1,8 @@
 import JSZip from 'jszip'
 
 const RO_CRATE_VERSION = 'https://w3id.org/ro/crate/1.2'
+const COMBINE_FORMAT = 'http://identifiers.org/combine.specifications/'
+const MEDIA_TYPE_FORMAT = 'http://purl.org/NET/mediatypes/'
 const DATA_LICENSE_FILE = 'DATA_LICENSE.md'
 const CC_BY_4_0 = {
     id: 'https://creativecommons.org/licenses/by/4.0/',
@@ -14,7 +16,7 @@ Unless otherwise noted, the contents of this exported study dataset are licensed
 This license applies to the dataset contents, not to SynBioSuite software, which is licensed separately under the Apache License 2.0.
 `
 const IGNORED_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
-const WORKFLOW_JSON_DIRECTORIES = new Set(['resources', 'strains', 'sampleDesigns'])
+const INTERNAL_JSON_DIRECTORIES = new Set(['resources', 'strains', 'sampleDesigns'])
 
 async function withErrorContext(context, operation) {
     try {
@@ -26,75 +28,118 @@ async function withErrorContext(context, operation) {
 
 function shouldIgnore(name, path) {
     return IGNORED_FILES.has(name) || name.startsWith('._') ||
-        (!path && name === 'ro-crate-metadata.json')
+        (!path && (name === 'study.json' || name === 'assays.json' || name === 'ro-crate-metadata.json' || name === 'manifest.xml')) ||
+        (INTERNAL_JSON_DIRECTORIES.has(path) && name.toLowerCase().endsWith('.json'))
 }
 
 function encodePath(path) {
     return path.split('/').map(encodeURIComponent).join('/')
 }
 
+async function getOmexFormat(path, file) {
+    const extension = path.toLowerCase().match(/\.[^.\/]+$/)?.[0] || ''
+    const reportedMediaType = String(file.type || '').split(';', 1)[0].trim().toLowerCase()
+    const mediaType = reportedMediaType === 'text/xml' ? 'application/xml' : reportedMediaType
+    const combineExtensions = {
+        '.sbol': 'sbol',
+        '.sbml': 'sbml',
+        '.sedml': 'sed-ml',
+        '.cellml': 'cellml',
+        '.omex': 'omex',
+        '.sbox': 'omex',
+        '.sbex': 'omex',
+        '.sedx': 'omex',
+        '.cmex': 'omex',
+    }
+    if (combineExtensions[extension]) return `${COMBINE_FORMAT}${combineExtensions[extension]}`
+    const combineMediaTypes = {
+        'application/sbol+xml': 'sbol',
+        'application/sbml+xml': 'sbml',
+        'application/sedml+xml': 'sed-ml',
+        'application/sed-ml+xml': 'sed-ml',
+        'application/cellml+xml': 'cellml',
+        'application/omex': 'omex',
+    }
+    if (combineMediaTypes[mediaType]) return `${COMBINE_FORMAT}${combineMediaTypes[mediaType]}`
+
+    if (extension === '.xml') {
+        const text = typeof file.text === 'function' ? await file.text() : new TextDecoder().decode(file)
+        if (/https?:\/\/sbols\.org\/v\d+(?:\.\d+)?[#/]/i.test(text)) return `${COMBINE_FORMAT}sbol`
+        if (/https?:\/\/(?:www\.)?sbml\.org\/sbml\//i.test(text)) return `${COMBINE_FORMAT}sbml`
+        if (/https?:\/\/sed-ml\.org\/sed-ml\//i.test(text)) return `${COMBINE_FORMAT}sed-ml`
+        if (/https?:\/\/(?:www\.)?cellml\.org\/cellml\//i.test(text)) return `${COMBINE_FORMAT}cellml`
+    }
+
+    const extensionTypes = {
+        '.csv': 'text/csv',
+        '.html': 'text/html',
+        '.json': 'application/json',
+        '.jsonld': 'application/ld+json',
+        '.md': 'text/markdown',
+        '.pdf': 'application/pdf',
+        '.png': 'image/png',
+        '.rdf': 'application/rdf+xml',
+        '.svg': 'image/svg+xml',
+        '.tsv': 'text/tab-separated-values',
+        '.txt': 'text/plain',
+        '.xml': 'application/xml',
+        '.zip': 'application/zip',
+    }
+    return `${MEDIA_TYPE_FORMAT}${mediaType || extensionTypes[extension] || 'application/octet-stream'}`
+}
+
+async function createOmexManifest(files) {
+    const contents = [
+        { location: '.', format: `${COMBINE_FORMAT}omex` },
+        { location: 'manifest.xml', format: `${COMBINE_FORMAT}omex-manifest` },
+        { location: 'ro-crate-metadata.json', format: `${MEDIA_TYPE_FORMAT}application/ld+json` },
+    ]
+    const sortedFiles = [...files].sort((a, b) => a.path < b.path ? -1 : (a.path > b.path ? 1 : 0))
+    for (const { path, file } of sortedFiles) {
+        contents.push({ location: encodePath(path), format: await getOmexFormat(path, file) })
+    }
+    const entries = contents.map(({ location, format }) => (
+        `  <content location="${location}" format="${format}"/>`
+    )).join('\n')
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<omexManifest xmlns="${COMBINE_FORMAT}omex-manifest">\n${entries}\n</omexManifest>\n`
+}
+
 function isPreviewFile(path) {
     return path === 'ro-crate-preview.html' || path.startsWith('ro-crate-preview_files/')
 }
 
-function getOwnedJsonType(path) {
-    if (path.toLowerCase().endsWith('.xdc')) return 'assay workflow'
-    if (path === 'study.json') return 'study metadata'
-
-    const parts = path.split('/')
-    if (parts.length === 2 && WORKFLOW_JSON_DIRECTORIES.has(parts[0]) && parts[1].toLowerCase().endsWith('.json')) {
-        return 'workflow'
+function compactAssayWorkflow(workflow, filePath) {
+    if (!workflow || typeof workflow !== 'object' || Array.isArray(workflow)) {
+        throw new Error(`Cannot export assay workflow "${filePath}": expected a JSON object.`)
     }
-    return null
-}
-
-function addAssay(assays, workflow, workflowDirectory) {
-    if (!workflow.metadata) return
-    const basePath = workflowDirectory.split('/').slice(0, -1).join('/')
-    const resolvePath = value => basePath && value ? `${basePath}/${value}` : value
-    const assay = {
-        assayMetadata: resolvePath(workflow.metadata),
-        experimentalData: (Array.isArray(workflow.results) ? workflow.results : (workflow.results ? [workflow.results] : [])).map(resolvePath),
-        plateReaderData: (Array.isArray(workflow.plateOutput) ? workflow.plateOutput : (workflow.plateOutput ? [workflow.plateOutput] : [])).map(resolvePath),
-    }
-    assays.push(assay)
-}
-
-function sanitizeWorkflow(workflow, filePath) {
-    const sanitized = JSON.parse(JSON.stringify(workflow))
-
-    if (filePath === 'study.json') delete sanitized.userEmail
-    if (sanitized.collection && typeof sanitized.collection === 'object') {
-        delete sanitized.collection.authToken
-        delete sanitized.collection.userEmail
-    }
-    if (Array.isArray(sanitized.uploads)) {
-        for (const upload of sanitized.uploads) {
-            if (upload && typeof upload === 'object') delete upload.userEmail
+    const optionalReference = (value, field) => {
+        if (value == null || value === '') return null
+        if (typeof value !== 'string') {
+            throw new Error(`Cannot export assay workflow "${filePath}": field "${field}" must be a file path.`)
         }
+        return value
     }
+    let results = workflow.results == null || workflow.results === '' ? [] : workflow.results
+    if (!Array.isArray(results)) results = [results]
+    if (results.some(value => typeof value !== 'string')) {
+        throw new Error(`Cannot export assay workflow "${filePath}": field "results" must contain only file paths.`)
+    }
+    results = results.filter(Boolean)
 
-    const findSensitiveField = (value, path = []) => {
-        if (!value || typeof value !== 'object') return null
-        for (const [key, child] of Object.entries(value)) {
-            const childPath = [...path, key]
-            if (/token|password|secret|credential|refresh|email|username|affiliation/i.test(key) && child != null && child !== '') {
-                return childPath.join('.')
-            }
-            const nested = findSensitiveField(child, childPath)
-            if (nested) return nested
-        }
-        return null
+    const compact = {
+        metadata: optionalReference(workflow.metadata, 'metadata'),
+        results,
+        plateOutput: optionalReference(workflow.plateOutput, 'plateOutput'),
     }
-
-    const sensitiveField = findSensitiveField(sanitized)
-    if (sensitiveField) {
-        throw new Error(`Cannot export workflow "${filePath}": sensitive field "${sensitiveField}" contains a value. Remove the field value and retry.`)
-    }
-    return sanitized
+    const references = [
+        ...(compact.metadata ? [{ field: 'metadata', path: compact.metadata }] : []),
+        ...compact.results.map(path => ({ field: 'results', path })),
+        ...(compact.plateOutput ? [{ field: 'plateOutput', path: compact.plateOutput }] : []),
+    ]
+    return { compact, references }
 }
 
-async function addDirectory(zip, directoryHandle, path = '', files = [], assays = []) {
+async function addDirectory(zip, directoryHandle, path = '', files = [], assayWorkflows = []) {
     const directoryPath = path || directoryHandle.name || '.'
     const entries = await withErrorContext(`Could not read directory "${directoryPath}"`, async () => {
         const directoryEntries = []
@@ -106,22 +151,22 @@ async function addDirectory(zip, directoryHandle, path = '', files = [], assays 
     for (const entry of entries) {
         const entryPath = path ? `${path}/${entry.name}` : entry.name
         if (entry.kind === 'directory') {
-            await addDirectory(zip, entry, entryPath, files, assays)
+            await addDirectory(zip, entry, entryPath, files, assayWorkflows)
         } else if (!shouldIgnore(entry.name, path)) {
             const file = await withErrorContext(`Could not read file "${entryPath}"`, () => entry.getFile())
-            const ownedJsonType = getOwnedJsonType(entryPath)
-            if (ownedJsonType) {
+            if (entryPath.toLowerCase().endsWith('.xdc')) {
                 const text = await withErrorContext(`Could not read file "${entryPath}"`, () => (
                     typeof file.text === 'function' ? file.text() : new TextDecoder().decode(file)
                 ))
-                const workflow = await withErrorContext(`Could not parse ${ownedJsonType} "${entryPath}"`, () => JSON.parse(text))
-                if (ownedJsonType === 'assay workflow') addAssay(assays, workflow, path)
-                const workflowText = JSON.stringify(sanitizeWorkflow(workflow, entryPath), null, 2)
+                const workflow = await withErrorContext(`Could not parse assay workflow "${entryPath}"`, () => JSON.parse(text))
+                const { compact, references } = compactAssayWorkflow(workflow, entryPath)
+                const workflowText = JSON.stringify(compact, null, 2)
                 zip.file(entryPath, workflowText)
                 files.push({
                     path: entryPath,
                     file: { name: entry.name, size: new TextEncoder().encode(workflowText).length, type: 'application/json' },
                 })
+                assayWorkflows.push({ path: entryPath, references })
             } else {
                 zip.file(entryPath, file)
                 files.push({ path: entryPath, file })
@@ -167,13 +212,19 @@ function createMetadata(study, directoryName, files, exportedAt, hasCustomDataLi
                     citation: citationEntities.map(({ '@id': id }) => ({ '@id': id })),
                 }),
             },
-            ...payloadFiles.map(({ path, file }) => ({
-                '@id': encodePath(path),
-                '@type': 'File',
-                name: file.name,
-                contentSize: String(file.size),
-                ...(file.type && { encodingFormat: file.type }),
-            })),
+            ...payloadFiles.map(({ path, file }) => {
+                const mediaType = String(file.type || '').split(';', 1)[0].trim().toLowerCase()
+                const encodingFormat = path.toLowerCase().endsWith('.xml') && (!mediaType || mediaType === 'text/xml')
+                    ? 'application/xml'
+                    : file.type
+                return {
+                    '@id': encodePath(path),
+                    '@type': 'File',
+                    name: file.name,
+                    contentSize: String(file.size),
+                    ...(encodingFormat && { encodingFormat }),
+                }
+            }),
             ...citationEntities,
             ...(!hasCustomDataLicense ? [{
                 '@id': CC_BY_4_0.id,
@@ -187,8 +238,16 @@ function createMetadata(study, directoryName, files, exportedAt, hasCustomDataLi
 
 export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new Date()) {
     const zip = new JSZip()
-    const assays = []
-    const files = await addDirectory(zip, directoryHandle, '', [], assays)
+    const assayWorkflows = []
+    const files = await addDirectory(zip, directoryHandle, '', [], assayWorkflows)
+    const exportedPaths = new Set(files.map(({ path }) => path))
+    for (const workflow of assayWorkflows) {
+        for (const reference of workflow.references) {
+            if (!exportedPaths.has(reference.path)) {
+                throw new Error(`Cannot export assay workflow "${workflow.path}": field "${reference.field}" references missing file "${reference.path}".`)
+            }
+        }
+    }
     const hasCustomDataLicense = files.some(({ path }) => path === DATA_LICENSE_FILE)
     if (!hasCustomDataLicense) {
         zip.file(DATA_LICENSE_FILE, DEFAULT_DATA_LICENSE_NOTICE)
@@ -201,16 +260,9 @@ export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new
             },
         })
     }
-    if (assays.length) {
-        const assayText = JSON.stringify({ version: 1, assays }, null, 2)
-        zip.file('assays.json', assayText)
-        files.push({
-            path: 'assays.json',
-            file: { name: 'assays.json', size: new TextEncoder().encode(assayText).length, type: 'application/json' },
-        })
-    }
     const metadata = createMetadata(study, directoryHandle.name, files, exportedAt, hasCustomDataLicense)
     zip.file('ro-crate-metadata.json', JSON.stringify(metadata, null, 2))
+    zip.file('manifest.xml', await createOmexManifest(files))
 
     const fallbackName = study.id || directoryHandle.name || 'study'
     const safeName = String(fallbackName).trim().replace(/[\\/:*?"<>|]+/g, '_') || 'study'
@@ -218,7 +270,7 @@ export async function buildStudyRoCrate(directoryHandle, study, exportedAt = new
         blob: await withErrorContext('Could not create ZIP archive', () => (
             zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
         )),
-        fileName: `${safeName}-ro-crate.zip`,
+        fileName: `${safeName}-ro-crate.omex`,
         licenseLabel: hasCustomDataLicense ? 'Custom terms in DATA_LICENSE.md' : 'CC BY 4.0',
     }
 }
