@@ -34,7 +34,6 @@ export default {
             const dirHandle =
                 store.getState().workingDirectory.directoryHandle
 
-            // Resolve the directory containing the file
             const parts = file.id.split('/')
             const fileName = parts.pop()
 
@@ -58,18 +57,13 @@ export default {
                 store.dispatch(workDirActions.removeFile(sidecarId))
             }
             if (fileName.toLowerCase().endsWith('.xlsm')) {
-                let sidecarName = fileName.replace(/\.xlsm$/i, '.json')
-                let sidecarId = [...parts, sidecarName].join('/')
-                try {
-                    await currentDir.removeEntry(sidecarName)
-                } catch (e) {
-                    if (e.name !== 'NotFoundError') {
-                        console.warn(`Could not delete sidecar ${sidecarId}:`, e)
-                    }
+                let sidecarName
+                if (file.objectType === ObjectTypes.Metadata.id) {
+                    sidecarName = fileName.replace(/\.xlsm$/i, '.xdc')
+                } else {
+                    sidecarName = fileName.replace(/\.xlsm$/i, '.json') 
                 }
-                store.dispatch(workDirActions.removeFile(sidecarId))
-                sidecarName = fileName.replace(/\.xlsm$/i, '.json')
-                sidecarId = [...parts, sidecarName].join('/')
+                let sidecarId = [...parts, sidecarName].join('/')
                 try {
                     await currentDir.removeEntry(sidecarName)
                 } catch (e) {
@@ -84,6 +78,115 @@ export default {
         }
     },
 
+    FileRename: {
+        id: createId('file-rename'),
+        title: "Rename File",
+        shortTitle: "Rename",
+        description: "Rename a file",
+        color: "blue",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            },
+            {
+                name: "newName",
+                prompt: "Enter the new file name"
+            }
+        ],
+        execute: async (fileNameOrId, newName) => {
+            const file = findFileByNameOrId(fileNameOrId)
+            if (!file)
+                return "File does not exist."
+            if (!newName)
+                return "New file name is required."
+            const rootHandle =
+                store.getState().workingDirectory.directoryHandle
+            const parts = file.id.split('/')
+            const oldName = parts.pop()
+            if (oldName === newName)
+                return
+            const oldExt = oldName.includes('.')
+                ? oldName.slice(oldName.lastIndexOf('.'))
+                : ''
+            const newExt = newName.includes('.')
+                ? newName.slice(newName.lastIndexOf('.'))
+                : ''
+            if (oldExt.toLowerCase() !== newExt.toLowerCase())
+                return "File extension cannot be changed."
+
+            // Find the directory containing the file
+            let currentDir = rootHandle
+            for (const part of parts) {
+                currentDir = await currentDir.getDirectoryHandle(part)
+            }
+
+            // Make sure the new name doesn't already exist
+            try {
+                await currentDir.getFileHandle(newName)
+                return `File "${newName}" already exists.`
+            } catch (e) {
+                if (e.name !== 'NotFoundError')
+                    throw e
+            }
+
+            const oldId = file.id
+            const newId = [...parts, newName].join('/')
+
+            //
+            // Rename main file
+            //
+
+            const newHandle = await renameFile(currentDir, oldName, newName)
+
+            //
+            // Determine sidecar
+            //
+            let oldSidecarName = null
+            let newSidecarName = null
+            if (oldName.toLowerCase().endsWith('.xml')) {
+                oldSidecarName = oldName.replace(/\.xml$/i, '.json')
+                newSidecarName = newName.replace(/\.xml$/i, '.json')
+            }
+            if (oldName.toLowerCase().endsWith('.xlsm')) {
+                const extension =
+                    file.objectType === ObjectTypes.Metadata.id
+                        ? '.xdc'
+                        : '.json'
+                oldSidecarName = oldName.replace(/\.xlsm$/i, extension)
+                newSidecarName = newName.replace(/\.xlsm$/i, extension)
+            }
+
+            //
+            // Save sidecar Redux information before removing it
+            //
+
+            let oldSidecar = null
+            let newSidecarHandle = null
+
+            if (oldSidecarName) {
+                const oldSidecarId = [...parts, oldSidecarName].join('/')
+                oldSidecar = store.getState().workingDirectory.entities[oldSidecarId]
+                try {
+                    newSidecarHandle = await renameFile(currentDir,oldSidecarName,newSidecarName)
+                } catch (e) {
+                    if (e.name !== 'NotFoundError')
+                        throw e
+                }
+            }
+
+            await updateFileReferences(rootHandle,oldId,newId)
+
+            store.dispatch(panelsActions.closePanel(oldId))
+            store.dispatch(workDirActions.removeFile(oldId))
+            newHandle.id = newId
+            newHandle.objectType = file.objectType
+            store.dispatch(workDirActions.addFile(newHandle))
+
+            return `Renamed "${oldName}" to "${newName}".`
+        }
+    },
+    
     FileView: {
         id: createId('file-view'),
         title: "View File",
@@ -768,3 +871,121 @@ async function resolveAuthToken(selectedRepo,registryAPI,expectedEmail) {
     return null;
   }
 }
+
+const renameFile = async (dirHandle, oldName, newName) => {
+    const oldHandle = await dirHandle.getFileHandle(oldName)
+    const file = await oldHandle.getFile()
+
+    const newHandle = await dirHandle.getFileHandle(newName, { create: true })
+    const writable = await newHandle.createWritable()
+
+    await writable.write(file)
+    await writable.close()
+
+    await dirHandle.removeEntry(oldName)
+
+    return newHandle
+}
+
+const updateFileReferences = async (rootHandle, oldId, newId) => {
+    const oldName = oldId.split('/').pop()
+    const newName = newId.split('/').pop()
+
+    const replaceReference = value => {
+        if (typeof value !== 'string')
+            return value
+
+        if (value === oldId)
+            return newId
+
+        if (value === oldName)
+            return newName
+
+        if (value.endsWith('/' + oldName))
+            return value.slice(0, -oldName.length) + newName
+
+        return value
+    }
+
+    const updateDirectory = async dirHandle => {
+        for await (const entry of dirHandle.values()) {
+
+            if (entry.kind === 'directory') {
+                await updateDirectory(entry)
+                continue
+            }
+
+            if (!/\.(json|xdc)$/i.test(entry.name))
+                continue
+
+            try {
+                const file = await entry.getFile()
+                const text = await file.text()
+                const json = JSON.parse(text)
+
+                let changed = false
+
+                // JSON/XDC file reference
+                if (json.file !== undefined) {
+                    const updated = replaceReference(json.file)
+                    if (updated !== json.file) {
+                        json.file = updated
+                        changed = true
+                    }
+                }
+
+                // XDC metadata reference
+                if (json.metadata !== undefined) {
+                    const updated = replaceReference(json.metadata)
+                    if (updated !== json.metadata) {
+                        json.metadata = updated
+                        changed = true
+                    }
+                }
+
+                // XDC plate-reader reference
+                if (json.plateOutput !== undefined) {
+                    const updated = replaceReference(json.plateOutput)
+                    if (updated !== json.plateOutput) {
+                        json.plateOutput = updated
+                        changed = true
+                    }
+                }
+
+                // XDC results reference(s)
+                if (Array.isArray(json.results)) {
+                    const updated = json.results.map(replaceReference)
+
+                    if (updated.some((value, i) =>
+                        value !== json.results[i])) {
+                        json.results = updated
+                        changed = true
+                    }
+                } else if (json.results !== undefined) {
+                    const updated = replaceReference(json.results)
+
+                    if (updated !== json.results) {
+                        json.results = updated
+                        changed = true
+                    }
+                }
+
+                if (changed) {
+                    const writable = await entry.createWritable()
+                    await writable.write(JSON.stringify(json, null, 2))
+                    await writable.close()
+                }
+
+            } catch (e) {
+                console.warn(
+                    `Could not update references in ${entry.name}:`,
+                    e
+                )
+            }
+        }
+    }
+
+    await updateDirectory(rootHandle)
+}
+
+

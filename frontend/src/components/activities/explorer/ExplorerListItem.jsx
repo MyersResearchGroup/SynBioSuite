@@ -1,5 +1,4 @@
 import commands from "../../../commands"
-import { Menu } from '@mantine/core'
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
@@ -8,6 +7,7 @@ import DragObject from '../../DragObject'
 import { getPanelTypeForObject } from '../../../panels'
 import store from '../../../redux/store'
 import { getObjectType } from "../../../objectTypes"
+import { Button, Menu, Modal, TextInput } from '@mantine/core'
 
 export default function ExplorerListItem({ fileId, icon }) {
 
@@ -16,6 +16,9 @@ export default function ExplorerListItem({ fileId, icon }) {
     const [uploadInfo, setUploadInfo] = useState(null)
 
     const uploadRevision = useSelector(state => state.workingDirectory.uploadRevision ?? 0)
+
+    const [renameOpen, setRenameOpen] = useState(false)
+    const [newName, setNewName] = useState('')
 
     useEffect(() => {
         const getUploadInfo = async () => {
@@ -165,47 +168,85 @@ export default function ExplorerListItem({ fileId, icon }) {
         ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
+        commands.FileRename,
         commands.FileDelete
     ];
 
     return (
-        <Menu
-            shadow="md"
-            width={200}
-            trigger=""
-            opened={contextMenuOpen}
-            onChange={setContextMenuOpen}
-            withArrow={true}
-            styles={menuStyles}
-        >
-            <Menu.Target>
-                {/* have to wrap this in a div so it can add a ref */}
-                <div>
-                    <DragObject
-                        title={titleFromFileName(file.name)}
-                        fileId={fileId}
-                        type={file.objectType}
-                        icon={icon}
-                        uploadInfo={uploadInfo}
-                        onDoubleClick={handleOpenFile}
-                        onContextMenu={handleRightClick}
-                    />
-                </div>
-            </Menu.Target>
+        <>
+            <Menu
+                shadow="md"
+                width={200}
+                trigger=""
+                opened={contextMenuOpen}
+                onChange={setContextMenuOpen}
+                withArrow={true}
+                styles={menuStyles}
+            >
+                <Menu.Target>
+                    {/* have to wrap this in a div so it can add a ref */}
+                    <div>
+                        <DragObject
+                            title={titleFromFileName(file.name)}
+                            fileId={fileId}
+                            type={file.objectType}
+                            icon={icon}
+                            uploadInfo={uploadInfo}
+                            onDoubleClick={handleOpenFile}
+                            onContextMenu={handleRightClick}
+                        />
+                    </div>
+                </Menu.Target>
 
-            <Menu.Dropdown>
-                {contextMenuCommands.map(cmd =>
-                    <Menu.Item
-                        key={cmd.id}
-                        color={cmd.color}
-                        icon={cmd.icon}
-                        onClick={() => cmd.execute(fileId,uploadInfo)}
-                    >
-                        {cmd.shortTitle}
-                    </Menu.Item>
-                )}
-            </Menu.Dropdown>
-        </Menu>
+                <Menu.Dropdown>
+                    {contextMenuCommands.map(cmd =>
+                        <Menu.Item
+                            key={cmd.id}
+                            color={cmd.color}
+                            icon={cmd.icon}
+                            onClick={() => {
+                                if (cmd === commands.FileRename) {
+                                    setNewName(file.name)
+                                    setRenameOpen(true)
+                                } else {
+                                    cmd.execute(fileId, uploadInfo)
+                                }
+                            }}
+                        >
+                            {cmd.shortTitle}
+                        </Menu.Item>
+                    )}
+                </Menu.Dropdown>
+            </Menu>
+            <Modal
+                opened={renameOpen}
+                onClose={() => setRenameOpen(false)}
+                title="Rename File"
+            >
+                <TextInput
+                    label="File name"
+                    value={newName}
+                    onChange={event => setNewName(event.currentTarget.value)}
+                    autoFocus
+                    onKeyDown={async event => {
+                        if (event.key === 'Enter') {
+                            await commands.FileRename.execute(fileId, newName)
+                            setRenameOpen(false)
+                        }
+                    }}
+                />
+
+                <Button
+                    mt="md"
+                    onClick={async () => {
+                        await commands.FileRename.execute(fileId, newName)
+                        setRenameOpen(false)
+                    }}
+                >
+                    Rename
+                </Button>
+            </Modal>
+        </>
     )
 }
 
