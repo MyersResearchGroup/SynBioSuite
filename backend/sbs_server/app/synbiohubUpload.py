@@ -75,4 +75,4 @@ def upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, import
         )
     if not response.ok:
         raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")
-    return sbh_collection_url
+    return subCollection_url

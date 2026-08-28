@@ -142,6 +142,10 @@ export default function ExplorerListItem({ fileId, icon }) {
         return false
     }
 
+    const supportsFileOpen = () => {
+       return uploadInfo
+    }
+
     const supportsFileUpdate = () => {
        return getObjectType(file?.objectType)?.updateable === true
     }
@@ -157,6 +161,7 @@ export default function ExplorerListItem({ fileId, icon }) {
     // command list
     let contextMenuCommands = [
         ...(supportsFileView() ? [commands.FileView] : []),
+        ...(supportsFileOpen() ? [commands.FileOpen] : []),
         ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
@@ -194,7 +199,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                         key={cmd.id}
                         color={cmd.color}
                         icon={cmd.icon}
-                        onClick={() => cmd.execute(fileId)}
+                        onClick={() => cmd.execute(fileId,uploadInfo)}
                     >
                         {cmd.shortTitle}
                     </Menu.Item>

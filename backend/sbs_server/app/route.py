@@ -168,7 +168,7 @@ def xdc_run(files):
 
     try:
         file_path_out_final = f"{uuid4()}_SBOL_final.xml"
-        upload_to_sbh(sbol_doc, sbh_url, sbh_token, sbol_graph_uri, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num)
+        subCollectionUrl = upload_to_sbh(sbol_doc, sbh_url, sbh_token, sbol_graph_uri, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num)
     except Exception as e:
         print('Error uploading to SynBioHub')
         return jsonify({"error": f"Error uploading to SynBioHub: {e}"}), 400
@@ -230,11 +230,12 @@ def xdc_run(files):
     
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
+        "subCollectionUrl": subCollectionUrl,
         "fj_url": fj_url,
         "status": "success"
     }
     os.remove(metadata_path)
-    return jsonify(sbs_upload_response_dict)
+    return jsonify(sbs_upload_response_dict), 200
 
 
 '''
@@ -283,7 +284,6 @@ def sbol_upload(files):
     importType = params_from_request['importType']
     parts = sbh_collection_url.split("/")
     usergraph = "/".join(parts[:5])
-    subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
 
     try:
         sbh_user_info = get_sbh_user(sbh_url, sbh_token)
@@ -352,7 +352,7 @@ def sbol_upload(files):
             for root in roots:
                 print(root.displayId, root.identity)
                 root.models = root.models + [model.identity]
-        upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
+        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
     except AttributeError as e:
         print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400
@@ -377,4 +377,9 @@ def sbol_upload(files):
                         os.remove(path)
                 except Exception as cleanup_error:
                     print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
-    return jsonify({"message": "SBOL upload successful"}), 200
+    sbs_upload_response_dict ={
+        "sbh_url": sbh_url,
+        "subCollectionUrl": subCollectionUrl,
+        "status": "success"
+    }
+    return jsonify(sbs_upload_response_dict), 200

@@ -68,7 +68,7 @@ export default {
                     }
                 }
                 store.dispatch(workDirActions.removeFile(sidecarId))
-                sidecarName = fileName.replace(/\.xlsm$/i, '.xdc')
+                sidecarName = fileName.replace(/\.xlsm$/i, '.json')
                 sidecarId = [...parts, sidecarName].join('/')
                 try {
                     await currentDir.removeEntry(sidecarName)
@@ -95,238 +95,48 @@ export default {
                 prompt: "Enter the file name or ID"
             }
         ],
+
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
 
-            const ext = file.name.split('.').pop().toLowerCase();
+            if (!/\.(xls|xlsx|xlsm)$/i.test(file.name)) {
+                return "Only Excel files can be viewed.";
+            }
+
             const state = store.getState().workingDirectory;
-            const isExcelExt = value => /\.(xls|xlsx|xlsm)$/i.test(value || "");
-            const workflowDir = file.id.includes('/') ? file.id.split('/').slice(0, -1).join('/') : '';
-
-            const normalizePath = value => value?.replace(/^\/+|\/+$/g, '') || '';
-
-            const readFileFromId = async (targetId, preferredBaseDir = '') => {
-                const entity = state.entities[targetId];
-                if (entity?.data) {
-                    return {
-                        fileData: entity.data,
-                        fileName: entity.name,
-                        fileId: entity.id
-                    };
-                }
-
-                const dirHandle = state.directoryHandle;
-                if (!dirHandle || typeof dirHandle.getFileHandle !== 'function') {
-                    return null;
-                }
-
-                try {
-                    const parts = targetId.split('/');
-                    let cur = dirHandle;
-                    for (let i = 0; i < parts.length - 1; i++) {
-                        cur = await cur.getDirectoryHandle(parts[i]);
-                    }
-
-                    const directHandle = await cur.getFileHandle(parts[parts.length - 1]);
-                    const directFile = await directHandle.getFile();
-                    return {
-                        fileData: directFile,
-                        fileName: parts[parts.length - 1],
-                        fileId: targetId
-                    };
-                } catch {
-                    return null;
-                }
-            };
-
-            const readExcelFromIdWithUploadsFallback = async (targetId, preferredBaseDir = '') => {
-                const normalizedTarget = normalizePath(targetId);
-                const candidatePaths = [normalizedTarget];
-
-                if (preferredBaseDir && !normalizedTarget.includes('/')) {
-                    candidatePaths.push(`${preferredBaseDir}/${normalizedTarget}`);
-                    candidatePaths.push(`${preferredBaseDir}/uploads/${normalizedTarget}`);
-                }
-
-                if (!normalizedTarget.includes('/')) {
-                    candidatePaths.push(`uploads/${normalizedTarget}`);
-                }
-
-                const seen = new Set();
-                for (const candidate of candidatePaths) {
-                    if (!candidate || seen.has(candidate)) continue;
-                    seen.add(candidate);
-
-                    const direct = await readFileFromId(candidate, preferredBaseDir);
-                    if (!direct) continue;
-
-                    const targetExt = (direct.fileName.split('.').pop() || '').toLowerCase();
-                    const baseName = direct.fileName.replace(/\.[^/.]+$/, "");
-                    const dirHandle = state.directoryHandle;
-
-                    if (dirHandle && typeof dirHandle.getFileHandle === 'function') {
-                        try {
-                            const parts = candidate.split('/');
-                            let cur = dirHandle;
-                            for (let i = 0; i < parts.length - 1; i++) {
-                                cur = await cur.getDirectoryHandle(parts[i]);
-                            }
-
-                            let uploadsDir;
-                            try {
-                                uploadsDir = await cur.getDirectoryHandle('uploads');
-                            } catch {
-                                uploadsDir = null;
-                            }
-
-                            if (uploadsDir) {
-                                for await (const entry of uploadsDir.values()) {
-                                    if (entry.kind !== 'file') continue;
-                                    const entryBase = entry.name.replace(/\.[^/.]+$/, "");
-                                    const entryExt = (entry.name.split('.').pop() || '').toLowerCase();
-
-                                    if (entryBase === baseName && entryExt === targetExt) {
-                                        const fh = await uploadsDir.getFileHandle(entry.name);
-                                        const uploadFile = await fh.getFile();
-                                        return {
-                                            fileData: uploadFile,
-                                            fileName: entry.name,
-                                            fileId: `${parts.slice(0, -1).join('/')}/uploads/${entry.name}`
-                                        };
-                                    }
-                                }
-                            }
-                        } catch {
-                        }
-                    }
-
-                    return direct;
-                }
-
-                return null;
-            };
-
             let fileData = state.entities[file.id]?.data;
-            let downloadName = file.name;
-            let excelFileId = file.id;
 
-            if (ext === 'json') {
-                let jsonText = fileData;
-                if (!jsonText) {
-                    const jsonFile = await readFileFromId(file.id);
-                    if (!jsonFile || !jsonFile.fileData) {
-                        return "Could not read JSON file from disk.";
-                    }
-                    jsonText = await jsonFile.fileData.text();
-                }
-
-                let referencedPath = null;
-                let excelFileName = null;
-                let latestUploadPath = null;
-
+            if (!fileData) {
                 try {
-                    const json = typeof jsonText === 'string' ? JSON.parse(jsonText) : jsonText;
-                    if (typeof json?.file === 'string' && isExcelExt(json.file)) {
-                        referencedPath = json.file;
+                    const parts = file.id.split('/');
+                    let dir = state.directoryHandle;
+
+                    for (const part of parts.slice(0, -1)) {
+                        dir = await dir.getDirectoryHandle(part);
                     }
 
-                    if (!referencedPath && Array.isArray(json?.uploads) && json.uploads.length > 0) {
-                        const lastUpload = json.uploads[json.uploads.length - 1];
-                        if (typeof lastUpload?.file === 'string' && isExcelExt(lastUpload.file)) {
-                            latestUploadPath = lastUpload.file;
-                        }
-                    }
-
-                    if (!referencedPath) {
-                        const findExcelPath = obj => {
-                            if (!obj || typeof obj !== 'object') return null;
-
-                            if (typeof obj.file === 'string' && isExcelExt(obj.file)) {
-                                return obj.file;
-                            }
-
-                            for (const k of Object.keys(obj)) {
-                                const value = obj[k];
-                                if (typeof value === 'string' && isExcelExt(value)) {
-                                    return value;
-                                }
-                                if (value && typeof value === 'object') {
-                                    const found = findExcelPath(value);
-                                    if (found) return found;
-                                }
-                            }
-                            return null;
-                        };
-
-                        referencedPath = findExcelPath(json);
-                    }
-
-                    if (referencedPath) {
-                        const fileNameMatch = referencedPath.match(/([^/]+\.(xls|xlsx|xlsm))$/i);
-                        excelFileName = fileNameMatch ? fileNameMatch[1] : null;
-                    }
+                    const handle = await dir.getFileHandle(parts.at(-1));
+                    fileData = await handle.getFile();
                 } catch {
-                    return "Could not parse JSON or find Excel file reference.";
-                }
-
-                if (!referencedPath && !excelFileName) {
-                    referencedPath = latestUploadPath;
-                }
-
-                let resolvedExcel = null;
-
-                if (referencedPath) {
-                    resolvedExcel = await readExcelFromIdWithUploadsFallback(referencedPath, workflowDir);
-                }
-
-                if (!resolvedExcel && excelFileName) {
-                    const excelEntity = Object.values(state.entities).find(entity => entity.name === excelFileName);
-                    if (excelEntity) {
-                        resolvedExcel = await readExcelFromIdWithUploadsFallback(excelEntity.id, workflowDir);
-                    }
-                }
-
-                if (!resolvedExcel) {
-                    return "Excel file referenced in JSON not found.";
-                }
-
-                fileData = resolvedExcel.fileData;
-                downloadName = resolvedExcel.fileName;
-                excelFileId = resolvedExcel.fileId;
-            } else if (!(ext === 'xls' || ext === 'xlsx' || ext === 'xlsm')) {
-                return "Only Excel files or intermediary JSON files can be viewed.";
-            }
-
-            if (!fileData) {
-                const resolved = await readExcelFromIdWithUploadsFallback(excelFileId);
-                if (resolved) {
-                    fileData = resolved.fileData;
-                    downloadName = resolved.fileName;
+                    return "Could not read Excel file.";
                 }
             }
 
-            if (!fileData) {
-                return "File data not found.";
-            }
+            const buffer = fileData instanceof Blob
+                ? await fileData.arrayBuffer()
+                : fileData;
 
-            const buffer = fileData instanceof Blob ? await fileData.arrayBuffer() : fileData;
             const panelId = `${file.id}::view`;
-            const legacyPanel = panelsSelectors.selectById(store.getState(), file.id);
-
-            // Clean up old excel-viewer instances that used the file id directly.
-            if (file.id !== panelId && legacyPanel?.type === EXCEL_VIEWER_PANEL_TYPE) {
-                store.dispatch(panelsActions.closePanel(file.id));
-            }
 
             const panelState = {
                 id: panelId,
                 type: EXCEL_VIEWER_PANEL_TYPE,
-                name: `${downloadName} (view)`,
+                name: `${file.name} (view)`,
                 file: buffer,
                 fileHandle: {
                     id: panelId,
-                    name: downloadName,
+                    name: file.name,
                     objectType: file.objectType,
                 }
             };
@@ -334,11 +144,7 @@ export default {
             if (isPanelOpen(panelId)) {
                 store.dispatch(panelsActions.updateOne({
                     id: panelId,
-                    changes: {
-                        name: panelState.name,
-                        file: panelState.file,
-                        fileHandle: panelState.fileHandle,
-                    }
+                    changes: panelState
                 }));
                 store.dispatch(panelsActions.setActive(panelId));
             } else {
@@ -346,6 +152,29 @@ export default {
             }
         }
     },
+
+    FileOpen: {
+        id: createId('file-open'),
+        title: "Open File",
+        shortTitle: "Open",
+        description: "Open on SynBioHub",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            }
+        ],
+
+        execute: async (fileNameOrId,uploadInfo) => {
+            const file = findFileByNameOrId(fileNameOrId);
+            if (!file) return "File does not exist.";
+
+            const uri = uploadInfo?.uri;
+            if (!uri) return "No SynBioHub URI found.";
+
+            window.open(uri, '_blank', 'noopener,noreferrer');
+        }
+    },    
 
     FileSave: {
         id: createId("file-save"),
@@ -366,10 +195,10 @@ export default {
 
             const file = findFileByNameOrId(fileNameOrId)
             if (!file)
-                return "File doesn't exist."
+                return "File does not exist."
 
             if(!isPanelOpen(file.id))
-                return "Panel isn't open."
+                return "Panel is not open."
 
             const targetFile = (/\.(xlsm|xlsx|xls)$/i.test(file.name || ""))
                 ? await resolveExperimentBackingFile(file)
@@ -408,7 +237,7 @@ export default {
         ],
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
 
             const state = store.getState().workingDirectory;
             let fileData = state.entities[file.id]?.data;
@@ -497,7 +326,7 @@ export default {
         ],
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
             const sbmlFile = findFileByNameOrId(fileNameOrId.replace('_sbol.xml','_sbml.xml'));
 
             const dirHandle = store.getState().workingDirectory.directoryHandle;
@@ -523,9 +352,10 @@ export default {
             async function performUpload(authToken) {
               try {
                 store.dispatch(loadOverlay());
+                let response;
                 try {
-                    if (importType=='resources' || importType=='strains'||importType=='sampleDesigns') {
-                        await upload_resource(
+                    if (importType=='resources'||importType=='strains'||importType=='sampleDesigns') {
+                        response = await upload_resource(
                             file,
                             registryAPI,
                             registryPrefix,
@@ -536,7 +366,7 @@ export default {
                             importType
                         )
                     } else {
-                        await upload_sbol(
+                        response = await upload_sbol(
                             file,
                             sbmlFile,
                             registryAPI,
@@ -562,7 +392,7 @@ export default {
                 const uploadEntry = {
                     collectionName,
                     collectionUri: collectionUrl,
-                    uri: collectionUrl,
+                    uri: response.subCollectionUrl,
                     file: file.id,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
@@ -576,8 +406,8 @@ export default {
                     uploads: [uploadEntry]
                 };
 
-                let jsonPath
-                if (importType=='resources' || importType=='strains'||importType=='sampleDesigns') {
+                let jsonPath;
+                if (importType=='resources'||importType=='strains'||importType=='sampleDesigns') {
                     jsonPath = file.id.replace(/\.xlsm$/i, '.json');
                 } else {
                     jsonPath = file.id.replace(/\.xml$/i, '.json');
@@ -627,7 +457,7 @@ export default {
         ],
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
 
             const dirHandle = store.getState().workingDirectory.directoryHandle;
             const directory = file.id.split("/")[0];
@@ -746,8 +576,7 @@ export default {
                             const uploadPath = sameFilename ? `${directory}/${stagingName}` : newFilePath;
 
                             if (authToken!=null) {
-                            store.dispatch(loadOverlay());
-                                let response;
+                                store.dispatch(loadOverlay());
                                 try {
                                     response = await upload_resource(
                                         uploadPath,
@@ -776,7 +605,7 @@ export default {
                                 const updateEntry = {
                                     collectionName,
                                     collectionUri: collectionUrl,
-                                    uri: response.sbh_url,
+                                    uri: response.subCollectionUrl,
                                     file: newFilePath,
                                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                                     selectedRepo,

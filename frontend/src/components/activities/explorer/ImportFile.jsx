@@ -6,7 +6,7 @@ import { createContext, useState } from "react";
 import { classifyFile, ObjectTypes } from "../../../objectTypes";
 import { Text } from "@mantine/core";
 import { useSelector, useDispatch } from "react-redux";
-import { writeToFileHandle, createFileInDirectory } from "../../../redux/hooks/workingDirectoryHooks";
+import { writeToFileHandle } from "../../../redux/hooks/workingDirectoryHooks";
 import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import workingDirectorySlice from "../../../redux/slices/workingDirectorySlice";
 import { useLocalStorage } from "@mantine/hooks";
@@ -248,7 +248,6 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                     || collselectedCollectionUriectionUrl
 
                 const uploadedFile = await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
-                const uploadedFileHandle = await objectTypeDir.getFileHandle(actualFileName, { create: false });
 
                 dispatch(loadOverlay())
                 let uploadResponse
@@ -292,7 +291,7 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                     collectionName: collectionData.name,
                     collectionUri: selectedCollectionUri,
                     collectionDisplayId,
-                    uri: selectedCollectionUri,
+                    uri: uploadResponse.subCollectionUrl,
                     file: uploadedFilePath,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
@@ -306,7 +305,6 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
             onSelect?.(fileMetadata)
 
         } catch (err) {
-            console.error(err.stack)
             if (err?.name === "NotFoundError" || err?.name === "AbortError") {
                 return; // user canceled
             }

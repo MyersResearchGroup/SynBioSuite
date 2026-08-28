@@ -15,7 +15,7 @@ export async function resolveExperimentBackingFile(fileHandle) {
     if (!fileHandle) return fileHandle
 
     const fileName = fileHandle.name || ""
-    if (/\.xdc$/i.test(fileName)) {
+    if (/\.json$/i.test(fileName)) {
         if (!fileHandle.id) {
             fileHandle.id = fileName
         }

@@ -57,6 +57,7 @@ export const ObjectTypes = {
         extension: '.json',
         subdirectory: "resources",
         downloadable: true,
+        limitOne: true,
     },
      Devices: {
         id: "synbio.object-type.devices",
@@ -147,6 +148,7 @@ export const ObjectTypes = {
         updateable: true,
         subdirectory: "strains",
         downloadable: true,
+        limitOne: true,
     },
     /*
     BuildPlans: {
@@ -174,6 +176,7 @@ export const ObjectTypes = {
         updateable: true,
         subdirectory: "sampleDesigns",
         downloadable: true,
+        limitOne: true,
     },
     Metadata: {
         id: "synbio.object-type.study-data",

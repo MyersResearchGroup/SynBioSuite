@@ -13,6 +13,7 @@ import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { readStudy } from "../../../modules/util";
+import store from '../../../redux/store'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -209,11 +210,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                                 url={objectType.iframeUrl}>
                                             </OpenSeqImproveButton>
                                         }                              
-                                        {objectType.downloadable &&
+                                        {(objectType.downloadable && (!objectType.limitOne || filesOfType.length === 0)) &&
                                             <DownloadMetadata objectType={objectType}>
                                             </DownloadMetadata>
                                         }
-                                        {objectType.importable &&
+                                        {(objectType.importable && (!objectType.limitOne || filesOfType.length === 0)) &&
                                             <ImportFile
                                             onSelect={finalImport}
                                             text={`Import ${objectType.title}`}
@@ -222,7 +223,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
                                             </ImportFile>
                                         }    
-                                        {objectType.uploadable &&
+                                        {(objectType.uploadable && (!objectType.limitOne || filesOfType.length === 0)) &&
                                             <ImportFile
                                             onSelect={finalImport}
                                             text={`Upload ${objectType.title}`}
