@@ -185,6 +185,18 @@ def xdc_run(files):
             print('Error uploading attachments to SynBioHub')
             return jsonify({"error": f"Error uploading attachments to SynBioHub: {e}"}), 400
 
+    if plate_reader_attachments is not None:
+        try:
+            experimentId = None
+            for tl in sbol_doc:
+                if isinstance(tl, sbol2.Experiment):
+                    experimentId = tl.displayId
+                    break
+            upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, plate_reader_attachments, experimentId)
+        except Exception as e:
+            print('Error uploading plate reader attachments to SynBioHub')
+            return jsonify({"error": f"Error uploading plate reader attachments to SynBioHub: {e}"}), 400
+
     if fj_study_id is not None and fj_url is not None and fj_token is not None and plate_reader_attachments:
         try:
             from . import uploadFlapjack as fj_import
@@ -200,6 +212,7 @@ def xdc_run(files):
             # plate_reader_attachments is {name: file object}; save each for the reader
             plate_paths = []
             for pr_file in plate_reader_attachments.values():
+                pr_file.stream.seek(0)
                 pr_path = os.path.join(upload_dir, f"{uuid4()}_{secure_filename(pr_file.filename)}")
                 pr_file.save(pr_path)
                 plate_paths.append(pr_path)

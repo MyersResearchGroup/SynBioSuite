@@ -13,7 +13,6 @@ import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { readStudy } from "../../../modules/util";
-import store from '../../../redux/store'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
