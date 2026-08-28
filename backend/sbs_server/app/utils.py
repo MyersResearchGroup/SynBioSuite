@@ -104,6 +104,25 @@ def find_root_module_definitions(doc):
 
     return roots
 
+def find_root_component_definitions(doc):
+    component_definitions = list(doc.componentDefinitions)
+
+    # Identities of ComponentDefinitions referenced by Components
+    referenced = {
+        str(component.definition)
+        for cd in component_definitions
+        for component in cd.components
+        if component.definition
+    }
+
+    # Root ComponentDefinitions are not referenced by another Component
+    roots = [
+        cd for cd in component_definitions
+        if str(cd.identity) not in referenced
+    ]
+
+    return roots
+
 def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
     print("converting to SBOL")
     try:

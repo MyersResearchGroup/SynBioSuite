@@ -14,7 +14,7 @@ from .main import app
 from .version import __version__
 from .downloadTemplates import sbh_download_template
 from .synbiohubUpload import upload_sbh_attachments, upload_to_sbh
-from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions
+from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions, find_root_component_definitions
 
 #routes
 #check if the app is running
@@ -297,6 +297,7 @@ def sbol_upload(files):
     importType = params_from_request['importType']
     parts = sbh_collection_url.split("/")
     usergraph = "/".join(parts[:5])
+    topLevelUri = None
 
     try:
         sbh_user_info = get_sbh_user(sbh_url, sbh_token)
@@ -363,8 +364,20 @@ def sbol_upload(files):
             doc.addModel(model)
             roots = find_root_module_definitions(doc)
             for root in roots:
-                print(root.displayId, root.identity)
+                rootDisplayId = root.identity.split("/")[3]
                 root.models = root.models + [model.identity]
+        if importType == 'Devices' or importType == 'Plasmids':
+            roots = find_root_component_definitions(doc)
+            for root in roots:
+                rootDisplayId = root.identity.split("/")[3]
+                topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
+        elif importType == 'Designs':
+            roots = find_root_module_definitions(doc)
+            for root in roots:
+                rootDisplayId = root.identity.split("/")[3]
+                topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
+        print(importType)
+        print(topLevelUri)
         subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
     except AttributeError as e:
         print('Attribute Error: ',str(e))
@@ -392,7 +405,7 @@ def sbol_upload(files):
                     print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
-        "subCollectionUrl": subCollectionUrl,
+        "subCollectionUrl": topLevelUri if topLevelUri is not None else subCollectionUrl,
         "status": "success"
     }
     return jsonify(sbs_upload_response_dict), 200
