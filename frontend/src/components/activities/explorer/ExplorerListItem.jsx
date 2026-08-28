@@ -7,6 +7,7 @@ import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirector
 import DragObject from '../../DragObject'
 import { getPanelTypeForObject } from '../../../panels'
 import store from '../../../redux/store'
+import { getObjectType } from "../../../objectTypes"
 
 export default function ExplorerListItem({ fileId, icon }) {
 
@@ -23,7 +24,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                 if (file?.objectType === 'synbio.object-type.study-data' ||
                     file?.objectType === 'synbio.object-type.plate-reader' ||
                     file?.objectType === 'synbio.object-type.experimental-results') {
-                     const state = store.getState().workingDirectory
+                    const state = store.getState().workingDirectory
                     const xdcFiles = Object.values(state.entities)
                         .filter(f => f?.name?.toLowerCase().endsWith('.xdc'))
                     for (const xdcHandle of xdcFiles) {
@@ -53,7 +54,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                             if (!metadataMatches && !plateMatches && !resultsMatches) {
                                 continue
                             }
-                            if (xdc.uploads.length > 0) {
+                            if (Array.isArray(xdc.uploads) && xdc.uploads.length > 0) {
                                 setUploadInfo(xdc.uploads[xdc.uploads.length - 1])
                                 return
                             }
@@ -66,12 +67,15 @@ export default function ExplorerListItem({ fileId, icon }) {
                 } else if (file?.name?.toLowerCase().endsWith('.json')||
                     file?.name?.toLowerCase().endsWith('.xdc')) {
                     jsonFile = await file.getFile();
-                } else if (file?.name?.toLowerCase().endsWith('.xml')) {
+                } else if (file?.name?.toLowerCase().endsWith('.xml')||
+                    file?.name?.toLowerCase().endsWith('.xlsm')) {
                     let jsonPath
                     if (file?.name?.toLowerCase().endsWith('_sbml.xml')) {
                         jsonPath = file.id.replace(/\_sbml.xml$/i, '_sbol.json');
-                    } else {
+                    } else if (file?.name?.toLowerCase().endsWith('.xml')) {
                         jsonPath = file.id.replace(/\.xml$/i, '.json');
+                    } else {
+                        jsonPath = file.id.replace(/\.xlsm$/i, '.json');
                     }
                     const parts = jsonPath.split('/');
                     const fileName = parts.pop();
@@ -139,21 +143,11 @@ export default function ExplorerListItem({ fileId, icon }) {
     }
 
     const supportsFileUpdate = () => {
-        const fileName = file.name.toLowerCase()
-        if (/\.json$/i.test(fileName)) {
-            return true
-        }
-        return false
+       return getObjectType(file?.objectType)?.updateable === true
     }
 
     const supportsFileUpload = () => {
-        const fileName = file.name.toLowerCase()
-        if (/\.xml$/i.test(fileName) && !/_sbml\.xml$/i.test(fileName)) {
-            /* TODO: add support for SBML files in the future */
-        /* if (/\.xml$/i.test(fileName)) {*/
-          return true;
-        }
-        return false
+       return getObjectType(file?.objectType)?.uploadable === true
     }
 
     const supportsFileDownload = () => {

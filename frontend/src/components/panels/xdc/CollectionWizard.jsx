@@ -19,17 +19,28 @@ export default function CollectionWizard() {
     const [dataFJ] = useLocalStorage({ key: 'Flapjack', defaultValue: [] })
     const { open, MODAL_TYPES } = useUnifiedModal()
 
-    const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
-    const metadataFile = useFile(metadataID)
-
+    const metadataID = usePanelProperty(panelId, 'metadata')
     const [resultsIDsRaw, setResultsIDsRaw] = usePanelProperty(panelId, 'results', false, [])
-    const files = useFiles()
-    // normalize stored shape: allow single id, array of ids, or falsy
-    const resultsIDs = Array.isArray(resultsIDsRaw) ? resultsIDsRaw : (resultsIDsRaw ? [resultsIDsRaw] : [])
-    const resultsFiles = (resultsIDs || []).map(id => files.find(f => f.id === id)).filter(Boolean)
-
     const [plateOutputID, setPlateOutputID] = usePanelProperty(panelId, 'plateOutput', false)
-    const plateOutputFile = useFile(plateOutputID)
+    const files = useFiles()
+
+    const resolveStoredFileId = (value) => {
+        if (!value) return null
+        const directMatch = files.find(f => f.id === value)
+        if (directMatch) return directMatch.id
+        const normalized = String(value).split('/').pop()
+        const filenameMatch = files.find(f => f.name === normalized || f.id === normalized)
+        return filenameMatch?.id ?? value
+    }
+
+    const resultsIDs = Array.isArray(resultsIDsRaw) ? resultsIDsRaw : (resultsIDsRaw ? [resultsIDsRaw] : [])
+    const resolvedResultsIDs = resultsIDs.map(resolveStoredFileId)
+    const resultsFiles = (resolvedResultsIDs || []).map(id => files.find(f => f.id === id)).filter(Boolean)
+
+    const resolvedMetadataID = resolveStoredFileId(metadataID)
+    const metadataFile = useFile(resolvedMetadataID)
+    const resolvedPlateOutputID = resolveStoredFileId(plateOutputID)
+    const plateOutputFile = useFile(resolvedPlateOutputID)
 
     const [collection] = usePanelProperty(panelId, 'collection', false, {})
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
@@ -267,13 +278,6 @@ export default function CollectionWizard() {
             <Stack gap="xl">
                 <div>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.Metadata.id]}
-                        item={metadataFile?.name}
-                        onItemChange={setMetadataID}
-                    >
-                        Drag & drop assay metadata from the explorer
-                    </Dropzone>
-                    <Dropzone
                         allowedTypes={[ObjectTypes.PlateReader.id]}
                         item={plateOutputFile?.name}
                         onItemChange={setPlateOutputID}
@@ -295,7 +299,7 @@ export default function CollectionWizard() {
                 <Button
                     variant='default'
                     onClick={handleSubmit}
-                    disabled={!metadataFile || isSubmitting}
+                    disabled={isSubmitting}
                 >
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
