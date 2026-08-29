@@ -157,18 +157,9 @@ export default {
                 newSidecarName = newName.replace(/\.xlsm$/i, extension)
             }
 
-            //
-            // Save sidecar Redux information before removing it
-            //
-
-            let oldSidecar = null
-            let newSidecarHandle = null
-
             if (oldSidecarName) {
-                const oldSidecarId = [...parts, oldSidecarName].join('/')
-                oldSidecar = store.getState().workingDirectory.entities[oldSidecarId]
                 try {
-                    newSidecarHandle = await renameFile(currentDir,oldSidecarName,newSidecarName)
+                    await renameFile(currentDir,oldSidecarName,newSidecarName)
                 } catch (e) {
                     if (e.name !== 'NotFoundError')
                         throw e
