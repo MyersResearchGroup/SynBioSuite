@@ -256,12 +256,13 @@ export default function CollectionWizard() {
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
                 }
             )
-
             const uploadEntry = {
                 collectionName: collection?.name || collection?.displayId || collectionUrl,
-                uri: collectionUrl,
+                uri: response.subCollectionUrl || collectionUrl,
                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                 file: metadataFile.name,
+                results: resolvedResultsIDs,
+                plateOutput: resolvedPlateOutputID,
                 selectedRepo,
                 status: response?.status || 'success',
             }

@@ -173,13 +173,18 @@ def xdc_run(files):
         print('Error uploading to SynBioHub')
         return jsonify({"error": f"Error uploading to SynBioHub: {e}"}), 400
 
+    experimentId = None
+    for tl in sbol_doc:
+        if isinstance(tl, sbol2.Experiment):
+            experimentId = tl.displayId
+            break
+    print(experimentId)
+    if experimentId is not None:
+        subCollectionUrl = subCollectionUrl.replace('/'+importType+'/','/'+experimentId+'/')
+    print(subCollectionUrl)
+
     if attachments is not None:
         try:
-            experimentId = None
-            for tl in sbol_doc:
-                if isinstance(tl, sbol2.Experiment):
-                    experimentId = tl.displayId
-                    break
             upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, attachments, experimentId)
         except Exception as e:
             print('Error uploading attachments to SynBioHub')
@@ -187,11 +192,6 @@ def xdc_run(files):
 
     if plate_reader_attachments is not None:
         try:
-            experimentId = None
-            for tl in sbol_doc:
-                if isinstance(tl, sbol2.Experiment):
-                    experimentId = tl.displayId
-                    break
             upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, plate_reader_attachments, experimentId)
         except Exception as e:
             print('Error uploading plate reader attachments to SynBioHub')

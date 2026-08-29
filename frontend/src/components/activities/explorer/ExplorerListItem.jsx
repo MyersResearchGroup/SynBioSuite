@@ -35,30 +35,34 @@ export default function ExplorerListItem({ fileId, icon }) {
                             const xdcFile = await xdcHandle.getFile()
                             const xdcText = await xdcFile.text()
                             const xdc = JSON.parse(xdcText)
-                            const metadataMatches =
-                                file?.objectType === 'synbio.object-type.study-data' &&
-                                (xdc.metadata === file.id ||
-                                xdc.metadata?.split('/').pop() === file.name)
-                            const plateMatches =
-                                file?.objectType === 'synbio.object-type.plate-reader' &&
-                                (xdc.plateOutput === file.id ||
-                                xdc.plateOutput?.split('/').pop() === file.name)
-                            const results = Array.isArray(xdc.results)
-                                ? xdc.results
-                                : xdc.results
-                                    ? [xdc.results]
-                                    : []
-
-                            const resultsMatches = results.some(result =>
-                                file?.objectType === 'synbio.object-type.experimental-results' &&
-                                (result === file.id ||
-                                result.split('/').pop() === file.name)
-                            )
-                            if (!metadataMatches && !plateMatches && !resultsMatches) {
-                                continue
-                            }
                             if (Array.isArray(xdc.uploads) && xdc.uploads.length > 0) {
-                                setUploadInfo(xdc.uploads[xdc.uploads.length - 1])
+                                const upload = xdc.uploads[xdc.uploads.length - 1]
+                                const metadataMatches =
+                                    file?.objectType === 'synbio.object-type.study-data' &&
+                                    (upload.file === file.id ||
+                                    upload.file?.split('/').pop() === file.name)
+                                const plateMatches =
+                                    file?.objectType === 'synbio.object-type.plate-reader' &&
+                                    (upload.plateOutput === file.id ||
+                                    upload.plateOutput?.split('/').pop() === file.name)
+                                const results = Array.isArray(xdc.results)
+                                    ? upload.results
+                                    : upload.results
+                                        ? [upload.results]
+                                        : []
+                                const resultsMatches = results.some(result =>
+                                    file?.objectType === 'synbio.object-type.experimental-results' &&
+                                    (result === file.id ||
+                                    result.split('/').pop() === file.name)
+                                )
+                                if (!metadataMatches && !plateMatches && !resultsMatches) {
+                                    setUploadInfo(null)
+                                } else {
+                                    setUploadInfo(xdc.uploads[xdc.uploads.length - 1])
+                                }
+                                return
+                            } else {
+                                setUploadInfo(null)
                                 return
                             }
                         } catch (error) {
