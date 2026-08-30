@@ -153,6 +153,10 @@ export default function ExplorerListItem({ fileId, icon }) {
        return uploadInfo
     }
 
+    const supportsFileDelete = () => {
+       return !uploadInfo
+    }
+
     const supportsFileUpdate = () => {
        return getObjectType(file?.objectType)?.updateable === true
     }
@@ -173,7 +177,7 @@ export default function ExplorerListItem({ fileId, icon }) {
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
         commands.FileRename,
-        commands.FileDelete
+        ...(supportsFileDelete() ? [commands.FileDelete] : []),
     ];
 
     return (
