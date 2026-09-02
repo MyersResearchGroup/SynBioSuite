@@ -269,7 +269,7 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                             selectedCollectionUri,
                             dirName,
                             3,
-                            objectTypeDir.name
+                            importType
                         )
                     } else {
                         uploadResponse = await upload_sbol(
@@ -280,7 +280,7 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                             authToken,
                             selectedCollectionUri,
                             3,
-                            objectTypeDir.name
+                            importType
                         );
                     }
                 } finally {

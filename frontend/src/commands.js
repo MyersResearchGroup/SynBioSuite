@@ -580,9 +580,9 @@ export default {
             let registryPrefix = null;
 
             try {
-                let jsonFileName
-                if (file.name.endsWith('.xlsm')) jsonFileName = file.name.replace('.xlsm','.json')
-                else if (file.name.endsWith('.xml')) jsonFileName = file.name.replace('.xml','.json')
+                let jsonFileName;
+                if (file.name.endsWith('.xlsm')) jsonFileName = file.name.replace('.xlsm','.json');
+                else if (file.name.endsWith('.xml')) jsonFileName = file.name.replace('.xml','.json');
 
                 uploadsDir = await dirHandle.getDirectoryHandle(directory);
                 const jsonFH = await uploadsDir.getFileHandle(jsonFileName);
