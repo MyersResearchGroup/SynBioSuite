@@ -56,13 +56,22 @@ export default {
                 }
                 store.dispatch(workDirActions.removeFile(sidecarId))
             }
-            if (fileName.toLowerCase().endsWith('.xlsm')) {
-                let sidecarName
-                if (file.objectType === ObjectTypes.Metadata.id) {
-                    sidecarName = fileName.replace(/\.xlsm$/i, '.xdc')
-                } else {
-                    sidecarName = fileName.replace(/\.xlsm$/i, '.json') 
+            if (/\.(xlsm|xlsx|xls)$/i.test(fileName)) {
+                const sidecarExt =
+                    file.objectType === ObjectTypes.Metadata.id
+                        ? '.xdc'
+                        : '.json'
+                const sidecarName = fileName.replace(/\.(xlsm|xlsx|xls)$/i, sidecarExt)
+                const sidecarId = [...parts, sidecarName].join('/')
+                try {
+                    await currentDir.removeEntry(sidecarName)
+                } catch (e) {
+                    if (e.name !== 'NotFoundError') {
+                        console.warn(`Could not delete sidecar ${sidecarId}:`, e)
+                    }
                 }
+                store.dispatch(workDirActions.removeFile(sidecarId))
+            }
                 let sidecarId = [...parts, sidecarName].join('/')
                 try {
                     await currentDir.removeEntry(sidecarName)
