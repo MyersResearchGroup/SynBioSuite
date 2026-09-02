@@ -501,9 +501,24 @@ export default {
 
                 let jsonPath;
                 if (importType=='resources'||importType=='strains'||importType=='sampleDesigns') {
-                    jsonPath = file.id.replace(/\.xlsm$/i, '.json');
+                    if (file.id.endsWith('.xlsm')) {
+                        jsonPath = file.id.replace(/\.xlsm$/i, '.json');
+                    } else if (file.id.endsWith('.xlsx')) {
+                        jsonPath = file.id.replace(/\.xlsx$/i, '.json');
+                    } else {
+                        showErrorNotification("Failed to upload file", file.id + " is incorrect file type.");
+                        return "Failed to upload file: " + file.id + " is incorrect file type.";
+                    }
+                } else if (importType=='devices'||importType=='designs'||importType=='plasmids') {
+                    if (file.id.endsWith('xml')) {
+                        jsonPath = file.id.replace(/\.xml$/i, '.json');
+                    } else {
+                       showErrorNotification("Failed to upload file", file.id + " is incorrect file type.");
+                        return "Failed to upload file: " + file.id + " is incorrect file type.";
+                    }
                 } else {
-                    jsonPath = file.id.replace(/\.xml$/i, '.json');
+                    showErrorNotification("Failed to upload file", importType + " cannot be uploaded.");
+                    return "Failed to upload file: " + file.id + " is incorrect file type.";
                 }
                 const parts = jsonPath.split('/');
                 const fileName = parts.pop();
