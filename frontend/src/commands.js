@@ -72,16 +72,6 @@ export default {
                 }
                 store.dispatch(workDirActions.removeFile(sidecarId))
             }
-                let sidecarId = [...parts, sidecarName].join('/')
-                try {
-                    await currentDir.removeEntry(sidecarName)
-                } catch (e) {
-                    if (e.name !== 'NotFoundError') {
-                        console.warn(`Could not delete sidecar ${sidecarId}:`, e)
-                    }
-                }
-                store.dispatch(workDirActions.removeFile(sidecarId))
-            }
             store.dispatch(panelsActions.closePanel(file.id))
             store.dispatch(workDirActions.removeFile(file.id))
         }
