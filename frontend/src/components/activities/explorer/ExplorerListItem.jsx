@@ -30,6 +30,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                     const state = store.getState().workingDirectory
                     const xdcFiles = Object.values(state.entities)
                         .filter(f => f?.name?.toLowerCase().endsWith('.xdc'))
+                    setUploadInfo(null)
                     for (const xdcHandle of xdcFiles) {
                         try {
                             const xdcFile = await xdcHandle.getFile()
@@ -55,21 +56,14 @@ export default function ExplorerListItem({ fileId, icon }) {
                                     (result === file.id ||
                                     result.split('/').pop() === file.name)
                                 )
-                                if (!metadataMatches && !plateMatches && !resultsMatches) {
-                                    setUploadInfo(null)
-                                } else {
+                                if (metadataMatches || plateMatches || resultsMatches) {
                                     setUploadInfo(xdc.uploads[xdc.uploads.length - 1])
                                 }
-                                return
-                            } else {
-                                setUploadInfo(null)
-                                return
-                            }
+                            } 
                         } catch (error) {
                             console.warn(`Could not inspect ${xdcHandle.id}:`,error)
                         }
                     }
-                    setUploadInfo(null)
                     return
                 } else if (file?.name?.toLowerCase().endsWith('.json')||
                     file?.name?.toLowerCase().endsWith('.xdc')) {

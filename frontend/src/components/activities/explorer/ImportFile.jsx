@@ -18,8 +18,6 @@ import { readStudy } from "../../../modules/util";
 
 export const importedFile = createContext()
 
-const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns']
-
 async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, maxAttempts = 1000) {
     let candidate = baseName;
     let counter = 1;
@@ -44,8 +42,6 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
     const { workflows } = useUnifiedModal()
     const { actions } = workingDirectorySlice
 
-    const isWorkflowImport = WORKFLOW_SUBDIRS.includes(useSubdirectory)
-
     async function addFileMetadata(fileHandle) {
         const file = await fileHandle.getFile();
         let directoryHandle = null;
@@ -60,7 +56,7 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
             name: file.name,
             fileHandle: fileHandle,
             directoryHandle,
-            objectType: await classifyFile(fileHandle)
+            objectType: await classifyFile(fileHandle, useSubdirectory)
         };
     }
 
