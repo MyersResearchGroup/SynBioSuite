@@ -45,7 +45,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                                     file?.objectType === 'synbio.object-type.plate-reader' &&
                                     (upload.plateOutput === file.id ||
                                     upload.plateOutput?.split('/').pop() === file.name)
-                                const results = Array.isArray(xdc.results)
+                                const results = Array.isArray(upload.results)
                                     ? upload.results
                                     : upload.results
                                         ? [upload.results]
