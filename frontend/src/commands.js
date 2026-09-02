@@ -682,7 +682,8 @@ export default {
 
                             const newFilePath = `${directory}/${newFileName}`;
                             const uploadPath = sameFilename ? `${directory}/${stagingName}` : newFilePath;
-
+                            
+                            let response;
                             if (authToken!=null) {
                                 store.dispatch(loadOverlay());
                                 try {
