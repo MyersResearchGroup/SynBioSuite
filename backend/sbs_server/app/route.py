@@ -168,7 +168,7 @@ def xdc_run(files):
 
     try:
         file_path_out_final = f"{uuid4()}_SBOL_final.xml"
-        subCollectionUrl = upload_to_sbh(sbol_doc, sbh_url, sbh_token, sbol_graph_uri, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num)
+        subCollectionUrl = upload_to_sbh(sbol_doc, sbh_url, sbh_prefix, sbh_token, sbol_graph_uri, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num)
     except Exception as e:
         print('Error uploading to SynBioHub')
         return jsonify({"error": f"Error uploading to SynBioHub: {e}"}), 400
@@ -364,21 +364,19 @@ def sbol_upload(files):
             doc.addModel(model)
             roots = find_root_module_definitions(doc)
             for root in roots:
-                rootDisplayId = root.identity.split("/")[3]
+                rootDisplayId = root.identity.rstrip("/").split("/")[-2]
                 root.models = root.models + [model.identity]
         if importType == 'Devices' or importType == 'Plasmids':
             roots = find_root_component_definitions(doc)
             for root in roots:
-                rootDisplayId = root.identity.split("/")[3]
+                rootDisplayId = root.identity.rstrip("/").split("/")[-2]
                 topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
         elif importType == 'Designs':
             roots = find_root_module_definitions(doc)
             for root in roots:
-                rootDisplayId = root.identity.split("/")[3]
+                rootDisplayId = root.identity.rstrip("/").split("/")[-2]
                 topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
-        print(importType)
-        print(topLevelUri)
-        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
+        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
     except AttributeError as e:
         print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400

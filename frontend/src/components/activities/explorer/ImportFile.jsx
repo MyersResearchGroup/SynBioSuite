@@ -65,7 +65,9 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
     }
 
     async function saveFileToUploads(fileObj, objectType, actualFileName) {
-        const subDir = await dirName.getDirectoryHandle(objectType, { create: true });
+        const subDir = objectType
+            ? await dirName.getDirectoryHandle(objectType, { create: true })
+            : dirName
         const fileHandle = await subDir.getFileHandle(actualFileName, { create: true });
         const writable = await fileHandle.createWritable();
         const arrayBuffer = await fileObj.arrayBuffer();
@@ -76,7 +78,9 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
 
     async function createWorkflowJSON(availableBaseName, objectType, actualFileName, filePath, collection, initialUpload) {
         try {
-            const directory = await dirName.getDirectoryHandle(objectType, { create: true });
+            const directory = objectType
+                ? await dirName.getDirectoryHandle(objectType, { create: true })
+                : dirName
             const jsonFileName = `${availableBaseName}.json`;
             const jsonFileHandle = await directory.getFileHandle(jsonFileName, { create: true });
 
@@ -90,6 +94,9 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
             await writeToFileHandle(jsonFileHandle, JSON.stringify(defaultWorkflow));
 
             const uploadedFileHandle = await directory.getFileHandle(actualFileName, { create: false });
+            uploadedFileHandle.id = objectType
+                ? `${objectType}/${actualFileName}`
+                : actualFileName
             uploadedFileHandle.id = `${objectType}/${actualFileName}`;
             if (objectType === 'resources') {
                 uploadedFileHandle.objectType = ObjectTypes.Resources.id;
@@ -210,10 +217,15 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                     sbmlFile = fileMetadata.name.replace("_sbol.xml","_sbml.xml")
                 }
 
-                const objectTypeDir = await dirName.getDirectoryHandle(useSubdirectory, { create: true })
+                const objectTypeDir = useSubdirectory
+                    ? await dirName.getDirectoryHandle(useSubdirectory, { create: true })
+                    : dirName
                 const availableBaseName = await getAvailableBaseName(objectTypeDir, objectTypeDir, baseName, ext)
                 const actualFileName = `${availableBaseName}${ext}`
-                const uploadedFilePath = `${useSubdirectory}/${actualFileName}`
+                const uploadedFilePath = useSubdirectory
+                    ? `${useSubdirectory}/${actualFileName}`
+                    : actualFileName
+                const importType = useSubdirectory || 'designs'
                 
                 const modalResult = await runImportCollectionWorkflow()
 
