@@ -405,14 +405,14 @@ export default {
                                 cur = await cur.getDirectoryHandle(parts[i]);
                             }
 
-                            let uploadsDir = null;
-                            try { uploadsDir = await cur.getDirectoryHandle('uploads'); } catch (e) {}
+                            let currentDir = null;
+                            try { currentDir = await cur.getDirectoryHandle('uploads'); } catch (e) {}
 
-                            if (uploadsDir) {
+                            if (currentDir) {
                                 const baseName = file.name.replace(/\.[^/.]+$/, "");
-                                for await (const entry of uploadsDir.values()) {
+                                for await (const entry of currentDir.values()) {
                                     if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") === baseName) {
-                                        const fh = await uploadsDir.getFileHandle(entry.name);
+                                        const fh = await currentDir.getFileHandle(entry.name);
                                         fileData = await fh.getFile();
                                         downloadName = entry.name;
                                         break;
@@ -613,21 +613,31 @@ export default {
             const directory = file.id.split("/")[0];
 
             let jsonData = null;
-            let uploadsDir = null;
             let selectedRepo = null;
             let expectedEmail = null;
             let collectionUrl = null;
             let collectionName = null;
             let registryAPI = null;
             let registryPrefix = null;
+            let currentDir = null;
 
             try {
-                let jsonFileName;
-                if (file.name.endsWith('.xlsm')) jsonFileName = file.name.replace('.xlsm','.json');
-                else if (file.name.endsWith('.xml')) jsonFileName = file.name.replace('.xml','.json');
-
-                uploadsDir = await dirHandle.getDirectoryHandle(directory);
-                const jsonFH = await uploadsDir.getFileHandle(jsonFileName);
+                let jsonPath;
+                if (file.name.endsWith('.xlsm')) {
+                    jsonPath = file.id.replace(/\.xlsm$/i, '.json');
+                } else if (file.id.endsWith('.xlsx')) {
+                    jsonPath = file.id.replace(/\.xlsx$/i, '.json');
+                } else {
+                    showErrorNotification("Failed to upload file", file.id + " is incorrect file type.");
+                    return "Failed to update file: " + file.id + " is incorrect file type.";
+                }
+                const parts = jsonPath.split('/');
+                const jsonFileName = parts.pop();
+                currentDir = dirHandle;
+                for (const part of parts) {
+                    currentDir = await currentDir.getDirectoryHandle(part);
+                }
+                const jsonFH = await currentDir.getFileHandle(jsonFileName);
                 const jsonText = await (await jsonFH.getFile()).text();
                 jsonData = JSON.parse(jsonText);
     
@@ -715,9 +725,12 @@ export default {
 
                         try {
                             const newFileName = newFile.name;
+                            const extension = getExtension(newFileName);
+                            const oldJsonFileName = existingFileName.replace(extension,'.json');
+                            const newJsonFileName = newFileName.replace(extension,'.json');
                             const sameFilename = existingFileName && existingFileName === newFileName;
                             const stagingName = sameFilename ? `__tmp__${newFileName}` : newFileName;
-                            const stagingFH = await uploadsDir.getFileHandle(stagingName, { create: true });
+                            const stagingFH = await currentDir.getFileHandle(stagingName, { create: true });
                             const writable = await stagingFH.createWritable();
                             await writable.write(newFile);
                             await writable.close();
@@ -744,13 +757,13 @@ export default {
                                 }
                             }
                             if (sameFilename) {
-                                const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
+                                const finalFH = await currentDir.getFileHandle(newFileName, { create: true });
                                 const finalWritable = await finalFH.createWritable();
                                 await finalWritable.write(newFile);
                                 await finalWritable.close();
-                                try { await uploadsDir.removeEntry(stagingName); } catch {}
+                                try { await currentDir.removeEntry(stagingName); } catch {}
                             } else if (existingFileName) {
-                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
+                                try { await currentDir.removeEntry(existingFileName); } catch {}
                             }
                             if (authToken!=null) {
                                 const updateEntry = {
@@ -769,15 +782,17 @@ export default {
                                     file: newFilePath,
                                     uploads: [...(jsonData.uploads ?? []), updateEntry],
                                 };
-
-                                const jsonFH = await uploadsDir.getFileHandle(file.name);
+                                const jsonFH = await currentDir.getFileHandle(newJsonFileName);
                                 await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
+                                if (!sameFilename) {
+                                    try { await currentDir.removeEntry(oldJsonFileName); } catch {}
+                                }
                             }
 
                             if (!sameFilename) {
                                 const oldFileId = file.id
 
-                                const newFileHandle = await uploadsDir.getFileHandle(
+                                const newFileHandle = await currentDir.getFileHandle(
                                     newFileName,
                                     { create: false }
                                 )
@@ -814,7 +829,7 @@ export default {
 
                             resolve("File updated successfully.");
                         } catch (err) {
-                            try { await uploadsDir.removeEntry(stagingName); } catch {}
+                            try { await currentDir.removeEntry(stagingName); } catch {}
                             showErrorNotification("Failed to update file", err.message);
                             resolve("Failed to update file: " + err.message);
                         }
