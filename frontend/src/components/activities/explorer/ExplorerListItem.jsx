@@ -19,6 +19,29 @@ export default function ExplorerListItem({ fileId, icon }) {
 
     const [renameOpen, setRenameOpen] = useState(false)
     const [newName, setNewName] = useState('')
+ 
+    const getRenameParts = fileName => {
+        const sbolMatch = fileName.match(/^(.*)(_sbol)(\.[^.]+)$/i)
+        if (sbolMatch) {
+            return {
+                editable: sbolMatch[1],
+                suffix: sbolMatch[2] + sbolMatch[3]
+            }
+        }
+        const dot = fileName.lastIndexOf('.')
+        if (dot >= 0) {
+            return {
+                editable: fileName.slice(0, dot),
+                suffix: fileName.slice(dot)
+            }
+        }
+        return {
+            editable: fileName,
+            suffix: ''
+        }
+    }
+
+    const { suffix } = getRenameParts(file.name)
 
     useEffect(() => {
         const getUploadInfo = async () => {
@@ -163,6 +186,10 @@ export default function ExplorerListItem({ fileId, icon }) {
         return true
     }
 
+    const supportsFileRename = () => {
+        return !/_sbml\.xml$/i.test(file.name)
+    }
+
     // command list
     let contextMenuCommands = [
         ...(supportsFileView() ? [commands.FileView] : []),
@@ -170,7 +197,7 @@ export default function ExplorerListItem({ fileId, icon }) {
         ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
-        commands.FileRename,
+        ...(supportsFileRename() ? [commands.FileRename] : []),
         ...(supportsFileDelete() ? [commands.FileDelete] : []),
     ];
 
@@ -208,7 +235,8 @@ export default function ExplorerListItem({ fileId, icon }) {
                             icon={cmd.icon}
                             onClick={() => {
                                 if (cmd === commands.FileRename) {
-                                    setNewName(file.name)
+                                    const { editable } = getRenameParts(file.name)
+                                    setNewName(editable)
                                     setRenameOpen(true)
                                 } else {
                                     cmd.execute(fileId, uploadInfo)
@@ -229,19 +257,15 @@ export default function ExplorerListItem({ fileId, icon }) {
                     label="File name"
                     value={newName}
                     onChange={event => setNewName(event.currentTarget.value)}
+                    rightSection={suffix}
+                    rightSectionWidth={suffix.length * 9 + 15}
                     autoFocus
-                    onKeyDown={async event => {
-                        if (event.key === 'Enter') {
-                            await commands.FileRename.execute(fileId, newName)
-                            setRenameOpen(false)
-                        }
-                    }}
                 />
-
                 <Button
                     mt="md"
                     onClick={async () => {
-                        await commands.FileRename.execute(fileId, newName)
+                        const { suffix } = getRenameParts(file.name)
+                        await commands.FileRename.execute(fileId,newName + suffix)
                         setRenameOpen(false)
                     }}
                 >

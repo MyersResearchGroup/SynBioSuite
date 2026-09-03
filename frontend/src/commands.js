@@ -138,20 +138,25 @@ export default {
 
             const newHandle = await renameFile(currentDir, oldName, newName)
 
-            //
-            // Determine sidecar
-            //
             let oldSidecarName = null
             let newSidecarName = null
-            if (oldName.toLowerCase().endsWith('.xml')) {
+            let oldSbmlName = null
+            let newSbmlName = null
+
+            if (/_sbol\.xml$/i.test(oldName)) {
+                oldSidecarName = oldName.replace(/_sbol\.xml$/i, '_sbol.json')
+                newSidecarName = newName.replace(/_sbol\.xml$/i, '_sbol.json')
+                oldSbmlName = oldName.replace(/_sbol\.xml$/i, '_sbml.xml')
+                newSbmlName = newName.replace(/_sbol\.xml$/i, '_sbml.xml')
+            } else if (/\.xml$/i.test(oldName)) {
                 oldSidecarName = oldName.replace(/\.xml$/i, '.json')
                 newSidecarName = newName.replace(/\.xml$/i, '.json')
-            }
-            if (oldName.toLowerCase().endsWith('.xlsm')) {
+            } else if (/\.xlsm$/i.test(oldName)) {
                 const extension =
                     file.objectType === ObjectTypes.Metadata.id
                         ? '.xdc'
                         : '.json'
+
                 oldSidecarName = oldName.replace(/\.xlsm$/i, extension)
                 newSidecarName = newName.replace(/\.xlsm$/i, extension)
             }
@@ -159,6 +164,24 @@ export default {
             if (oldSidecarName) {
                 try {
                     await renameFile(currentDir,oldSidecarName,newSidecarName)
+                } catch (e) {
+                    if (e.name !== 'NotFoundError')
+                        throw e
+                }
+            }
+            console.log(oldSbmlName)
+            console.log(newSbmlName)
+
+            if (oldSbmlName) {
+                try {
+                    const oldSbmlId = [...parts, oldSbmlName].join('/')
+                    const newSbmlId = [...parts, newSbmlName].join('/')
+                    const oldSbml = store.getState().workingDirectory.entities[oldSbmlId]
+                    const newSbmlHandle = await renameFile(currentDir,oldSbmlName,newSbmlName)
+                    store.dispatch(workDirActions.removeFile(oldSbmlId))
+                    newSbmlHandle.id = newSbmlId
+                    newSbmlHandle.objectType = oldSbml?.objectType
+                    store.dispatch(workDirActions.addFile(newSbmlHandle))
                 } catch (e) {
                     if (e.name !== 'NotFoundError')
                         throw e
