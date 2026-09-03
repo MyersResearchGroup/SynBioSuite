@@ -14,6 +14,7 @@ export default function ExplorerListItem({ fileId, icon }) {
     const file = useFile(fileId)
 
     const [uploadInfo, setUploadInfo] = useState(null)
+    const [fileInUse, setFileInUse] = useState(null)
 
     const uploadRevision = useSelector(state => state.workingDirectory.uploadRevision ?? 0)
 
@@ -46,6 +47,7 @@ export default function ExplorerListItem({ fileId, icon }) {
     useEffect(() => {
         const getUploadInfo = async () => {
             try {
+                setFileInUse(false)
                 let jsonFile;
                 if (file?.objectType === 'synbio.object-type.study-data' ||
                     file?.objectType === 'synbio.object-type.plate-reader' ||
@@ -59,22 +61,42 @@ export default function ExplorerListItem({ fileId, icon }) {
                             const xdcFile = await xdcHandle.getFile()
                             const xdcText = await xdcFile.text()
                             const xdc = JSON.parse(xdcText)
+                            let metadataMatches =
+                                file?.objectType === 'synbio.object-type.study-data' &&
+                                    (xdc.metadata === file.id || xdc.metadata?.split('/').pop() === file.name)
+                            let plateMatches =
+                                file?.objectType === 'synbio.object-type.plate-reader' &&
+                                    (xdc.plateOutput === file.id || xdc.plateOutput?.split('/').pop() === file.name)
+                            let results = Array.isArray(xdc.results)
+                                ? xdc.results
+                                : xdc.results
+                                    ? [xdc.results]
+                                    : []
+                            let resultsMatches =
+                                file?.objectType === 'synbio.object-type.experimental-results' &&
+                                results.some(result =>
+                                    result === file.id ||
+                                    result?.split('/').pop() === file.name
+                                )
+                            if (plateMatches || resultsMatches) {
+                                setFileInUse(true)
+                            }
                             if (Array.isArray(xdc.uploads) && xdc.uploads.length > 0) {
                                 const upload = xdc.uploads[xdc.uploads.length - 1]
-                                const metadataMatches =
+                                metadataMatches =
                                     file?.objectType === 'synbio.object-type.study-data' &&
                                     (upload.file === file.id ||
                                     upload.file?.split('/').pop() === file.name)
-                                const plateMatches =
+                                plateMatches =
                                     file?.objectType === 'synbio.object-type.plate-reader' &&
                                     (upload.plateOutput === file.id ||
                                     upload.plateOutput?.split('/').pop() === file.name)
-                                const results = Array.isArray(upload.results)
+                                results = Array.isArray(upload.results)
                                     ? upload.results
                                     : upload.results
                                         ? [upload.results]
                                         : []
-                                const resultsMatches = results.some(result =>
+                                resultsMatches = results.some(result =>
                                     file?.objectType === 'synbio.object-type.experimental-results' &&
                                     (result === file.id ||
                                     result.split('/').pop() === file.name)
@@ -171,7 +193,7 @@ export default function ExplorerListItem({ fileId, icon }) {
     }
 
     const supportsFileDelete = () => {
-       return !uploadInfo
+       return !uploadInfo && !fileInUse
     }
 
     const supportsFileUpdate = () => {
@@ -187,7 +209,7 @@ export default function ExplorerListItem({ fileId, icon }) {
     }
 
     const supportsFileRename = () => {
-        return !/_sbml\.xml$/i.test(file.name)
+        return !/_sbml\.xml$/i.test(file.name) && !fileInUse
     }
 
     // command list
