@@ -219,11 +219,11 @@ export default {
         }
     },
     
-    FileView: {
-        id: createId('file-view'),
-        title: "View File",
-        shortTitle: "View",
-        description: "View Excel file",
+    FileOpen: {
+        id: createId('file-open'),
+        title: "Open File",
+        shortTitle: "Open",
+        description: "Open file",
         arguments: [
             {
                 name: "fileNameOrId",
@@ -288,11 +288,11 @@ export default {
         }
     },
 
-    FileOpen: {
-        id: createId('file-open'),
-        title: "Open File",
-        shortTitle: "Open",
-        description: "Open on SynBioHub",
+    FileView: {
+        id: createId('file-view'),
+        title: "View File",
+        shortTitle: "View",
+        description: "View on SynBioHub",
         arguments: [
             {
                 name: "fileNameOrId",

@@ -159,8 +159,8 @@ export default function ExplorerListItem({ fileId, icon }) {
             return
         }
 
-        if (supportsFileView()) {
-            await commands.FileView.execute(fileId)
+        if (supportsFileOpen()) {
+            await commands.FileOpen.execute(fileId)
             return
         }
     }
@@ -174,7 +174,7 @@ export default function ExplorerListItem({ fileId, icon }) {
         setContextMenuOpen(true)
     }
 
-    const supportsFileView = () => {
+    const supportsFileOpen = () => {
         const fileName = file.name.toLowerCase()
         if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
             return true
@@ -185,7 +185,7 @@ export default function ExplorerListItem({ fileId, icon }) {
         return false
     }
 
-    const supportsFileOpen = () => {
+    const supportsFileView = () => {
        return uploadInfo
     }
 
@@ -211,8 +211,8 @@ export default function ExplorerListItem({ fileId, icon }) {
 
     // command list
     let contextMenuCommands = [
-        ...(supportsFileView() ? [commands.FileView] : []),
         ...(supportsFileOpen() ? [commands.FileOpen] : []),
+        ...(supportsFileView() ? [commands.FileView] : []),
         ...(supportsFileUpdate() ? [commands.FileUpdate] : []),
         ...(supportsFileUpload() ? [commands.FileUpload] : []),
         ...(supportsFileDownload() ? [commands.FileDownload] : []),
