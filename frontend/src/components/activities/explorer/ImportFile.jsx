@@ -268,7 +268,7 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                             authToken,
                             selectedCollectionUri,
                             dirName,
-                            3,
+                            true,
                             importType
                         )
                     } else {
@@ -279,7 +279,7 @@ export default function ImportFile({ onSelect, text, importable, uploadNow, useS
                             registryPrefix,
                             authToken,
                             selectedCollectionUri,
-                            3,
+                            true,
                             importType
                         );
                     }

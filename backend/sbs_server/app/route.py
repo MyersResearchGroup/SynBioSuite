@@ -292,7 +292,7 @@ def sbol_upload(files):
     sbh_url = params_from_request['sbh_url']
     sbh_prefix = params_from_request.get('sbh_prefix')
     sbh_collection_url = params_from_request['collection_url'] 
-    sbh_overwrite = params_from_request['sbh_overwrite'] 
+    sbh_overwrite_num = 3 if params_from_request.get('sbh_overwrite', 1) else 2
     sbh_token = params_from_request['sbh_token']
     importType = params_from_request['importType']
     parts = sbh_collection_url.split("/")
@@ -376,7 +376,7 @@ def sbol_upload(files):
             for root in roots:
                 rootDisplayId = root.identity.rstrip("/").split("/")[-2]
                 topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
-        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
+        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite_num)
     except AttributeError as e:
         print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400

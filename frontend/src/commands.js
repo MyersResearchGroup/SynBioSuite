@@ -455,7 +455,7 @@ export default {
                             authToken,
                             collectionUrl,
                             importType,
-                            3,
+                            true,
                             importType
                         )
                     } else {
@@ -466,7 +466,7 @@ export default {
                             registryPrefix,
                             authToken,
                             collectionUrl,
-                            3,
+                            true,
                             importType
                         );
                     }
@@ -694,7 +694,7 @@ export default {
                                         authToken,
                                         collectionUrl,
                                         dirHandle,
-                                        3,
+                                        true,
                                         `${directory}`
                                     );
                                 } finally {

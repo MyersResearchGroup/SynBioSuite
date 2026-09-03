@@ -249,7 +249,7 @@ export default function CollectionWizard() {
                 currentFJRefreshToken,
                 studyFJid || null,
                 null,
-                3,
+                true,
                 //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
                     attachments: (resultsFiles && resultsFiles.length) ? resultsFiles : [],
