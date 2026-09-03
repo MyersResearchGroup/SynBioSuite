@@ -169,8 +169,6 @@ export default {
                         throw e
                 }
             }
-            console.log(oldSbmlName)
-            console.log(newSbmlName)
 
             if (oldSbmlName) {
                 try {
@@ -772,7 +770,7 @@ export default {
                                     uploads: [...(jsonData.uploads ?? []), updateEntry],
                                 };
 
-                                const jsonFH = await tempDirectory.getFileHandle(file.name);
+                                const jsonFH = await uploadsDir.getFileHandle(file.name);
                                 await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
                             }
 
