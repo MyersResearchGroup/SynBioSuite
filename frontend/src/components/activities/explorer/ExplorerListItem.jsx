@@ -61,9 +61,6 @@ export default function ExplorerListItem({ fileId, icon }) {
                             const xdcFile = await xdcHandle.getFile()
                             const xdcText = await xdcFile.text()
                             const xdc = JSON.parse(xdcText)
-                            let metadataMatches =
-                                file?.objectType === 'synbio.object-type.study-data' &&
-                                    (xdc.metadata === file.id || xdc.metadata?.split('/').pop() === file.name)
                             let plateMatches =
                                 file?.objectType === 'synbio.object-type.plate-reader' &&
                                     (xdc.plateOutput === file.id || xdc.plateOutput?.split('/').pop() === file.name)
@@ -83,7 +80,7 @@ export default function ExplorerListItem({ fileId, icon }) {
                             }
                             if (Array.isArray(xdc.uploads) && xdc.uploads.length > 0) {
                                 const upload = xdc.uploads[xdc.uploads.length - 1]
-                                metadataMatches =
+                                let metadataMatches =
                                     file?.objectType === 'synbio.object-type.study-data' &&
                                     (upload.file === file.id ||
                                     upload.file?.split('/').pop() === file.name)
