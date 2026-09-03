@@ -167,12 +167,33 @@ export default {
 
             await updateFileReferences(rootHandle,oldId,newId)
 
-            store.dispatch(panelsActions.closePanel(oldId))
             store.dispatch(workDirActions.removeFile(oldId))
             newHandle.id = newId
             newHandle.objectType = file.objectType
             store.dispatch(workDirActions.addFile(newHandle))
 
+            const state = store.getState()
+
+            const oldPanel =
+                panelsSelectors.selectById(state, oldId) ||
+                panelsSelectors.selectById(state, `${oldId}::view`)
+
+            if (oldPanel) {
+                store.dispatch(panelsActions.updateOne({
+                    id: oldPanel.id,
+                    changes: {
+                        name: oldPanel.name.endsWith(' (view)')
+                            ? `${newName} (view)`
+                            : newName,
+
+                        fileHandle: {
+                            ...oldPanel.fileHandle,
+                            id: oldPanel.fileHandle?.id?.replace(oldId, newId),
+                            name: newName
+                        }
+                    }
+                }))
+            }
             return `Renamed "${oldName}" to "${newName}".`
         }
     },
