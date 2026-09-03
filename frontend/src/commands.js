@@ -782,7 +782,7 @@ export default {
                                     file: newFilePath,
                                     uploads: [...(jsonData.uploads ?? []), updateEntry],
                                 };
-                                const jsonFH = await currentDir.getFileHandle(newJsonFileName);
+                                const jsonFH = await currentDir.getFileHandle(newJsonFileName, { create: true });
                                 await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
                                 if (!sameFilename) {
                                     try { await currentDir.removeEntry(oldJsonFileName); } catch {}
