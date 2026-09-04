@@ -44,19 +44,6 @@ export default function ExplorerListItem({ fileId, icon }) {
 
     const { suffix } = getRenameParts(file.name)
 
-    const getFileHandle = async (root, path) => {
-        const parts = path.split('/')
-        const fileName = parts.pop()
-
-        let dir = root
-
-        for (const part of parts) {
-            dir = await dir.getDirectoryHandle(part)
-        }
-
-        return dir.getFileHandle(fileName)
-    }
-
     useEffect(() => {
         const getUploadInfo = async () => {
             try {
