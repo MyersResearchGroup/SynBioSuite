@@ -304,9 +304,16 @@ export default {
         execute: async (fileNameOrId,uploadInfo) => {
             const file = findFileByNameOrId(fileNameOrId);
             if (!file) return "File does not exist.";
-
-            const uri = uploadInfo?.uri;
+            let uri = uploadInfo?.uri;
             if (!uri) return "No SynBioHub URI found.";
+
+            const stored = localStorage.getItem('SynbioHub');
+            if (stored) {
+                const repos = JSON.parse(stored);
+                const registryURL = repos.find(r => uri.startsWith(r.registryPrefix))?.registryURL || selectedRepo;
+                const registryPrefix = repos.find(r => uri.startsWith(r.registryPrefix))?.registryPrefix || selectedRepo;
+                uri = uri.replace(registryPrefix,registryURL);
+            }
 
             window.open(uri, '_blank', 'noopener,noreferrer');
         }
