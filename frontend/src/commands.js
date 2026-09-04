@@ -192,6 +192,7 @@ export default {
             newHandle.id = newId
             newHandle.objectType = file.objectType
             store.dispatch(workDirActions.addFile(newHandle))
+            store.dispatch(workingDirectorySlice.actions.uploadChanged())
 
             const state = store.getState()
 
@@ -1029,6 +1030,30 @@ const updateFileReferences = async (rootHandle, oldId, newId) => {
 
                     if (updated !== json.results) {
                         json.results = updated
+                        changed = true
+                    }
+                }
+
+                // Upload history references
+                if (Array.isArray(json.uploads)) {
+                    const replaceUploadReferences = value => {
+                        if (typeof value === 'string')
+                            return replaceReference(value)
+                        if (Array.isArray(value))
+                            return value.map(replaceUploadReferences)
+                        if (value && typeof value === 'object') {
+                            return Object.fromEntries(
+                                Object.entries(value).map(([key, val]) => [
+                                    key,
+                                    replaceUploadReferences(val)
+                                ])
+                            )
+                        }
+                        return value
+                    }
+                    const updated = json.uploads.map(replaceUploadReferences)
+                    if (JSON.stringify(updated) !== JSON.stringify(json.uploads)) {
+                        json.uploads = updated
                         changed = true
                     }
                 }

@@ -6,7 +6,7 @@ import { titleFromFileName, useFile } from '../../../redux/hooks/workingDirector
 import DragObject from '../../DragObject'
 import { getPanelTypeForObject } from '../../../panels'
 import store from '../../../redux/store'
-import { getObjectType } from "../../../objectTypes"
+import { ObjectTypes, getObjectType } from "../../../objectTypes"
 import { Button, Menu, Modal, TextInput } from '@mantine/core'
 
 export default function ExplorerListItem({ fileId, icon }) {
@@ -44,6 +44,19 @@ export default function ExplorerListItem({ fileId, icon }) {
 
     const { suffix } = getRenameParts(file.name)
 
+    const getFileHandle = async (root, path) => {
+        const parts = path.split('/')
+        const fileName = parts.pop()
+
+        let dir = root
+
+        for (const part of parts) {
+            dir = await dir.getDirectoryHandle(part)
+        }
+
+        return dir.getFileHandle(fileName)
+    }
+
     useEffect(() => {
         const getUploadInfo = async () => {
             try {
@@ -53,14 +66,18 @@ export default function ExplorerListItem({ fileId, icon }) {
                     file?.objectType === 'synbio.object-type.plate-reader' ||
                     file?.objectType === 'synbio.object-type.experimental-results') {
                     const state = store.getState().workingDirectory
-                    const xdcFiles = Object.values(state.entities)
-                        .filter(f => f?.name?.toLowerCase().endsWith('.xdc'))
+                    const assaysDir = await state.directoryHandle.getDirectoryHandle(ObjectTypes.Metadata.subdirectory)
+                    const xdcFiles = []
+                    for await (const entry of assaysDir.values()) {
+                        if (entry.kind === 'file' && /\.xdc$/i.test(entry.name)) {
+                            xdcFiles.push(entry)
+                        }
+                    }
                     setUploadInfo(null)
                     for (const xdcHandle of xdcFiles) {
                         try {
                             const xdcFile = await xdcHandle.getFile()
-                            const xdcText = await xdcFile.text()
-                            const xdc = JSON.parse(xdcText)
+                            const xdc = JSON.parse(await xdcFile.text())
                             let plateMatches =
                                 file?.objectType === 'synbio.object-type.plate-reader' &&
                                     (xdc.plateOutput === file.id || xdc.plateOutput?.split('/').pop() === file.name)
