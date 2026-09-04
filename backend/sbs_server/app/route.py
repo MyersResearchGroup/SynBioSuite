@@ -178,10 +178,8 @@ def xdc_run(files):
         if isinstance(tl, sbol2.Experiment):
             experimentId = tl.displayId
             break
-    print(experimentId)
     if experimentId is not None:
         subCollectionUrl = subCollectionUrl.replace('/'+importType+'/','/'+experimentId+'/')
-    print(subCollectionUrl)
 
     if attachments is not None:
         try:
@@ -354,7 +352,6 @@ def sbol_upload(files):
             search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_graph_uri, sbh_collection_url, sbml_file.filename)
             for binding in search_result["results"]["bindings"]:
                 sourceUri = binding["s"]["value"]
-            print({sourceUri})
             display_id = make_identifier(sbml_file.filename)
             model = sbol2.model.Model(uri=display_id)
             model.source = sourceUri

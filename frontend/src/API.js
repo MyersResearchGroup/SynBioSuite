@@ -72,7 +72,7 @@ export async function upload_sbol(
     sbh_prefix,
     sbh_token,
     collectionUrl,
-    sbh_overwrite = 3,
+    sbh_overwrite = true,
     workingDirectory = null,
 ) {
     try {
@@ -151,7 +151,7 @@ export async function upload_resource(
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 3,
+    sbh_overwrite = true,
     importType = null
 ) {
     try {
@@ -220,7 +220,7 @@ export async function uploadExperiment(
     fj_refresh_token = null,
     fj_study_id = null,
     workingDirectory = null,
-    sbh_overwrite = 3,
+    sbh_overwrite = true,
     extraFiles = {}
 ) {
     try {

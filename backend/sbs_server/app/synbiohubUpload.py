@@ -46,7 +46,6 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                     raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
 
 def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num):
-    print('uploading to SBH')
     subCollection = sbol2.Collection(importType)
     parts = sbh_collection_url.split("/")
     subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"

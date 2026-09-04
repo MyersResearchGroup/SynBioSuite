@@ -470,8 +470,10 @@ export default {
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
             if (!file) return "File does not exist.";
-            const sbmlFile = findFileByNameOrId(fileNameOrId.replace('_sbol.xml','_sbml.xml'));
-
+            let sbmlFile = null;
+            if (fileNameOrId.endsWith('_sbol.xml')) {
+                sbmlFile = findFileByNameOrId(fileNameOrId.replace('_sbol.xml','_sbml.xml'));
+            }
             const dirHandle = store.getState().workingDirectory.directoryHandle;
             const directory = file.id.split("/")[0];
 
