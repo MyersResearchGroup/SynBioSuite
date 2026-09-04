@@ -188,7 +188,7 @@ export default function CollectionWizard() {
         let currentFJToken = repoInfoFJ?.authtoken ?? "";
         let currentFJRefreshToken = repoInfoFJ?.refresh ?? "";
 
-        if (plateOutputFile) {
+        if (plateOutputFile && selectedFJRepo) {
             if (!currentFJToken) {
                 const loginResult = await openFJLoginWorkflow();
                 if (!loginResult?.completed) {
