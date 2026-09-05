@@ -361,17 +361,17 @@ def sbol_upload(files):
             doc.addModel(model)
             roots = find_root_module_definitions(doc)
             for root in roots:
-                rootDisplayId = root.identity.rstrip("/").split("/")[-2]
+                rootDisplayId = root.displayId
                 root.models = root.models + [model.identity]
         if importType == 'Devices' or importType == 'Plasmids':
             roots = find_root_component_definitions(doc)
             for root in roots:
-                rootDisplayId = root.identity.rstrip("/").split("/")[-2]
+                rootDisplayId = root.displayId
                 topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
         elif importType == 'Designs':
             roots = find_root_module_definitions(doc)
             for root in roots:
-                rootDisplayId = root.identity.rstrip("/").split("/")[-2]
+                rootDisplayId = root.displayId
                 topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
         subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite_num)
     except AttributeError as e:
