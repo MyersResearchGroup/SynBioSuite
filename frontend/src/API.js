@@ -10,30 +10,6 @@ function capitalizeFirst(str) {
     if (!str) return str;
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
-//There is an issue with where the file upload is not being sent correctly to the server
-export async function upload_sbs(metadata, parameters) {
-    try {
-        const formdata = new FormData();
-        
-        const metadataFile = await metadata.getFile();
-        formdata.append("Metadata", metadataFile, metadataFile.name || "metadata.xlsx");
-    
-        const parametersJson = JSON.stringify(parameters);
-        const paramBlob = new Blob([parametersJson], { type: 'application/json' });
-        formdata.append("Params", paramBlob, "parameters.json");
-        
-        const response = await axios.post(SBS_Server_Link + "/api/upload_sbs_up",
-            formdata
-        );
-        
-        return response.data;
-    } catch (error) {
-        console.error("Upload SBS error:", error);
-        showErrorNotification('Error', error.message);
-        throw error;
-    }
-}
-
 
 export async function download_template(
     sbh_url,
@@ -96,7 +72,7 @@ export async function upload_sbol(
     sbh_prefix,
     sbh_token,
     collectionUrl,
-    sbh_overwrite = 3,
+    sbh_overwrite = true,
     workingDirectory = null,
 ) {
     try {
@@ -115,15 +91,19 @@ export async function upload_sbol(
         }
         if (sbmlFile) {
             let sbmlFileObject;
-            if (typeof sbmlFile === 'string') {
-                if (!workingDirectory) {
-                    throw new Error('Working directory handle is required when file is provided as a path string');
+            try {
+                if (typeof sbmlFile === 'string') {
+                    if (!workingDirectory) {
+                        throw new Error('Working directory handle is required when file is provided as a path string');
+                    }
+                    sbmlFileObject = await readFileFromPath(workingDirectory, sbmlFile);
+                } else {
+                    sbmlFileObject = typeof sbmlFile.getFile === 'function' ? await sbmlFile.getFile() : sbmlFile;
                 }
-                sbmlFileObject = await readFileFromPath(workingDirectory, sbmlFile);
-            } else {
-                sbmlFileObject = typeof sbmlFile.getFile === 'function' ? await sbmlFile.getFile() : sbmlFile;
+                data.append('SBML', sbmlFileObject);
+            } catch (error) {
+                sbmlFile = null;
             }
-            data.append('SBML', sbmlFileObject);
         }
 
         const paramsObj = {
@@ -171,7 +151,7 @@ export async function upload_resource(
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 3,
+    sbh_overwrite = true,
     importType = null
 ) {
     try {
@@ -240,7 +220,7 @@ export async function uploadExperiment(
     fj_refresh_token = null,
     fj_study_id = null,
     workingDirectory = null,
-    sbh_overwrite = 3,
+    sbh_overwrite = true,
     extraFiles = {}
 ) {
     try {
@@ -593,7 +573,6 @@ export async function FJLogin(instance, username, password){
     }
 };
 
-
 export async function CheckFJLogin(instance, authToken){
     try {
         if (!authToken) {
@@ -623,7 +602,6 @@ export async function CheckFJLogin(instance, authToken){
     }
 }
 
-
 export async function CheckLogin(instance, authToken){
     try {
         if (!authToken) {
@@ -651,7 +629,6 @@ export async function CheckLogin(instance, authToken){
         throw error;
     }
 }
-
 
 export async function getWebOfRegistries() {
     try {
@@ -681,7 +658,6 @@ export async function getWebOfRegistries() {
         throw error;
     }
 }
-
 
 // Function to clear invalid credentials from local storage
 export function clearInvalidCredentials(instanceUrl) {

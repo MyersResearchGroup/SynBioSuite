@@ -11,14 +11,12 @@ import { useOpenPanel } from "../../../redux/hooks/panelsHooks";
 import workingDirectorySlice from "../../../redux/slices/workingDirectorySlice";
 import { useLocalStorage } from "@mantine/hooks";
 import { showErrorNotification } from "../../../modules/util";
-import { upload_resource } from "../../../API";
+import { upload_resource, upload_sbol } from "../../../API";
 import { useUnifiedModal } from "../../../redux/hooks/useUnifiedModal";
 import { loadOverlay, closeOverlay } from "../../../redux/slices/loadingOverlay";
 import { readStudy } from "../../../modules/util";
 
 export const importedFile = createContext()
-
-const WORKFLOW_SUBDIRS = ['resources', 'strains', 'sampleDesigns']
 
 async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, maxAttempts = 1000) {
     let candidate = baseName;
@@ -35,7 +33,7 @@ async function getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext, ma
     throw new Error(`Unable to find available base name after ${maxAttempts} attempts.`);
 }
 
-export default function ImportFile({ onSelect, text, importable, useSubdirectory = false }) {
+export default function ImportFile({ onSelect, text, importable, uploadNow, useSubdirectory = false }) {
     const [selectedFile, setSelectedFile] = useState(null)
     const dirName = useSelector(state => state.workingDirectory.directoryHandle)
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
@@ -44,8 +42,6 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
     const { workflows } = useUnifiedModal()
     const { actions } = workingDirectorySlice
 
-    const isWorkflowImport = WORKFLOW_SUBDIRS.includes(useSubdirectory)
-
     async function addFileMetadata(fileHandle) {
         const file = await fileHandle.getFile();
         let directoryHandle = null;
@@ -53,12 +49,6 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
         if (useSubdirectory) {
             directoryHandle = await dirName.getDirectoryHandle(useSubdirectory, { create: false })
                 .catch(() => dirName.getDirectoryHandle(useSubdirectory, { create: true }));
-
-            // TODO: Automatically generate this
-            if (useSubdirectory === 'resources' || useSubdirectory === 'strains' || useSubdirectory === 'sampleDesigns') {
-                directoryHandle = await directoryHandle.getDirectoryHandle("uploads", { create: false })
-                    .catch(() => directoryHandle.getDirectoryHandle("uploads", { create: true }));
-            }
         }
 
         return {
@@ -66,23 +56,27 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
             name: file.name,
             fileHandle: fileHandle,
             directoryHandle,
-            objectType: await classifyFile(fileHandle)
+            objectType: await classifyFile(fileHandle, useSubdirectory)
         };
     }
 
     async function saveFileToUploads(fileObj, objectType, actualFileName) {
-        const subDir = await dirName.getDirectoryHandle(objectType, { create: true });
-        const uploadsDir = await subDir.getDirectoryHandle('uploads', { create: true });
-        const fileHandle = await uploadsDir.getFileHandle(actualFileName, { create: true });
+        const subDir = objectType
+            ? await dirName.getDirectoryHandle(objectType, { create: true })
+            : dirName
+        const fileHandle = await subDir.getFileHandle(actualFileName, { create: true });
         const writable = await fileHandle.createWritable();
         const arrayBuffer = await fileObj.arrayBuffer();
         await writable.write(arrayBuffer);
         await writable.close();
+        return fileHandle;
     }
 
-    async function createWorkflowJSON(availableBaseName, objectType, filePath, collection, initialUpload) {
+    async function createWorkflowJSON(availableBaseName, objectType, actualFileName, filePath, collection, initialUpload) {
         try {
-            const directory = await dirName.getDirectoryHandle(objectType, { create: true });
+            const directory = objectType
+                ? await dirName.getDirectoryHandle(objectType, { create: true })
+                : dirName
             const jsonFileName = `${availableBaseName}.json`;
             const jsonFileHandle = await directory.getFileHandle(jsonFileName, { create: true });
 
@@ -95,18 +89,28 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
 
             await writeToFileHandle(jsonFileHandle, JSON.stringify(defaultWorkflow));
 
-            jsonFileHandle.id = `${objectType}/${jsonFileName}`;
-
+            const uploadedFileHandle = await directory.getFileHandle(actualFileName, { create: false });
+            uploadedFileHandle.id = objectType
+                ? `${objectType}/${actualFileName}`
+                : actualFileName
+            uploadedFileHandle.id = `${objectType}/${actualFileName}`;
             if (objectType === 'resources') {
-                jsonFileHandle.objectType = ObjectTypes.Resources.id;
+                uploadedFileHandle.objectType = ObjectTypes.Resources.id;
+            } else if (objectType === 'devices') {
+                uploadedFileHandle.objectType = ObjectTypes.Devices.id;
             } else if (objectType === 'strains') {
-                jsonFileHandle.objectType = ObjectTypes.Strains.id;
+                uploadedFileHandle.objectType = ObjectTypes.Strains.id;
             } else if (objectType === 'sampleDesigns') {
-                jsonFileHandle.objectType = ObjectTypes.SampleDesigns.id;
+                uploadedFileHandle.objectType = ObjectTypes.SampleDesigns.id;
+            } else if (objectType === 'plasmids') {
+                uploadedFileHandle.objectType = ObjectTypes.Plasmids.id;
+            } else if (objectType === 'assays') {
+                uploadedFileHandle.objectType = ObjectTypes.Metadata.id;
+            } else {
+                uploadedFileHandle.objectType = ObjectTypes.Designs.id;
             }
-
-            dispatch(actions.addFile(jsonFileHandle));
-            openPanel(jsonFileHandle);
+            dispatch(actions.addFile(uploadedFileHandle));
+            //openPanel(jsonFileHandle);
         } catch (err) {
             console.error("Error creating resource workflow JSON:", err);
         }
@@ -123,6 +127,60 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
         })
     }
 
+    async function runImportAssayWorkflow() {
+        const studyData = await readStudy(dirName);
+        const selectedRepo = studyData.registryURL || null;
+        const expectedEmail = studyData.userEmail || null;
+        const selectedCollectionUri = studyData.collectionUri || null;
+        const selectedCollectionName = studyData.name || null;
+        const selectedCollectionId = studyData.id || null;
+
+        const stored = JSON.parse(localStorage.getItem('SynbioHub') || '[]');
+        const repoInfo = stored.find(repo => repo.registryURL === selectedRepo);
+        const authToken = repoInfo?.authtoken || null;
+
+        if (selectedRepo && selectedCollectionUri && authToken) {
+            return {
+                completed: true,
+                selectedRepo,
+                authToken,
+                userInfo: { email: expectedEmail || '' },
+                collections: [{
+                    uri: selectedCollectionUri,
+                    name: selectedCollectionName || selectedCollectionId || selectedCollectionUri,
+                    displayId: selectedCollectionId || selectedCollectionName || selectedCollectionUri,
+                    selectedRepo,
+                    authToken,
+                }],
+            }
+        }
+     }
+
+    async function createAssayWorkflowFile(metaDataFile, fileName, modalResult) {
+        const assaysDirectory = await dirName.getDirectoryHandle(ObjectTypes.Metadata.subdirectory, { create: true })
+        const fileHandle = await assaysDirectory.getFileHandle(fileName + '.xdc', { create: true })
+        fileHandle.id = `${ObjectTypes.Metadata.subdirectory}/${fileName}.xdc`
+        fileHandle.objectType = ObjectTypes.Metadata.id
+        const selectedCollection = modalResult.collections?.[0]
+        const workflowData = {
+            activeStep: 0,
+            metadata: metaDataFile,
+            results: null,
+            plateOutput: null,
+            collection: {
+                uri: selectedCollection?.uri || null,
+                name: selectedCollection?.name || null,
+                displayId: selectedCollection?.displayId || null,
+                selectedRepo: modalResult.selectedRepo || null,
+                sbh_overwrite: modalResult.sbh_overwrite ?? 0,
+                completed: true,
+            },
+            uploads: [],
+        }
+        await writeToFileHandle(fileHandle, JSON.stringify(workflowData))
+        openPanel(fileHandle)
+    }
+
     const handleClick = async () => {
         try {
             const [fileHandle] = await window.showOpenFilePicker({
@@ -134,17 +192,36 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
 
             const fileMetadata = await addFileMetadata(fileHandle)
             setSelectedFile(fileMetadata)
-            
-            if (isWorkflowImport) {
-                const lastDot = fileMetadata.name.lastIndexOf('.')
-                const ext = lastDot >= 0 ? fileMetadata.name.slice(lastDot) : ''
-                const baseName = lastDot >= 0 ? fileMetadata.name.slice(0, lastDot) : fileMetadata.name
+            const lastDot = fileMetadata.name.lastIndexOf('.')
+            const ext = lastDot >= 0 ? fileMetadata.name.slice(lastDot) : ''
+            const baseName = lastDot >= 0 ? fileMetadata.name.slice(0, lastDot) : fileMetadata.name
 
-                const objectTypeDir = await dirName.getDirectoryHandle(useSubdirectory, { create: true })
-                const uploadsDir = await objectTypeDir.getDirectoryHandle('uploads', { create: true })
-                const availableBaseName = await getAvailableBaseName(objectTypeDir, uploadsDir, baseName, ext)
+            if (useSubdirectory=='assays') {
+                onSelect?.(fileMetadata)
+                const metaDataFile = useSubdirectory + '/' + fileMetadata.name
+                const modalResult = await runImportAssayWorkflow()
+                if (!modalResult?.completed) {
+                    return
+                }
+                await createAssayWorkflowFile(metaDataFile, baseName, modalResult)
+                return
+            }
+            
+            if (uploadNow) {
+                let sbmlFile = null
+                if (fileMetadata.name.endsWith("_sbol.xml")) {
+                    sbmlFile = fileMetadata.name.replace("_sbol.xml","_sbml.xml")
+                }
+
+                const objectTypeDir = useSubdirectory
+                    ? await dirName.getDirectoryHandle(useSubdirectory, { create: true })
+                    : dirName
+                const availableBaseName = await getAvailableBaseName(objectTypeDir, objectTypeDir, baseName, ext)
                 const actualFileName = `${availableBaseName}${ext}`
-                const uploadedFilePath = `${useSubdirectory}/uploads/${actualFileName}`
+                const uploadedFilePath = useSubdirectory
+                    ? `${useSubdirectory}/${actualFileName}`
+                    : actualFileName
+                const importType = useSubdirectory || 'designs'
                 
                 const modalResult = await runImportCollectionWorkflow()
 
@@ -178,21 +255,34 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     || selectedCollectionName
                     || collselectedCollectionUriectionUrl
 
-                await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
+                const uploadedFile = await saveFileToUploads(fileMetadata.fileobj, useSubdirectory, actualFileName)
 
                 dispatch(loadOverlay())
                 let uploadResponse
                 try {
-                    uploadResponse = await upload_resource(
-                        uploadedFilePath,
-                        registryAPI,
-                        registryPrefix,
-                        authToken,
-                        selectedCollectionUri,
-                        dirName,
-                        3,
-                        objectTypeDir.name
-                    )
+                    if (useSubdirectory=='resources' || useSubdirectory=='strains'|| useSubdirectory=='sampleDesigns') {
+                        uploadResponse = await upload_resource(
+                            uploadedFilePath,
+                            registryAPI,
+                            registryPrefix,
+                            authToken,
+                            selectedCollectionUri,
+                            dirName,
+                            true,
+                            importType
+                        )
+                    } else {
+                        uploadResponse = await upload_sbol(
+                            uploadedFile,
+                            sbmlFile,
+                            registryAPI,
+                            registryPrefix,
+                            authToken,
+                            selectedCollectionUri,
+                            true,
+                            importType
+                        );
+                    }
                 } finally {
                     dispatch(closeOverlay())
                 }
@@ -209,7 +299,7 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     collectionName: collectionData.name,
                     collectionUri: selectedCollectionUri,
                     collectionDisplayId,
-                    uri: selectedCollectionUri,
+                    uri: uploadResponse.subCollectionUrl,
                     file: uploadedFilePath,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
@@ -217,11 +307,11 @@ export default function ImportFile({ onSelect, text, importable, useSubdirectory
                     type: 'initial',
                 }
 
-                await createWorkflowJSON(availableBaseName, useSubdirectory, uploadedFilePath, collectionData, initialUpload)
+                await createWorkflowJSON(availableBaseName, useSubdirectory, actualFileName, uploadedFilePath, collectionData, initialUpload)
                 return
-            }
-
+            } 
             onSelect?.(fileMetadata)
+
         } catch (err) {
             if (err?.name === "NotFoundError" || err?.name === "AbortError") {
                 return; // user canceled

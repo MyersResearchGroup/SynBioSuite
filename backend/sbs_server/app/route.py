@@ -14,7 +14,7 @@ from .main import app
 from .version import __version__
 from .downloadTemplates import sbh_download_template
 from .synbiohubUpload import upload_sbh_attachments, upload_to_sbh
-from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions
+from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions, find_root_component_definitions
 
 #routes
 #check if the app is running
@@ -168,22 +168,32 @@ def xdc_run(files):
 
     try:
         file_path_out_final = f"{uuid4()}_SBOL_final.xml"
-        upload_to_sbh(sbol_doc, sbh_url, sbh_token, sbol_graph_uri, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num)
+        subCollectionUrl = upload_to_sbh(sbol_doc, sbh_url, sbh_prefix, sbh_token, sbol_graph_uri, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num)
     except Exception as e:
         print('Error uploading to SynBioHub')
         return jsonify({"error": f"Error uploading to SynBioHub: {e}"}), 400
 
+    experimentId = None
+    for tl in sbol_doc:
+        if isinstance(tl, sbol2.Experiment):
+            experimentId = tl.displayId
+            break
+    if experimentId is not None:
+        subCollectionUrl = subCollectionUrl.replace('/'+importType+'/','/'+experimentId+'/')
+
     if attachments is not None:
         try:
-            experimentId = None
-            for tl in sbol_doc:
-                if isinstance(tl, sbol2.Experiment):
-                    experimentId = tl.displayId
-                    break
             upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, attachments, experimentId)
         except Exception as e:
             print('Error uploading attachments to SynBioHub')
             return jsonify({"error": f"Error uploading attachments to SynBioHub: {e}"}), 400
+
+    if plate_reader_attachments is not None:
+        try:
+            upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbol_graph_uri, sbh_collection_url, plate_reader_attachments, experimentId)
+        except Exception as e:
+            print('Error uploading plate reader attachments to SynBioHub')
+            return jsonify({"error": f"Error uploading plate reader attachments to SynBioHub: {e}"}), 400
 
     if fj_study_id is not None and fj_url is not None and fj_token is not None and plate_reader_attachments:
         try:
@@ -200,6 +210,7 @@ def xdc_run(files):
             # plate_reader_attachments is {name: file object}; save each for the reader
             plate_paths = []
             for pr_file in plate_reader_attachments.values():
+                pr_file.stream.seek(0)
                 pr_path = os.path.join(upload_dir, f"{uuid4()}_{secure_filename(pr_file.filename)}")
                 pr_file.save(pr_path)
                 plate_paths.append(pr_path)
@@ -230,11 +241,12 @@ def xdc_run(files):
     
     sbs_upload_response_dict ={
         "sbh_url": sbh_url,
+        "subCollectionUrl": subCollectionUrl,
         "fj_url": fj_url,
         "status": "success"
     }
     os.remove(metadata_path)
-    return jsonify(sbs_upload_response_dict)
+    return jsonify(sbs_upload_response_dict), 200
 
 
 '''
@@ -278,12 +290,12 @@ def sbol_upload(files):
     sbh_url = params_from_request['sbh_url']
     sbh_prefix = params_from_request.get('sbh_prefix')
     sbh_collection_url = params_from_request['collection_url'] 
-    sbh_overwrite = params_from_request['sbh_overwrite'] 
+    sbh_overwrite_num = 3 if params_from_request.get('sbh_overwrite', 1) else 2
     sbh_token = params_from_request['sbh_token']
     importType = params_from_request['importType']
     parts = sbh_collection_url.split("/")
     usergraph = "/".join(parts[:5])
-    subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
+    topLevelUri = None
 
     try:
         sbh_user_info = get_sbh_user(sbh_url, sbh_token)
@@ -340,7 +352,6 @@ def sbol_upload(files):
             search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_graph_uri, sbh_collection_url, sbml_file.filename)
             for binding in search_result["results"]["bindings"]:
                 sourceUri = binding["s"]["value"]
-            print({sourceUri})
             display_id = make_identifier(sbml_file.filename)
             model = sbol2.model.Model(uri=display_id)
             model.source = sourceUri
@@ -350,9 +361,19 @@ def sbol_upload(files):
             doc.addModel(model)
             roots = find_root_module_definitions(doc)
             for root in roots:
-                print(root.displayId, root.identity)
+                rootDisplayId = root.displayId
                 root.models = root.models + [model.identity]
-        upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite)
+        if importType == 'Devices' or importType == 'Plasmids':
+            roots = find_root_component_definitions(doc)
+            for root in roots:
+                rootDisplayId = root.displayId
+                topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
+        elif importType == 'Designs':
+            roots = find_root_module_definitions(doc)
+            for root in roots:
+                rootDisplayId = root.displayId
+                topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
+        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite_num)
     except AttributeError as e:
         print('Attribute Error: ',str(e))
         return jsonify({"error": str(e)}), 400
@@ -377,4 +398,9 @@ def sbol_upload(files):
                         os.remove(path)
                 except Exception as cleanup_error:
                     print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
-    return jsonify({"message": "SBOL upload successful"}), 200
+    sbs_upload_response_dict ={
+        "sbh_url": sbh_url,
+        "subCollectionUrl": topLevelUri if topLevelUri is not None else subCollectionUrl,
+        "status": "success"
+    }
+    return jsonify(sbs_upload_response_dict), 200

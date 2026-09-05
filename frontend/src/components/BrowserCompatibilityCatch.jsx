@@ -37,7 +37,7 @@ export default function BrowserCompatibilityCatch() {
                               </>
                             : <>
                                 We're working on features that will allow
-                                you to use SynBio Suite on more browsers,
+                                you to use SynBioSuite on more browsers,
                                 but for now, <b>try using Chrome.</b>
                               </>
                         }

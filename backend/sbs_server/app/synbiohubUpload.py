@@ -45,8 +45,7 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                 if not response.ok:
                     raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
 
-def upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num):
-    print('uploading to SBH')
+def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num):
     subCollection = sbol2.Collection(importType)
     parts = sbh_collection_url.split("/")
     subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
@@ -55,7 +54,8 @@ def upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, import
         uri = binding["s"]["value"]
         subCollection.members = subCollection.members + [ uri ]
     for tl in doc:
-        subCollection.members = subCollection.members + [ tl.identity ]
+        if not tl.identity.startswith(sbh_prefix):
+            subCollection.members = subCollection.members + [tl.identity]
     doc.addCollection(subCollection)
     doc.write(file_path_out_final)
     with open(file_path_out_final, 'rb') as fobj:
@@ -75,4 +75,4 @@ def upload_to_sbh(doc, sbh_url, sbh_token, usergraph, sbh_collection_url, import
         )
     if not response.ok:
         raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")
-    return sbh_collection_url
+    return subCollection_url

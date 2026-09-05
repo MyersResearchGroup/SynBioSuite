@@ -6,9 +6,61 @@ import { createSelector } from "@reduxjs/toolkit"
 import { useEffect, useMemo, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { getPanelType, getPanelTypeForObject } from "../../panels"
+import { ObjectTypes } from "../../objectTypes"
 import { setIsSaving } from "../slices/saveIndicatorSlice"
 import microsoftCommands from "../../components/microsoft/microsoftCommands"
 const { actions, selectors } = panelsSlice
+
+export async function resolveExperimentBackingFile(fileHandle) {
+    if (!fileHandle) return fileHandle
+
+    const fileName = fileHandle.name || ""
+    if (/\.json$/i.test(fileName)) {
+        if (!fileHandle.id) {
+            fileHandle.id = fileName
+        }
+        if (!fileHandle.objectType) {
+            fileHandle.objectType = ObjectTypes.Metadata.id
+        }
+        return fileHandle
+    }
+
+    if (!/\.(xlsm|xlsx|xls)$/i.test(fileName)) {
+        return fileHandle
+    }
+
+    const baseName = fileName.replace(/\.(xlsm|xlsx|xls)$/i, "")
+    const xdcName = `${baseName}.xdc`
+    const pathParts = (fileHandle.id || "").split("/").slice(0, -1)
+
+    try {
+        const dirHandle = store.getState().workingDirectory.directoryHandle
+        if (!dirHandle || typeof dirHandle.getFileHandle !== "function") {
+            return fileHandle
+        }
+
+        let currentDir = dirHandle
+        for (const part of pathParts) {
+            if (!part) continue
+            currentDir = await currentDir.getDirectoryHandle(part)
+        }
+
+        try {
+            const xdcHandle = await currentDir.getFileHandle(xdcName)
+            if (!xdcHandle.id) {
+                xdcHandle.id = [...pathParts, xdcName].join("/") || xdcName
+            }
+            if (!xdcHandle.objectType) {
+                xdcHandle.objectType = ObjectTypes.Metadata.id
+            }
+            return xdcHandle
+        } catch {
+            return fileHandle
+        }
+    } catch (error) {
+        return fileHandle
+    }
+}
 
 
 // Selector hooks
@@ -68,12 +120,16 @@ export function useOpenPanel() {
             })
             return
         }
+
+        const backingFileHandle = (/\.(xlsm|xlsx|xls)$/i.test(fileHandle?.name || ""))
+            ? await resolveExperimentBackingFile(fileHandle)
+            : fileHandle
         
         if (source === 'local') {
             // read in file content
             if (panelTypeDef?.useBuffer) {
                 // if panel type uses buffer, read file as buffer
-                const file = await fileHandle.getFile();
+                const file = await backingFileHandle.getFile();
                 if (file.size === 0) {
                     showNotification({
                         message: "The file is likely corrupted. Please try to reimport it",
@@ -86,26 +142,26 @@ export function useOpenPanel() {
                 // dispatch open action
                 dispatch(actions.openPanel({
                     ...savedProperties,
-                    id: fileHandle.id,
+                    id: backingFileHandle.id,
                     type: panelTypeDef.id,
-                    fileHandle,
+                    fileHandle: backingFileHandle,
                 }));
                 return;
             }
-            const fileContent = await (await fileHandle.getFile()).text()
+            const fileContent = await (await backingFileHandle.getFile()).text()
             const savedProperties = panelTypeDef?.deserialize?.(fileContent) || {}
     
             // dispatch open action
             dispatch(actions.openPanel({
                 ...savedProperties,
-                id: fileHandle.id,
+                id: backingFileHandle.id,
                 type: panelTypeDef.id,
-                fileHandle,
+                fileHandle: backingFileHandle,
             }))
         } else if (source === 'onedrive') {
             let fileContent;
             try {
-                const response = await fetch(fileHandle["@microsoft.graph.downloadUrl"]);
+                const response = await fetch(backingFileHandle["@microsoft.graph.downloadUrl"]);
                 if (!response.ok) {
                     throw new Error('Failed to fetch file from OneDrive');
                 }
@@ -122,9 +178,9 @@ export function useOpenPanel() {
             // dispatch open action
             dispatch(actions.openPanel({
                 ...savedProperties,
-                id: fileHandle.id,
+                id: backingFileHandle.id,
                 type: panelTypeDef.id,
-                fileHandle,
+                fileHandle: backingFileHandle,
             }))
         } else {
             showNotification({

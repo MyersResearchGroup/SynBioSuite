@@ -1,5 +1,5 @@
 import store from "./redux/store"
-import { isPanelOpen, panelsActions, panelsSelectors, serializePanel } from "./redux/hooks/panelsHooks"
+import { isPanelOpen, panelsActions, panelsSelectors, serializePanel, resolveExperimentBackingFile } from "./redux/hooks/panelsHooks"
 import { workDirActions, writeToFileHandle, readFileFromPath, createFileInDirectory } from "./redux/hooks/workingDirectoryHooks"
 import { ObjectTypes, BLANK_SBML } from "./objectTypes"
 import { showErrorNotification } from "./modules/util"
@@ -29,12 +29,11 @@ export default {
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId)
             if (!file)
-                return "File doesn't exist."
+                return "File does not exist."
 
             const dirHandle =
                 store.getState().workingDirectory.directoryHandle
 
-            // Resolve the directory containing the file
             const parts = file.id.split('/')
             const fileName = parts.pop()
 
@@ -43,31 +42,11 @@ export default {
             for (const part of parts) {
                 currentDir = await currentDir.getDirectoryHandle(part)
             }
-
-            // If this is a JSON workflow file, preserve your existing
-            // behavior of finding an uploaded file referenced by it.
-            let uploadedFilePath = null
-
-            if (fileName.toLowerCase().endsWith('.json')) {
-                try {
-                    const jsonFH = await currentDir.getFileHandle(fileName)
-                    const jsonText = await (await jsonFH.getFile()).text()
-                    const jsonData = JSON.parse(jsonText)
-
-                    uploadedFilePath = jsonData.file || null
-                } catch (e) {
-                    // Not a readable workflow JSON file
-                }
-            }
-
-            // Delete the selected file
             await currentDir.removeEntry(fileName)
 
-            // If deleting an XML source, also delete its upload sidecar.
             if (fileName.toLowerCase().endsWith('.xml')) {
                 const sidecarName = fileName.replace(/\.xml$/i, '.json')
                 const sidecarId = [...parts, sidecarName].join('/')
-
                 try {
                     await currentDir.removeEntry(sidecarName)
                 } catch (e) {
@@ -75,273 +54,225 @@ export default {
                         console.warn(`Could not delete sidecar ${sidecarId}:`, e)
                     }
                 }
-
                 store.dispatch(workDirActions.removeFile(sidecarId))
             }
-
-            // Preserve your existing uploads/ cleanup.
-            if (uploadedFilePath) {
+            if (/\.(xlsm|xlsx|xls)$/i.test(fileName)) {
+                const sidecarExt =
+                    file.objectType === ObjectTypes.Metadata.id
+                        ? '.xdc'
+                        : '.json'
+                const sidecarName = fileName.replace(/\.(xlsm|xlsx|xls)$/i, sidecarExt)
+                const sidecarId = [...parts, sidecarName].join('/')
                 try {
-                    const uploadsDir =
-                        await currentDir.getDirectoryHandle('uploads')
-
-                    const uploadFileName =
-                        uploadedFilePath.split('/').pop()
-
-                    await uploadsDir.removeEntry(uploadFileName)
+                    await currentDir.removeEntry(sidecarName)
                 } catch (e) {
-                    // Uploaded file may already be gone.
+                    if (e.name !== 'NotFoundError') {
+                        console.warn(`Could not delete sidecar ${sidecarId}:`, e)
+                    }
                 }
+                store.dispatch(workDirActions.removeFile(sidecarId))
             }
-
             store.dispatch(panelsActions.closePanel(file.id))
             store.dispatch(workDirActions.removeFile(file.id))
         }
     },
 
-    FileView: {
-        id: createId('file-view'),
-        title: "View File",
-        shortTitle: "View",
-        description: "View Excel file",
+    FileRename: {
+        id: createId('file-rename'),
+        title: "Rename File",
+        shortTitle: "Rename",
+        description: "Rename a file",
+        color: "blue",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            },
+            {
+                name: "newName",
+                prompt: "Enter the new file name"
+            }
+        ],
+        execute: async (fileNameOrId, newName) => {
+            const file = findFileByNameOrId(fileNameOrId)
+            if (!file)
+                return "File does not exist."
+            if (!newName)
+                return "New file name is required."
+            const rootHandle =
+                store.getState().workingDirectory.directoryHandle
+            const parts = file.id.split('/')
+            const oldName = parts.pop()
+            if (oldName === newName)
+                return
+            const oldExt = oldName.includes('.')
+                ? oldName.slice(oldName.lastIndexOf('.'))
+                : ''
+            const newExt = newName.includes('.')
+                ? newName.slice(newName.lastIndexOf('.'))
+                : ''
+            if (oldExt.toLowerCase() !== newExt.toLowerCase())
+                return "File extension cannot be changed."
+
+            // Find the directory containing the file
+            let currentDir = rootHandle
+            for (const part of parts) {
+                currentDir = await currentDir.getDirectoryHandle(part)
+            }
+
+            // Make sure the new name doesn't already exist
+            try {
+                await currentDir.getFileHandle(newName)
+                return `File "${newName}" already exists.`
+            } catch (e) {
+                if (e.name !== 'NotFoundError')
+                    throw e
+            }
+
+            const oldId = file.id
+            const newId = [...parts, newName].join('/')
+
+            //
+            // Rename main file
+            //
+
+            const newHandle = await renameFile(currentDir, oldName, newName)
+
+            let oldSidecarName = null
+            let newSidecarName = null
+            let oldSbmlName = null
+            let newSbmlName = null
+
+            if (/_sbol\.xml$/i.test(oldName)) {
+                oldSidecarName = oldName.replace(/_sbol\.xml$/i, '_sbol.json')
+                newSidecarName = newName.replace(/_sbol\.xml$/i, '_sbol.json')
+                oldSbmlName = oldName.replace(/_sbol\.xml$/i, '_sbml.xml')
+                newSbmlName = newName.replace(/_sbol\.xml$/i, '_sbml.xml')
+            } else if (/\.xml$/i.test(oldName)) {
+                oldSidecarName = oldName.replace(/\.xml$/i, '.json')
+                newSidecarName = newName.replace(/\.xml$/i, '.json')
+            } else if (/\.xlsm$/i.test(oldName)) {
+                const extension =
+                    file.objectType === ObjectTypes.Metadata.id
+                        ? '.xdc'
+                        : '.json'
+
+                oldSidecarName = oldName.replace(/\.xlsm$/i, extension)
+                newSidecarName = newName.replace(/\.xlsm$/i, extension)
+            }
+
+            if (oldSidecarName) {
+                try {
+                    await renameFile(currentDir,oldSidecarName,newSidecarName)
+                } catch (e) {
+                    if (e.name !== 'NotFoundError')
+                        throw e
+                }
+            }
+
+            if (oldSbmlName) {
+                try {
+                    const oldSbmlId = [...parts, oldSbmlName].join('/')
+                    const newSbmlId = [...parts, newSbmlName].join('/')
+                    const oldSbml = store.getState().workingDirectory.entities[oldSbmlId]
+                    const newSbmlHandle = await renameFile(currentDir,oldSbmlName,newSbmlName)
+                    store.dispatch(workDirActions.removeFile(oldSbmlId))
+                    newSbmlHandle.id = newSbmlId
+                    newSbmlHandle.objectType = oldSbml?.objectType
+                    store.dispatch(workDirActions.addFile(newSbmlHandle))
+                } catch (e) {
+                    if (e.name !== 'NotFoundError')
+                        throw e
+                }
+            }
+
+            await updateFileReferences(rootHandle,oldId,newId)
+
+            store.dispatch(workDirActions.removeFile(oldId))
+            newHandle.id = newId
+            newHandle.objectType = file.objectType
+            store.dispatch(workDirActions.addFile(newHandle))
+            store.dispatch(workingDirectorySlice.actions.uploadChanged())
+
+            const state = store.getState()
+
+            const oldPanel =
+                panelsSelectors.selectById(state, oldId) ||
+                panelsSelectors.selectById(state, `${oldId}::view`)
+
+            if (oldPanel) {
+                store.dispatch(panelsActions.updateOne({
+                    id: oldPanel.id,
+                    changes: {
+                        name: oldPanel.name.endsWith(' (view)')
+                            ? `${newName} (view)`
+                            : newName,
+
+                        fileHandle: {
+                            ...oldPanel.fileHandle,
+                            id: oldPanel.fileHandle?.id?.replace(oldId, newId),
+                            name: newName
+                        }
+                    }
+                }))
+            }
+            return `Renamed "${oldName}" to "${newName}".`
+        }
+    },
+    
+    FileOpen: {
+        id: createId('file-open'),
+        title: "Open File",
+        shortTitle: "Open",
+        description: "Open file",
         arguments: [
             {
                 name: "fileNameOrId",
                 prompt: "Enter the file name or ID"
             }
         ],
+
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
 
-            const ext = file.name.split('.').pop().toLowerCase();
+            if (!/\.(xls|xlsx|xlsm)$/i.test(file.name)) {
+                return "Only Excel files can be viewed.";
+            }
+
             const state = store.getState().workingDirectory;
-            const isExcelExt = value => /\.(xls|xlsx|xlsm)$/i.test(value || "");
-            const workflowDir = file.id.includes('/') ? file.id.split('/').slice(0, -1).join('/') : '';
-
-            const normalizePath = value => value?.replace(/^\/+|\/+$/g, '') || '';
-
-            const readFileFromId = async (targetId, preferredBaseDir = '') => {
-                const entity = state.entities[targetId];
-                if (entity?.data) {
-                    return {
-                        fileData: entity.data,
-                        fileName: entity.name,
-                        fileId: entity.id
-                    };
-                }
-
-                const dirHandle = state.directoryHandle;
-                if (!dirHandle || typeof dirHandle.getFileHandle !== 'function') {
-                    return null;
-                }
-
-                try {
-                    const parts = targetId.split('/');
-                    let cur = dirHandle;
-                    for (let i = 0; i < parts.length - 1; i++) {
-                        cur = await cur.getDirectoryHandle(parts[i]);
-                    }
-
-                    const directHandle = await cur.getFileHandle(parts[parts.length - 1]);
-                    const directFile = await directHandle.getFile();
-                    return {
-                        fileData: directFile,
-                        fileName: parts[parts.length - 1],
-                        fileId: targetId
-                    };
-                } catch {
-                    return null;
-                }
-            };
-
-            const readExcelFromIdWithUploadsFallback = async (targetId, preferredBaseDir = '') => {
-                const normalizedTarget = normalizePath(targetId);
-                const candidatePaths = [normalizedTarget];
-
-                if (preferredBaseDir && !normalizedTarget.includes('/')) {
-                    candidatePaths.push(`${preferredBaseDir}/${normalizedTarget}`);
-                    candidatePaths.push(`${preferredBaseDir}/uploads/${normalizedTarget}`);
-                }
-
-                if (!normalizedTarget.includes('/')) {
-                    candidatePaths.push(`uploads/${normalizedTarget}`);
-                }
-
-                const seen = new Set();
-                for (const candidate of candidatePaths) {
-                    if (!candidate || seen.has(candidate)) continue;
-                    seen.add(candidate);
-
-                    const direct = await readFileFromId(candidate, preferredBaseDir);
-                    if (!direct) continue;
-
-                    const targetExt = (direct.fileName.split('.').pop() || '').toLowerCase();
-                    const baseName = direct.fileName.replace(/\.[^/.]+$/, "");
-                    const dirHandle = state.directoryHandle;
-
-                    if (dirHandle && typeof dirHandle.getFileHandle === 'function') {
-                        try {
-                            const parts = candidate.split('/');
-                            let cur = dirHandle;
-                            for (let i = 0; i < parts.length - 1; i++) {
-                                cur = await cur.getDirectoryHandle(parts[i]);
-                            }
-
-                            let uploadsDir;
-                            try {
-                                uploadsDir = await cur.getDirectoryHandle('uploads');
-                            } catch {
-                                uploadsDir = null;
-                            }
-
-                            if (uploadsDir) {
-                                for await (const entry of uploadsDir.values()) {
-                                    if (entry.kind !== 'file') continue;
-                                    const entryBase = entry.name.replace(/\.[^/.]+$/, "");
-                                    const entryExt = (entry.name.split('.').pop() || '').toLowerCase();
-
-                                    if (entryBase === baseName && entryExt === targetExt) {
-                                        const fh = await uploadsDir.getFileHandle(entry.name);
-                                        const uploadFile = await fh.getFile();
-                                        return {
-                                            fileData: uploadFile,
-                                            fileName: entry.name,
-                                            fileId: `${parts.slice(0, -1).join('/')}/uploads/${entry.name}`
-                                        };
-                                    }
-                                }
-                            }
-                        } catch {
-                        }
-                    }
-
-                    return direct;
-                }
-
-                return null;
-            };
-
             let fileData = state.entities[file.id]?.data;
-            let downloadName = file.name;
-            let excelFileId = file.id;
 
-            if (ext === 'json') {
-                let jsonText = fileData;
-                if (!jsonText) {
-                    const jsonFile = await readFileFromId(file.id);
-                    if (!jsonFile || !jsonFile.fileData) {
-                        return "Could not read JSON file from disk.";
-                    }
-                    jsonText = await jsonFile.fileData.text();
-                }
-
-                let referencedPath = null;
-                let excelFileName = null;
-                let latestUploadPath = null;
-
+            if (!fileData) {
                 try {
-                    const json = typeof jsonText === 'string' ? JSON.parse(jsonText) : jsonText;
-                    if (typeof json?.file === 'string' && isExcelExt(json.file)) {
-                        referencedPath = json.file;
+                    const parts = file.id.split('/');
+                    let dir = state.directoryHandle;
+
+                    for (const part of parts.slice(0, -1)) {
+                        dir = await dir.getDirectoryHandle(part);
                     }
 
-                    if (!referencedPath && Array.isArray(json?.uploads) && json.uploads.length > 0) {
-                        const lastUpload = json.uploads[json.uploads.length - 1];
-                        if (typeof lastUpload?.file === 'string' && isExcelExt(lastUpload.file)) {
-                            latestUploadPath = lastUpload.file;
-                        }
-                    }
-
-                    if (!referencedPath) {
-                        const findExcelPath = obj => {
-                            if (!obj || typeof obj !== 'object') return null;
-
-                            if (typeof obj.file === 'string' && isExcelExt(obj.file)) {
-                                return obj.file;
-                            }
-
-                            for (const k of Object.keys(obj)) {
-                                const value = obj[k];
-                                if (typeof value === 'string' && isExcelExt(value)) {
-                                    return value;
-                                }
-                                if (value && typeof value === 'object') {
-                                    const found = findExcelPath(value);
-                                    if (found) return found;
-                                }
-                            }
-                            return null;
-                        };
-
-                        referencedPath = findExcelPath(json);
-                    }
-
-                    if (referencedPath) {
-                        const fileNameMatch = referencedPath.match(/([^/]+\.(xls|xlsx|xlsm))$/i);
-                        excelFileName = fileNameMatch ? fileNameMatch[1] : null;
-                    }
+                    const handle = await dir.getFileHandle(parts.at(-1));
+                    fileData = await handle.getFile();
                 } catch {
-                    return "Could not parse JSON or find Excel file reference.";
-                }
-
-                if (!referencedPath && !excelFileName) {
-                    referencedPath = latestUploadPath;
-                }
-
-                let resolvedExcel = null;
-
-                if (referencedPath) {
-                    resolvedExcel = await readExcelFromIdWithUploadsFallback(referencedPath, workflowDir);
-                }
-
-                if (!resolvedExcel && excelFileName) {
-                    const excelEntity = Object.values(state.entities).find(entity => entity.name === excelFileName);
-                    if (excelEntity) {
-                        resolvedExcel = await readExcelFromIdWithUploadsFallback(excelEntity.id, workflowDir);
-                    }
-                }
-
-                if (!resolvedExcel) {
-                    return "Excel file referenced in JSON not found.";
-                }
-
-                fileData = resolvedExcel.fileData;
-                downloadName = resolvedExcel.fileName;
-                excelFileId = resolvedExcel.fileId;
-            } else if (!(ext === 'xls' || ext === 'xlsx' || ext === 'xlsm')) {
-                return "Only Excel files or intermediary JSON files can be viewed.";
-            }
-
-            if (!fileData) {
-                const resolved = await readExcelFromIdWithUploadsFallback(excelFileId);
-                if (resolved) {
-                    fileData = resolved.fileData;
-                    downloadName = resolved.fileName;
+                    return "Could not read Excel file.";
                 }
             }
 
-            if (!fileData) {
-                return "File data not found.";
-            }
+            const buffer = fileData instanceof Blob
+                ? await fileData.arrayBuffer()
+                : fileData;
 
-            const buffer = fileData instanceof Blob ? await fileData.arrayBuffer() : fileData;
             const panelId = `${file.id}::view`;
-            const legacyPanel = panelsSelectors.selectById(store.getState(), file.id);
-
-            // Clean up old excel-viewer instances that used the file id directly.
-            if (file.id !== panelId && legacyPanel?.type === EXCEL_VIEWER_PANEL_TYPE) {
-                store.dispatch(panelsActions.closePanel(file.id));
-            }
 
             const panelState = {
                 id: panelId,
                 type: EXCEL_VIEWER_PANEL_TYPE,
-                name: `${downloadName} (view)`,
+                name: `${file.name} (view)`,
                 file: buffer,
                 fileHandle: {
                     id: panelId,
-                    name: downloadName,
+                    name: file.name,
                     objectType: file.objectType,
                 }
             };
@@ -349,11 +280,7 @@ export default {
             if (isPanelOpen(panelId)) {
                 store.dispatch(panelsActions.updateOne({
                     id: panelId,
-                    changes: {
-                        name: panelState.name,
-                        file: panelState.file,
-                        fileHandle: panelState.fileHandle,
-                    }
+                    changes: panelState
                 }));
                 store.dispatch(panelsActions.setActive(panelId));
             } else {
@@ -361,6 +288,36 @@ export default {
             }
         }
     },
+
+    FileView: {
+        id: createId('file-view'),
+        title: "View File",
+        shortTitle: "View",
+        description: "View on SynBioHub",
+        arguments: [
+            {
+                name: "fileNameOrId",
+                prompt: "Enter the file name or ID"
+            }
+        ],
+
+        execute: async (fileNameOrId,uploadInfo) => {
+            const file = findFileByNameOrId(fileNameOrId);
+            if (!file) return "File does not exist.";
+            let uri = uploadInfo?.uri;
+            if (!uri) return "No SynBioHub URI found.";
+
+            const stored = localStorage.getItem('SynbioHub');
+            if (stored) {
+                const repos = JSON.parse(stored);
+                const registryURL = repos.find(r => uri.startsWith(r.registryPrefix))?.registryURL || selectedRepo;
+                const registryPrefix = repos.find(r => uri.startsWith(r.registryPrefix))?.registryPrefix || selectedRepo;
+                uri = uri.replace(registryPrefix,registryURL);
+            }
+
+            window.open(uri, '_blank', 'noopener,noreferrer');
+        }
+    },    
 
     FileSave: {
         id: createId("file-save"),
@@ -381,12 +338,16 @@ export default {
 
             const file = findFileByNameOrId(fileNameOrId)
             if (!file)
-                return "File doesn't exist."
+                return "File does not exist."
 
             if(!isPanelOpen(file.id))
-                return "Panel isn't open."
+                return "Panel is not open."
 
-            await writeToFileHandle(file, serializePanel(file.id))
+            const targetFile = (/\.(xlsm|xlsx|xls)$/i.test(file.name || ""))
+                ? await resolveExperimentBackingFile(file)
+                : file
+
+            await writeToFileHandle(targetFile, serializePanel(file.id))
             store.dispatch(workingDirectorySlice.actions.uploadChanged())
 
             if (file.objectType === ObjectTypes.SBOL.id) {
@@ -419,7 +380,7 @@ export default {
         ],
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
 
             const state = store.getState().workingDirectory;
             let fileData = state.entities[file.id]?.data;
@@ -452,14 +413,14 @@ export default {
                                 cur = await cur.getDirectoryHandle(parts[i]);
                             }
 
-                            let uploadsDir = null;
-                            try { uploadsDir = await cur.getDirectoryHandle('uploads'); } catch (e) {}
+                            let currentDir = null;
+                            try { currentDir = await cur.getDirectoryHandle('uploads'); } catch (e) {}
 
-                            if (uploadsDir) {
+                            if (currentDir) {
                                 const baseName = file.name.replace(/\.[^/.]+$/, "");
-                                for await (const entry of uploadsDir.values()) {
+                                for await (const entry of currentDir.values()) {
                                     if (entry.kind === 'file' && entry.name.replace(/\.[^/.]+$/, "") === baseName) {
-                                        const fh = await uploadsDir.getFileHandle(entry.name);
+                                        const fh = await currentDir.getFileHandle(entry.name);
                                         fileData = await fh.getFile();
                                         downloadName = entry.name;
                                         break;
@@ -508,9 +469,11 @@ export default {
         ],
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
-            const sbmlFile = findFileByNameOrId(fileNameOrId.replace('_sbol.xml','_sbml.xml'));
-
+            if (!file) return "File does not exist.";
+            let sbmlFile = null;
+            if (fileNameOrId.endsWith('_sbol.xml')) {
+                sbmlFile = findFileByNameOrId(fileNameOrId.replace('_sbol.xml','_sbml.xml'));
+            }
             const dirHandle = store.getState().workingDirectory.directoryHandle;
             const directory = file.id.split("/")[0];
 
@@ -534,18 +497,31 @@ export default {
             async function performUpload(authToken) {
               try {
                 store.dispatch(loadOverlay());
-
+                let response;
                 try {
-                  await upload_sbol(
-                    file,
-                    sbmlFile,
-                    registryAPI,
-                    registryPrefix,
-                    authToken,
-                    collectionUrl,
-                    3,
-                    importType
-                  );
+                    if (importType=='resources'||importType=='strains'||importType=='sampleDesigns') {
+                        response = await upload_resource(
+                            file,
+                            registryAPI,
+                            registryPrefix,
+                            authToken,
+                            collectionUrl,
+                            importType,
+                            true,
+                            importType
+                        )
+                    } else {
+                        response = await upload_sbol(
+                            file,
+                            sbmlFile,
+                            registryAPI,
+                            registryPrefix,
+                            authToken,
+                            collectionUrl,
+                            true,
+                            importType
+                        );
+                    }
                 } finally {
                   store.dispatch(closeOverlay());
                 }
@@ -561,7 +537,7 @@ export default {
                 const uploadEntry = {
                     collectionName,
                     collectionUri: collectionUrl,
-                    uri: collectionUrl,
+                    uri: response.subCollectionUrl,
                     file: file.id,
                     date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                     selectedRepo,
@@ -575,7 +551,27 @@ export default {
                     uploads: [uploadEntry]
                 };
 
-                const jsonPath = file.id.replace(/\.xml$/i, '.json');
+                let jsonPath;
+                if (importType=='resources'||importType=='strains'||importType=='sampleDesigns') {
+                    if (file.id.endsWith('.xlsm')) {
+                        jsonPath = file.id.replace(/\.xlsm$/i, '.json');
+                    } else if (file.id.endsWith('.xlsx')) {
+                        jsonPath = file.id.replace(/\.xlsx$/i, '.json');
+                    } else {
+                        showErrorNotification("Failed to upload file", file.id + " is incorrect file type.");
+                        return "Failed to upload file: " + file.id + " is incorrect file type.";
+                    }
+                } else if (importType=='devices'||importType=='designs'||importType=='plasmids') {
+                    if (file.id.endsWith('xml')) {
+                        jsonPath = file.id.replace(/\.xml$/i, '.json');
+                    } else {
+                       showErrorNotification("Failed to upload file", file.id + " is incorrect file type.");
+                        return "Failed to upload file: " + file.id + " is incorrect file type.";
+                    }
+                } else {
+                    showErrorNotification("Failed to upload file", importType + " cannot be uploaded.");
+                    return "Failed to upload file: " + file.id + " is incorrect file type.";
+                }
                 const parts = jsonPath.split('/');
                 const fileName = parts.pop();
                 let currentDir = dirHandle;
@@ -588,9 +584,9 @@ export default {
                 store.dispatch(workingDirectorySlice.actions.uploadChanged())
 
                 showNotification({
-                  title: "File uploaded",
-                  message: `${file.name} uploaded successfully to ${collectionName} study.`,
-                  color: "green",
+                    title: "File uploaded",
+                    message: `${file.name} uploaded successfully to ${collectionName} study.`,
+                    color: "green",
                 });
 
                 return "File updated successfully.";
@@ -621,57 +617,87 @@ export default {
         ],
         execute: async fileNameOrId => {
             const file = findFileByNameOrId(fileNameOrId);
-            if (!file) return "File doesn't exist.";
+            if (!file) return "File does not exist.";
 
             const dirHandle = store.getState().workingDirectory.directoryHandle;
             const directory = file.id.split("/")[0];
 
             let jsonData = null;
-            let tempDirectory = null;
+            let selectedRepo = null;
+            let expectedEmail = null;
+            let collectionUrl = null;
+            let collectionName = null;
+            let registryAPI = null;
+            let registryPrefix = null;
+            let currentDir = null;
 
             try {
-                tempDirectory = await dirHandle.getDirectoryHandle(directory);
-                const jsonFH = await tempDirectory.getFileHandle(file.name);
+                let jsonPath;
+                if (file.name.endsWith('.xlsm')) {
+                    jsonPath = file.id.replace(/\.xlsm$/i, '.json');
+                } else if (file.id.endsWith('.xlsx')) {
+                    jsonPath = file.id.replace(/\.xlsx$/i, '.json');
+                } else {
+                    showErrorNotification("Failed to upload file", file.id + " is incorrect file type.");
+                    return "Failed to update file: " + file.id + " is incorrect file type.";
+                }
+                const parts = jsonPath.split('/');
+                const jsonFileName = parts.pop();
+                currentDir = dirHandle;
+                for (const part of parts) {
+                    currentDir = await currentDir.getDirectoryHandle(part);
+                }
+                const jsonFH = await currentDir.getFileHandle(jsonFileName);
                 const jsonText = await (await jsonFH.getFile()).text();
                 jsonData = JSON.parse(jsonText);
+    
+                const lastUpload = jsonData.uploads?.length
+                    ? jsonData.uploads[jsonData.uploads.length - 1]
+                    : null;
+
+                if (!lastUpload?.selectedRepo || !(lastUpload?.collectionUri || lastUpload?.uri)) {
+                    showErrorNotification("Cannot update", "No prior upload record with repository information found.");
+                    return "No prior upload record found.";
+                }
+
+                selectedRepo = lastUpload.selectedRepo;
+                expectedEmail = lastUpload.userEmail || null;
+                collectionUrl = lastUpload.collectionUri || lastUpload.uri;
+                collectionName = lastUpload.collectionName;
+                registryAPI = (() => {
+                    try {
+                        const stored = localStorage.getItem('SynbioHub');
+                        if (!stored) return selectedRepo;
+                        const repos = JSON.parse(stored);
+                        return repos.find(r => r.registryURL === selectedRepo)?.registryAPI || selectedRepo;
+                    } catch {
+                        return selectedRepo;
+                    }
+                })();
+                registryPrefix = (() => {
+                    try {
+                        const stored = localStorage.getItem('SynbioHub');
+                        if (!stored) return selectedRepo;
+                        const repos = JSON.parse(stored);
+                        return repos.find(r => r.registryURL === selectedRepo)?.registryPrefix || selectedRepo;
+                    } catch {
+                        return selectedRepo;
+                    }
+                })();
+
+                const authToken = await resolveAuthToken(selectedRepo,registryAPI,expectedEmail);
+                if (!authToken) {
+                    return "Authentication token not available.";
+                }
+
+                return await performUpdate(authToken);
             } catch (e) {
-                showErrorNotification("Failed to read workflow file", e.message);
-                return "Failed to read workflow file.";
-            }
-
-            const lastUpload = jsonData.uploads?.length
-                ? jsonData.uploads[jsonData.uploads.length - 1]
-                : null;
-
-            if (!lastUpload?.selectedRepo || !(lastUpload?.collectionUri || lastUpload?.uri)) {
-                showErrorNotification("Cannot update", "No prior upload record with repository information found.");
-                return "No prior upload record found.";
-            }
-
-            const selectedRepo = lastUpload.selectedRepo;
-            const expectedEmail = lastUpload.userEmail || null;
-            const collectionUrl = lastUpload.collectionUri || lastUpload.uri;
-            const collectionName = lastUpload.collectionName;
-            const registryAPI = (() => {
-                try {
-                    const stored = localStorage.getItem('SynbioHub');
-                    if (!stored) return selectedRepo;
-                    const repos = JSON.parse(stored);
-                    return repos.find(r => r.registryURL === selectedRepo)?.registryAPI || selectedRepo;
-                } catch {
-                    return selectedRepo;
+                if (e?.name != "NotFoundError") { 
+                    showErrorNotification("Error reading workflow file", e.message);
+                    return "Failed to read workflow file.";
                 }
-            })();
-            const registryPrefix = (() => {
-                try {
-                    const stored = localStorage.getItem('SynbioHub');
-                    if (!stored) return selectedRepo;
-                    const repos = JSON.parse(stored);
-                    return repos.find(r => r.registryURL === selectedRepo)?.registryPrefix || selectedRepo;
-                } catch {
-                    return selectedRepo;
-                }
-            })();
+                return await performUpdate(null);
+            }
 
             async function performUpdate(authToken) {
                 return new Promise((resolve) => {
@@ -696,7 +722,7 @@ export default {
                         }
 
                         const getExtension = (n) => { const m = n.match(/\.[^/.]+$/); return m ? m[0] : ''; };
-                        const existingFileName = jsonData.file ? jsonData.file.split('/').pop() : null;
+                        const existingFileName = file.name;
 
                         if (existingFileName) {
                             const originalExt = getExtension(existingFileName);
@@ -708,68 +734,86 @@ export default {
                         }
 
                         try {
-                            const uploadsDir = await tempDirectory.getDirectoryHandle('uploads', { create: true });
-
                             const newFileName = newFile.name;
+                            const extension = getExtension(newFileName);
+                            const oldJsonFileName = existingFileName.replace(extension,'.json');
+                            const newJsonFileName = newFileName.replace(extension,'.json');
                             const sameFilename = existingFileName && existingFileName === newFileName;
-
                             const stagingName = sameFilename ? `__tmp__${newFileName}` : newFileName;
-                            const stagingFH = await uploadsDir.getFileHandle(stagingName, { create: true });
+                            const stagingFH = await currentDir.getFileHandle(stagingName, { create: true });
                             const writable = await stagingFH.createWritable();
                             await writable.write(newFile);
                             await writable.close();
 
-                            const newFilePath = `${directory}/uploads/${newFileName}`;
-                            const uploadPath = sameFilename ? `${directory}/uploads/${stagingName}` : newFilePath;
-
-                            store.dispatch(loadOverlay());
+                            const newFilePath = `${directory}/${newFileName}`;
+                            const uploadPath = sameFilename ? `${directory}/${stagingName}` : newFilePath;
+                            
                             let response;
-                            try {
-                                response = await upload_resource(
-                                    uploadPath,
-                                    registryAPI,
-                                    registryPrefix,
-                                    authToken,
-                                    collectionUrl,
-                                    dirHandle,
-                                    3,
-                                    `${directory}`
-                                );
-                            } finally {
-                                store.dispatch(closeOverlay());
+                            if (authToken!=null) {
+                                store.dispatch(loadOverlay());
+                                try {
+                                    response = await upload_resource(
+                                        uploadPath,
+                                        registryAPI,
+                                        registryPrefix,
+                                        authToken,
+                                        collectionUrl,
+                                        dirHandle,
+                                        true,
+                                        `${directory}`
+                                    );
+                                } finally {
+                                    store.dispatch(closeOverlay());
+                                }
                             }
-
                             if (sameFilename) {
-                                const finalFH = await uploadsDir.getFileHandle(newFileName, { create: true });
+                                const finalFH = await currentDir.getFileHandle(newFileName, { create: true });
                                 const finalWritable = await finalFH.createWritable();
                                 await finalWritable.write(newFile);
                                 await finalWritable.close();
-                                try { await uploadsDir.removeEntry(stagingName); } catch {}
+                                try { await currentDir.removeEntry(stagingName); } catch {}
                             } else if (existingFileName) {
-                                try { await uploadsDir.removeEntry(existingFileName); } catch {}
+                                try { await currentDir.removeEntry(existingFileName); } catch {}
+                            }
+                            if (authToken!=null) {
+                                const updateEntry = {
+                                    collectionName,
+                                    collectionUri: collectionUrl,
+                                    uri: response.subCollectionUrl,
+                                    file: newFilePath,
+                                    date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                                    selectedRepo,
+                                    userEmail: expectedEmail,
+                                    type: 'update',
+                                };
+
+                                const updatedJson = {
+                                    ...jsonData,
+                                    file: newFilePath,
+                                    uploads: [...(jsonData.uploads ?? []), updateEntry],
+                                };
+                                const jsonFH = await currentDir.getFileHandle(newJsonFileName, { create: true });
+                                await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
+                                if (!sameFilename) {
+                                    try { await currentDir.removeEntry(oldJsonFileName); } catch {}
+                                }
                             }
 
-                            const updateEntry = {
-                                collectionName,
-                                collectionUri: collectionUrl,
-                                uri: response.sbh_url,
-                                file: newFilePath,
-                                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
-                                selectedRepo,
-                                userEmail: expectedEmail,
-                                type: 'update',
-                            };
+                            if (!sameFilename) {
+                                const oldFileId = file.id
 
-                            const updatedJson = {
-                                ...jsonData,
-                                file: newFilePath,
-                                uploads: [...(jsonData.uploads ?? []), updateEntry],
-                            };
+                                const newFileHandle = await currentDir.getFileHandle(
+                                    newFileName,
+                                    { create: false }
+                                )
 
-                            const jsonFH = await tempDirectory.getFileHandle(file.name);
-                            await writeToFileHandle(jsonFH, JSON.stringify(updatedJson));
+                                newFileHandle.id = `${directory}/${newFileName}`
+                                newFileHandle.objectType = file.objectType
 
-                            // Sync Redux panel state so PanelSaver doesn't overwrite with stale data
+                                store.dispatch(workDirActions.removeFile(oldFileId))
+                                store.dispatch(workDirActions.addFile(newFileHandle))
+                            }
+
                             if (isPanelOpen(file.id)) {
                                 store.dispatch(panelsActions.updateOne({
                                     id: file.id,
@@ -779,16 +823,23 @@ export default {
                                     }
                                 }))
                             }
-
-                            showNotification({
-                                title: "File updated",
-                                message: `${newFileName} uploaded successfully to ${collectionName}.`,
-                                color: "green",
-                            });
+                            if (authToken!=null) {
+                                showNotification({
+                                    title: "File updated",
+                                    message: `${newFileName} uploaded successfully to ${collectionName}.`,
+                                    color: "green",
+                                });
+                            } else {
+                                 showNotification({
+                                    title: "File updated",
+                                    message: `${newFileName} updated successfully.`,
+                                    color: "green",
+                                });                               
+                            }
 
                             resolve("File updated successfully.");
                         } catch (err) {
-                            try { await uploadsDir.removeEntry(stagingName); } catch {}
+                            try { await currentDir.removeEntry(stagingName); } catch {}
                             showErrorNotification("Failed to update file", err.message);
                             resolve("Failed to update file: " + err.message);
                         }
@@ -797,13 +848,6 @@ export default {
                     input.click();
                 });
             }
-
-            const authToken = await resolveAuthToken(selectedRepo,registryAPI,expectedEmail);
-            if (!authToken) {
-                return "Authentication token not available.";
-            }
-
-            return await performUpdate(authToken);
         }
     },
 }
@@ -900,3 +944,145 @@ async function resolveAuthToken(selectedRepo,registryAPI,expectedEmail) {
     return null;
   }
 }
+
+const renameFile = async (dirHandle, oldName, newName) => {
+    const oldHandle = await dirHandle.getFileHandle(oldName)
+    const file = await oldHandle.getFile()
+
+    const newHandle = await dirHandle.getFileHandle(newName, { create: true })
+    const writable = await newHandle.createWritable()
+
+    await writable.write(file)
+    await writable.close()
+
+    await dirHandle.removeEntry(oldName)
+
+    return newHandle
+}
+
+const updateFileReferences = async (rootHandle, oldId, newId) => {
+    const oldName = oldId.split('/').pop()
+    const newName = newId.split('/').pop()
+
+    const replaceReference = value => {
+        if (typeof value !== 'string')
+            return value
+
+        if (value === oldId)
+            return newId
+
+        if (value === oldName)
+            return newName
+
+        if (value.endsWith('/' + oldName))
+            return value.slice(0, -oldName.length) + newName
+
+        return value
+    }
+
+    const updateDirectory = async dirHandle => {
+        for await (const entry of dirHandle.values()) {
+
+            if (entry.kind === 'directory') {
+                await updateDirectory(entry)
+                continue
+            }
+
+            if (!/\.(json|xdc)$/i.test(entry.name))
+                continue
+
+            try {
+                const file = await entry.getFile()
+                const text = await file.text()
+                const json = JSON.parse(text)
+
+                let changed = false
+
+                // JSON/XDC file reference
+                if (json.file !== undefined) {
+                    const updated = replaceReference(json.file)
+                    if (updated !== json.file) {
+                        json.file = updated
+                        changed = true
+                    }
+                }
+
+                // XDC metadata reference
+                if (json.metadata !== undefined) {
+                    const updated = replaceReference(json.metadata)
+                    if (updated !== json.metadata) {
+                        json.metadata = updated
+                        changed = true
+                    }
+                }
+
+                // XDC plate-reader reference
+                if (json.plateOutput !== undefined) {
+                    const updated = replaceReference(json.plateOutput)
+                    if (updated !== json.plateOutput) {
+                        json.plateOutput = updated
+                        changed = true
+                    }
+                }
+
+                // XDC results reference(s)
+                if (Array.isArray(json.results)) {
+                    const updated = json.results.map(replaceReference)
+
+                    if (updated.some((value, i) =>
+                        value !== json.results[i])) {
+                        json.results = updated
+                        changed = true
+                    }
+                } else if (json.results !== undefined) {
+                    const updated = replaceReference(json.results)
+
+                    if (updated !== json.results) {
+                        json.results = updated
+                        changed = true
+                    }
+                }
+
+                // Upload history references
+                if (Array.isArray(json.uploads)) {
+                    const replaceUploadReferences = value => {
+                        if (typeof value === 'string')
+                            return replaceReference(value)
+                        if (Array.isArray(value))
+                            return value.map(replaceUploadReferences)
+                        if (value && typeof value === 'object') {
+                            return Object.fromEntries(
+                                Object.entries(value).map(([key, val]) => [
+                                    key,
+                                    replaceUploadReferences(val)
+                                ])
+                            )
+                        }
+                        return value
+                    }
+                    const updated = json.uploads.map(replaceUploadReferences)
+                    if (JSON.stringify(updated) !== JSON.stringify(json.uploads)) {
+                        json.uploads = updated
+                        changed = true
+                    }
+                }
+
+                if (changed) {
+                    const writable = await entry.createWritable()
+                    await writable.write(JSON.stringify(json, null, 2))
+                    await writable.close()
+                }
+
+            } catch (e) {
+                console.warn(
+                    `Could not update references in ${entry.name}:`,
+                    e
+                )
+            }
+        }
+    }
+
+    await updateDirectory(rootHandle)
+}
+
+

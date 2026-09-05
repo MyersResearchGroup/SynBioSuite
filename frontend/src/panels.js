@@ -114,7 +114,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",
         component: CollectionPanel,
-        objectTypes: [ ObjectTypes.Assays.id ],
+        objectTypes: [ ObjectTypes.Metadata.id ],
         icon: FcAddDatabase,
 
         //To be implemented
@@ -165,11 +165,19 @@ export function getPanelTypeForObject(file) {
     const objectType = file.objectType;
     const fileName = file.name.toLowerCase();
 
-    if (
-        objectType === ObjectTypes.Devices.id &&
-        fileName.endsWith(".xml")
-    ) {
+    if ((objectType === ObjectTypes.Resources.id || 
+        objectType === ObjectTypes.Strains.id ||
+        objectType === ObjectTypes.SampleDesigns.id) &&
+        fileName.endsWith(".xlsm")) {
+        return null;
+    }
+
+    if (objectType === ObjectTypes.Devices.id && fileName.endsWith(".xml")) {
         return PanelTypes.SBOLEditor;
+    }
+
+    if (objectType === ObjectTypes.Metadata.id && fileName.endsWith(".xlsm")) {
+        return PanelTypes.Experiment;
     }
 
     return Object.values(PanelTypes).find(

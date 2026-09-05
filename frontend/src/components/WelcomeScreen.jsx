@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
                 </Title>
                 <Space h={20} />
                 <Text align='center' sx={{ maxWidth: 500 }}>
-                    SynBio Suite uses a local folder on your device as a working directory. You can place SBOL files,
+                    SynBioSuite uses a local folder on your device as a working directory. You can place SBOL files,
                     SBML files, and OMEX archives in the directory.
                 </Text>
                 <Text color='yellow' size='lg' weight={600} align='center' style={{
