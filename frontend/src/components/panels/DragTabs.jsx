@@ -104,6 +104,12 @@ export default function DragTabs({
                 const id = tabIds[tabRefs.current.findIndex(
                     el => el.contains(event.target) || el == event.target
                 )]
+
+                // Blur whatever currently has focus before switching tabs. 
+                // Prevents Mantine from setting aria-hidden on a panel that
+                // still contains a focused element (e.g. a Notification close button).
+                document.activeElement?.blur()
+
                 onSelect(id)
             }
 
