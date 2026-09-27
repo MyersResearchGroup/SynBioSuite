@@ -214,11 +214,19 @@ class FakeSynBioHub:
 
 @pytest.fixture
 def fake_sbh(monkeypatch, _block_network):
-    """Intercept every requests.get/post the backend makes to SynBioHub."""
+    """Intercept every requests.get/post the backend makes to SynBioHub.
+
+    Also fails the test if any of those calls went out without a timeout: a
+    hung SynBioHub would otherwise hold a uwsgi worker until harakiri. Checked
+    at teardown, not in _dispatch, because the code under test wraps SynBioHub
+    errors in `except Exception` and would swallow an assertion raised there.
+    """
     sbh = FakeSynBioHub()
     monkeypatch.setattr(requests, 'get', sbh.get)
     monkeypatch.setattr(requests, 'post', sbh.post)
-    return sbh
+    yield sbh
+    untimed = [call for call in sbh.calls if not call.kwargs.get('timeout')]
+    assert not untimed, f'SynBioHub calls sent without a timeout: {untimed}'
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import sbol2
 import sbol2.model
-from .utils import sbh_get_subCollection_uris, sbh_get_attachment_uri
+from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri
 import requests
 import os
 
@@ -72,6 +72,7 @@ def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection
                 'rootCollections': sbh_collection_url,
                 'overwrite_merge': sbh_overwrite_num
             },
+            timeout=SBH_SUBMIT_TIMEOUT,
         )
     if not response.ok:
         raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")

@@ -8,6 +8,16 @@ import requests
 
 from typing import List, Tuple
 
+# (connect, read) seconds for requests to SynBioHub. Without a timeout a hung
+# SynBioHub holds a uwsgi worker until harakiri (180 s, sbs_server/uwsgi.ini),
+# and with processes=4 a handful of those stall the whole backend. nginx already
+# gives up on the client after ~60 s, so waiting longer only ties up the worker.
+SBH_TIMEOUT = (5, 30)
+# /submit answers only after SynBioHub has parsed and stored the whole document,
+# so it gets longer -- still under harakiri, and generous enough that the legacy
+# upload routes keep finishing slow submits they finish today.
+SBH_SUBMIT_TIMEOUT = (5, 120)
+
 def make_identifier(text: str) -> str:
     """
     Convert arbitrary text into a valid SBOL displayId.
@@ -61,6 +71,7 @@ def sparql_query(sbh_url, sbh_token, query):
             'Accept': 'application/json',
             'X-authorization': sbh_token
         },
+        timeout=SBH_TIMEOUT,
     )
     if not response.ok:
         raise Exception(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")

@@ -11,7 +11,12 @@ import requests
 import sbol2
 
 from ..synbiohubUpload import upload_to_sbh
-from ..utils import sbh_get_subCollection_uris, sparql_query
+from ..utils import (
+    SBH_SUBMIT_TIMEOUT,
+    SBH_TIMEOUT,
+    sbh_get_subCollection_uris,
+    sparql_query,
+)
 from .errors import ApiError
 from .registry import CollectionSpec
 
@@ -108,7 +113,8 @@ def clear_collection(ctx, spec: CollectionSpec) -> int:
     removed = 0
     for member in members(ctx, collection_uri):
         response = requests.post(
-            endpoint, headers=headers, data={'member': member['uri']}
+            endpoint, headers=headers, data={'member': member['uri']},
+            timeout=SBH_TIMEOUT,
         )
         if not response.ok:
             raise ApiError(
@@ -131,6 +137,7 @@ def attach(ctx, object_uri: str, file_storage):
         f'{api_url(ctx, object_uri)}/attach',
         headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
         files={'file': (filename, stream)},
+        timeout=SBH_TIMEOUT,
     )
     if not response.ok:
         raise ApiError(
@@ -202,6 +209,7 @@ def restore_members(ctx, spec: CollectionSpec, member_uris, upload_dir: str):
                 files={'files': handle},
                 data={'rootCollections': ctx.study_uri,
                       'overwrite_merge': MERGE_AND_OVERWRITE},
+                timeout=SBH_SUBMIT_TIMEOUT,
             )
         if not response.ok:
             print(f'WARNING: could not restore /{spec.path} membership after a '
@@ -275,6 +283,7 @@ def fetch_collection_sbol(ctx, collection_uri: str) -> bytes:
     response = requests.get(
         f'{api_url(ctx, collection_uri)}/sbol',
         headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
+        timeout=SBH_TIMEOUT,
     )
     if response.status_code == 404:
         return b''
@@ -296,6 +305,7 @@ def study_exists(ctx) -> bool:
     response = requests.get(
         f'{api_url(ctx, ctx.study_uri)}/metadata',
         headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
+        timeout=SBH_TIMEOUT,
     )
     if response.status_code == 404:
         return False
