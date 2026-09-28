@@ -89,11 +89,16 @@ def members(ctx, collection_uri: str):
 
 
 def resolve_member(ctx, spec: CollectionSpec, object_id: str) -> str:
-    """Find a member of this collection by displayId (or by its full URI)."""
+    """Find a member of this collection by its displayId.
+
+    displayId only. Every SynBioHub URI ends in a version segment, so matching
+    on the URI's tail let object_id "1" resolve to whichever member came back
+    first. A full URI never reaches here anyway: Flask's default route converter
+    rejects the slashes in it.
+    """
     for member in members(ctx, ctx.subcollection_uri(spec.import_type)):
-        uri, display_id = member['uri'], member['displayId']
-        if object_id in (display_id, uri) or uri.rstrip('/').endswith(f'/{object_id}'):
-            return uri
+        if member['displayId'] == object_id:
+            return member['uri']
 
     raise ApiError(404, f'No object "{object_id}" in /{spec.path} for this study')
 

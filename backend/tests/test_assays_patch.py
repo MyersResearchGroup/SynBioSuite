@@ -57,8 +57,13 @@ def test_attachment_file_is_sent(client, synbiohub, tmp_path):
     assert files['file'][0] == 'reading.csv'
 
 
-def test_the_full_uri_also_resolves(client, synbiohub, tmp_path):
-    assert patch(client, OBJECT_URI.rsplit('/', 2)[-2], tmp_path).status_code == 200
+def test_a_version_number_is_not_an_object_id(client, synbiohub, tmp_path):
+    """Every SynBioHub URI ends in its version, so a suffix match on the URI
+    let "1" resolve to my_assay/1 -- whichever member SPARQL listed first."""
+    response = patch(client, '1', tmp_path)
+
+    assert response.status_code == 404
+    assert synbiohub.calls_matching('/attach') == []
 
 
 def test_unknown_object_is_404(client, synbiohub, tmp_path):

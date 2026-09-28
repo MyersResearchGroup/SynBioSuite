@@ -616,7 +616,7 @@ paths:
         in: path
         required: true
         description: >
-          displayId of the SBOL object to attach to. Its full URI is also accepted.
+          displayId of the SBOL object to attach to (not its URI or version).
         schema: { type: string }
     patch:
       tags: [Assays]
