@@ -145,6 +145,10 @@ class FakeResponse:
             raise ValueError('no JSON body registered for this response')
         return self._json
 
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f'{self.status_code} error')
+
 
 def existing_study():
     """<study>/metadata for a study that exists."""

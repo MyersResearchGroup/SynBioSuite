@@ -6,6 +6,11 @@ from .utils import sbh_get_subCollection_uris
 import json
 from io import BytesIO
 
+# (connect, read) seconds for the GitHub template download. /api/v1 reaches it,
+# and a hung fetch would hold a uwsgi worker until harakiri, just like a hung
+# SynBioHub call (see SBH_TIMEOUT in utils.py).
+TEMPLATE_FETCH_TIMEOUT = (5, 30)
+
 '''
 Helper function to download Excel template
 '''
@@ -33,7 +38,7 @@ def fetch_template_bytes(object_type_id):
         raise ValueError(f"Unknown object type: {object_type_id}")
 
     url, filename = templates[object_type_id]
-    response = requests.get(url)
+    response = requests.get(url, timeout=TEMPLATE_FETCH_TIMEOUT)
     response.raise_for_status()
     return response.content, filename
 

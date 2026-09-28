@@ -14,7 +14,14 @@ from openpyxl.worksheet.table import Table
 from sbs_server.app import downloadTemplates
 from sbs_server.app.api.registry import COLLECTIONS
 
-from conftest import STUDY_URI, TOKEN, auth_headers, existing_study, missing_study
+from conftest import (
+    STUDY_URI,
+    TOKEN,
+    FakeResponse,
+    auth_headers,
+    existing_study,
+    missing_study,
+)
 
 EXCEL_BACKED = sorted(p for p, s in COLLECTIONS.items() if s.template_type)
 CHASSIS_URI = 'https://synbiohub.org/user/pmeka12/Test/e_coli/1'
@@ -188,6 +195,25 @@ def test_a_failed_fetch_is_502(client, monkeypatch, fake_sbh):
 
     assert response.status_code == 502
     assert 'template' in response.get_json()['error']
+
+
+def test_the_github_fetch_sets_a_timeout(fake_sbh):
+    """The real fetch_template_bytes, not the stand-in the tests above use.
+
+    /api/v1 reaches it, so a hung GitHub would hold a uwsgi worker until
+    harakiri just as a hung SynBioHub would. fake_sbh intercepts every
+    requests.get, GitHub included.
+    """
+    fake_sbh.register('GET', 'raw.githubusercontent.com',
+                      FakeResponse(200, content=b'xlsm bytes'))
+
+    content, filename = downloadTemplates.fetch_template_bytes(
+        'synbio.object-type.resources'
+    )
+
+    assert (content, filename) == (b'xlsm bytes', 'Resources.xlsm')
+    [call] = fake_sbh.calls
+    assert call.kwargs.get('timeout'), 'the template download has no timeout'
 
 
 def test_template_for_a_missing_study_is_404(client, fake_sbh, monkeypatch):
