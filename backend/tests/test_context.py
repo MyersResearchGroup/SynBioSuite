@@ -109,6 +109,35 @@ def test_api_host_study_uri_is_not_double_prefixed(app):
     assert ctx.sbh_url == 'https://api.synbiohub.org'
 
 
+@pytest.mark.parametrize(
+    'sbh_url',
+    [
+        # The review's H5 reproduction: the trailing ? swallows every path the
+        # backend appends, so the caller chooses the full URL it requests.
+        'http://169.254.169.254/latest/meta-data?x=',
+        'https://api.synbiohub.org#x',
+        'https://someone@api.synbiohub.org',
+        'ftp://api.synbiohub.org',
+    ],
+)
+def test_malformed_sbh_url_header_is_400(app, sbh_url):
+    with pytest.raises(ApiError) as excinfo:
+        build_context(app, **{SBH_URL_HEADER: sbh_url})
+
+    assert excinfo.value.status == 400
+    assert SBH_URL_HEADER in excinfo.value.message
+
+
+def test_study_uri_userinfo_cannot_pick_the_derived_host(app):
+    """Derived naively this is https://api.x@evil.example -- host evil.example."""
+    with pytest.raises(ApiError) as excinfo:
+        build_context(
+            app, **{STUDY_HEADER: 'https://x@evil.example/user/u/S/S_collection/1'},
+        )
+
+    assert excinfo.value.status == 400
+
+
 # ----------------------------------------------------------- failure modes
 
 @pytest.mark.parametrize(

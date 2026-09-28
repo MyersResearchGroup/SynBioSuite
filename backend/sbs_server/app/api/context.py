@@ -9,6 +9,10 @@ The SynBioHub *API* base (https://api.synbiohub.org) is a different host from th
 study URI's (https://synbiohub.org), so it cannot be read off the study URI alone.
 It is resolved from ``X-SynBioHub-Url``, else the SBS_SBH_URL environment
 variable, else derived as ``https://api.<study host>``.
+
+The header and the study URI both come from the caller, so every source is
+syntax-checked here, and every connection to the result goes through sbh_http,
+which refuses a non-public address (review H5).
 """
 from __future__ import annotations
 
@@ -18,11 +22,11 @@ from urllib.parse import urlparse
 
 from flask import request
 
+from ..sbh_http import SBH_URL_ENV, normalise_base_url
 from .errors import ApiError
 
 STUDY_HEADER = 'X-Study-Collection'
 SBH_URL_HEADER = 'X-SynBioHub-Url'
-SBH_URL_ENV = 'SBS_SBH_URL'
 
 # https://<host>/user/<user>/<studyId>/<displayId>/<version>
 _STUDY_URI_SEGMENTS = 5
@@ -121,19 +125,21 @@ def _validate_study_uri(study_uri: str):
 
 
 def _resolve_sbh_url(study_uri: str) -> str:
-    override = request.headers.get(SBH_URL_HEADER) or os.environ.get(SBH_URL_ENV)
-    if override and override.strip():
-        return _normalise_base_url(override.strip())
+    header = (request.headers.get(SBH_URL_HEADER) or '').strip()
+    if header:
+        return _checked_base_url(header, SBH_URL_HEADER)
+
+    configured = os.environ.get(SBH_URL_ENV, '').strip()
+    if configured:
+        return _checked_base_url(configured, SBH_URL_ENV)
 
     host = urlparse(study_uri).netloc
-    return f'https://{host}' if host.startswith('api.') else f'https://api.{host}'
+    derived = f'https://{host}' if host.startswith('api.') else f'https://api.{host}'
+    return _checked_base_url(derived, STUDY_HEADER)
 
 
-def _normalise_base_url(url: str) -> str:
-    """Add a scheme when one is missing, drop a trailing slash.
-
-    route.py:sbol_upload does the same fixup on the sbh_url it receives.
-    """
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-    return url.rstrip('/')
+def _checked_base_url(url: str, source: str) -> str:
+    try:
+        return normalise_base_url(url)
+    except ValueError as error:
+        raise ApiError(400, f'{source} does not give a usable SynBioHub URL: {error}')

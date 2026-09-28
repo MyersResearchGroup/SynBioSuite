@@ -754,7 +754,11 @@ components:
         Base URL of the SynBioHub API to talk to. This is a different host from the
         one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot
         be derived from it reliably. Falls back to the server's SBS_SBH_URL setting,
-        then to https://api.<study host>.
+        then to https://api.<study host>. Whichever is used must be an http(s) URL
+        with no query string, fragment or credentials, and its host must resolve to
+        a public address; otherwise the request fails with 400 before anything is
+        sent. The server's own SBS_SBH_URL origin is exempt from the public-address
+        rule, so a local SynBioHub works in development.
       schema:
         type: string
         format: uri

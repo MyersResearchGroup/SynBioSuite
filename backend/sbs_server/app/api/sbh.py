@@ -4,12 +4,12 @@ A thin layer over the helpers the backend already has (synbiohubUpload.py,
 utils.py), adapting them to a StudyContext and to this API's error shape.
 """
 import os
-from urllib.parse import urlparse
 from uuid import uuid4
 
-import requests
 import sbol2
 
+from .. import sbh_http
+from ..sbh_http import BlockedDestinationError, rebase_uri
 from ..synbiohubUpload import upload_to_sbh
 from ..utils import (
     SBH_SUBMIT_TIMEOUT,
@@ -56,7 +56,7 @@ def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
             out_path,
             overwrite_merge,
         )
-    except ApiError:
+    except (ApiError, BlockedDestinationError):
         raise
     except Exception as error:
         raise ApiError(502, f'SynBioHub rejected the submission: {error}')
@@ -79,6 +79,8 @@ def members(ctx, collection_uri: str):
         result = sbh_get_subCollection_uris(
             ctx.sbh_url, ctx.token, ctx.usergraph, collection_uri
         )
+    except BlockedDestinationError:
+        raise  # the caller's URL is at fault, not SynBioHub: errors.py makes it a 400
     except Exception as error:
         raise ApiError(502, f'Could not query SynBioHub: {error}')
 
@@ -117,7 +119,7 @@ def clear_collection(ctx, spec: CollectionSpec) -> int:
 
     removed = 0
     for member in members(ctx, collection_uri):
-        response = requests.post(
+        response = sbh_http.post(
             endpoint, headers=headers, data={'member': member['uri']},
             timeout=SBH_TIMEOUT,
         )
@@ -138,7 +140,7 @@ def attach(ctx, object_uri: str, file_storage):
         raise ApiError(400, 'No file was uploaded')
 
     stream = getattr(file_storage, 'stream', None) or file_storage
-    response = requests.post(
+    response = sbh_http.post(
         f'{api_url(ctx, object_uri)}/attach',
         headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
         files={'file': (filename, stream)},
@@ -159,8 +161,7 @@ def api_url(ctx, resource_uri: str) -> str:
     to go to the API host (https://api.synbiohub.org/user/...) -- the same
     translation upload_sbh_attachments does by rebuilding the path from sbh_url.
     """
-    path = urlparse(resource_uri).path
-    return ctx.sbh_url.rstrip('/') + path
+    return rebase_uri(ctx.sbh_url, resource_uri)
 
 
 def replace(ctx, spec: CollectionSpec, doc, upload_dir: str):
@@ -208,7 +209,7 @@ def restore_members(ctx, spec: CollectionSpec, member_uris, upload_dir: str):
         doc.write(path)
 
         with open(path, 'rb') as handle:
-            response = requests.post(
+            response = sbh_http.post(
                 f'{ctx.sbh_url}/submit',
                 headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
                 files={'files': handle},
@@ -251,6 +252,8 @@ def list_items(ctx, collection_uri: str):
         result = sparql_query(
             ctx.sbh_url, ctx.token, _ITEM_QUERY % (ctx.usergraph, collection_uri)
         )
+    except BlockedDestinationError:
+        raise  # a 400 via errors.py, not a 502
     except Exception as error:
         raise ApiError(502, f'Could not query SynBioHub: {error}')
 
@@ -285,7 +288,7 @@ EMPTY_SBOL_DOCUMENT = (
 
 def fetch_collection_sbol(ctx, collection_uri: str) -> bytes:
     """The collection as an SBOL document -- SynBioHub's GET <URI>/sbol."""
-    response = requests.get(
+    response = sbh_http.get(
         f'{api_url(ctx, collection_uri)}/sbol',
         headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
         timeout=SBH_TIMEOUT,
@@ -307,7 +310,7 @@ def study_exists(ctx) -> bool:
     Only consulted when a collection comes back empty, to tell "this collection
     has no members" (200 []) from "this study does not exist" (404).
     """
-    response = requests.get(
+    response = sbh_http.get(
         f'{api_url(ctx, ctx.study_uri)}/metadata',
         headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
         timeout=SBH_TIMEOUT,

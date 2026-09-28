@@ -6,6 +6,8 @@ spec, and the shape route.py already returns from the legacy endpoints.
 from flask import current_app, jsonify
 from werkzeug.exceptions import HTTPException
 
+from ..sbh_http import BlockedDestinationError
+
 
 class ApiError(Exception):
     """An error with a deliberate HTTP status, raised from views or context parsing."""
@@ -20,6 +22,11 @@ def register_error_handlers(bp):
     @bp.errorhandler(ApiError)
     def _handle_api_error(err):
         return jsonify({'error': err.message}), err.status
+
+    @bp.errorhandler(BlockedDestinationError)
+    def _handle_blocked_destination(err):
+        # The caller named a SynBioHub URL on a non-public address (review H5).
+        return jsonify({'error': str(err)}), 400
 
     @bp.errorhandler(HTTPException)
     def _handle_http_error(err):

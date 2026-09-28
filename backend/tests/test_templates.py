@@ -230,3 +230,38 @@ def test_template_for_a_missing_study_is_404(client, fake_sbh, monkeypatch):
 
     assert response.status_code == 404
     assert fetched == []
+
+
+# ------------------------------------------------ legacy route: SSRF (H5)
+
+def legacy_template(client, sbh_url, template_type='synbio.object-type.strains'):
+    params = json.dumps({
+        'template_type': template_type,
+        'sbh_url': sbh_url,
+        'sbh_token': TOKEN,
+        'collection_url': STUDY_URI,
+    }).encode()
+    return client.post(
+        '/api/downloadTemplate',
+        data={'Params': (io.BytesIO(params), 'parameters.json')},
+        content_type='multipart/form-data',
+    )
+
+
+def test_legacy_route_rejects_a_malformed_sbh_url(client, blank_template):
+    response = legacy_template(client, 'http://169.254.169.254/latest/meta-data?x=')
+
+    assert response.status_code == 400
+    assert 'sbh_url' in response.get_json()['error']
+    assert blank_template.requested == [], 'rejected only after doing the work'
+
+
+def test_legacy_route_refuses_a_loopback_synbiohub(
+    client, blank_template, listener, real_sbh_http,
+):
+    # real_sbh_http comes after blank_template, so it overrides fake_sbh.
+    response = legacy_template(client, listener.url)
+
+    assert response.status_code == 400
+    assert 'non-public' in response.get_json()['error']
+    assert listener.received() == b''

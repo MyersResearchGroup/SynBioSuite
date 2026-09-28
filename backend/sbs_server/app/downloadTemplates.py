@@ -2,6 +2,7 @@ from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
 from flask import jsonify, send_file
 import requests
+from .sbh_http import BlockedDestinationError, normalise_base_url
 from .utils import sbh_get_subCollection_uris
 import json
 from io import BytesIO
@@ -171,9 +172,14 @@ def sbh_download_template(files):
         return jsonify({"error": "No SBH credentials provided"}), 400
 
     try:
+        sbh_url = normalise_base_url(params_from_request['sbh_url'])
+    except ValueError as e:
+        return jsonify({"error": f"Invalid sbh_url: {e}"}), 400
+
+    try:
         output, filename = build_template(
             params_from_request['template_type'],
-            params_from_request['sbh_url'],
+            sbh_url,
             params_from_request['sbh_token'],
             params_from_request['collection_url'],
         )
@@ -183,5 +189,7 @@ def sbh_download_template(files):
             download_name=filename,
             mimetype="application/vnd.ms-excel.sheet.macroEnabled.12",
         )
+    except BlockedDestinationError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500

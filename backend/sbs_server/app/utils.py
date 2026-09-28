@@ -4,8 +4,8 @@ import sbol2build as s2b
 from sbol2build import abstract_translator as at
 from urllib.parse import urlencode
 import re
-import requests
 
+from . import sbh_http
 from typing import List, Tuple
 
 # (connect, read) seconds for requests to SynBioHub. Without a timeout a hung
@@ -50,8 +50,8 @@ def make_identifier(text: str) -> str:
     return identifier
 
 
-def get_sbh_user(sbh_url, sbh_token): 
-    response = requests.get(
+def get_sbh_user(sbh_url, sbh_token):
+    response = sbh_http.get(
         f'{sbh_url}/profile',
             headers={
                 'Accept': 'text/plain',
@@ -65,7 +65,7 @@ def get_sbh_user(sbh_url, sbh_token):
 
 def sparql_query(sbh_url, sbh_token, query):
     url = f"{sbh_url}/sparql?{urlencode({'query': query})}"
-    response =  requests.get(
+    response =  sbh_http.get(
         url,
         headers={
             'Accept': 'application/json',

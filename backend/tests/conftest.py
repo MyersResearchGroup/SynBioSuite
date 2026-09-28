@@ -2,7 +2,9 @@
 
 Run from backend/:  python -m pytest
 """
+import functools
 import os
+import socket
 import sys
 
 import pytest
@@ -73,6 +75,7 @@ requires_scratch = pytest.mark.skipif(
            f'to run destructive live tests',
 )
 
+from sbs_server.app import sbh_http  # noqa: E402
 from sbs_server.app.api.context import SBH_URL_ENV  # noqa: E402
 from sbs_server.app.main import app as flask_app  # noqa: E402
 
@@ -102,8 +105,60 @@ def _block_network(request, monkeypatch):
             'This test made a real HTTP request. Use the fake_sbh fixture.'
         )
 
-    monkeypatch.setattr(requests, 'get', _blocked)
-    monkeypatch.setattr(requests, 'post', _blocked)
+    # SynBioHub calls go through sbh_http; requests is patched too for the
+    # GitHub template fetch.
+    for module in (requests, sbh_http):
+        monkeypatch.setattr(module, 'get', _blocked)
+        monkeypatch.setattr(module, 'post', _blocked)
+
+
+@pytest.fixture
+def real_sbh_http(monkeypatch, _block_network):
+    """Send SynBioHub calls through the real SSRF guard instead of blocking them.
+
+    Only for tests that point the backend at a loopback Listener: the guard
+    refuses it before any byte is sent, so nothing leaves the machine.
+    """
+    monkeypatch.setattr(sbh_http, 'get', functools.partial(sbh_http.request, 'GET'))
+    monkeypatch.setattr(sbh_http, 'post', functools.partial(sbh_http.request, 'POST'))
+
+
+class Listener:
+    """A loopback TCP port that records whatever a client sends it."""
+
+    def __init__(self):
+        self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server.bind(('127.0.0.1', 0))
+        self._server.listen(4)
+        self._server.settimeout(2)
+        self.port = self._server.getsockname()[1]
+        self.url = f'http://127.0.0.1:{self.port}'
+
+    def received(self) -> bytes:
+        """Every byte sent on the first connection, or b'' if none arrived."""
+        try:
+            conn, _ = self._server.accept()
+        except socket.timeout:
+            return b''
+        conn.settimeout(2)
+        chunks = []
+        with conn:
+            while True:
+                chunk = conn.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        return b''.join(chunks)
+
+    def close(self):
+        self._server.close()
+
+
+@pytest.fixture
+def listener():
+    port = Listener()
+    yield port
+    port.close()
 
 
 @pytest.fixture
@@ -226,8 +281,9 @@ def fake_sbh(monkeypatch, _block_network):
     errors in `except Exception` and would swallow an assertion raised there.
     """
     sbh = FakeSynBioHub()
-    monkeypatch.setattr(requests, 'get', sbh.get)
-    monkeypatch.setattr(requests, 'post', sbh.post)
+    for module in (requests, sbh_http):
+        monkeypatch.setattr(module, 'get', sbh.get)
+        monkeypatch.setattr(module, 'post', sbh.post)
     yield sbh
     untimed = [call for call in sbh.calls if not call.kwargs.get('timeout')]
     assert not untimed, f'SynBioHub calls sent without a timeout: {untimed}'

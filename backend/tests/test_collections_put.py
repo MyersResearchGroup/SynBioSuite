@@ -6,7 +6,8 @@ properties that make that safe: bad input never clears, and a failed submit
 restores the previous membership.
 """
 import pytest
-import requests
+
+from sbs_server.app import sbh_http
 
 from conftest import (
     STUDY_URI, FakeResponse, auth_headers, existing_study, missing_study,
@@ -112,7 +113,7 @@ def test_a_failed_submit_restores_the_previous_membership(
             handle.seek(here)
         return forward(url, **kwargs)
 
-    monkeypatch.setattr(requests, 'post', capture)
+    monkeypatch.setattr(sbh_http, 'post', capture)
 
     response = put(client, 'devices', sbol_file)
 

@@ -1,7 +1,8 @@
 import sbol2
 import sbol2.model
+from . import sbh_http
+from .sbh_http import rebase_uri
 from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri
-import requests
 import os
 
 def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_graph, sbh_collection_url, attachments, experimentId=None):
@@ -14,10 +15,10 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                 resolved_name = str(attachment_name)
             search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_user_graph, sbh_collection_url, resolved_name)
             for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                if sbh_prefix:
-                    uri = uri.replace(sbh_prefix,sbh_url)
-                response = requests.get(f'{uri}/remove', headers=headers)
+                # The URI is stored data: keep its path, never its host. It used
+                # to be requested as-is unless it started with sbh_prefix.
+                uri = rebase_uri(sbh_url, binding["s"]["value"])
+                response = sbh_http.get(f'{uri}/remove', headers=headers)
                 if not response.ok:
                     raise Exception(f"Deleting existing attachment failed ({response.status_code}): {response.text}")
 
@@ -29,7 +30,7 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                     if experimentId is not None:
                         collectionDisplayId = experimentId
                     collectionVersion = sbh_collection_url.split("/")[-1]
-                    response = requests.post(f'{sbh_url}/user/{sbh_user}/{collectionID}/{collectionDisplayId}/{collectionVersion}/attach', headers=headers, files=upload_file)
+                    response = sbh_http.post(f'{sbh_url}/user/{sbh_user}/{collectionID}/{collectionDisplayId}/{collectionVersion}/attach', headers=headers, files=upload_file)
                     if not response.ok:
                         raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
             else:
@@ -41,7 +42,7 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                 if experimentId is not None:
                     collectionDisplayId = experimentId
                 collectionVersion = sbh_collection_url.split("/")[-1]
-                response = requests.post(f'{sbh_url}/user/{sbh_user}/{collectionID}/{collectionDisplayId}/{collectionVersion}/attach', headers=headers, files=upload_file)
+                response = sbh_http.post(f'{sbh_url}/user/{sbh_user}/{collectionID}/{collectionDisplayId}/{collectionVersion}/attach', headers=headers, files=upload_file)
                 if not response.ok:
                     raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
 
@@ -59,7 +60,7 @@ def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection
     doc.addCollection(subCollection)
     doc.write(file_path_out_final)
     with open(file_path_out_final, 'rb') as fobj:
-        response = requests.post(
+        response = sbh_http.post(
             f'{sbh_url}/submit',
             headers={
                 'Accept': 'text/plain',
