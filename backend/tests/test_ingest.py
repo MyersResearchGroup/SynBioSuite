@@ -1,7 +1,10 @@
 """ingest.load_document: format detection, accepts enforcement, workbook guards."""
 import os
+from unittest import mock
 
+import excel2sbol
 import pytest
+import sbol2
 from openpyxl import Workbook
 from werkzeug.datastructures import FileStorage
 
@@ -11,6 +14,19 @@ from sbs_server.app.api import registry
 from sbs_server.app.api.registry import COLLECTIONS
 
 TEMPLATE_DIR = os.path.expanduser('~/SPUR/Excel-to-SBOL/resources/templates')
+
+# Made-up rows on the public Resources template; see tests/fixtures/README.md.
+SYNTHETIC_WORKBOOK = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'fixtures', 'resources_synthetic.xlsx'
+)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_excel2sbol_env():
+    """excel2sbol writes SBOL_DICTIONARY (and, after a failed lookup, COUNTER)
+    into os.environ and never removes them. Keep them out of the next test."""
+    with mock.patch.dict(os.environ):
+        yield
 
 
 def make_workbook(path, sbol_version=2, sheets=('Init', 'column_definitions')):
@@ -232,6 +248,54 @@ def test_conversion_uses_the_excel_homespace_not_the_collections(tmp_path, monke
 
     assert seen['homespace'] == registry.EXCEL_HOMESPACE
     assert seen['homespace'] != COLLECTIONS['resources'].homespace
+
+
+def test_synthetic_workbook_converts_offline(uploads):
+    """Real excel2sbol on a committed workbook, so this one runs in CI.
+
+    Nothing is mocked and sbol2's VALIDATE is at its default, True. If the
+    conversion let sbol2 validate, doc.write() would POST the document to
+    validator.sbolstandard.org, _block_network would refuse, and the
+    conversion would fail (H3).
+    """
+    doc = load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
+
+    home = registry.EXCEL_HOMESPACE
+    assert sorted(tl.identity for tl in doc) == [
+        f'{home}fixture_chemical_1/1',
+        f'{home}fixture_promoter_1/1',
+        f'{home}fixture_promoter_1_sequence/1',
+    ]
+    chemical = doc.getComponentDefinition(f'{home}fixture_chemical_1/1')
+    promoter = doc.getComponentDefinition(f'{home}fixture_promoter_1/1')
+    assert list(chemical.types) == [sbol2.BIOPAX_SMALL_MOLECULE]
+    assert list(promoter.roles) == [sbol2.SO_PROMOTER]
+    assert list(promoter.sequences) == [f'{home}fixture_promoter_1_sequence/1']
+    assert os.listdir(uploads) == [], 'conversion left temp files behind'
+
+
+def test_conversion_turns_validation_back_on(uploads):
+    load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
+
+    assert sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE) is True
+
+
+def test_conversion_runs_unvalidated_and_restores_validation_when_it_fails(
+    tmp_path, monkeypatch,
+):
+    seen = []
+
+    def failing_converter(**kwargs):
+        seen.append(sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE))
+        raise RuntimeError('conversion blew up')
+
+    monkeypatch.setattr(excel2sbol, 'converter', failing_converter)
+
+    with pytest.raises(ApiError):
+        ingest._convert_workbook(SYNTHETIC_WORKBOOK, str(tmp_path / 'out.xml'))
+
+    assert seen == [False], 'excel2sbol ran with sbol2 validation on'
+    assert sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE) is True
 
 
 @pytest.mark.skipif(

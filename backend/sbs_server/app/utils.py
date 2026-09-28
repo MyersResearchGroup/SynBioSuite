@@ -2,11 +2,12 @@ import sbol2
 import excel2sbol
 import sbol2build as s2b
 from sbol2build import abstract_translator as at
+from contextlib import contextmanager
 from urllib.parse import urlencode
 import re
 
 from . import sbh_http
-from typing import List, Tuple
+from typing import Iterator, List, Tuple
 
 # (connect, read) seconds for requests to SynBioHub. Without a timeout a hung
 # SynBioHub holds a uwsgi worker until harakiri (180 s, sbs_server/uwsgi.ini),
@@ -134,13 +135,34 @@ def find_root_component_definitions(doc):
 
     return roots
 
+@contextmanager
+def sbol_validation_disabled() -> Iterator[None]:
+    """Stop sbol2 sending documents to validator.sbolstandard.org in this block.
+
+    With VALIDATE on (sbol2's default), every Document.write() POSTs the whole
+    document to that third-party service, with no timeout, and returns the
+    verdict as a string that no caller here reads: excel2sbol's compiler and
+    upload_to_sbh both discard it. "Invalid" blocks nothing; an unreachable or
+    slow validator fails or hangs the upload. The previous value is restored
+    on the way out. Process-global, like the rest of sbol2's Config: fine under
+    the shipped uwsgi.ini (processes = 4, no threads).
+    """
+    previous = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE)
+    sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
+    try:
+        yield
+    finally:
+        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, previous)
+
 def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
     print("converting to SBOL")
     try:
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
-        excel2sbol.converter(file_path_in = input_excel_path, 
-        file_path_out = file_path_out, homespace=homespace, sbol_version=2)
+        # excel2sbol ends with doc.write() (compiler.py:474).
+        with sbol_validation_disabled():
+            excel2sbol.converter(file_path_in = input_excel_path,
+            file_path_out = file_path_out, homespace=homespace, sbol_version=2)
         doc = sbol2.Document()
         doc.read(file_path_out)
         print("conversion complete")

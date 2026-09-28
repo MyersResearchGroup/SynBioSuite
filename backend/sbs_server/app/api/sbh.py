@@ -6,8 +6,6 @@ utils.py), adapting them to a StudyContext and to this API's error shape.
 import os
 from uuid import uuid4
 
-import sbol2
-
 from .. import sbh_http
 from ..sbh_http import BlockedDestinationError, rebase_uri
 from ..synbiohubUpload import subcollection_members, upload_to_sbh
@@ -58,13 +56,8 @@ def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
     os.makedirs(upload_dir, exist_ok=True)
     out_path = os.path.join(upload_dir, f'{uuid4()}_SBOL_final.xml')
 
-    # upload_to_sbh calls doc.write(), and sbol2 defaults to POSTing the whole
-    # document to validator.sbolstandard.org on every write -- then discards the
-    # result. Skip that round-trip here; restore the option so the legacy /api/*
-    # routes keep whatever behaviour they had. (Process-global, like the other
-    # sbol2 config: fine under uwsgi's processes=4, no threads.)
-    previous = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE)
-    sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
+    # upload_to_sbh writes the document with sbol2's validator off
+    # (utils.sbol_validation_disabled), so nothing goes to a third party.
     try:
         upload_to_sbh(
             doc,
@@ -83,7 +76,6 @@ def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
     except Exception as error:
         raise ApiError(502, f'SynBioHub rejected the submission: {error}')
     finally:
-        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, previous)
         try:
             if os.path.exists(out_path):
                 os.remove(out_path)

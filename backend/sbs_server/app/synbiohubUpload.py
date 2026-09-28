@@ -2,7 +2,7 @@ import sbol2
 import sbol2.model
 from . import sbh_http
 from .sbh_http import rebase_uri
-from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri
+from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri, sbol_validation_disabled
 import os
 
 def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_graph, sbh_collection_url, attachments, experimentId=None):
@@ -70,7 +70,8 @@ def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection
     for tl in subcollection_members(doc, sbh_prefix):
         subCollection.members = subCollection.members + [tl.identity]
     doc.addCollection(subCollection)
-    doc.write(file_path_out_final)
+    with sbol_validation_disabled():
+        doc.write(file_path_out_final)
     with open(file_path_out_final, 'rb') as fobj:
         response = sbh_http.post(
             f'{sbh_url}/submit',

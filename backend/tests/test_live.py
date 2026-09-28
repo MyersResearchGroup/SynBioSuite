@@ -16,7 +16,12 @@ import pytest
 from sbs_server.app.api.context import StudyContext
 from sbs_server.app.api.registry import COLLECTIONS
 from sbs_server.app.api import sbh
-from sbs_server.app.utils import get_sbh_user, sbh_get_subCollection_uris, sparql_query
+from sbs_server.app.utils import (
+    get_sbh_user,
+    sbh_get_subCollection_uris,
+    sbol_validation_disabled,
+    sparql_query,
+)
 
 from conftest import requires_live, requires_scratch
 
@@ -148,7 +153,6 @@ def _sbol_with(tmp_path, *names):
     """An SBOL file containing exactly the named parts."""
     import sbol2
 
-    sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
     sbol2.setHomespace('https://example.com/')
@@ -157,7 +161,8 @@ def _sbol_with(tmp_path, *names):
     for name in names:
         doc.addComponentDefinition(sbol2.ComponentDefinition(name))
     path = tmp_path / ('_'.join(names) + '.xml')
-    doc.write(str(path))
+    with sbol_validation_disabled():
+        doc.write(str(path))
     return str(path)
 
 

@@ -9,6 +9,7 @@ import sys
 
 import pytest
 import requests
+import sbol2
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
@@ -78,6 +79,7 @@ requires_scratch = pytest.mark.skipif(
 from sbs_server.app import sbh_http  # noqa: E402
 from sbs_server.app.api.context import SBH_URL_ENV  # noqa: E402
 from sbs_server.app.main import app as flask_app  # noqa: E402
+from sbs_server.app.utils import sbol_validation_disabled  # noqa: E402
 
 STUDY_URI = 'https://synbiohub.org/user/pmeka12/Test/Test_collection/1'
 TOKEN = 'test-token'
@@ -87,6 +89,23 @@ TOKEN = 'test-token'
 def _isolate_sbh_env(monkeypatch):
     """A developer's real SBS_SBH_URL must not change what the tests assert."""
     monkeypatch.delenv(SBH_URL_ENV, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _restore_sbol2_config():
+    """Undo any sbol2 Config change a test, or the code under test, makes.
+
+    sbol2 keeps VALIDATE, the URI flags and the homespace in one process-global
+    dict. sbol_file used to switch VALIDATE off for the rest of the run, which
+    hid H3: conversion POSTed every workbook to validator.sbolstandard.org, and
+    only a conversion test run on its own noticed. Every test now starts from
+    sbol2's defaults, as a fresh uwsgi worker does. Restored in place because
+    sbol2's own modules hold a reference to the dict.
+    """
+    saved = dict(sbol2.config.options)
+    yield
+    sbol2.config.options.clear()
+    sbol2.config.options.update(saved)
 
 
 @pytest.fixture(autouse=True)
@@ -313,10 +332,6 @@ def capture_submitted(fake_sbh, monkeypatch):
 @pytest.fixture
 def sbol_file(tmp_path):
     """A minimal valid SBOL2 document on disk."""
-    import sbol2
-
-    # doc.write() otherwise POSTs the document to validator.sbolstandard.org.
-    sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
     sbol2.setHomespace('https://example.com/')
@@ -325,7 +340,10 @@ def sbol_file(tmp_path):
     doc.addComponentDefinition(sbol2.ComponentDefinition('test_part'))
 
     path = tmp_path / 'part.xml'
-    doc.write(str(path))
+    # Scoped, not process-wide: code under test must turn validation off
+    # itself, and a leftover False here would hide it if it stopped.
+    with sbol_validation_disabled():
+        doc.write(str(path))
     return str(path)
 
 
