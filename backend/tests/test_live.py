@@ -9,6 +9,7 @@ printed, and no assertion message includes it.
 Run just these:  python -m pytest -m live -v
 """
 import os
+from uuid import uuid4
 
 import pytest
 
@@ -162,9 +163,19 @@ def _sbol_with(tmp_path, *names):
 
 @requires_scratch
 def test_put_replaces_collection_contents(app, client, live, tmp_path):
-    """PUT against a real SynBioHub: what was there before must be gone after."""
+    """PUT against a real SynBioHub: what was there before must be gone after.
+
+    Also the standing evidence for what PUT relies on: with overwrite_merge=3 a
+    submit replaces the sub-collection's member list (sbh.MERGE_AND_OVERWRITE).
+    Two POSTs accumulating shows POST's re-list keeps members; the PUT leaving
+    only its own object shows the replace; the old objects still resolving
+    shows they were unlinked, not destroyed. Every displayId carries a per-run
+    suffix, because overwrite_merge=3 overwrites any object whose URI matches.
+    """
     headers = live.scratch_headers
     spec = COLLECTIONS['devices']
+    run = uuid4().hex[:8]
+    old_a, old_b, new_c = (f'put_{n}_{run}' for n in ('old_a', 'old_b', 'new_c'))
 
     with app.test_request_context(headers=headers):
         ctx = StudyContext.from_request()
@@ -173,32 +184,43 @@ def test_put_replaces_collection_contents(app, client, live, tmp_path):
     def display_ids():
         return sorted(m['displayId'] for m in sbh.members(ctx, collection_uri))
 
-    client.delete('/api/v1/devices', headers=headers)
-    assert display_ids() == []
-
-    def upload(path, method):
+    def upload(name, method):
         return method(
             '/api/v1/devices',
             headers=headers,
-            data={'file': (open(path, 'rb'), 'parts.xml')},
+            data={'file': (open(_sbol_with(tmp_path, name), 'rb'), 'parts.xml')},
             content_type='multipart/form-data',
         )
 
-    seeded = upload(_sbol_with(tmp_path, 'put_old_a', 'put_old_b'), client.post)
-    assert seeded.status_code == 201, seeded.get_json()
-    before = display_ids()
-    print(f'\nbefore PUT: {before}')
-    assert before == ['put_old_a', 'put_old_b']
-
-    replaced = upload(_sbol_with(tmp_path, 'put_new_c'), client.put)
-    assert replaced.status_code == 200, replaced.get_json()
-
-    after = display_ids()
-    print(f'after PUT : {after}')
-    assert after == ['put_new_c'], 'PUT did not replace the previous contents'
-
     client.delete('/api/v1/devices', headers=headers)
-    print('cleaned up:', display_ids())
+    assert display_ids() == []
+
+    try:
+        for name in (old_a, old_b):
+            seeded = upload(name, client.post)
+            assert seeded.status_code == 201, seeded.get_json()
+        before = display_ids()
+        print(f'\nbefore PUT: {before}')
+        assert before == sorted([old_a, old_b]), 'the second POST dropped the first'
+
+        replaced = upload(new_c, client.put)
+        assert replaced.status_code == 200, replaced.get_json()
+
+        after = display_ids()
+        print(f'after PUT : {after}')
+        assert after == [new_c], 'PUT did not replace the previous contents'
+
+        for name in (old_a, old_b):
+            query = (
+                'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s FROM <%s> WHERE '
+                '{ ?s sbol:displayId "%s" }' % (ctx.usergraph, name)
+            )
+            found = sparql_query(ctx.sbh_url, ctx.token, query)
+            assert found['results']['bindings'], f'{name} was destroyed, not unlinked'
+        print(f'{old_a} and {old_b} survived the replace, unlinked')
+    finally:
+        client.delete('/api/v1/devices', headers=headers)
+        print('cleaned up:', display_ids())
 
 
 @requires_live

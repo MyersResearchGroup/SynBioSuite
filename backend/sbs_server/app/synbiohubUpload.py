@@ -46,17 +46,29 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                 if not response.ok:
                     raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
 
-def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num):
+def subcollection_members(doc, sbh_prefix):
+    """The top-level objects of `doc` that upload_to_sbh lists in the sub-collection.
+
+    An identity already under sbh_prefix names an object SynBioHub holds, so
+    only the others -- the ones this upload creates -- are listed.
+    """
+    return [tl for tl in doc if not tl.identity.startswith(sbh_prefix)]
+
+def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num, replace_members=False):
     subCollection = sbol2.Collection(importType)
     parts = sbh_collection_url.split("/")
     subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
-    search_result = sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, subCollection_url)
-    for binding in search_result["results"]["bindings"]:
-        uri = binding["s"]["value"]
-        subCollection.members = subCollection.members + [ uri ]
-    for tl in doc:
-        if not tl.identity.startswith(sbh_prefix):
-            subCollection.members = subCollection.members + [tl.identity]
+    # With overwrite_merge=3 SynBioHub replaces the existing sub-collection,
+    # member list included (see MERGE_AND_OVERWRITE in api/sbh.py), so the
+    # current members are listed again to keep them. replace_members skips
+    # that, leaving only this document's objects: /api/v1's PUT.
+    if not replace_members:
+        search_result = sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, subCollection_url)
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            subCollection.members = subCollection.members + [ uri ]
+    for tl in subcollection_members(doc, sbh_prefix):
+        subCollection.members = subCollection.members + [tl.identity]
     doc.addCollection(subCollection)
     doc.write(file_path_out_final)
     with open(file_path_out_final, 'rb') as fobj:

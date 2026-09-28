@@ -289,6 +289,27 @@ def fake_sbh(monkeypatch, _block_network):
     assert not untimed, f'SynBioHub calls sent without a timeout: {untimed}'
 
 
+def capture_submitted(fake_sbh, monkeypatch):
+    """Record the contents of every file POSTed to fake_sbh, as text.
+
+    sbh.submit deletes its temp file the moment it returns, so the bytes have
+    to be read while the request is still in flight.
+    """
+    bodies = []
+    forward = fake_sbh.post
+
+    def capture(url, **kwargs):
+        handle = (kwargs.get('files') or {}).get('files')
+        if hasattr(handle, 'read'):
+            here = handle.tell()
+            bodies.append(handle.read().decode('utf-8'))
+            handle.seek(here)
+        return forward(url, **kwargs)
+
+    monkeypatch.setattr(sbh_http, 'post', capture)
+    return bodies
+
+
 @pytest.fixture
 def sbol_file(tmp_path):
     """A minimal valid SBOL2 document on disk."""

@@ -10,9 +10,8 @@ import sbol2
 
 from .. import sbh_http
 from ..sbh_http import BlockedDestinationError, rebase_uri
-from ..synbiohubUpload import upload_to_sbh
+from ..synbiohubUpload import subcollection_members, upload_to_sbh
 from ..utils import (
-    SBH_SUBMIT_TIMEOUT,
     SBH_TIMEOUT,
     sbh_get_subCollection_uris,
     sparql_query,
@@ -26,14 +25,36 @@ from .registry import CollectionSpec
 # Only 2 and 3 are usable here. Verified against a live instance: submitting
 # with rootCollections set and overwrite_merge=1 is rejected outright
 # ("Please enter an id for your submission") -- 0 and 1 belong to the
-# create-a-new-collection flow. That is why PUT cannot be a single atomic
-# submit and has to clear first; see replace().
+# create-a-new-collection flow.
+#
+# With 3, an object that already exists with different content is replaced --
+# a sub-collection included, so its member list becomes exactly the one
+# submitted. Traced in SynBioHub/synbiohub 8d99c34: PrepareSubmissionJob.java
+# calls replaceSBOL (line 543), i.e. GET <uri>/replace, which runs
+# sparql/remove.sparql and deletes all of the object's triples, sbol:member
+# included; submit.js:485 then inserts the new ones. The members are separate
+# objects and survive, unlinked. That is why upload_to_sbh re-lists the
+# current members for POST, and what lets PUT be one submit (see replace()).
+# Two limits of that path:
+#   * a failed replace is only logged (lines 544-547) and the submit still
+#     answers 200, with old and new members side by side -- replace() checks;
+#   * SynBioHub deletes before it inserts, so an abort in between leaves the
+#     sub-collection unlinked. Every POST shares that exposure.
 MERGE_AND_OVERWRITE = 3
+
+# How many leftover members a failed replace names in its error.
+NAMED_IN_ERRORS = 5
 
 
 def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
-           overwrite_merge: int = MERGE_AND_OVERWRITE):
-    """Submit a document into this study's sub-collection for `spec`."""
+           overwrite_merge: int = MERGE_AND_OVERWRITE,
+           replace_members: bool = False):
+    """Submit a document into this study's sub-collection for `spec`.
+
+    The sub-collection keeps its members and gains the document's objects --
+    or, with replace_members, lists only the document's objects, and
+    SynBioHub's overwrite unlinks the rest.
+    """
     os.makedirs(upload_dir, exist_ok=True)
     out_path = os.path.join(upload_dir, f'{uuid4()}_SBOL_final.xml')
 
@@ -55,6 +76,7 @@ def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
             spec.import_type,
             out_path,
             overwrite_merge,
+            replace_members=replace_members,
         )
     except (ApiError, BlockedDestinationError):
         raise
@@ -167,69 +189,66 @@ def api_url(ctx, resource_uri: str) -> str:
 def replace(ctx, spec: CollectionSpec, doc, upload_dir: str):
     """Make the collection contain exactly `doc` -- the PUT operation.
 
-    SynBioHub has no atomic replace (see MERGE_AND_OVERWRITE above) and no
-    transactions, so this clears and then submits. Two things keep that from
-    being dangerous:
-
-      * the caller validates and converts the upload *before* this runs, so
-        every bad-input failure happens while the collection is still intact;
-      * if the submit fails anyway, the previous membership is restored. The
-        objects were only unlinked, never destroyed, so re-linking them is
-        enough to put the collection back.
+    One submit whose sub-collection lists only `doc`'s objects. SynBioHub's
+    overwrite replaces the member list (see MERGE_AND_OVERWRITE), so the
+    previous members are unlinked -- never destroyed -- by that same request.
+    Nothing is cleared beforehand, so a submit SynBioHub rejects leaves the
+    collection as it was and there is nothing to roll back.
     """
-    collection_uri = ctx.subcollection_uri(spec.import_type)
-    previous = [member['uri'] for member in members(ctx, collection_uri)]
+    uploaded = [tl.displayId for tl in subcollection_members(doc, ctx.sbh_prefix)]
+    submit(ctx, spec, doc, upload_dir, MERGE_AND_OVERWRITE, replace_members=True)
+    _require_replaced(ctx, spec, uploaded)
 
-    clear_collection(ctx, spec)
+
+# Every sbol:member link, whether or not the member has a displayId -- the
+# count after a PUT must not skip one. (members() requires a displayId.)
+_MEMBER_LINK_QUERY = """PREFIX sbol: <http://sbols.org/v2#>
+SELECT ?s ?id FROM <%s> WHERE {
+  <%s> sbol:member ?s .
+  OPTIONAL { ?s sbol:displayId ?id }
+}"""
+
+
+def _require_replaced(ctx, spec: CollectionSpec, uploaded):
+    """Fail if SynBioHub kept members the submit should have replaced.
+
+    SynBioHub only logs a failed replace and still answers 200, leaving old and
+    new members side by side. Nothing is unlinked here: a retried PUT submits
+    the same list, and SynBioHub attempts the replace again.
+    """
+    query = _MEMBER_LINK_QUERY % (ctx.usergraph, ctx.subcollection_uri(spec.import_type))
     try:
-        submit(ctx, spec, doc, upload_dir, MERGE_AND_OVERWRITE)
-    except Exception:
-        restore_members(ctx, spec, previous, upload_dir)
+        result = sparql_query(ctx.sbh_url, ctx.token, query)
+    except BlockedDestinationError:
         raise
+    except Exception as error:
+        raise ApiError(
+            502,
+            f'The upload to /{spec.path} was submitted, but the result could not '
+            f'be verified ({error})',
+        ) from error
 
-
-def restore_members(ctx, spec: CollectionSpec, member_uris, upload_dir: str):
-    """Re-link objects that were unlinked by a replace that then failed.
-
-    Best effort: if this fails too, the original error is what the caller
-    reports, with this failure logged alongside it.
-    """
-    if not member_uris:
+    # One entry per member link, keyed by URI: a member with no displayId
+    # still counts, and its URI stands in for the name.
+    found = {
+        b['s']['value']: b.get('id', {}).get('value')
+        for b in result.get('results', {}).get('bindings', [])
+    }
+    extra = len(found) - len(uploaded)
+    if extra <= 0:
         return
 
-    os.makedirs(upload_dir, exist_ok=True)
-    path = os.path.join(upload_dir, f'{uuid4()}_restore.xml')
-    previous_validate = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE)
-    sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
-    try:
-        doc = sbol2.Document()
-        collection = sbol2.Collection(spec.import_type)
-        collection.members = list(member_uris)
-        doc.addCollection(collection)
-        doc.write(path)
-
-        with open(path, 'rb') as handle:
-            response = sbh_http.post(
-                f'{ctx.sbh_url}/submit',
-                headers={'Accept': 'text/plain', 'X-authorization': ctx.token},
-                files={'files': handle},
-                data={'rootCollections': ctx.study_uri,
-                      'overwrite_merge': MERGE_AND_OVERWRITE},
-                timeout=SBH_SUBMIT_TIMEOUT,
-            )
-        if not response.ok:
-            print(f'WARNING: could not restore /{spec.path} membership after a '
-                  f'failed replace ({response.status_code}): {response.text}')
-    except Exception as error:
-        print(f'WARNING: could not restore /{spec.path} membership after a '
-              f'failed replace: {error}')
-    finally:
-        sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, previous_validate)
-        try:
-            if os.path.exists(path):
-                os.remove(path)
-        except OSError:
-            pass
+    uploaded_ids = set(uploaded)
+    kept = [name or uri for uri, name in found.items() if name not in uploaded_ids]
+    named = ', '.join(kept[:NAMED_IN_ERRORS])
+    if len(kept) > NAMED_IN_ERRORS:
+        named += ', ...'
+    detail = f' ({named})' if kept else ''
+    raise ApiError(
+        502,
+        f'SynBioHub stored the upload, but /{spec.path} still lists {extra} '
+        f'member(s) it should have replaced{detail}. Retry the PUT to replace them.',
+    )
 
 
 # sbol:type and sbol:role are multi-valued, so one member can produce several

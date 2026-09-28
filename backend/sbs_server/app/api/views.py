@@ -74,8 +74,9 @@ def create_in_collection(spec: CollectionSpec):
 def replace_collection(spec: CollectionSpec):
     """Make the collection contain exactly what was uploaded.
 
-    The file is validated and converted before anything is cleared, so a bad
-    upload cannot empty the collection.
+    The file is validated and converted before anything is submitted, so a bad
+    upload never reaches SynBioHub. The replace itself is one submit; see
+    sbh.replace.
     """
     ctx = _context_for(spec)
     _require_study(ctx)

@@ -1,12 +1,13 @@
 """POST /api/v1/{collection}: upload SBOL or Excel into a study's sub-collection."""
+import re
 from urllib.parse import unquote
 
 import pytest
 
 from sbs_server.app.api.registry import COLLECTIONS
 
-from conftest import (STUDY_URI, FakeResponse, auth_headers, existing_study,
-                      missing_study)
+from conftest import (STUDY_URI, FakeResponse, auth_headers, capture_submitted,
+                      existing_study, missing_study)
 
 IMPLEMENTED = sorted(p for p, s in COLLECTIONS.items() if s.implemented)
 
@@ -56,6 +57,29 @@ def test_submit_merges_and_overwrites_matching_uris(client, synbiohub, sbol_file
     post(client, 'resources', sbol_file)
 
     assert submit_call(synbiohub).kwargs['data']['overwrite_merge'] == 3
+
+
+def test_post_keeps_the_existing_members(client, fake_sbh, sbol_file, monkeypatch):
+    """The submitted sub-collection re-lists what is already there.
+
+    With overwrite_merge=3 SynBioHub replaces the sub-collection's member list
+    with the submitted one, so a POST that listed only its own objects would
+    unlink every existing member. PUT relies on exactly that; POST must not.
+    """
+    existing = 'https://synbiohub.org/user/pmeka12/Test/already_here/1'
+    fake_sbh.register('GET', '/metadata', existing_study())
+    fake_sbh.register('GET', '/sparql', FakeResponse(200, json_data={
+        'results': {'bindings': [{'s': {'value': existing},
+                                  'id': {'value': 'already_here'}}]}}))
+    fake_sbh.register('POST', '/submit',
+                      FakeResponse(200, text='Successfully uploaded'))
+    bodies = capture_submitted(fake_sbh, monkeypatch)
+
+    response = post(client, 'devices', sbol_file)
+
+    assert response.status_code == 201, response.get_json()
+    listed = re.findall(r'<sbol:member rdf:resource="([^"]+)"', bodies[-1])
+    assert sorted(listed) == sorted([existing, 'https://example.com/test_part/1'])
 
 
 def test_submit_authenticates_with_the_bearer_token(client, synbiohub, sbol_file):
