@@ -2,7 +2,7 @@
 
 # SynBioSuite
 
-A web app for the design and analysis of genetic circuits. This repository is just the SPA, and doesn't include SBOLCanvas or the iBioSim API. See _Environment Variables_ in the frontend section below.
+A web app to support the synthetic biology workflow. 
 
 ## Public Instance
 
@@ -21,7 +21,7 @@ git clone https://github.com/MyersResearchGroup/SynBioSuite
 Go to the project directory
 
 ```bash
-cd SynBioSuite
+cd frontend
 ```
 
 Install dependencies
@@ -54,34 +54,16 @@ An instance of [SBOLCanvas](https://github.com/SynBioDex/SBOLCanvas). A public o
 `VITE_SEQIMPROVE_URL`
 An instance of [SeqImprove](https://github.com/MyersResearchGroup/SeqImprove). A public one is available here: `https://seqimprove.org`
 
-## Deployment
-
-This project uses Vite for building. To build, run:
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory.
-
 # Backend
 
-## SynBioSuite_Server
+A Python Flask server that supports SynBioSuite's interface with SynBioHub and Flapjack
 
-A Python Flask server that converts Excel files into SBOL and uploads it into SBH and FJ
-
-## Current Usage (2/5/25)
-
-### WARNING:
-
-May have to edit dockerfile line 2 to clarify the platform on which you are running. (--platform=...)
-
-Currently in a template-based design.
+## Run locally using Docker
 
 Go to main directory:
 
 ```bash
-cd SynBioSuite_Server
+cd backend
 ```
 
 Build the image:
@@ -97,31 +79,3 @@ docker run -p 5003:5003 sbs_server
 ```
 
 The server will be running on localhost:5003
-
-## Installation
-
-This package requires Python 3.9.20 (other version create dependency issues). Use the package manager pip to install excel2sbol, excel2flapjack, flask, and flask-cors.
-
-```bash
-pip install excel2sbol
-```
-
-```bash
-pip install excel2flapjack
-```
-
-```bash
-pip install flask
-```
-
-```bash
-pip install flask-cors
-```
-
-## Usage
-
-In your command line, you can start up the server using the following command
-
-```bash
-flask --app views.py run
-```
