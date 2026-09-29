@@ -79,3 +79,11 @@ docker run -p 5003:5003 sbs_server
 ```
 
 The server will be running on localhost:5003
+
+## Working with Local Services
+
+If you are running SynBioHub or Flapjack locally, you will need this command to allow the backend to communicate with these other local instances:
+
+```bash
+docker network connect synbio-network synbiosuite
+```
