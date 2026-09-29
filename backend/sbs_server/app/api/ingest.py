@@ -12,7 +12,7 @@ import pandas as pd
 import sbol2
 from werkzeug.utils import secure_filename
 
-from ..utils import convert_to_sbol
+from ..utils import OntologyLookupError, convert_to_sbol
 from .errors import ApiError
 from .registry import EXCEL, EXCEL_HOMESPACE, SBOL, CollectionSpec
 
@@ -104,6 +104,9 @@ def _convert_workbook(source_path: str, converted_path: str):
         return convert_to_sbol(source_path, converted_path, EXCEL_HOMESPACE)
     except ApiError:
         raise
+    except OntologyLookupError as error:
+        # Ontobee's outage, not the workbook's fault.
+        raise ApiError(504, str(error))
     except Exception as error:
         raise ApiError(400, f'Excel to SBOL conversion failed: {error}')
 

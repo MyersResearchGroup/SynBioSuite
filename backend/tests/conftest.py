@@ -3,6 +3,7 @@
 Run from backend/:  python -m pytest
 """
 import functools
+import ipaddress
 import os
 import socket
 import sys
@@ -110,14 +111,19 @@ def _restore_sbol2_config():
 
 @pytest.fixture(autouse=True)
 def _block_network(request, monkeypatch):
-    """No test may reach the real SynBioHub.
+    """No test may reach a real server -- the real SynBioHub above all.
 
     Without this a handler that forgets its fake would quietly hit
     api.synbiohub.org -- and a write test would hit it with real credentials.
     Tests that need HTTP use the fake_sbh fixture, which re-patches over this.
+
+    Yields the non-loopback connects that were attempted and fails the test at
+    teardown unless it is empty: code under test that wraps errors in
+    `except Exception` would otherwise swallow the AssertionError.
     """
     if request.node.get_closest_marker('live'):
-        return  # @pytest.mark.live opts in to real HTTP, deliberately.
+        yield []  # @pytest.mark.live opts in to real HTTP, deliberately.
+        return
 
     def _blocked(*args, **kwargs):
         raise AssertionError(
@@ -125,10 +131,41 @@ def _block_network(request, monkeypatch):
         )
 
     # SynBioHub calls go through sbh_http; requests is patched too for the
-    # GitHub template fetch.
+    # GitHub template fetch. These give the clearer message.
     for module in (requests, sbh_http):
         monkeypatch.setattr(module, 'get', _blocked)
         monkeypatch.setattr(module, 'post', _blocked)
+
+    # Everything else stops at connect: urllib (tyto's Ontobee lookups, review
+    # M1), requests.Session, raw sockets. Loopback stays open for the Listener
+    # tests, which check what reached a local port.
+    attempts = []
+    for method in ('connect', 'connect_ex'):
+        monkeypatch.setattr(
+            socket.socket, method,
+            _loopback_only(getattr(socket.socket, method), attempts),
+        )
+
+    yield attempts
+    assert not attempts, f'This test opened real network connections: {attempts}'
+
+
+def _loopback_only(connect, attempts):
+    def guarded(sock, address):
+        if sock.family in (socket.AF_INET, socket.AF_INET6) and not _is_loopback(address[0]):
+            attempts.append(address)
+            raise AssertionError(
+                f'This test opened a real network connection to {address}.'
+            )
+        return connect(sock, address)
+    return guarded
+
+
+def _is_loopback(host) -> bool:
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False  # a name: nothing resolved it to loopback first
 
 
 @pytest.fixture

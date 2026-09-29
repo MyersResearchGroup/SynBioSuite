@@ -1,12 +1,14 @@
 """ingest.load_document: format detection, accepts enforcement, workbook guards."""
 import json
 import os
+import socket
 import sys
 from unittest import mock
 
 import excel2sbol
 import pytest
 import sbol2
+import tyto
 from openpyxl import Workbook, load_workbook
 from werkzeug.datastructures import FileStorage
 
@@ -421,6 +423,62 @@ def test_sys_exit_in_the_converter_is_a_400(tmp_path, monkeypatch):
     assert excinfo.value.status == 400
     assert excel2sbol.library2.link_validation is link_validation
     assert sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE) is True
+
+
+# ------------------------------------------------------- ontology lookups (M1)
+# A "Tyto Lookup" column has tyto ask Ontobee for each cell's ontology URI --
+# older Excel-to-SBOL parts templates look Source Organism up in NCBITaxon that
+# way. Ontobee is the one host a conversion may reach, so these keep converting.
+
+E_COLI = 'http://purl.obolibrary.org/obo/NCBITaxon_562'
+SOURCE_ORGANISM = 'https://wiki.synbiohub.org/wiki/Terms/synbiohub#sourceOrganism'
+
+
+def with_a_tyto_lookup(workbook):
+    """Look the promoter's Source Organism up in NCBITaxon through tyto,
+    instead of in an Organism Terms sheet the fixture does not have."""
+    definitions = workbook['column_definitions']
+    column = {cell.value: cell.column_letter for cell in definitions[1]}
+    row = next(
+        cells[0].row for cells in definitions.iter_rows(min_row=2)
+        if (cells[0].value, cells[1].value) == ('promoter', 'Source Organism')
+    )
+    definitions[f"{column['Tyto Lookup']}{row}"] = True
+    definitions[f"{column['Sheet Lookup']}{row}"] = False
+    workbook['promoter']['H5'] = 'Escherichia coli'
+
+
+def fake_ontobee(monkeypatch, answer):
+    def get_uri_by_term(ontology, term):
+        if isinstance(answer, BaseException):
+            raise answer
+        return answer
+
+    monkeypatch.setattr(tyto.endpoint.Ontobee, 'get_uri_by_term', get_uri_by_term)
+
+
+def test_a_tyto_lookup_still_converts(tmp_path, uploads, monkeypatch):
+    fake_ontobee(monkeypatch, E_COLI)
+
+    path = synthetic_variant(tmp_path, with_a_tyto_lookup)
+    doc = load('resources', upload(path), uploads)
+
+    promoter = doc.getComponentDefinition(
+        f'{registry.EXCEL_HOMESPACE}fixture_promoter_1/1'
+    )
+    assert [str(uri) for uri in promoter.properties[SOURCE_ORGANISM]] == [E_COLI]
+
+
+def test_an_ontobee_that_does_not_answer_is_a_504(tmp_path, uploads, monkeypatch):
+    """Ontobee's outage, not the workbook's fault -- so not a 400."""
+    fake_ontobee(monkeypatch, socket.timeout('timed out'))
+
+    path = synthetic_variant(tmp_path, with_a_tyto_lookup)
+    with pytest.raises(ApiError) as excinfo:
+        load('resources', upload(path), uploads)
+
+    assert excinfo.value.status == 504
+    assert 'Ontobee' in excinfo.value.message
 
 
 @pytest.mark.skipif(

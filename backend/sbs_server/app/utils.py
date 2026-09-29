@@ -3,12 +3,16 @@ import excel2sbol
 import excel2sbol.compiler
 import excel2sbol.library2
 import sbol2build as s2b
+import tyto
 from sbol2build import abstract_translator as at
 from contextlib import contextmanager
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlencode, urlsplit
+import http.client
 import os
 import re
+import socket
+import time
 
 from . import sbh_http
 from typing import Iterator, List, Tuple
@@ -168,6 +172,27 @@ EXCEL2SBOL_RUN_ENV = ('COUNTER', 'SBOL_DICTIONARY')
 class WorkbookNetworkError(Exception):
     """Conversion tried to make an HTTP request. Nothing was sent."""
 
+# Ontobee, the one host a conversion may contact. A column with "Tyto Lookup"
+# TRUE has excel2sbol (lookup_compiler.up) ask it for each cell's ontology URI --
+# older Excel-to-SBOL parts templates look Source Organism up in NCBITaxon that
+# way. tyto gets there through SPARQLWrapper, i.e. urllib, and sets no timeout,
+# so neither HTTPAdapter.send nor sbh_http ever sees the request.
+ONTOBEE_HOST = urlsplit(tyto.endpoint.Ontobee.url).hostname
+# Seconds per socket operation (the connect, then each read) on an Ontobee
+# connection, whatever timeout its caller set or left out.
+ONTOBEE_TIMEOUT = 10
+# Seconds into a conversion after which no Ontobee connection starts. With
+# ~15 s of conversion itself and the 120 s submit that follows, the request
+# stays under harakiri (180 s, sbs_server/uwsgi.ini).
+ONTOBEE_BUDGET = 30
+
+class OntologyLookupError(Exception):
+    """Ontobee failed, or took too long, answering the workbook's Tyto lookups.
+
+    Not an OSError: urllib wraps those in URLError, and this has to reach
+    ingest intact to become a 504 rather than a 400.
+    """
+
 @contextmanager
 def _replaced(owner, name: str, value) -> Iterator[None]:
     # getattr raises if a newer excel2sbol renames `name`: every conversion
@@ -189,15 +214,101 @@ def _no_welcome_sheet(*_args, **_kwargs) -> None:
     # sequence_authentication(); with no welcome data they never run.
     return None
 
-def _refuse_request(_adapter, request, **_kwargs):
-    raise WorkbookNetworkError(
-        f'Conversion tried to contact {urlsplit(request.url).hostname}; '
+def _refused(host) -> WorkbookNetworkError:
+    return WorkbookNetworkError(
+        f'Conversion tried to contact {host}; '
         'the server does not fetch URLs named in workbooks'
     )
+
+def _refuse_request(_adapter, request, **_kwargs):
+    raise _refused(urlsplit(request.url).hostname)
 
 def _clear_excel2sbol_env() -> None:
     for key in EXCEL2SBOL_RUN_ENV:
         os.environ.pop(key, None)
+
+def _ontobee_failed(reason: str) -> OntologyLookupError:
+    return OntologyLookupError(
+        f'Ontobee ({ONTOBEE_HOST}), which answers the workbook\'s "Tyto Lookup" '
+        f'columns, {reason}. Try again later.'
+    )
+
+@contextmanager
+def _network_only_to_ontobee() -> Iterator[None]:
+    """Refuse every name and address but Ontobee's, at socket level.
+
+    The backstop under HTTPAdapter.send: urllib (tyto -> SPARQLWrapper),
+    http.client and raw sockets all resolve and connect through these. A name
+    is refused before it reaches DNS, and a connect to an address Ontobee's name
+    did not resolve to is refused too. Ontobee connections get ONTOBEE_TIMEOUT
+    per socket operation, and none starts once ONTOBEE_BUDGET has run out.
+    Unix sockets are not network and pass.
+    """
+    resolve = socket.getaddrinfo
+    deadline = time.monotonic() + ONTOBEE_BUDGET
+    ontobee_addresses = set()
+
+    def getaddrinfo(host, *args, **kwargs):
+        name = host.decode() if isinstance(host, bytes) else host
+        if (name or '').rstrip('.').lower() != ONTOBEE_HOST:
+            raise _refused(name)
+        results = [
+            result for result in resolve(host, *args, **kwargs)
+            if sbh_http.is_public_address(result[4][0])
+        ]
+        if not results:
+            raise WorkbookNetworkError(
+                f'Refusing to contact {name}: it resolves to a non-public address'
+            )
+        ontobee_addresses.update(result[4][0] for result in results)
+        return results
+
+    def only_to_ontobee(connect):
+        def guarded(sock, address):
+            if sock.family not in (socket.AF_INET, socket.AF_INET6):
+                return connect(sock, address)
+            if address[0] not in ontobee_addresses:
+                raise _refused(address[0])
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise _ontobee_failed(
+                    f'did not finish within the {ONTOBEE_BUDGET} s a conversion allows'
+                )
+            timeouts = (sock.gettimeout(), ONTOBEE_TIMEOUT, remaining)
+            sock.settimeout(min(t for t in timeouts if t is not None))
+            return connect(sock, address)
+        return guarded
+
+    with _replaced(socket, 'getaddrinfo', getaddrinfo), \
+            _replaced(socket.socket, 'connect', only_to_ontobee(socket.socket.connect)), \
+            _replaced(socket.socket, 'connect_ex', only_to_ontobee(socket.socket.connect_ex)):
+        yield
+
+@contextmanager
+def _ontobee_lookups() -> Iterator[None]:
+    """Ask Ontobee about each (ontology, term) once, and name it when it fails.
+
+    tyto caches nothing and a workbook repeats the same organism on every row,
+    so without this every row would be a query against ONTOBEE_BUDGET. The
+    answers live for one conversion. Only transport failures become
+    OntologyLookupError; SPARQLWrapper's own errors (a query Ontobee rejects)
+    are the workbook's and pass through as they are.
+    """
+    ontobee = tyto.endpoint.Ontobee
+    look_up = ontobee.get_uri_by_term
+    answers = {}
+
+    def get_uri_by_term(ontology, term):
+        key = (ontology.uri, term)
+        if key not in answers:
+            try:
+                answers[key] = look_up(ontology, term)
+            except (OSError, http.client.HTTPException) as error:
+                raise _ontobee_failed(f'did not answer ({error})') from error
+        return answers[key]
+
+    with _replaced(ontobee, 'get_uri_by_term', get_uri_by_term):
+        yield
 
 @contextmanager
 def excel2sbol_offline() -> Iterator[None]:
@@ -212,6 +323,12 @@ def excel2sbol_offline() -> Iterator[None]:
     sbh_http, and HTTPAdapter.send refuses anything else, which is every
     requests call excel2sbol and sbol2.PartShop make.
 
+    The exception is a "Tyto Lookup" column: its ontology URIs do end up in the
+    document, and they come from Ontobee, a fixed host. So Ontobee stays
+    reachable -- capped by ONTOBEE_TIMEOUT and ONTOBEE_BUDGET, each term asked
+    once -- and every other name and address is refused at socket level, which
+    also covers urllib, the route tyto takes.
+
     Process-global, like sbol_validation_disabled: fine under the shipped
     uwsgi.ini (processes = 4, no threads).
     """
@@ -219,7 +336,9 @@ def excel2sbol_offline() -> Iterator[None]:
     try:
         with _replaced(excel2sbol.library2, 'link_validation', _link_is_valid), \
                 _replaced(excel2sbol.compiler, 'initialise_welcome', _no_welcome_sheet), \
-                _replaced(HTTPAdapter, 'send', _refuse_request):
+                _replaced(HTTPAdapter, 'send', _refuse_request), \
+                _network_only_to_ontobee(), \
+                _ontobee_lookups():
             yield
     finally:
         _clear_excel2sbol_env()
