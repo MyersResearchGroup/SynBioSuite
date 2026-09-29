@@ -54,3 +54,21 @@ def test_upload_to_sbh_does_not_send_the_document_to_the_validator(fake_sbh, tmp
     assert [call.method for call in fake_sbh.calls] == ['GET', 'POST']
     assert fake_sbh.calls_matching('/submit')
     assert sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE) is True
+
+
+def test_subcollection_members_also_lists_kept_objects_already_on_synbiohub():
+    """`keep` names objects SynBioHub holds that the sub-collection should list.
+
+    PUT passes the members of the upload's own copy of the sub-collection --
+    a GET export -- so they stay listed.
+    """
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+    doc = sbol2.Document()
+    doc.addComponentDefinition(_part('https://example.com/', 'new_part'))
+    doc.addComponentDefinition(_part(SBH_PREFIX, 'kept_part'))
+    doc.addComponentDefinition(_part(SBH_PREFIX, 'other_part'))
+
+    listed = subcollection_members(doc, SBH_PREFIX, keep={SBH_PREFIX + 'kept_part/1'})
+
+    assert sorted(tl.displayId for tl in listed) == ['kept_part', 'new_part']

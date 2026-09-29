@@ -4,7 +4,10 @@ A thin layer over the helpers the backend already has (synbiohubUpload.py,
 utils.py), adapting them to a StudyContext and to this API's error shape.
 """
 import os
+from typing import FrozenSet, List, Optional
 from uuid import uuid4
+
+import sbol2
 
 from .. import sbh_http
 from ..sbh_http import BlockedDestinationError, rebase_uri
@@ -46,12 +49,12 @@ NAMED_IN_ERRORS = 5
 
 def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
            overwrite_merge: int = MERGE_AND_OVERWRITE,
-           replace_members: bool = False):
+           members: Optional[List[str]] = None):
     """Submit a document into this study's sub-collection for `spec`.
 
-    The sub-collection keeps its members and gains the document's objects --
-    or, with replace_members, lists only the document's objects, and
-    SynBioHub's overwrite unlinks the rest.
+    The sub-collection keeps its members and gains the document's new objects
+    -- or, given `members` (URIs), lists exactly those, and SynBioHub's
+    overwrite unlinks the rest.
     """
     os.makedirs(upload_dir, exist_ok=True)
     out_path = os.path.join(upload_dir, f'{uuid4()}_SBOL_final.xml')
@@ -69,7 +72,7 @@ def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
             spec.import_type,
             out_path,
             overwrite_merge,
-            replace_members=replace_members,
+            members=members,
         )
     except (ApiError, BlockedDestinationError):
         raise
@@ -178,18 +181,50 @@ def api_url(ctx, resource_uri: str) -> str:
     return rebase_uri(ctx.sbh_url, resource_uri)
 
 
-def replace(ctx, spec: CollectionSpec, doc, upload_dir: str):
+def replace(ctx, spec: CollectionSpec, doc, upload_dir: str) -> int:
     """Make the collection contain exactly `doc` -- the PUT operation.
 
-    One submit whose sub-collection lists only `doc`'s objects. SynBioHub's
+    One submit whose sub-collection lists only `doc`'s objects: the ones it
+    creates, and the ones SynBioHub already holds that `doc`'s own copy of the
+    sub-collection lists -- so a GET export can be PUT back. SynBioHub's
     overwrite replaces the member list (see MERGE_AND_OVERWRITE), so the
     previous members are unlinked -- never destroyed -- by that same request.
     Nothing is cleared beforehand, so a submit SynBioHub rejects leaves the
     collection as it was and there is nothing to roll back.
+
+    Returns how many objects the collection now lists.
     """
-    uploaded = [tl.displayId for tl in subcollection_members(doc, ctx.sbh_prefix)]
-    submit(ctx, spec, doc, upload_dir, MERGE_AND_OVERWRITE, replace_members=True)
-    _require_replaced(ctx, spec, uploaded)
+    exported_members = _remove_exported_copy(ctx, spec, doc)
+    listed = subcollection_members(doc, ctx.sbh_prefix, keep=exported_members)
+    if not listed:
+        raise ApiError(
+            400,
+            f'The upload would leave /{spec.path} empty: every object in it is '
+            f'already on SynBioHub and not listed by /{spec.path}. Use DELETE '
+            f'to empty a collection.',
+        )
+
+    submit(ctx, spec, doc, upload_dir, MERGE_AND_OVERWRITE,
+           members=[tl.identity for tl in listed])
+    _require_replaced(ctx, spec, [tl.displayId for tl in listed])
+    return len(listed)
+
+
+def _remove_exported_copy(ctx, spec: CollectionSpec, doc) -> FrozenSet[str]:
+    """Take this sub-collection's own copy out of `doc`; return its members.
+
+    A GET (application/rdf+xml) export includes the sub-collection itself, on
+    the URI SynBioHub re-homes upload_to_sbh's new one to. Submitted together,
+    the two would land on one URI with different member lists. The copy's
+    members are what the collection held, so they stay listed.
+    """
+    uri = ctx.subcollection_uri(spec.import_type)
+    exported = doc.find(uri)
+    if not isinstance(exported, sbol2.Collection):
+        return frozenset()
+    members = frozenset(str(member) for member in exported.members)
+    doc.collections.remove(uri)
+    return members
 
 
 # Every sbol:member link, whether or not the member has a displayId -- the
@@ -201,12 +236,13 @@ SELECT ?s ?id FROM <%s> WHERE {
 }"""
 
 
-def _require_replaced(ctx, spec: CollectionSpec, uploaded):
-    """Fail if SynBioHub kept members the submit should have replaced.
+def _require_replaced(ctx, spec: CollectionSpec, listed):
+    """Fail unless the collection lists exactly the displayIds in `listed`.
 
     SynBioHub only logs a failed replace and still answers 200, leaving old and
-    new members side by side. Nothing is unlinked here: a retried PUT submits
-    the same list, and SynBioHub attempts the replace again.
+    new members side by side. A listed object that is missing afterwards would
+    otherwise be reported as a success, too. Nothing is unlinked here: a
+    retried PUT submits the same list, and SynBioHub attempts the replace again.
     """
     query = _MEMBER_LINK_QUERY % (ctx.usergraph, ctx.subcollection_uri(spec.import_type))
     try:
@@ -226,21 +262,36 @@ def _require_replaced(ctx, spec: CollectionSpec, uploaded):
         b['s']['value']: b.get('id', {}).get('value')
         for b in result.get('results', {}).get('bindings', [])
     }
-    extra = len(found) - len(uploaded)
+
+    # An object without a displayId cannot be looked for by name.
+    found_ids = set(found.values())
+    missing = [name for name in listed if name and name not in found_ids]
+    if missing:
+        raise ApiError(
+            502,
+            f'SynBioHub stored the upload, but /{spec.path} does not list '
+            f'{len(missing)} object(s) it was sent ({_first_few(missing)}). '
+            f'Retry the PUT to list them.',
+        )
+
+    extra = len(found) - len(listed)
     if extra <= 0:
         return
 
-    uploaded_ids = set(uploaded)
-    kept = [name or uri for uri, name in found.items() if name not in uploaded_ids]
-    named = ', '.join(kept[:NAMED_IN_ERRORS])
-    if len(kept) > NAMED_IN_ERRORS:
-        named += ', ...'
-    detail = f' ({named})' if kept else ''
+    listed_ids = set(listed)
+    kept = [name or uri for uri, name in found.items() if name not in listed_ids]
+    detail = f' ({_first_few(kept)})' if kept else ''
     raise ApiError(
         502,
         f'SynBioHub stored the upload, but /{spec.path} still lists {extra} '
         f'member(s) it should have replaced{detail}. Retry the PUT to replace them.',
     )
+
+
+def _first_few(names) -> str:
+    """The first NAMED_IN_ERRORS names, comma-separated, for an error message."""
+    named = ', '.join(names[:NAMED_IN_ERRORS])
+    return named + ', ...' if len(names) > NAMED_IN_ERRORS else named
 
 
 # sbol:type and sbol:role are multi-valued, so one member can produce several

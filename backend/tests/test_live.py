@@ -8,6 +8,7 @@ printed, and no assertion message includes it.
 
 Run just these:  python -m pytest -m live -v
 """
+import io
 import os
 from uuid import uuid4
 
@@ -223,6 +224,91 @@ def test_put_replaces_collection_contents(app, client, live, tmp_path):
             found = sparql_query(ctx.sbh_url, ctx.token, query)
             assert found['results']['bindings'], f'{name} was destroyed, not unlinked'
         print(f'{old_a} and {old_b} survived the replace, unlinked')
+    finally:
+        client.delete('/api/v1/devices', headers=headers)
+        print('cleaned up:', display_ids())
+
+
+def _export_with(exported, name):
+    """A GET export, edited: the same document plus one new part."""
+    import sbol2
+
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+    sbol2.setHomespace('https://example.com/')
+
+    doc = sbol2.Document()
+    doc.readString(exported.decode('utf-8'))
+    doc.addComponentDefinition(sbol2.ComponentDefinition(name))
+    return doc.writeString().encode('utf-8')
+
+
+@requires_scratch
+def test_get_then_put_round_trips_the_collection(app, client, live, tmp_path):
+    """PUT of a collection's own GET (rdf+xml) export leaves it as it was.
+
+    The export carries SynBioHub's own copy of the sub-collection, and every
+    object in it already has a SynBioHub URI -- the two things that made PUT
+    list no members. This is also the evidence that SynBioHub takes its own
+    objects back with overwrite_merge=3. An edited export, one new part added,
+    must keep the old members and gain the new one. Every displayId carries a
+    per-run suffix, because overwrite_merge=3 overwrites any object whose URI
+    matches.
+    """
+    headers = live.scratch_headers
+    spec = COLLECTIONS['devices']
+    run = uuid4().hex[:8]
+    part_a, part_b, new_c = (f'rt_{n}_{run}' for n in ('part_a', 'part_b', 'new_c'))
+
+    with app.test_request_context(headers=headers):
+        ctx = StudyContext.from_request()
+    collection_uri = ctx.subcollection_uri(spec.import_type)
+
+    def display_ids():
+        return sorted(m['displayId'] for m in sbh.members(ctx, collection_uri))
+
+    def put(body):
+        return client.put(
+            '/api/v1/devices',
+            headers=headers,
+            data={'file': (io.BytesIO(body), 'devices.xml')},
+            content_type='multipart/form-data',
+        )
+
+    client.delete('/api/v1/devices', headers=headers)
+    assert display_ids() == []
+
+    try:
+        with open(_sbol_with(tmp_path, part_a, part_b), 'rb') as handle:
+            seeded = client.post(
+                '/api/v1/devices',
+                headers=headers,
+                data={'file': (handle, 'parts.xml')},
+                content_type='multipart/form-data',
+            )
+        assert seeded.status_code == 201, seeded.get_json()
+        assert display_ids() == sorted([part_a, part_b])
+
+        exported = client.get(
+            '/api/v1/devices', headers={**headers, 'Accept': 'application/rdf+xml'}
+        )
+        assert exported.status_code == 200
+        assert collection_uri.encode() in exported.data, (
+            'the export no longer carries its own sub-collection'
+        )
+
+        unchanged = put(exported.data)
+        assert unchanged.status_code == 200, unchanged.get_json()
+        assert unchanged.get_json()['message'] == '/devices now contains 2 object(s)'
+        after = display_ids()
+        print(f'\nafter PUT of the export       : {after}')
+        assert after == sorted([part_a, part_b]), 'PUT of the export changed the collection'
+
+        edited = put(_export_with(exported.data, new_c))
+        assert edited.status_code == 200, edited.get_json()
+        after = display_ids()
+        print(f'after PUT of the edited export: {after}')
+        assert after == sorted([part_a, part_b, new_c]), 'the edited export was not applied'
     finally:
         client.delete('/api/v1/devices', headers=headers)
         print('cleaned up:', display_ids())

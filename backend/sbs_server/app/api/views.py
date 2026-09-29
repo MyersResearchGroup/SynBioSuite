@@ -83,12 +83,13 @@ def replace_collection(spec: CollectionSpec):
     upload_dir = _upload_dir()
 
     doc = load_document(spec, _uploaded_file(), upload_dir)
-    uploaded = len(doc)  # same reason as in create_in_collection
-    sbh.replace(ctx, spec, doc, upload_dir)
+    # What the sub-collection lists, not len(doc): a GET export also carries
+    # the sub-collection itself, and objects it references without listing.
+    listed = sbh.replace(ctx, spec, doc, upload_dir)
 
     return jsonify({
         'status': 'success',
-        'message': f'/{spec.path} now contains {uploaded} object(s)',
+        'message': f'/{spec.path} now contains {listed} object(s)',
     }), 200
 
 

@@ -1,14 +1,17 @@
 """PUT /api/v1/{collection}: make the collection contain exactly the upload.
 
-One SynBioHub submit whose sub-collection lists only the upload. With
+One SynBioHub submit whose sub-collection lists only the upload -- for a GET
+export, the objects its own copy of the collection lists. With
 overwrite_merge=3 SynBioHub replaces the existing sub-collection -- member list
 included -- so nothing is cleared first and there is nothing to roll back. A
 member count afterwards catches the one case SynBioHub reports as success
 without replacing anything.
 """
+import io
 import re
 
 import pytest
+import sbol2
 
 from conftest import (
     STUDY_URI, FakeResponse, auth_headers, capture_submitted, existing_study,
@@ -18,13 +21,57 @@ from conftest import (
 MEMBERS = ['old_one', 'old_two']
 UPLOADED = 'test_part'  # the one object in the sbol_file fixture
 
+# Where SynBioHub keeps this study's objects: STUDY_URI minus its last two segments.
+STUDY_NAMESPACE = 'https://synbiohub.org/user/pmeka12/Test'
+# The Devices sub-collection that upload_to_sbh submits, before SynBioHub re-homes it.
+SUBMITTED_DEVICES = 'https://example.com/Devices/1'
+
+
+def synbiohub_uri(name):
+    return f'{STUDY_NAMESPACE}/{name}/1'
+
 
 def bindings(names):
     return {'results': {'bindings': [
-        {'s': {'value': f'https://synbiohub.org/user/pmeka12/Test/{n}/1'},
-         'id': {'value': n}}
+        {'s': {'value': synbiohub_uri(n)}, 'id': {'value': n}}
         for n in names
     ]}}
+
+
+def synbiohub_export(members, collection='Devices', others=(), new=()):
+    """What GET <sub-collection>/sbol returns, as bytes.
+
+    SynBioHub's own copy of the sub-collection, plus the objects it lists, all
+    on SynBioHub URIs. `others` are in the export without being members --
+    SynBioHub's export follows references. `new` are objects a user added to
+    the file, on a homespace SynBioHub does not own.
+    """
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+    doc = sbol2.Document()
+
+    sbol2.setHomespace(STUDY_NAMESPACE)
+    for name in (*members, *others):
+        doc.addComponentDefinition(sbol2.ComponentDefinition(name))
+    exported = sbol2.Collection(collection)
+    exported.members = [synbiohub_uri(name) for name in members]
+    doc.addCollection(exported)
+
+    sbol2.setHomespace('https://example.com/')
+    for name in new:
+        doc.addComponentDefinition(sbol2.ComponentDefinition(name))
+    return doc.writeString().encode()
+
+
+def submitted_collections(body):
+    """Each Collection in a submitted file, mapped to the set of its members."""
+    return {
+        about: set(re.findall(r'<sbol:member rdf:resource="([^"]+)"', content))
+        for about, content in re.findall(
+            r'<sbol:Collection rdf:about="([^"]+)">(.*?)</sbol:Collection>',
+            body, re.S,
+        )
+    }
 
 
 def register_put(fake_sbh, check=None, submit=None):
@@ -43,11 +90,23 @@ def synbiohub(fake_sbh):
 
 
 def put(client, path, sbol_file, filename='part.xml'):
+    with open(sbol_file, 'rb') as handle:
+        return put_bytes(client, path, handle.read(), filename)
+
+
+def put_bytes(client, path, body, filename='devices.xml'):
     return client.put(
         f'/api/v1/{path}',
         headers=auth_headers(),
-        data={'file': (open(sbol_file, 'rb'), filename)},
+        data={'file': (io.BytesIO(body), filename)},
         content_type='multipart/form-data',
+    )
+
+
+def get_rdf(client, path='devices'):
+    return client.get(
+        f'/api/v1/{path}',
+        headers={**auth_headers(), 'Accept': 'application/rdf+xml'},
     )
 
 
@@ -199,3 +258,83 @@ def test_the_reported_count_excludes_the_collection_wrapper(client, synbiohub, s
     response = put(client, 'devices', sbol_file)
 
     assert response.get_json()['message'] == '/devices now contains 1 object(s)'
+
+
+# ------------------------------------------------- a collection's own export
+
+def test_put_of_the_collections_own_export_keeps_its_members(client, fake_sbh, monkeypatch):
+    """GET (rdf+xml) then PUT the same file back: the collection is unchanged.
+
+    Every object in the export already has a SynBioHub URI, and the export
+    carries SynBioHub's own copy of the sub-collection. PUT used to list none
+    of the objects, and to submit that copy next to its own empty one -- two
+    collections that land on the same URI.
+    """
+    register_put(fake_sbh, check=FakeResponse(
+        200, json_data=bindings(['part_a', 'part_b'])))
+    fake_sbh.register('GET', '/sbol', FakeResponse(
+        200, content=synbiohub_export(['part_a', 'part_b'])))
+    bodies = capture_submitted(fake_sbh, monkeypatch)
+
+    exported = get_rdf(client)
+    assert exported.status_code == 200
+    response = put_bytes(client, 'devices', exported.data)
+
+    assert response.status_code == 200, response.get_json()
+    assert submitted_collections(bodies[-1]) == {
+        SUBMITTED_DEVICES: {synbiohub_uri('part_a'), synbiohub_uri('part_b')},
+    }
+    assert response.get_json()['message'] == '/devices now contains 2 object(s)'
+
+
+def test_put_of_an_export_lists_its_members_and_new_objects_only(
+    client, fake_sbh, monkeypatch
+):
+    """An edited export: what its collection listed, plus what the user added.
+
+    sub_part is in the export only because SynBioHub's export follows
+    references; it was never a member, so the PUT must not make it one.
+    """
+    register_put(fake_sbh, check=FakeResponse(
+        200, json_data=bindings(['part_a', 'new_part'])))
+    bodies = capture_submitted(fake_sbh, monkeypatch)
+    body = synbiohub_export(['part_a'], others=['sub_part'], new=['new_part'])
+
+    response = put_bytes(client, 'devices', body)
+
+    assert response.status_code == 200, response.get_json()
+    assert submitted_collections(bodies[-1]) == {
+        SUBMITTED_DEVICES: {synbiohub_uri('part_a'), 'https://example.com/new_part/1'},
+    }
+    assert response.get_json()['message'] == '/devices now contains 2 object(s)'
+
+
+@pytest.mark.parametrize('body', [
+    pytest.param(lambda: synbiohub_export([]), id='export-of-an-empty-collection'),
+    pytest.param(lambda: synbiohub_export(['design_a'], collection='Designs'),
+                 id='export-of-another-collection'),
+])
+def test_put_that_would_leave_the_collection_empty_is_400(client, synbiohub, body):
+    """Nothing in the upload would be listed, so the PUT would only empty it.
+
+    DELETE is the verb for that. Refused before anything reaches SynBioHub.
+    """
+    response = put_bytes(client, 'devices', body())
+
+    assert response.status_code == 400, response.get_json()
+    assert '/devices' in response.get_json()['error']
+    assert synbiohub.calls_matching('/submit') == []
+
+
+def test_put_reports_listed_objects_synbiohub_did_not_link(client, fake_sbh, sbol_file):
+    """The submit answered 200, but the collection does not list the upload.
+
+    Without this check an emptied collection was reported as a success.
+    """
+    register_put(fake_sbh, check=FakeResponse(200, json_data=bindings([])))
+
+    response = put(client, 'devices', sbol_file)
+
+    assert response.status_code == 502
+    assert UPLOADED in response.get_json()['error']
+    assert fake_sbh.calls_matching('/removeMembership') == []
