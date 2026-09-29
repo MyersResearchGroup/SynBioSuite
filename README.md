@@ -15,13 +15,13 @@ A version of SynBioSuite is available at https://synbiosuite.org.
 Clone the project
 
 ```bash
-git clone https://github.com/MyersResearchGroup/SynBio-Suite
+git clone https://github.com/MyersResearchGroup/SynBioSuite
 ```
 
 Go to the project directory
 
 ```bash
-cd SynBio-Suite
+cd SynBioSuite
 ```
 
 Install dependencies
