@@ -1,9 +1,13 @@
 import sbol2
 import excel2sbol
+import excel2sbol.compiler
+import excel2sbol.library2
 import sbol2build as s2b
 from sbol2build import abstract_translator as at
 from contextlib import contextmanager
-from urllib.parse import urlencode
+from requests.adapters import HTTPAdapter
+from urllib.parse import urlencode, urlsplit
+import os
 import re
 
 from . import sbh_http
@@ -154,19 +158,90 @@ def sbol_validation_disabled() -> Iterator[None]:
     finally:
         sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, previous)
 
+# os.environ keys excel2sbol uses as per-run state. It sets them and never
+# clears them, so one upload's values would steer every later conversion in the
+# same uwsgi worker: COUNTER="Error found" stops every later conversion writing
+# its output, and a leftover SBOL_DICTIONARY sends the next workbook's
+# displayIds to the previous uploader's Domain.
+EXCEL2SBOL_RUN_ENV = ('COUNTER', 'SBOL_DICTIONARY')
+
+class WorkbookNetworkError(Exception):
+    """Conversion tried to make an HTTP request. Nothing was sent."""
+
+@contextmanager
+def _replaced(owner, name: str, value) -> Iterator[None]:
+    # getattr raises if a newer excel2sbol renames `name`: every conversion
+    # then fails loudly rather than quietly running the original.
+    original = getattr(owner, name)
+    setattr(owner, name, value)
+    try:
+        yield
+    finally:
+        setattr(owner, name, original)
+
+def _link_is_valid(*_args, **_kwargs) -> bool:
+    # What link_validation returns for a reachable URL: the cell's URL is kept
+    # as a reference. excel2sbol's SBOL3 path keeps it without checking at all.
+    return True
+
+def _no_welcome_sheet(*_args, **_kwargs) -> None:
+    # The welcome sheet's only use is the Domain lookups in displayId() and
+    # sequence_authentication(); with no welcome data they never run.
+    return None
+
+def _refuse_request(_adapter, request, **_kwargs):
+    raise WorkbookNetworkError(
+        f'Conversion tried to contact {urlsplit(request.url).hostname}; '
+        'the server does not fetch URLs named in workbooks'
+    )
+
+def _clear_excel2sbol_env() -> None:
+    for key in EXCEL2SBOL_RUN_ENV:
+        os.environ.pop(key, None)
+
+@contextmanager
+def excel2sbol_offline() -> Iterator[None]:
+    """Run excel2sbol without it making any request, from fresh state.
+
+    Left alone, excel2sbol (5910698) GETs every URL in a Sequence or (URI) cell
+    (library2.link_validation) and, when the welcome sheet sets a Domain,
+    searches that host for every displayId and sequence -- no timeout, and the
+    uploaded workbook picks the host. None of the responses end up in the
+    document: they only decide whether to warn, skip writing (COUNTER) or
+    sys.exit. So the checks are switched off rather than routed through
+    sbh_http, and HTTPAdapter.send refuses anything else, which is every
+    requests call excel2sbol and sbol2.PartShop make.
+
+    Process-global, like sbol_validation_disabled: fine under the shipped
+    uwsgi.ini (processes = 4, no threads).
+    """
+    _clear_excel2sbol_env()
+    try:
+        with _replaced(excel2sbol.library2, 'link_validation', _link_is_valid), \
+                _replaced(excel2sbol.compiler, 'initialise_welcome', _no_welcome_sheet), \
+                _replaced(HTTPAdapter, 'send', _refuse_request):
+            yield
+    finally:
+        _clear_excel2sbol_env()
+
 def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
     print("converting to SBOL")
     try:
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
         # excel2sbol ends with doc.write() (compiler.py:474).
-        with sbol_validation_disabled():
+        with sbol_validation_disabled(), excel2sbol_offline():
             excel2sbol.converter(file_path_in = input_excel_path,
             file_path_out = file_path_out, homespace=homespace, sbol_version=2)
         doc = sbol2.Document()
         doc.read(file_path_out)
         print("conversion complete")
         return doc
+    except SystemExit as exit_:
+        # excel2sbol calls sys.exit() on some input. SystemExit is not an
+        # Exception, so it would get past every handler instead of becoming a 400.
+        print("CONVERSION FAILED --- excel2sbol exited")
+        raise RuntimeError('excel2sbol stopped the conversion early') from exit_
     except Exception as e:
         print("CONVERSION FAILED --- SEE MESSAGE")
         raise

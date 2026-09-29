@@ -1,11 +1,13 @@
 """ingest.load_document: format detection, accepts enforcement, workbook guards."""
+import json
 import os
+import sys
 from unittest import mock
 
 import excel2sbol
 import pytest
 import sbol2
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from werkzeug.datastructures import FileStorage
 
 from sbs_server.app.api import ingest
@@ -250,6 +252,19 @@ def test_conversion_uses_the_excel_homespace_not_the_collections(tmp_path, monke
     assert seen['homespace'] != COLLECTIONS['resources'].homespace
 
 
+def synthetic_identities():
+    home = registry.EXCEL_HOMESPACE
+    return [
+        f'{home}fixture_chemical_1/1',
+        f'{home}fixture_promoter_1/1',
+        f'{home}fixture_promoter_1_sequence/1',
+    ]
+
+
+def identities(doc):
+    return sorted(tl.identity for tl in doc)
+
+
 def test_synthetic_workbook_converts_offline(uploads):
     """Real excel2sbol on a committed workbook, so this one runs in CI.
 
@@ -261,11 +276,7 @@ def test_synthetic_workbook_converts_offline(uploads):
     doc = load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
 
     home = registry.EXCEL_HOMESPACE
-    assert sorted(tl.identity for tl in doc) == [
-        f'{home}fixture_chemical_1/1',
-        f'{home}fixture_promoter_1/1',
-        f'{home}fixture_promoter_1_sequence/1',
-    ]
+    assert identities(doc) == synthetic_identities()
     chemical = doc.getComponentDefinition(f'{home}fixture_chemical_1/1')
     promoter = doc.getComponentDefinition(f'{home}fixture_promoter_1/1')
     assert list(chemical.types) == [sbol2.BIOPAX_SMALL_MOLECULE]
@@ -295,6 +306,120 @@ def test_conversion_runs_unvalidated_and_restores_validation_when_it_fails(
         ingest._convert_workbook(SYNTHETIC_WORKBOOK, str(tmp_path / 'out.xml'))
 
     assert seen == [False], 'excel2sbol ran with sbol2 validation on'
+    assert sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE) is True
+
+
+# ------------------------------------------------- conversion stays offline
+# excel2sbol fetches URLs named in workbook cells, looks displayIds and
+# sequences up on the welcome sheet's Domain, and keeps per-run state in
+# os.environ that outlives the request (review DEFERRED, excel2sbol). Any
+# request these tests let through trips _block_network, which fails the
+# conversion -- so "converts" also means "sent nothing".
+
+NCBI_SEQUENCE_URL = 'https://www.ncbi.nlm.nih.gov/nuccore/NC_000913.3'
+EXCEL2SBOL_RUN_ENV = ('COUNTER', 'SBOL_DICTIONARY')
+
+
+def synthetic_variant(tmp_path, edit):
+    """resources_synthetic.xlsx with `edit` applied, saved under tmp_path."""
+    workbook = load_workbook(SYNTHETIC_WORKBOOK)
+    edit(workbook)
+    path = tmp_path / 'variant.xlsx'
+    workbook.save(path)
+    return str(path)
+
+
+def test_a_url_in_a_sequence_cell_is_kept_without_being_fetched(tmp_path, uploads):
+    """library2.link_validation GETs every URL in a Sequence cell.
+
+    The public template's own pattern allows an NCBI nuccore link here. It is
+    stored as the sequence reference, as a reachable link always was.
+    """
+    def put_a_url_in_the_sequence(workbook):
+        workbook['promoter']['L5'] = NCBI_SEQUENCE_URL
+
+    path = synthetic_variant(tmp_path, put_a_url_in_the_sequence)
+    doc = load('resources', upload(path), uploads)
+
+    promoter = doc.getComponentDefinition(
+        f'{registry.EXCEL_HOMESPACE}fixture_promoter_1/1'
+    )
+    assert list(promoter.sequences) == [NCBI_SEQUENCE_URL]
+
+
+def test_a_welcome_sheet_domain_is_never_contacted(tmp_path, uploads):
+    """A Domain made excel2sbol search that host for every displayId."""
+    def set_a_domain(workbook):
+        workbook['welcome']['C16'] = 'https://sbh.example.org'
+
+    path = synthetic_variant(tmp_path, set_a_domain)
+    doc = load('resources', upload(path), uploads)
+
+    assert identities(doc) == synthetic_identities()
+
+
+def test_a_poisoned_counter_does_not_fail_the_next_conversion(uploads, monkeypatch):
+    """A 401/403/404 on a checked URL set COUNTER and nothing cleared it, so
+    every later conversion in that uwsgi worker skipped writing its output."""
+    monkeypatch.setenv('COUNTER', 'Error found')
+
+    doc = load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
+
+    assert identities(doc) == synthetic_identities()
+
+
+def test_a_previous_uploads_domain_is_not_used(tmp_path, uploads, monkeypatch):
+    """SBOL_DICTIONARY outlived the upload that set it, so a workbook with no
+    welcome sheet sent its displayIds to the previous uploader's Domain."""
+    monkeypatch.setenv('SBOL_DICTIONARY', json.dumps({
+        'Domain': 'https://sbh.example.org',
+        'Library Name': 'previous upload',
+        'Master Collection': '',
+    }))
+
+    def drop_the_welcome_sheet(workbook):
+        del workbook['welcome']
+
+    path = synthetic_variant(tmp_path, drop_the_welcome_sheet)
+    doc = load('resources', upload(path), uploads)
+
+    assert identities(doc) == synthetic_identities()
+
+
+def test_conversion_leaves_no_excel2sbol_state_behind(uploads):
+    load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
+
+    assert not set(EXCEL2SBOL_RUN_ENV) & set(os.environ)
+
+
+def test_a_failed_conversion_leaves_no_excel2sbol_state_behind(tmp_path, monkeypatch):
+    def converter_that_poisons_then_fails(**kwargs):
+        os.environ['COUNTER'] = 'Error found'
+        raise RuntimeError('conversion blew up')
+
+    monkeypatch.setattr(excel2sbol, 'converter', converter_that_poisons_then_fails)
+
+    with pytest.raises(ApiError):
+        ingest._convert_workbook(SYNTHETIC_WORKBOOK, str(tmp_path / 'out.xml'))
+
+    assert 'COUNTER' not in os.environ
+
+
+def test_sys_exit_in_the_converter_is_a_400(tmp_path, monkeypatch):
+    """excel2sbol calls sys.exit(1) on some input. SystemExit is not an
+    Exception, so it went past every handler instead of becoming a 400."""
+    link_validation = excel2sbol.library2.link_validation
+
+    def exiting_converter(**kwargs):
+        sys.exit(1)
+
+    monkeypatch.setattr(excel2sbol, 'converter', exiting_converter)
+
+    with pytest.raises(ApiError) as excinfo:
+        ingest._convert_workbook(SYNTHETIC_WORKBOOK, str(tmp_path / 'out.xml'))
+
+    assert excinfo.value.status == 400
+    assert excel2sbol.library2.link_validation is link_validation
     assert sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE) is True
 
 
