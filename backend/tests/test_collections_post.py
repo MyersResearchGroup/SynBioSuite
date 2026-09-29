@@ -3,6 +3,7 @@ import re
 from urllib.parse import unquote
 
 import pytest
+import requests
 
 from sbs_server.app.api.registry import COLLECTIONS
 
@@ -130,6 +131,43 @@ def test_synbiohub_failure_surfaces_as_502(client, fake_sbh, sbol_file):
 
     assert response.status_code == 502
     assert 'error' in response.get_json()
+
+
+def synbiohub_whose_submit(fake_sbh, outcome):
+    fake_sbh.register('GET', '/metadata', existing_study())
+    fake_sbh.register('GET', '/sparql',
+                      FakeResponse(200, json_data={'results': {'bindings': []}}))
+    fake_sbh.register('POST', '/submit', outcome)
+    return fake_sbh
+
+
+def test_a_submit_that_times_out_is_a_504_with_an_unknown_outcome(
+    client, fake_sbh, sbol_file,
+):
+    """SynBioHub may still apply an upload it did not answer in time, so
+    "rejected" was wrong; the caller needs to know a retry is safe (review M2)."""
+    synbiohub_whose_submit(fake_sbh, requests.ReadTimeout('read timed out'))
+
+    response = post(client, 'resources', sbol_file)
+
+    assert response.status_code == 504
+    error = response.get_json()['error']
+    assert 'unknown' in error
+    assert 'safe' in error
+    assert 'rejected' not in error
+
+
+def test_a_submit_that_cannot_connect_is_a_504_that_sent_nothing(
+    client, fake_sbh, sbol_file,
+):
+    synbiohub_whose_submit(fake_sbh, requests.ConnectTimeout('connect timed out'))
+
+    response = post(client, 'resources', sbol_file)
+
+    assert response.status_code == 504
+    error = response.get_json()['error']
+    assert 'Nothing was submitted' in error
+    assert 'safe' in error
 
 
 def test_post_still_requires_credentials(client, sbol_file):

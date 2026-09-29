@@ -8,6 +8,8 @@ from typing import FrozenSet, List, Optional
 from uuid import uuid4
 
 import sbol2
+# The exceptions only: every SynBioHub call goes through sbh_http.
+from requests.exceptions import ConnectTimeout, Timeout
 
 from .. import sbh_http
 from ..sbh_http import BlockedDestinationError, rebase_uri
@@ -46,6 +48,22 @@ MERGE_AND_OVERWRITE = 3
 # How many leftover members a failed replace names in its error.
 NAMED_IN_ERRORS = 5
 
+# A submit SynBioHub did not answer in time. It may still be storing it, so
+# "rejected" was wrong (review M2). Resending is safe either way: the same
+# document writes the same objects and, overwrite_merge=3, the same member
+# list. Also said of a POST whose member query (before the submit) timed out,
+# where nothing was sent -- erring on the side the caller can act on.
+SUBMIT_OUTCOME_UNKNOWN = (
+    'SynBioHub did not answer in time, so whether the upload was applied is '
+    'unknown; SynBioHub may still finish it. Sending the same request again is '
+    'safe: it writes the same objects and member list. GET the collection to check.'
+)
+# No connection, so no request left the server.
+SUBMIT_NOT_SENT = (
+    'SynBioHub did not accept a connection in time. Nothing was submitted; '
+    'retrying is safe.'
+)
+
 
 def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
            overwrite_merge: int = MERGE_AND_OVERWRITE,
@@ -76,6 +94,10 @@ def submit(ctx, spec: CollectionSpec, doc, upload_dir: str,
         )
     except (ApiError, BlockedDestinationError):
         raise
+    except ConnectTimeout as error:  # a Timeout too, so first
+        raise ApiError(504, SUBMIT_NOT_SENT) from error
+    except Timeout as error:
+        raise ApiError(504, SUBMIT_OUTCOME_UNKNOWN) from error
     except Exception as error:
         raise ApiError(502, f'SynBioHub rejected the submission: {error}')
     finally:

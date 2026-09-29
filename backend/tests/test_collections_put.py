@@ -11,6 +11,7 @@ import io
 import re
 
 import pytest
+import requests
 import sbol2
 
 from conftest import (
@@ -158,6 +159,20 @@ def test_a_failed_put_changes_nothing(client, fake_sbh, sbol_file):
     assert response.status_code == 502
     assert len(fake_sbh.calls_matching('/submit')) == 1
     assert fake_sbh.calls_matching('/removeMembership') == []
+
+
+def test_a_put_whose_submit_times_out_is_a_504_and_is_not_checked(
+    client, fake_sbh, sbol_file,
+):
+    """SynBioHub may still be applying it, so there is nothing to verify yet;
+    a retried PUT submits the same list and checks then (review M2)."""
+    register_put(fake_sbh, submit=requests.ReadTimeout('read timed out'))
+
+    response = put(client, 'devices', sbol_file)
+
+    assert response.status_code == 504
+    assert 'unknown' in response.get_json()['error']
+    assert fake_sbh.calls_matching('/sparql') == [], 'checked an unknown outcome'
 
 
 def test_put_reports_members_synbiohub_did_not_replace(client, fake_sbh, sbol_file):

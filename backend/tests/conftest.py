@@ -301,7 +301,8 @@ class FakeSynBioHub:
         """Register a response. Pass a list to return each in turn.
 
         A list lets a test drive a sequence like "the submit fails, then the
-        rollback submit succeeds"; the last entry repeats once exhausted.
+        rollback submit succeeds"; the last entry repeats once exhausted. An
+        exception is raised instead of returned, as requests raises a timeout.
         """
         self._routes.append((method.upper(), url_contains, response))
         return response
@@ -320,7 +321,9 @@ class FakeSynBioHub:
         for route_method, fragment, response in self._routes:
             if route_method == method and fragment in url:
                 if isinstance(response, list):
-                    return response.pop(0) if len(response) > 1 else response[0]
+                    response = response.pop(0) if len(response) > 1 else response[0]
+                if isinstance(response, BaseException):
+                    raise response
                 return response
         raise AssertionError(
             f'FakeSynBioHub received an unregistered request: {method} {url}'

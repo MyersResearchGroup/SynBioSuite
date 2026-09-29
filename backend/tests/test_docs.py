@@ -105,3 +105,17 @@ def test_spec_and_routes_agree(app, spec):
 
     assert documented - registered == set(), 'documented but not served'
     assert registered - documented == set(), 'served but not documented'
+
+
+def test_every_upload_that_reaches_synbiohub_documents_a_timeout(spec):
+    """A submit SynBioHub does not answer in time is a 504, outcome unknown (M2)."""
+    undocumented = [
+        f'{verb.upper()} {path}'
+        for path, item in spec['paths'].items()
+        for verb in ('post', 'put')
+        if verb in item
+        and '502' in item[verb]['responses']
+        and '504' not in item[verb]['responses']
+    ]
+
+    assert undocumented == []
