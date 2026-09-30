@@ -200,7 +200,7 @@ def xdc_run(files):
             from . import uploadFlapjack as fj_import
 
             if fj_url=="http://localhost:8000":
-                fj_url = "http://flapjack2-api-1:8000"
+                fj_url = "http://flapjack-api-1:8000"
 
             # SynBioHub client (token) + Flapjack client (access token only)
             shop = fj_import.get_sbh_client(token=sbh_token, url=sbh_url, prefix=sbh_prefix)
