@@ -166,10 +166,7 @@ def get_flapjack_client(
     flapjack = Flapjack(url_base=url)
     if access_token:
         flapjack.log_in_token(None, access_token, refresh_token)
-        if not refresh_token:
-            # the client calls refresh() before every get/create/delete; with no refresh
-            # token, keep the supplied (already-fresh) access token instead of failing
-            flapjack.refresh = lambda: None
+        flapjack.refresh = lambda: None
     else:
         raise ValueError("get_flapjack_client needs an access_token")
     return flapjack
@@ -186,8 +183,46 @@ def get_or_create(flapjack: Flapjack, model: str, match: dict, fields: dict) -> 
     existing = flapjack.get(model, **match)
     if len(existing):
         return int(existing.id.values[0])
-    created = flapjack.create(model, confirm=False, overwrite=False, **fields)
-    return int(created.id.values[0])
+    
+    try:
+        created = flapjack.create(model, confirm=False, overwrite=False, **fields)
+    except Exception as e:
+        print(f"ERROR: flapjack.create({model}) failed with exception: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+    
+    # Handle DataFrame or other response structures from create()
+    if hasattr(created, 'id'):
+        return int(created.id.values[0])
+    elif hasattr(created, 'columns'):
+        # created is a DataFrame
+        if 'id' in created.columns and len(created) > 0:
+            # created is a DataFrame with an 'id' column
+            return int(created['id'].values[0])
+        elif 'results' in created.columns:
+            # Paginated response: check if results has the created object
+            results = created['results'].values[0] if len(created) > 0 else []
+            if results and len(results) > 0:
+                result_item = results[0]
+                if isinstance(result_item, dict) and 'id' in result_item:
+                    return int(result_item['id'])
+            # Results is empty
+            # Last resort: try to fetch after creation
+            try:
+                fetched = flapjack.get(model, **match)
+                if len(fetched):
+                    return int(fetched.id.values[0])
+            except Exception as e:
+                pass
+    elif isinstance(created, dict) and 'id' in created:
+        # created is a dict with an 'id' key
+        return int(created['id'])
+    
+    # If we get here, we couldn't extract the ID
+    print(f"ERROR: Could not extract ID from create response")
+    print(f"ERROR: Response type = {type(created)}, value = {created}")
+    raise ValueError(f"Failed to create or retrieve {model} with fields {fields}")
 
 
 def get_and_delete(flapjack: Flapjack, model: str, match: dict) -> None:
@@ -655,12 +690,36 @@ async def _upload_wb(flapjack, wb_file, study_id, assay_name, machine, temperatu
         "study": study_id, "name": assay_name, "machine": machine,
         "description": description or assay_name, "temperature": temperature,
     }
+    ws_base = flapjack.ws_url_base.rstrip("/")
+    
+    # Extract hostname to determine if public (domain) or private (local/Docker)
+    hostname = ws_base
+    if "://" in hostname:
+        hostname = hostname.split("://")[1]
+    hostname = hostname.split("/")[0].split(":")[0]  # Remove path and port
+    is_public = "." in hostname  # Public domains have dots; Docker services don't
+    
+    # Convert HTTP(S)/WS(S) URLs to appropriate WebSocket scheme
+    if ws_base.startswith("https://"):
+        ws_base = "wss://" + ws_base[8:]
+    elif ws_base.startswith("http://"):
+        ws_base = "ws://" + ws_base[7:]
+    elif ws_base.startswith("wss://"):
+        pass  # Already secure
+    elif ws_base.startswith("ws://"):
+        # For ws://, upgrade to wss:// only if public domain
+        if is_public:
+            ws_base = "wss://" + ws_base[5:]
+    else:
+        # No scheme - use secure for public, insecure for local
+        scheme = "wss://" if is_public else "ws://"
+        ws_base = scheme + ws_base
+    
     uri = (
-        flapjack.ws_url_base.rstrip("/")
+        ws_base
         + "/ws/registry/upload?token="
         + flapjack.access_token
     )
-    print("Connecting to Flapjack WebSocket:", uri)
     assay_id = None
     async with websockets.connect(uri, max_size=int(1e10)) as socket:
         await socket.send(json.dumps({"type": "init_upload", "data": form}))
