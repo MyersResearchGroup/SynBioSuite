@@ -1,0 +1,7 @@
+# Test-only dependencies. Install alongside requirements.txt:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Deliberately just pytest: the `responses` library requires requests>=2.30,
+# which conflicts with the requests==2.25.1 that excel2sbol pins. SynBioHub HTTP
+# calls are faked with the FakeSynBioHub recorder in tests/conftest.py instead.
+pytest

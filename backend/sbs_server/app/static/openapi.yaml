@@ -1,0 +1,905 @@
+openapi: 3.0.3
+
+info:
+  title: SynBioSuite API
+  version: 1.0.0
+  description: >
+    Bulk, collection-level REST API for SynBioSuite. Each collection exposes
+    GET (get all contents), POST (add), PUT (replace all contents), and
+    DELETE (empty). Excel-backed collections also expose GET /template.
+
+
+    Per-item access (fetch or edit a single object by id) is delegated to the
+    SynBioHub API, which is the system of record for individual objects. The one
+    exception is PATCH /assays/{id}/attachments, which attaches a file to a
+    specific SBOL object and therefore must name that object.
+
+
+    Every request carries the study it applies to in the X-Study-Collection header
+    (the SynBioHub collection selected when opening SynBioSuite). That study scopes
+    all collections, which is why this API needs no per-item ids elsewhere. Because
+    the SynBioHub API host differs from the host in that collection URI
+    (api.synbiohub.org vs synbiohub.org), the API base is supplied separately in
+    X-SynBioHub-Url.
+
+
+    Uploads take a single `file` part. Collections that accept both formats detect
+    which from the file extension; Excel is converted to SBOL on ingest.
+
+
+    DELETE empties a collection by removing its members' membership. The
+    sub-collection object survives and the SBOL objects themselves are not
+    destroyed, so a subsequent GET returns an empty array rather than 404. A 404
+    means the study collection itself does not exist.
+
+
+    This version number is the API contract's; GET /status reports the running
+    backend's version, which is tracked separately.
+
+
+    TBD collections, present but not yet specified: /models (SBML), /archives
+    (OMEX), /analyses (iBioSim). They answer 501.
+
+
+    Trying it out: open these docs from a running server, click Authorize and
+    paste a SynBioHub token, then on any operation click Try it out, paste your
+    study's collection URI into X-Study-Collection, and Execute. Leave
+    X-SynBioHub-Url blank -- the server derives https://api.<study host>. PUT and
+    DELETE change real data; point them at a scratch study.
+
+servers:
+  - url: /api/v1
+    description: The server hosting these docs
+  - url: http://127.0.0.1:5003/api/v1
+    description: Local SBS server
+
+tags:
+  - name: System
+  - name: Resources
+  - name: Devices
+  - name: Designs
+  - name: Plasmids
+  - name: Strains
+  - name: Sample Designs
+  - name: Assays
+  - name: Models
+  - name: Archives
+  - name: Analyses
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /status:
+    get:
+      tags: [System]
+      operationId: getStatus
+      summary: Check the API is running
+      security: []
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Status' }
+
+  # resources (Excel and SBOL) -----------------------------------------------
+  /resources:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Resources]
+      operationId: listResources
+      summary: Get all the contents of the resources collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Resources]
+      operationId: createResources
+      summary: Add to the resources collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Resources]
+      operationId: replaceResources
+      summary: Replace the resources collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Resources]
+      operationId: clearResources
+      summary: Empty the resources collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  /resources/template:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Resources]
+      operationId: getResourcesTemplate
+      summary: Download the blank Excel template for resources
+      description: >
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
+        populated with URIs from this study so the sheet can cross-reference
+        objects that already exist. To retrieve existing contents, use GET
+        /resources instead.
+      responses:
+        '200': { $ref: '#/components/responses/TemplateFile' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # devices (SBOL) -----------------------------------------------------------
+  /devices:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Devices]
+      operationId: listDevices
+      summary: Get all the contents of the devices collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Devices]
+      operationId: createDevices
+      summary: Add to the devices collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Devices]
+      operationId: replaceDevices
+      summary: Replace the devices collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Devices]
+      operationId: clearDevices
+      summary: Empty the devices collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # designs (SBOL) -----------------------------------------------------------
+  /designs:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Designs]
+      operationId: listDesigns
+      summary: Get all the contents of the designs collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Designs]
+      operationId: createDesigns
+      summary: Add to the designs collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Designs]
+      operationId: replaceDesigns
+      summary: Replace the designs collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Designs]
+      operationId: clearDesigns
+      summary: Empty the designs collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # plasmids (SBOL) ----------------------------------------------------------
+  /plasmids:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Plasmids]
+      operationId: listPlasmids
+      summary: Get all the contents of the plasmids collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Plasmids]
+      operationId: createPlasmids
+      summary: Add to the plasmids collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Plasmids]
+      operationId: replacePlasmids
+      summary: Replace the plasmids collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Plasmids]
+      operationId: clearPlasmids
+      summary: Empty the plasmids collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # strains (Excel and SBOL) -------------------------------------------------
+  /strains:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Strains]
+      operationId: listStrains
+      summary: Get all the contents of the strains collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Strains]
+      operationId: createStrains
+      summary: Add to the strains collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Strains]
+      operationId: replaceStrains
+      summary: Replace the strains collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Strains]
+      operationId: clearStrains
+      summary: Empty the strains collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  /strains/template:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Strains]
+      operationId: getStrainsTemplate
+      summary: Download the blank Excel template for strains
+      description: >
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
+        populated with URIs from this study so the sheet can cross-reference
+        objects that already exist. To retrieve existing contents, use GET
+        /strains instead.
+      responses:
+        '200': { $ref: '#/components/responses/TemplateFile' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # sample-designs (Excel and SBOL) ------------------------------------------
+  /sample-designs:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Sample Designs]
+      operationId: listSampleDesigns
+      summary: Get all the contents of the sample designs collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Sample Designs]
+      operationId: createSampleDesigns
+      summary: Add to the sample designs collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Sample Designs]
+      operationId: replaceSampleDesigns
+      summary: Replace the sample designs collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Sample Designs]
+      operationId: clearSampleDesigns
+      summary: Empty the sample designs collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  /sample-designs/template:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Sample Designs]
+      operationId: getSampleDesignsTemplate
+      summary: Download the blank Excel template for sample designs
+      description: >
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
+        populated with URIs from this study so the sheet can cross-reference
+        objects that already exist. To retrieve existing contents, use GET
+        /sample-designs instead.
+      responses:
+        '200': { $ref: '#/components/responses/TemplateFile' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # assays (Excel and SBOL) --------------------------------------------------
+  /assays:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Assays]
+      operationId: listAssays
+      summary: Get all the contents of the assays collection
+      description: >
+        Returns an empty array when the study has no such sub-collection yet,
+        which is the normal state of a freshly created study.
+      responses:
+        '200': { $ref: '#/components/responses/CollectionContents' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    post:
+      tags: [Assays]
+      operationId: createAssays
+      summary: Add to the assays collection
+      description: >
+        Objects whose URIs already exist are updated in place; everything else
+        is added. Nothing is removed.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    put:
+      tags: [Assays]
+      operationId: replaceAssays
+      summary: Replace the assays collection contents
+      description: >
+        After this call the collection contains exactly what was uploaded.
+      requestBody: { $ref: '#/components/requestBodies/FileUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+    delete:
+      tags: [Assays]
+      operationId: clearAssays
+      summary: Empty the assays collection
+      description: >
+        Removes every member from the collection. The sub-collection object
+        itself survives, and the SBOL objects are not destroyed -- only their
+        membership is removed. A subsequent GET returns an empty array.
+      responses:
+        '204': { description: Collection emptied. The sub-collection itself remains. }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  /assays/template:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Assays]
+      operationId: getAssaysTemplate
+      summary: Download the blank Excel template for assays
+      description: >
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
+        populated with URIs from this study so the sheet can cross-reference
+        objects that already exist. To retrieve existing contents, use GET
+        /assays instead.
+      responses:
+        '200': { $ref: '#/components/responses/TemplateFile' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  /assays/{id}/attachments:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+      - name: id
+        in: path
+        required: true
+        description: >
+          displayId of the SBOL object to attach to. Its full URI is also accepted.
+        schema: { type: string }
+    patch:
+      tags: [Assays]
+      operationId: attachToAssay
+      summary: Add a new attachment to the pointed SBOL object
+      description: >
+        The one per-item endpoint in this API -- attaching a file requires naming the
+        specific SBOL object. Maps to SynBioHub's POST <URI>/attach. The attachment is
+        added; an existing attachment of the same name is not removed.
+      requestBody: { $ref: '#/components/requestBodies/AttachmentUpload' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+  # models (SBML, not yet specified) -----------------------------------------
+  /models:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Models]
+      operationId: listModels
+      summary: "[TBD] Get all the contents of the models collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    post:
+      tags: [Models]
+      operationId: createModels
+      summary: "[TBD] Add to the models collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    put:
+      tags: [Models]
+      operationId: replaceModels
+      summary: "[TBD] Replace the models collection contents"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    delete:
+      tags: [Models]
+      operationId: clearModels
+      summary: "[TBD] Empty the models collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+  # archives (OMEX, not yet specified) ---------------------------------------
+  /archives:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Archives]
+      operationId: listArchives
+      summary: "[TBD] Get all the contents of the archives collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    post:
+      tags: [Archives]
+      operationId: createArchives
+      summary: "[TBD] Add to the archives collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    put:
+      tags: [Archives]
+      operationId: replaceArchives
+      summary: "[TBD] Replace the archives collection contents"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    delete:
+      tags: [Archives]
+      operationId: clearArchives
+      summary: "[TBD] Empty the archives collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+  # analyses (iBioSim, not yet specified) ------------------------------------
+  /analyses:
+    parameters:
+      - $ref: '#/components/parameters/StudyCollection'
+      - $ref: '#/components/parameters/SynBioHubUrl'
+    get:
+      tags: [Analyses]
+      operationId: listAnalyses
+      summary: "[TBD] Get all the contents of the analyses collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    post:
+      tags: [Analyses]
+      operationId: createAnalyses
+      summary: "[TBD] Add to the analyses collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    put:
+      tags: [Analyses]
+      operationId: replaceAnalyses
+      summary: "[TBD] Replace the analyses collection contents"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+    delete:
+      tags: [Analyses]
+      operationId: clearAnalyses
+      summary: "[TBD] Empty the analyses collection"
+      responses:
+        '501': { $ref: '#/components/responses/NotImplemented' }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        SynBioHub access token. The server forwards it to SynBioHub as the
+        X-authorization header that SynBioHub itself expects.
+
+  parameters:
+    StudyCollection:
+      name: X-Study-Collection
+      in: header
+      required: true
+      description: >
+        The SynBioHub collection URI of the study the request applies to -- the study
+        the user selects when opening SynBioSuite. This scopes every collection to one
+        study, which is why no per-item ids are needed elsewhere in this API. Must be
+        of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+      schema:
+        type: string
+        format: uri
+        example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+    SynBioHubUrl:
+      name: X-SynBioHub-Url
+      in: header
+      required: false
+      description: >
+        Base URL of the SynBioHub API to talk to. This is a different host from the
+        one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot
+        be derived from it reliably. Falls back to the server's SBS_SBH_URL setting,
+        then to https://api.<study host>.
+      schema:
+        type: string
+        format: uri
+        example: https://api.synbiohub.org
+
+  schemas:
+    Status:
+      type: object
+      properties:
+        status: { type: string, example: working }
+        version: { type: string, example: 1.9.0, description: The running backend's version. }
+    Item:
+      type: object
+      description: One object in a collection. Fields are collection-dependent.
+      additionalProperties: true
+      properties:
+        uri: { type: string, format: uri }
+        displayId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        type:
+          type: array
+          description: SBOL types. Multi-valued, so always an array.
+          items: { type: string }
+        role:
+          type: array
+          description: SBOL roles. Multi-valued, so always an array.
+          items: { type: string }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    MutationResult:
+      type: object
+      properties:
+        status: { type: string, example: success }
+        message: { type: string }
+
+  requestBodies:
+    FileUpload:
+      required: true
+      description: >
+        A file -- an Excel template (.xlsx/.xlsm) or SBOL XML (.xml/.rdf/.sbol),
+        depending on what the collection accepts -- plus an optional JSON params blob
+        for processing options. Excel is converted to SBOL on the way in. Which format
+        was sent is determined from the file extension. The target study comes from the
+        X-Study-Collection header, not from params.
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [file]
+            properties:
+              file:
+                type: string
+                format: binary
+              params:
+                type: string
+                description: Optional JSON string of processing parameters.
+    AttachmentUpload:
+      required: true
+      description: A file to attach to one SBOL object.
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [file]
+            properties:
+              file:
+                type: string
+                format: binary
+                description: The attachment to add.
+
+  responses:
+    CollectionContents:
+      description: >
+        All contents of the collection. An empty array means the collection exists
+        but has no members -- including the case where the study has no such
+        sub-collection yet.
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/Item' }
+        application/rdf+xml:
+          schema: { type: string, format: binary }
+    MutationAccepted:
+      description: The upload, replace, or attach succeeded.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/MutationResult' }
+    TemplateFile:
+      description: >
+        A blank macro-enabled Excel template (.xlsm). Data rows are empty; SBH_*
+        lookup sheets are populated from the study.
+      content:
+        application/vnd.ms-excel.sheet.macroEnabled.12:
+          schema: { type: string, format: binary }
+    BadRequest:
+      description: >
+        Invalid request -- a malformed X-Study-Collection header, a missing file part,
+        an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid SynBioHub credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Not permitted (e.g. you do not own this collection).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: >
+        The study collection named in X-Study-Collection does not exist, or -- for
+        the per-item endpoint -- no such object exists in this collection. An empty
+        collection is not a 404; it is a 200 with an empty array.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    UnsupportedMediaType:
+      description: >
+        The file's format is not one this collection accepts (e.g. an Excel workbook
+        posted to an SBOL-only collection).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+    PayloadTooLarge:
+      description: >
+        The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH,
+        64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotImplemented:
+      description: This collection is not specified yet.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadGateway:
+      description: SynBioHub rejected the request or could not be reached.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
