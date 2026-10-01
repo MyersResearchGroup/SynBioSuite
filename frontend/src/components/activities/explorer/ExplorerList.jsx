@@ -19,6 +19,10 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     // grab file handles
     const files = useFiles()
 
+    const filteredFiles = files.filter(file =>
+        objectTypesToList.includes(file.objectType)
+    )
+
     const { workflows } = useUnifiedModal()
 
     const [importedFile, setImportedFile] = useState(null)
@@ -88,19 +92,10 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                     }],
                 }
             }
-        } catch {
-            // No study available or no reusable collection; fall back to the browse workflow.
+        } catch (err) {
+            console.error("Problem accessing study:", err)
+            return null
         }
-
-        return new Promise((resolve) => {
-            workflows.browseCollections(resolve, {
-                multiSelect: false,
-                rootOnly: true,
-                selectedRepo,
-                expectedEmail,
-                defaultCollectionUri: selectedCollectionUri,
-            })
-        })
     }
 
     // handle creation
@@ -109,8 +104,8 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const openPanel = useOpenPanel()
 
     async function createAssayWorkflowFile(fileName, modalResult) {
-        const directory = await workDir.getDirectoryHandle(ObjectTypes.Assays.subdirectory, { create: true })
-        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Assays.extension, ObjectTypes.Assays.id, dispatch)
+        const directory = await workDir.getDirectoryHandle(ObjectTypes.Metadata.subdirectory, { create: true })
+        const fileHandle = await createFileInDirectory(directory, fileName + '.xdc', ObjectTypes.Metadata.id, dispatch)
 
         const selectedCollection = modalResult.collections?.[0]
 
@@ -138,7 +133,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         let modalResult = null;
-        if (objectType.id === ObjectTypes.Assays.id) {
+        if (objectType.id === ObjectTypes.Metadata.id) {
             modalResult = await runImportCollectionWorkflow()
             if (!modalResult?.completed) {
                 return
@@ -189,7 +184,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
-                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                            const filesOfType = filteredFiles.filter(file => file.objectType == objectType.id)
                                 .sort((a, b) => a.name?.localeCompare(b.name))
                             return (    
                                 <Accordion.Item value={objectType.id} key={i}>
@@ -214,26 +209,28 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                                 url={objectType.iframeUrl}>
                                             </OpenSeqImproveButton>
                                         }                              
-                                        {objectType.downloadable &&
+                                        {(objectType.downloadable && (!objectType.limitOne || filesOfType.length === 0)) &&
                                             <DownloadMetadata objectType={objectType}>
                                             </DownloadMetadata>
                                         }
-                                        {objectType.uploadable &&
-                                            <ImportFile
-                                            onSelect={finalImport}
-                                            text={`Upload ${objectType.title}`}
-                                            importable={false}
-                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
-                                            </ImportFile>
-                                        }
-                                        {objectType.importable &&
+                                        {(objectType.importable && (!objectType.limitOne || filesOfType.length === 0)) &&
                                             <ImportFile
                                             onSelect={finalImport}
                                             text={`Import ${objectType.title}`}
                                             importable={true}
+                                            uploadNow={false}
                                             {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
                                             </ImportFile>
-                                        }       
+                                        }    
+                                        {(objectType.uploadable && (!objectType.limitOne || filesOfType.length === 0)) &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Upload ${objectType.title}`}
+                                            importable={false}
+                                            uploadNow={true}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }   
                                         {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository ?
                                         <Registries 

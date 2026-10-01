@@ -2,7 +2,9 @@ import { createEntityAdapter, createSlice } from "@reduxjs/toolkit"
 
 
 const workDirAdapter = createEntityAdapter()
-const initialState = workDirAdapter.getInitialState()
+const initialState = workDirAdapter.getInitialState({
+    uploadRevision: 0
+})
 
 const workDirSlice = createSlice({
     name: 'workingDirectory',
@@ -14,6 +16,9 @@ const workDirSlice = createSlice({
         removeFile: workDirAdapter.removeOne,
         setWorkingDirectory: (state, action) => {
             state.directoryHandle = action.payload
+        },
+        uploadChanged: state => {
+            state.uploadRevision += 1
         },
     }
 })

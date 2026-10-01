@@ -29,9 +29,9 @@ export default function MicrosoftExplorerActivityView({objectTypesToList }) {
             </Tooltip>
         </> :
         <>
-            <Text align='center' size='xs' mt={20}>There's no folder opened.</Text>
+            <Text align='center' size='xs' mt={20}>There's no study opened.</Text>
             <Center mt={20}>
-                <MicrosoftFolderPicker buttonName='Open Folder on OneDrive' />
+                <MicrosoftFolderPicker buttonName='Open Study on OneDrive' />
             </Center>
         </>
 }

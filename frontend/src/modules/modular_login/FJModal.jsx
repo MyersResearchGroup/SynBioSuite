@@ -28,6 +28,8 @@ function FJModal({ opened, onClose, repoName }) {
         setRepoSelection("");
     }, [opened]);
 
+    const selectedInstance = (dataFJ || []).find((element) => element.registryURL === selectedFJ) || null;
+
     return (
         <Modal opened={opened} onClose={onClose} title={`Choose Repository`} size="lg">
             {repoSelection === "" ? (
@@ -38,20 +40,20 @@ function FJModal({ opened, onClose, repoName }) {
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
                                 radius="md"
-                                style={{ opacity: selectedFJ ? 1 : 0.5 }}
+                                style={{ opacity: selectedInstance ? 1 : 0.5 }}
                             />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
-                                    Repository: {selectedFJ ? findInstance(selectedFJ, "FJ").registryURL : "Not Logged In"}
+                                    Repository: {selectedInstance ? selectedInstance.registryURL : "Not Logged In"}
                                 </Text>
-    
+
                                 <Text fz="lg" fw={500}>
-                                    Username: {selectedFJ ? findInstance(selectedFJ, "FJ").username : "Not Logged In"}
+                                    Username: {selectedInstance ? selectedInstance.username : "Not Logged In"}
                                 </Text>    
                                 <Text mt={3} fz="xs" c="dimmed">
-                                    Email: {selectedFJ ? findInstance(selectedFJ, "FJ").email : "Not Logged In"}
+                                    Email: {selectedInstance ? selectedInstance.email : "Not Logged In"}
                                 </Text>
-                                {selectedFJ ? <>
+                                {selectedInstance ? <>
                                     <Button mt="md" mr="sm" onClick={() => {handleRemoveInstance("Flapjack"); setRepoSelection("Flapjack")}}>
                                         Change Flapjack Repository
                                     </Button>

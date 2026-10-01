@@ -53,10 +53,12 @@ export function useWorkingDirectory() {
 }
 
 
-export async function createFileInDirectory(directory, fileName, objectType, dispatch, subDirectoryName = null) {
+export async function createFileInDirectory(directory, fileName, objectType, dispatch, subDirectoryName = null, addToStore = true) {
     const fileHandle = await directory.getFileHandle(fileName, { create: true })
     await addFileMetadata(fileHandle, subDirectoryName, { objectType })
-    dispatch(actions.addFile(fileHandle))
+    if (addToStore) {
+        dispatch(actions.addFile(fileHandle))
+    }
     return fileHandle
 }
 

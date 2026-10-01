@@ -4,6 +4,8 @@ import { FaExclamationCircle } from 'react-icons/fa';
 import { useLocalStorage } from '@mantine/hooks';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { CheckLogin, clearInvalidCredentials } from '../../API';
+import { showNotification } from '@mantine/notifications';
 import { MODAL_TYPES } from './unifiedModal';
 
 export default function RepositorySelectorModal({
@@ -41,7 +43,7 @@ export default function RepositorySelectorModal({
         }
     }, [navigateTo, setDataPrimarySBH]);
 
-    const handleNext = useCallback(() => {
+    const handleNext = useCallback(async () => {
         if (!selectedRepo || selectedRepo.startsWith('Select')) {
             setError('Please select a repository');
             return;
@@ -49,8 +51,77 @@ export default function RepositorySelectorModal({
 
         setDataPrimarySBH(selectedRepo);
         setModalData?.(prev => ({ ...prev, selectedRepo }));
-        navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK, { selectedRepo });
-    }, [selectedRepo, navigateTo, setModalData, setDataPrimarySBH]);
+
+        // Perform a silent credential check before proceeding to Flapjack Options.
+        const repoInfo = (dataSBH || []).find(r => r.registryURL === selectedRepo);
+
+        if (!repoInfo || !repoInfo.authtoken) {
+            // Prompt login if no token present
+            setModalData?.(prev => ({ ...prev, selectedRepo, skipRepositorySelection: true }));
+            navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                selectedRepo,
+                returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+            });
+            return;
+        }
+
+        try {
+            const loginResult = await CheckLogin(repoInfo.registryAPI || selectedRepo, repoInfo.authtoken);
+            if (!loginResult.valid) {
+                clearInvalidCredentials(selectedRepo);
+                setModalData?.(prev => ({ ...prev, selectedRepo, skipRepositorySelection: true }));
+                showNotification({
+                    title: 'Invalid Credentials',
+                    message: 'Stored credentials are invalid or expired. Please log in.',
+                    color: 'orange',
+                });
+                navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                    selectedRepo,
+                    returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                });
+                return;
+            }
+
+            // Valid token — proceed to Flapjack Options with validated info
+            const profileEmail = loginResult.profile?.email || '';
+            setModalData?.(prev => ({
+                ...prev,
+                selectedRepo,
+                userInfo: {
+                    name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                    username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                    email: profileEmail,
+                    affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                },
+                authToken: repoInfo.authtoken,
+                validated: true,
+            }));
+
+            const moved = navigateTo(MODAL_TYPES.FLAPJACK_OPTIONS, { selectedRepo });
+            if (!moved) {
+                // allowedModals may not include FLAPJACK_OPTIONS for this workflow; finish instead
+                completeWorkflow({ selectedRepo, authToken: repoInfo.authtoken, validated: true, userInfo: {
+                    name: loginResult.profile?.name || repoInfo.name || 'Unknown',
+                    username: loginResult.profile?.username || repoInfo.username || 'Unknown',
+                    email: profileEmail,
+                    affiliation: loginResult.profile?.affiliation || repoInfo.affiliation || 'N/A',
+                }});
+            }
+        } catch (err) {
+            console.error('Credential check error:', err);
+            clearInvalidCredentials(selectedRepo);
+            setModalData?.(prev => ({ ...prev, selectedRepo, skipRepositorySelection: true }));
+            showNotification({
+                title: 'Credential Check Failed',
+                message: err.message || 'Failed to verify credentials. Please log in.',
+                color: 'red',
+            });
+            navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                selectedRepo,
+                returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+            });
+        }
+    }, [selectedRepo, navigateTo, setModalData, setDataPrimarySBH, dataSBH]);
 
     const handleRemoveInstance = useCallback(() => {
         if (!selectedRepo || selectedRepo === 'add-repository' || selectedRepo.startsWith('Select')) return;
@@ -119,7 +190,7 @@ export default function RepositorySelectorModal({
                         onClick={handleNext}
                         disabled={!selectedRepo || selectedRepo.startsWith('Select')}
                     >
-                        Next: Verify Credentials
+                        Next: Flapjack Options
                     </Button>
                 </Group>
             </Group>
