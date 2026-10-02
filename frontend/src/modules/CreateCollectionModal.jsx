@@ -6,13 +6,22 @@ import { showNotification } from '@mantine/notifications';
 import { createStudySBH, createStudyFJ } from '../API';
 import { useState } from 'react';
 
-function CreateCollectionModal({ opened, onClose, studyName, studyDescription, goBack }) {    
+function CreateCollectionModal({
+    opened,
+    onClose,
+    studyName,
+    studyDescription,
+    goBack,
+    createFlapjackStudy = false,
+    modalData = {},
+}) {
     const [instanceData, setInstanceData] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const [instanceDataFJ, setInstanceDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
     const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     const [overwrite, setOverwrite] = useState(false);
     const studyId = makeIdentifier(studyName || "");
+    const shouldCreateFlapjackStudy = Boolean(modalData?.createFlapjackStudy ?? createFlapjackStudy);
 
     function makeIdentifier(text) {
         let id = text.trim()
@@ -60,12 +69,12 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                     const registryURL = instance?.registryURL || url;
                     const registryPrefix = instance?.registryPrefix || url;
 
-                    const urlFJ = selectedFJ && selectedFJ.trim() !== "" ? selectedFJ : null;
-                    const instanceFJ  = instanceDataFJ.find((inst) => inst.registryURL === urlFJ);
-                    const authFJ = instanceFJ ? instanceFJ.authtoken : null;
-                    const registryAPIFJ = instanceFJ?.registryAPI || urlFJ;
-                    const registryURLFJ = instanceFJ?.registryURL || urlFJ;
-                    const registryPrefixFJ = instanceFJ?.registryPrefix || urlFJ;
+                    const urlFJ = shouldCreateFlapjackStudy && selectedFJ && selectedFJ.trim() !== "" ? selectedFJ : null;
+                    const instanceFJ = shouldCreateFlapjackStudy ? instanceDataFJ.find((inst) => inst.registryURL === urlFJ) : null;
+                    const authFJ = shouldCreateFlapjackStudy ? (instanceFJ ? instanceFJ.authtoken : null) : null;
+                    const registryAPIFJ = shouldCreateFlapjackStudy ? (instanceFJ?.registryAPI || urlFJ) : null;
+                    const registryURLFJ = shouldCreateFlapjackStudy ? (instanceFJ?.registryURL || urlFJ) : null;
+                    const registryPrefixFJ = shouldCreateFlapjackStudy ? (instanceFJ?.registryPrefix || urlFJ) : null;
 
                     if (!url) {
                         showNotification({
@@ -81,7 +90,7 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                         await createStudySBH(id, version, name, description, citations, auth, registryAPI, overwrite);
 
                         let FJid = null;
-                        if (urlFJ) {
+                        if (shouldCreateFlapjackStudy && urlFJ) {
                             FJid = await createStudyFJ(id, version, name, description, citations, authFJ, registryAPIFJ, overwrite);
                         }
 
@@ -104,10 +113,10 @@ function CreateCollectionModal({ opened, onClose, studyName, studyDescription, g
                             registryURL,
                             registryAPI,
                             registryPrefix,
-                            FJid,
-                            registryURLFJ,
-                            registryAPIFJ,
-                            registryPrefixFJ,
+                            FJid: shouldCreateFlapjackStudy ? FJid : null,
+                            registryURLFJ: shouldCreateFlapjackStudy ? registryURLFJ : null,
+                            registryAPIFJ: shouldCreateFlapjackStudy ? registryAPIFJ : null,
+                            registryPrefixFJ: shouldCreateFlapjackStudy ? registryPrefixFJ : null,
                         };
 
                         onClose(payload);

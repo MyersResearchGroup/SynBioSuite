@@ -5,7 +5,7 @@ import { closeModal, closeSBH, closeFJ, closeCreateCollection, closeSBHLogin, cl
 import FJModal from '../modules/modular_login/FJModal';
 import SBHModal from '../modules/modular_login/SBHModal';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
-import SBHOnly from '../modules/modular_login/SBHOnly';
+import SBHLogin from '../modules/modular_login/SBHLogin';
 import MicrosoftPanels from '../components/microsoft/MicrosoftPanels';
 import MicrosoftModal from '../components/microsoft/MicrosoftModal';
 
@@ -18,7 +18,7 @@ export default function CloudHome() {
     
     const collectionModalOpened = useSelector((state) => state.modal.addCollections)
     
-    const SBHOnlyOpened = useSelector((state) => state.modal.sbhLoginOpen)
+    const sbhLoginOpened = useSelector((state) => state.modal.sbhLoginOpen)
 
     const libraryName = useSelector((state) => state.modal.libraryName)
     const libraryDescription = useSelector((state) => state.modal.libraryDescription)
@@ -53,8 +53,8 @@ export default function CloudHome() {
                 libraryDescription={libraryDescription}
                 onClose={() => dispatch(closeCreateCollection())}
             />
-            <SBHOnly
-                opened={SBHOnlyOpened}
+            <SBHLogin
+                opened={sbhLoginOpened}
                 onClose={() => dispatch(closeSBHLogin())}
             />
         </>

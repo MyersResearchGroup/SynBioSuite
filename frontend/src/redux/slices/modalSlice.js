@@ -5,7 +5,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
     bothOpen: false,
     fjOpen: false,
-    sbHOpen: false,
+    sbhOpen: false,
     directoryOpen: false,
     addSBHrepository: false,
     addFJrepository: false,
