@@ -111,10 +111,17 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
         setIFrameLoaded(true)
         setSbolContentLoaded(!sbolContent)
 
+        // fresh "Annotate Plasmid / Device" panels have no file handle, so fall back to the panel's subdirectory
+        const subdir = store.getState().panels.entities[panelId]?.subdirectory
+        const panelType = fileTypeObjectId
+            ?? (subdir === ObjectTypes.Plasmids.subdirectory ? ObjectTypes.Plasmids.id
+                : subdir === ObjectTypes.Devices.subdirectory ? ObjectTypes.Devices.id
+                : null)
+
         iframeRef.current.contentWindow.postMessage(
             sbolContent
-                ? { sbol: sbolContent, panelType: fileTypeObjectId }
-                : { panelType: fileTypeObjectId },
+                ? { sbol: sbolContent, panelType }
+                : { panelType },
             targetOrigin,
         )
     }
