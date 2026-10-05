@@ -7,6 +7,7 @@ guard against the spec and the routes drifting apart.
 import json
 import os
 import re
+from urllib.parse import urlsplit
 
 import pytest
 import yaml
@@ -17,6 +18,13 @@ SPEC_PATH = os.path.join(
 )
 DOCS_PAGES = ['/api/docs/', '/api/v1/docs/']
 VERBS = ('get', 'post', 'put', 'delete', 'patch')
+FRONTEND_HOST = 'synbiosuite.org'
+
+
+def is_frontend(url):
+    """True for the frontend host or a subdomain of it; a relative URL has no host."""
+    host = urlsplit(url).hostname or ''
+    return host == FRONTEND_HOST or host.endswith('.' + FRONTEND_HOST)
 
 
 @pytest.fixture(scope='module')
@@ -82,7 +90,7 @@ def test_first_server_is_relative(spec):
 def test_no_server_points_at_the_frontend(spec):
     """synbiosuite.org is the frontend app, which answers every path with 200
     and an HTML page -- so requests sent there appear to succeed."""
-    assert not [s for s in spec['servers'] if 'synbiosuite.org' in s['url']]
+    assert not [s for s in spec['servers'] if is_frontend(s['url'])]
 
 
 def test_spec_and_routes_agree(app, spec):

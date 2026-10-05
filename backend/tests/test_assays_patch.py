@@ -25,12 +25,13 @@ def synbiohub(fake_sbh):
 def patch(client, object_id, tmp_path, name='reading.csv'):
     attachment = tmp_path / name
     attachment.write_text('well,value\nA1,0.5\n')
-    return client.patch(
-        f'/api/v1/assays/{object_id}/attachments',
-        headers=auth_headers(),
-        data={'file': (open(attachment, 'rb'), name)},
-        content_type='multipart/form-data',
-    )
+    with open(attachment, 'rb') as handle:
+        return client.patch(
+            f'/api/v1/assays/{object_id}/attachments',
+            headers=auth_headers(),
+            data={'file': (handle, name)},
+            content_type='multipart/form-data',
+        )
 
 
 def test_attaches_to_the_resolved_object(client, synbiohub, tmp_path):

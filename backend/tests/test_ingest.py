@@ -1,4 +1,5 @@
 """ingest.load_document: format detection, accepts enforcement, workbook guards."""
+import io
 import json
 import os
 import socket
@@ -47,8 +48,10 @@ def make_workbook(path, sbol_version=2, sheets=('Init', 'column_definitions')):
 
 
 def upload(path, filename=None):
+    with open(path, 'rb') as handle:
+        body = handle.read()
     return FileStorage(
-        stream=open(path, 'rb'),
+        stream=io.BytesIO(body),
         filename=filename or os.path.basename(path),
     )
 

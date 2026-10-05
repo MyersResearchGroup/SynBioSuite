@@ -117,12 +117,13 @@ def test_post_then_delete_round_trip(app, client, live, sbol_file):
         ctx = StudyContext.from_request()
     collection_uri = ctx.subcollection_uri(spec.import_type)
 
-    created = client.post(
-        '/api/v1/devices',
-        headers=headers,
-        data={'file': (open(sbol_file, 'rb'), 'part.xml')},
-        content_type='multipart/form-data',
-    )
+    with open(sbol_file, 'rb') as handle:
+        created = client.post(
+            '/api/v1/devices',
+            headers=headers,
+            data={'file': (handle, 'part.xml')},
+            content_type='multipart/form-data',
+        )
     assert created.status_code == 201, created.get_json()
 
     after_post = sbh.members(ctx, collection_uri)
@@ -191,12 +192,13 @@ def test_put_replaces_collection_contents(app, client, live, tmp_path):
         return sorted(m['displayId'] for m in sbh.members(ctx, collection_uri))
 
     def upload(name, method):
-        return method(
-            '/api/v1/devices',
-            headers=headers,
-            data={'file': (open(_sbol_with(tmp_path, name), 'rb'), 'parts.xml')},
-            content_type='multipart/form-data',
-        )
+        with open(_sbol_with(tmp_path, name), 'rb') as handle:
+            return method(
+                '/api/v1/devices',
+                headers=headers,
+                data={'file': (handle, 'parts.xml')},
+                content_type='multipart/form-data',
+            )
 
     client.delete('/api/v1/devices', headers=headers)
     assert display_ids() == []
@@ -367,13 +369,13 @@ def test_get_item_shape_against_real_synbiohub_data(client, live, tmp_path):
     headers = live.scratch_headers
     client.delete('/api/v1/devices', headers=headers)
 
-    created = client.post(
-        '/api/v1/devices',
-        headers=headers,
-        data={'file': (open(_sbol_with(tmp_path, 'shape_x', 'shape_y'), 'rb'),
-                       'parts.xml')},
-        content_type='multipart/form-data',
-    )
+    with open(_sbol_with(tmp_path, 'shape_x', 'shape_y'), 'rb') as handle:
+        created = client.post(
+            '/api/v1/devices',
+            headers=headers,
+            data={'file': (handle, 'parts.xml')},
+            content_type='multipart/form-data',
+        )
     assert created.status_code == 201, created.get_json()
 
     try:
@@ -426,9 +428,10 @@ def test_every_write_to_a_missing_study_is_404(client, live, sbol_file):
     headers = {**live.headers, 'X-Study-Collection': missing}
 
     def upload(method):
-        return method('/api/v1/devices', headers=headers,
-                      data={'file': (open(sbol_file, 'rb'), 'part.xml')},
-                      content_type='multipart/form-data')
+        with open(sbol_file, 'rb') as handle:
+            return method('/api/v1/devices', headers=headers,
+                          data={'file': (handle, 'part.xml')},
+                          content_type='multipart/form-data')
 
     responses = {
         'DELETE': client.delete('/api/v1/devices', headers=headers),

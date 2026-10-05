@@ -25,12 +25,13 @@ def synbiohub(fake_sbh):
 
 
 def post(client, path, sbol_file, filename='part.xml'):
-    return client.post(
-        f'/api/v1/{path}',
-        headers=auth_headers(),
-        data={'file': (open(sbol_file, 'rb'), filename)},
-        content_type='multipart/form-data',
-    )
+    with open(sbol_file, 'rb') as handle:
+        return client.post(
+            f'/api/v1/{path}',
+            headers=auth_headers(),
+            data={'file': (handle, filename)},
+            content_type='multipart/form-data',
+        )
 
 
 def submit_call(sbh):
@@ -171,12 +172,13 @@ def test_a_submit_that_cannot_connect_is_a_504_that_sent_nothing(
 
 
 def test_post_still_requires_credentials(client, sbol_file):
-    response = client.post(
-        '/api/v1/resources',
-        headers={'X-Study-Collection': STUDY_URI},
-        data={'file': (open(sbol_file, 'rb'), 'part.xml')},
-        content_type='multipart/form-data',
-    )
+    with open(sbol_file, 'rb') as handle:
+        response = client.post(
+            '/api/v1/resources',
+            headers={'X-Study-Collection': STUDY_URI},
+            data={'file': (handle, 'part.xml')},
+            content_type='multipart/form-data',
+        )
 
     assert response.status_code == 401
 

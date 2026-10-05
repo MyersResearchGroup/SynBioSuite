@@ -10,6 +10,9 @@ on:
     paths: ['backend/**']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   pytest:
     runs-on: ubuntu-latest
