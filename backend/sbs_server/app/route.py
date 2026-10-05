@@ -13,6 +13,7 @@ import sbol2.model
 from .main import app
 from .version import __version__
 from .downloadTemplates import sbh_download_template
+from .sbh_http import normalise_base_url
 from .synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions, find_root_component_definitions
 
@@ -93,7 +94,10 @@ def xdc_run(files):
         if param not in params_from_request:
             return jsonify({"error": f"Parameter {param} not found in request"}), 400
 
-    sbh_url = params_from_request.get('sbh_url')
+    try:
+        sbh_url = normalise_base_url(params_from_request.get('sbh_url'))
+    except ValueError as e:
+        return jsonify({"error": f"Invalid sbh_url: {e}"}), 400
     sbh_prefix = params_from_request.get('sbh_prefix')
     sbh_token = params_from_request.get('sbh_token')
     sbh_overwrite_num = 3 if params_from_request.get('sbh_overwrite', 1) else 2
@@ -276,9 +280,6 @@ def sbol_upload(files):
     if params_file.filename == '':
         return jsonify({"error": "No selected Params file"}), 400
     params_from_request = json.loads(params_file.read())
-    sbh_url = params_from_request.get('sbh_url')
-    if sbh_url and not (sbh_url.startswith('http://') or sbh_url.startswith('https://')):
-        params_from_request['sbh_url'] = 'https://' + sbh_url
 
     required_params = ['sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite']
 
@@ -287,7 +288,11 @@ def sbol_upload(files):
             return jsonify({"error": f"Parameter {param} not found in request"}), 400
     if (params_from_request['sbh_token'] is None):
         return jsonify({"error": "No SBH credentials provided"}), 400
-    sbh_url = params_from_request['sbh_url']
+    try:
+        # Also adds https:// when the scheme is missing, as this route always has.
+        sbh_url = normalise_base_url(params_from_request['sbh_url'])
+    except ValueError as e:
+        return jsonify({"error": f"Invalid sbh_url: {e}"}), 400
     sbh_prefix = params_from_request.get('sbh_prefix')
     sbh_collection_url = params_from_request['collection_url'] 
     sbh_overwrite_num = 3 if params_from_request.get('sbh_overwrite', 1) else 2

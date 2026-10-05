@@ -27,6 +27,12 @@ package-lock.json
 # Environments
 *.env*
 
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+uploads/
+
 
 # TERRAFORM IGNORES
 # Local .terraform directories
