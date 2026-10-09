@@ -60,14 +60,15 @@ export default function DownloadMetadata({ objectType }) {
         const selectedRepo = jsonData.registryURL;
         const authToken = modalResult.authToken
         const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
-                      
+        const registryPrefix = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryPrefix || selectedRepo
+                        
         if (!collectionUrl || !selectedRepo || !authToken) {
             showErrorNotification("Download aborted", "Missing repository, credentials, or collection selection.")
             return
         }
 
         try {
-            const response = await download_template(registryAPI,authToken,collectionUrl,objectType?.id);
+            const response = await download_template(registryAPI,registryPrefix,authToken,collectionUrl,objectType?.id);
             const blob = new Blob([response.data], {
                 type: "application/vnd.ms-excel.sheet.macroEnabled.12"
             });

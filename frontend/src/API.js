@@ -13,6 +13,7 @@ function capitalizeFirst(str) {
 
 export async function download_template(
     sbh_url,
+    sbh_prefix,
     sbh_token,
     collectionUrl,
     templateType) {
@@ -21,6 +22,7 @@ export async function download_template(
 
         const paramsObj = {
           sbh_url: sbh_url,
+          sbh_prefix: sbh_prefix,
           sbh_token: sbh_token,
           collection_url: collectionUrl,
           template_type: templateType

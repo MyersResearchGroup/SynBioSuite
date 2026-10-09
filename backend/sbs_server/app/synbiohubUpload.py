@@ -49,7 +49,7 @@ def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection
     subCollection = sbol2.Collection(importType)
     parts = sbh_collection_url.split("/")
     subCollection_url = "/".join(parts[:6]) + "/" + importType + "/1"
-    search_result = sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, subCollection_url)
+    search_result = sbh_get_subCollection_uris(sbh_url, sbh_prefix, sbh_token, usergraph, subCollection_url)
     for binding in search_result["results"]["bindings"]:
         uri = binding["s"]["value"]
         subCollection.members = subCollection.members + [ uri ]
