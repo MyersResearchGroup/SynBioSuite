@@ -409,15 +409,15 @@ def test_a_failed_login_is_400(client, legacy_sbh, sbol_file):
     assert requested(legacy_sbh) == [f'GET {SBH_URL}/profile']
 
 
-def test_an_unusable_sbml_file_name_is_a_plain_text_400(client, legacy_sbh, sbol_file):
-    """Wart, pinned: the one error that is not JSON, and it comes after the login."""
+def test_an_unusable_sbml_file_name_is_400(client, legacy_sbh, sbol_file):
+    """Checked after the login, like the SBOL file's own name."""
     synbiohub_answers(legacy_sbh)
 
     response = upload(client, sbol_file, sbml=raw_part(SBML, '...'))
 
     assert response.status_code == 400
-    assert response.mimetype == 'text/html'
-    assert response.data == b'Invalid SBML file name'
+    assert response.mimetype == 'application/json'
+    assert response.get_json() == {'error': 'Invalid SBML file name'}
     assert requested(legacy_sbh) == [f'GET {SBH_URL}/profile']
 
 

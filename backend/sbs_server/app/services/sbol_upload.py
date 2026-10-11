@@ -12,7 +12,6 @@ from xml.sax import SAXParseException
 
 import sbol2
 import sbol2.model
-from flask import Response, abort
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
@@ -130,9 +129,7 @@ def _upload(req: SbolUploadRequest, user: SbhUser, workspace: Workspace) -> dict
     if req.sbml_file is not None:
         safe_sbml_filename = secure_filename(req.sbml_file.filename)
         if safe_sbml_filename == '':
-            # Transitional: this route's one error that is not JSON, kept as
-            # it was while the code moved.
-            abort(Response('Invalid SBML file name', status=400))
+            raise ApiError(400, 'Invalid SBML file name')
         sbml_path = workspace.path(safe_sbml_filename)
 
     try:
