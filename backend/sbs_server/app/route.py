@@ -8,15 +8,15 @@ from werkzeug.utils import secure_filename
 from uuid import uuid4
 from flask import jsonify
 import sbol2
-import sbol2.model
 
 from .main import app
 from .version import __version__
 from .downloadTemplates import sbh_download_template
 from .errors import ApiError
 from .sbh_http import normalise_base_url
+from .services import sbol_upload
 from .synbiohubUpload import upload_sbh_attachments, upload_to_sbh
-from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions, find_root_component_definitions
+from .utils import get_sbh_user, convert_to_sbol
 
 # The services these routes call raise ApiError; this renders it the way the
 # /api/v1 blueprint does (api/errors.py). Anything else propagates as before.
@@ -36,7 +36,7 @@ def download_template():
 
 @app.route('/api/uploadSBOL', methods = ['POST'])
 def upload_sbol():
-    return sbol_upload(request.files)
+    return jsonify(sbol_upload.run(sbol_upload.parse_request(request.files))), 200
 
 @app.route('/api/uploadResource', methods = ['POST'])
 def upload_resource():
@@ -257,162 +257,4 @@ def xdc_run(files):
         "status": "success"
     }
     os.remove(metadata_path)
-    return jsonify(sbs_upload_response_dict), 200
-
-
-'''
-Helper function to upload SBOL to SynBioHub
-'''
-def sbol_upload(files):
-    if 'SBOL' in files:
-        sbol_file = files['SBOL']
-    else:
-        return jsonify({"error": "No SBOL file provided"}), 400
-    if 'SBML' in files:
-        sbml_file = files['SBML']
-    else:
-        sbml_file = None
-
-    if sbol_file and sbol_file.filename != '':
-        root, extension = os.path.splitext(sbol_file.filename)
-    else:
-        return jsonify({"error": "No selected file"}), 400
-    if not extension == '.xml':
-        return jsonify({"error": "Invalid file format"}), 400
-
-    # Check params from frontend
-    if 'Params' not in files:
-        return jsonify({"error": "No Params file part"}), 400
-    params_file = files['Params']
-    if params_file.filename == '':
-        return jsonify({"error": "No selected Params file"}), 400
-    params_from_request = json.loads(params_file.read())
-
-    required_params = ['sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite']
-
-    for param in required_params:
-        if param not in params_from_request:
-            return jsonify({"error": f"Parameter {param} not found in request"}), 400
-    if (params_from_request['sbh_token'] is None):
-        return jsonify({"error": "No SBH credentials provided"}), 400
-    try:
-        # Also adds https:// when the scheme is missing, as this route always has.
-        sbh_url = normalise_base_url(params_from_request['sbh_url'])
-    except ValueError as e:
-        return jsonify({"error": f"Invalid sbh_url: {e}"}), 400
-    sbh_prefix = params_from_request.get('sbh_prefix')
-    sbh_collection_url = params_from_request['collection_url'] 
-    sbh_overwrite_num = 3 if params_from_request.get('sbh_overwrite', 1) else 2
-    sbh_token = params_from_request['sbh_token']
-    importType = params_from_request['importType']
-    parts = sbh_collection_url.split("/")
-    usergraph = "/".join(parts[:5])
-    topLevelUri = None
-
-    try:
-        sbh_user_info = get_sbh_user(sbh_url, sbh_token)
-        sbh_user = sbh_user_info['user']
-        sbh_graph_uri = sbh_user_info['graph']
-    except Exception as e:
-        print('Error logging into SynBioHub')
-        return jsonify({"error": f"Error logging into SynBioHub: {e}"}), 400
-
-    upload_dir = os.path.join(os.getcwd(), "uploads")
-    os.makedirs(upload_dir, exist_ok=True)
-
-    safe_sbol_filename = secure_filename(sbol_file.filename)
-    if safe_sbol_filename == '':
-        return jsonify({"error": "Invalid SBOL file name"}), 400
-    sbol_path = os.path.join(
-        upload_dir,
-        f"{uuid4()}_{safe_sbol_filename}"
-    )
-    sbol_out_path = os.path.join(
-        upload_dir,
-        f"{uuid4()}_out_{safe_sbol_filename}"
-    )
-    sbml_path = None
-    if sbml_file and sbml_file.filename != '':
-        safe_sbml_filename = secure_filename(sbml_file.filename)
-        if safe_sbml_filename == '':
-            return 'Invalid SBML file name', 400
-        sbml_path = os.path.join(
-            upload_dir,
-            f"{uuid4()}_{safe_sbml_filename}"
-        )
-
-    try:
-        sbol_file.save(sbol_path)
-        if sbml_file and sbml_file.filename != '':
-            sbml_file.save(sbml_path)
-        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
-        sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
-        homespaces = {
-            "Devices": "https://example.com/",
-            "Designs": "https://sbolcanvas.org/",
-            "Models": "https://sbolcanvas.org/",
-            "Plasmids": "https://example.com/",
-        }
-        sbol2.setHomespace(homespaces.get(importType, "https://synbiosuite.org/"))
-        doc = sbol2.Document()
-        doc.read(sbol_path)
-        if sbml_file and sbml_file.filename != '':
-            sbml_file.stream.seek(0)
-            attachments = {}
-            attachments[sbml_file.filename] = sbml_file
-            upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_graph_uri, sbh_collection_url, attachments)
-            search_result = sbh_get_attachment_uri(sbh_url, sbh_token, sbh_graph_uri, sbh_collection_url, sbml_file.filename)
-            for binding in search_result["results"]["bindings"]:
-                sourceUri = binding["s"]["value"]
-            display_id = make_identifier(sbml_file.filename)
-            model = sbol2.model.Model(uri=display_id)
-            model.source = sourceUri
-            model.language = "http://identifiers.org/edam/format_2585"
-            model.framework = "http://identifiers.org/biomodels.sbo/SBO:0000062"
-            model.attachments = model.attachments + [sourceUri]
-            doc.addModel(model)
-            roots = find_root_module_definitions(doc)
-            for root in roots:
-                rootDisplayId = root.displayId
-                root.models = root.models + [model.identity]
-        if importType == 'Devices' or importType == 'Plasmids':
-            roots = find_root_component_definitions(doc)
-            for root in roots:
-                rootDisplayId = root.displayId
-                topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
-        elif importType == 'Designs':
-            roots = find_root_module_definitions(doc)
-            for root in roots:
-                rootDisplayId = root.displayId
-                topLevelUri = "/".join(parts[:6] + [rootDisplayId, parts[7]])
-        subCollectionUrl = upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, sbol_out_path, sbh_overwrite_num)
-    except AttributeError as e:
-        print('Attribute Error: ',str(e))
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "type": type(e).__name__,
-            "repr": repr(e)
-        }), 500
-    finally:
-        if sbol_path is not None and os.path.exists(sbol_path):
-            for path in (sbol_path, sbol_out_path):
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except Exception as cleanup_error:
-                    print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
-        if sbml_path is not None and os.path.exists(sbml_path):
-            for path in (sbml_path, sbol_out_path):
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                except Exception as cleanup_error:
-                    print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")
-    sbs_upload_response_dict ={
-        "sbh_url": sbh_url,
-        "subCollectionUrl": topLevelUri if topLevelUri is not None else subCollectionUrl,
-        "status": "success"
-    }
     return jsonify(sbs_upload_response_dict), 200

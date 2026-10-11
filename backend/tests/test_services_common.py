@@ -85,6 +85,20 @@ def test_an_unusable_sbh_url_is_400(given, reason):
     )
 
 
+# ------------------------------------------------------------ overwrite_merge
+
+@pytest.mark.parametrize('params, expected', [
+    ({'sbh_overwrite': True}, 3),
+    ({'sbh_overwrite': 1}, 3),
+    ({}, 3),
+    ({'sbh_overwrite': False}, 2),
+    ({'sbh_overwrite': 0}, 2),
+    ({'sbh_overwrite': None}, 2),
+])
+def test_overwrite_merge_follows_sbh_overwrite(params, expected):
+    assert common.overwrite_merge(params) == expected
+
+
 # ---------------------------------------------------------------------- login
 
 def test_login_returns_the_profile(legacy_sbh):

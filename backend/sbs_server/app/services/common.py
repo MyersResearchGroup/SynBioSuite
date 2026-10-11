@@ -14,6 +14,10 @@ from ..utils import get_sbh_user
 
 PARAMS_FIELD = 'Params'
 
+# SynBioHub /submit overwrite_merge values; see MERGE_AND_OVERWRITE in api/sbh.py.
+MERGE_AND_OVERWRITE = 3
+MERGE_AND_PREVENT = 2
+
 
 @dataclass(frozen=True)
 class SbhUser:
@@ -47,6 +51,11 @@ def sbh_base_url(params: dict) -> str:
         return normalise_base_url(params.get('sbh_url'))
     except ValueError as error:
         raise ApiError(400, f'Invalid sbh_url: {error}') from error
+
+
+def overwrite_merge(params: dict) -> int:
+    """How /submit should treat objects that already exist: sbh_overwrite, on by default."""
+    return MERGE_AND_OVERWRITE if params.get('sbh_overwrite', 1) else MERGE_AND_PREVENT
 
 
 def login(sbh_url: str, sbh_token: str) -> SbhUser:
