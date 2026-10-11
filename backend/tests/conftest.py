@@ -295,6 +295,7 @@ class FakeSynBioHub:
 
     def __init__(self):
         self.calls = []
+        self.unregistered = []
         self._routes = []
 
     def register(self, method, url_contains, response):
@@ -325,6 +326,7 @@ class FakeSynBioHub:
                 if isinstance(response, BaseException):
                     raise response
                 return response
+        self.unregistered.append(f'{method} {url}')
         raise AssertionError(
             f'FakeSynBioHub received an unregistered request: {method} {url}'
         )
@@ -346,6 +348,48 @@ def fake_sbh(monkeypatch, _block_network):
     yield sbh
     untimed = [call for call in sbh.calls if not call.kwargs.get('timeout')]
     assert not untimed, f'SynBioHub calls sent without a timeout: {untimed}'
+
+
+@pytest.fixture
+def legacy_sbh(monkeypatch, _block_network):
+    """fake_sbh for the legacy /api/* routes.
+
+    No timeout check: /profile and the attachment /remove and /attach calls go
+    out without one today. It does fail the test for a request nothing was
+    registered for, at teardown -- the routes wrap SynBioHub calls in
+    `except Exception`, which would turn FakeSynBioHub's AssertionError into
+    the very 400 or 500 a failure test expects.
+    """
+    sbh = FakeSynBioHub()
+    for module in (requests, sbh_http):
+        monkeypatch.setattr(module, 'get', sbh.get)
+        monkeypatch.setattr(module, 'post', sbh.post)
+    yield sbh
+    assert not sbh.unregistered, f'Unregistered SynBioHub requests: {sbh.unregistered}'
+
+
+@pytest.fixture
+def workdir(tmp_path, monkeypatch):
+    """Run from an empty directory.
+
+    The legacy routes write temp files to the CWD and to uploads/ under it, so
+    whatever is here afterwards is exactly what the request left behind.
+    """
+    directory = tmp_path / 'cwd'
+    directory.mkdir()
+    monkeypatch.chdir(directory)
+    return directory
+
+
+@pytest.fixture
+def unhandled_client(app, monkeypatch):
+    """A client that answers an unhandled exception with a 500, as production does.
+
+    TESTING makes Flask re-raise it instead, so `client` cannot show what a
+    caller receives.
+    """
+    monkeypatch.setitem(app.config, 'PROPAGATE_EXCEPTIONS', False)
+    return app.test_client()
 
 
 def capture_submitted(fake_sbh, monkeypatch):
