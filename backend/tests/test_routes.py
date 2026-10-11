@@ -53,6 +53,31 @@ def test_import_types_match_the_frontend_object_types():
     }
 
 
+@pytest.mark.parametrize('import_type, homespace', [
+    ('Devices', 'https://example.com/'),
+    ('Plasmids', 'https://example.com/'),
+    ('Designs', 'https://sbolcanvas.org/'),
+    ('Models', 'https://sbolcanvas.org/'),
+    ('Resources', 'https://synbiosuite.org/'),
+    ('Strains', 'https://synbiosuite.org/'),
+    ('SampleDesigns', 'https://synbiosuite.org/'),
+    ('Assays', 'https://synbiosuite.org/'),
+    ('Archives', 'https://synbiosuite.org/'),
+    ('Analyses', 'https://synbiosuite.org/'),
+    ('NotACollection', 'https://synbiosuite.org/'),
+    (None, 'https://synbiosuite.org/'),
+])
+def test_homespace_for_is_what_the_legacy_sbol_upload_has_always_used(
+    import_type, homespace,
+):
+    """POST /api/uploadSBOL reads its homespace from here. These are the values
+    it carried in its own table, so changing one moves where that route puts
+    new objects."""
+    from sbs_server.app.api.registry import homespace_for
+
+    assert homespace_for(import_type) == homespace
+
+
 def test_template_types_match_download_templates_keys():
     """Every template_type must be a key fetch_template_bytes knows about."""
     from sbs_server.app.downloadTemplates import fetch_template_bytes

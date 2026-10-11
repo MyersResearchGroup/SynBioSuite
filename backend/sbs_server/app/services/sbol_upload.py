@@ -15,6 +15,7 @@ from flask import Response, abort, jsonify
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
+from ..api.registry import homespace_for
 from ..errors import ApiError
 from ..synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from ..utils import (
@@ -26,16 +27,6 @@ from ..utils import (
 from .common import SbhUser, login, overwrite_merge, read_params, sbh_base_url
 
 REQUIRED_PARAMS = ('sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite')
-
-# Mirrored by the homespaces in api/registry.py, so an object lands on the same
-# URI whichever API uploads it.
-HOMESPACES = {
-    'Devices': 'https://example.com/',
-    'Designs': 'https://sbolcanvas.org/',
-    'Models': 'https://sbolcanvas.org/',
-    'Plasmids': 'https://example.com/',
-}
-DEFAULT_HOMESPACE = 'https://synbiosuite.org/'
 
 # Import types whose upload is named after its root object, by that root's kind.
 COMPONENT_ROOTED = ('Devices', 'Plasmids')
@@ -130,7 +121,7 @@ def run(req: SbolUploadRequest) -> dict:
         # Process-global in sbol2, like the homespace.
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
-        sbol2.setHomespace(HOMESPACES.get(req.import_type, DEFAULT_HOMESPACE))
+        sbol2.setHomespace(homespace_for(req.import_type))
         doc = sbol2.Document()
         doc.read(sbol_path)
         if req.sbml_file is not None:

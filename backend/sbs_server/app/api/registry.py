@@ -11,13 +11,14 @@ from typing import Dict, FrozenSet, Optional
 EXCEL = 'excel'
 SBOL = 'sbol'
 
-# Homespaces mirror the ``homespaces`` dict in route.py:sbol_upload so that objects
-# created through this API land on the same URIs as the legacy endpoints do.
+# The legacy POST /api/uploadSBOL reads these too, through homespace_for(), so an
+# object lands on the same URI whichever API uploads it.
 CANVAS_HOMESPACE = 'https://sbolcanvas.org/'
 EXAMPLE_HOMESPACE = 'https://example.com/'
 DEFAULT_HOMESPACE = 'https://synbiosuite.org/'
 
-# route.py:xdc_run converts workbooks against this homespace, regardless of type.
+# Every workbook converts against this homespace, regardless of type: here
+# (ingest._convert_workbook) and in the legacy XDC routes (services/xdc.py).
 EXCEL_HOMESPACE = 'https://example.org/'
 
 
@@ -79,6 +80,18 @@ _SPECS = [
 
 COLLECTIONS: Dict[str, CollectionSpec] = {spec.path: spec for spec in _SPECS}
 
+_HOMESPACE_BY_IMPORT_TYPE: Dict[str, str] = {
+    spec.import_type: spec.homespace for spec in _SPECS
+}
+
 
 def get_collection(path: str) -> Optional[CollectionSpec]:
     return COLLECTIONS.get(path)
+
+
+def homespace_for(import_type: Optional[str]) -> str:
+    """The homespace an SBOL upload of `import_type` creates its objects under.
+
+    DEFAULT_HOMESPACE for an import type no collection has.
+    """
+    return _HOMESPACE_BY_IMPORT_TYPE.get(import_type, DEFAULT_HOMESPACE)

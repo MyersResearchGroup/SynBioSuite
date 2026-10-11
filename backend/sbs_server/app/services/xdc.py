@@ -14,6 +14,7 @@ import sbol2
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
+from ..api.registry import EXCEL_HOMESPACE
 from ..errors import ApiError
 from ..synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from ..utils import convert_to_sbol
@@ -25,10 +26,6 @@ REQUIRED_PARAMS = (
     'fj_study_id', 'sbh_overwrite', 'fj_overwrite', 'importType',
 )
 WORKBOOK_EXTENSIONS = ('.xlsx', '.xlsm')
-
-# Every workbook converts against this homespace, whatever its import type;
-# api/registry.py's EXCEL_HOMESPACE mirrors it.
-EXCEL_HOMESPACE = 'https://example.org/'
 
 
 @dataclass(frozen=True)
