@@ -9,6 +9,10 @@ from io import BytesIO
 # SynBioHub call (see SBH_TIMEOUT in utils.py).
 TEMPLATE_FETCH_TIMEOUT = (5, 30)
 
+
+class UnknownTemplateError(ValueError):
+    """The caller asked for a template type there is no template for."""
+
 '''
 Helper function to download Excel template
 '''
@@ -33,7 +37,7 @@ def fetch_template_bytes(object_type_id):
     }
 
     if object_type_id not in templates:
-        raise ValueError(f"Unknown object type: {object_type_id}")
+        raise UnknownTemplateError(f"Unknown object type: {object_type_id}")
 
     url, filename = templates[object_type_id]
     response = requests.get(url, timeout=TEMPLATE_FETCH_TIMEOUT)

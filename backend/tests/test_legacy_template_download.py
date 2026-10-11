@@ -1,16 +1,18 @@
-"""POST /api/downloadTemplate as it behaves today, pinned before its code moves.
+"""POST /api/downloadTemplate, through the HTTP client.
 
 test_templates.py covers build_template and the route's success and SSRF
-paths; this is the rest of the request handling. Every test goes through the
-HTTP client and patches only sbh_http and requests, so this file holds
-unedited across the move into app/services. Warts are pinned as they are; a
-fix changes its test in the same commit.
+paths; this is the rest of the request handling. The tests patch only
+sbh_http and requests, never the service itself, so they held unedited while
+the code moved out of downloadTemplates.py. Behaviour that is odd but kept on
+purpose is marked "Wart, pinned".
 """
 import io
 
 import pytest
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table
+
+from sbs_server.app import downloadTemplates
 
 from conftest import STUDY_URI, TOKEN, FakeResponse
 from legacy_helpers import (
@@ -35,6 +37,9 @@ STRAINS_TEMPLATE_URL = (
 XLSM_MIME = 'application/vnd.ms-excel.sheet.macroEnabled.12'
 CHASSIS_URI = 'https://synbiohub.org/user/pmeka12/Test/e_coli/1'
 STRAINS_SHEETS = ('SBH_chassis_collections', 'SBH_plasmids_collections')
+UNEXPECTED_FAILURE = (
+    'The template download failed unexpectedly. The details are in the server log.'
+)
 
 PARAMS = {
     'template_type': 'synbio.object-type.strains',
@@ -155,6 +160,16 @@ def test_an_unknown_template_type_is_a_500(client, legacy_sbh):
     assert legacy_sbh.calls == []
 
 
+def test_an_unknown_template_type_has_an_error_of_its_own():
+    """What lets the route keep that message while hiding unexpected ones.
+    Still a ValueError, as it was."""
+    with pytest.raises(downloadTemplates.UnknownTemplateError) as excinfo:
+        downloadTemplates.fetch_template_bytes('nope')
+
+    assert isinstance(excinfo.value, ValueError)
+    assert str(excinfo.value) == 'Unknown object type: nope'
+
+
 def test_a_template_github_will_not_serve_is_a_500(client, legacy_sbh):
     legacy_sbh.register('GET', GITHUB, FakeResponse(404))
 
@@ -174,14 +189,17 @@ def test_a_failed_lookup_is_a_500(client, legacy_sbh):
     assert response.get_json() == {'error': 'SynBioHub sparql query failed (500): boom'}
 
 
-def test_any_other_failure_is_a_500_carrying_the_exception_text(client, legacy_sbh):
-    """Wart, pinned: whatever went wrong inside, its message goes to the caller."""
+def test_an_unexpected_failure_tells_the_caller_nothing_about_it(
+    client, legacy_sbh, caplog,
+):
+    """Here, GitHub serving something that is not a workbook."""
     legacy_sbh.register('GET', GITHUB, FakeResponse(200, content=b'not a workbook'))
 
     response = download(client)
 
     assert response.status_code == 500
-    assert response.get_json() == {'error': 'File is not a zip file'}
+    assert response.get_json() == {'error': UNEXPECTED_FAILURE}
+    assert 'File is not a zip file' in caplog.text
 
 
 # ------------------------------------------------------- unhandled, so a 500

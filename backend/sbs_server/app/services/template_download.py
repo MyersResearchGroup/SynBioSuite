@@ -5,16 +5,27 @@ work, and GET /api/v1/{collection}/template shares it.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Tuple
 
-from ..downloadTemplates import build_template
+from ..downloadTemplates import UnknownTemplateError, build_template
 from ..errors import ApiError
 from ..sbh_http import BlockedDestinationError
-from .common import read_params, sbh_base_url
+from .common import SYNBIOHUB_FAILURES, read_params, sbh_base_url
+
+logger = logging.getLogger(__name__)
 
 REQUIRED_PARAMS = ('template_type', 'sbh_url', 'sbh_token', 'collection_url')
+
+# Failures whose message is fit to show the caller: SynBioHub's or GitHub's,
+# and a template type that does not exist. Anything else is unexpected; the
+# caller is told only that it failed, and the exception goes to the log.
+REPORTED_FAILURES = (*SYNBIOHUB_FAILURES, UnknownTemplateError)
+UNEXPECTED_FAILURE = (
+    'The template download failed unexpectedly. The details are in the server log.'
+)
 
 
 @dataclass(frozen=True)
@@ -47,5 +58,8 @@ def run(req: TemplateRequest) -> Tuple[BytesIO, str]:
         )
     except BlockedDestinationError as e:
         raise ApiError(400, str(e)) from e
-    except Exception as e:
+    except REPORTED_FAILURES as e:
         raise ApiError(500, str(e)) from e
+    except Exception:
+        logger.exception('Unexpected failure in /api/downloadTemplate')
+        raise ApiError(500, UNEXPECTED_FAILURE)
