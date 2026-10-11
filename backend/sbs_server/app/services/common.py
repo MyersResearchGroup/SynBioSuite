@@ -8,11 +8,17 @@ import json
 from dataclasses import dataclass
 from typing import Iterable
 
+from requests.exceptions import RequestException
+
 from ..errors import ApiError
-from ..sbh_http import normalise_base_url
+from ..sbh_http import BlockedDestinationError, SynBioHubError, normalise_base_url
 from ..utils import get_sbh_user
 
 PARAMS_FIELD = 'Params'
+
+# Failures talking to SynBioHub whose message is fit to show the caller: it
+# said no, it could not be reached, or it was refused as a destination.
+SYNBIOHUB_FAILURES = (SynBioHubError, RequestException, BlockedDestinationError)
 
 # SynBioHub /submit overwrite_merge values; see MERGE_AND_OVERWRITE in api/sbh.py.
 MERGE_AND_OVERWRITE = 3

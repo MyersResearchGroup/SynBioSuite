@@ -1,13 +1,15 @@
-"""POST /api/uploadSBOL as it behaves today, pinned before its code moves.
+"""POST /api/uploadSBOL, through the HTTP client.
 
-Every test goes through the HTTP client and patches only what stays where it
-is (sbh_http, sbol2), so this file holds unedited across the move into
-app/services. Warts are pinned as they are; a fix changes its test in the same
-commit.
+The tests patch only what the service reaches SynBioHub and sbol2 through
+(sbh_http, sbol2), never the service itself, so they held unedited while the
+code moved out of route.py. Behaviour that is odd but kept on purpose is
+marked "Wart, pinned".
 """
 import pytest
+import requests
 import sbol2
 
+from sbs_server.app.sbh_http import BlockedDestinationError
 from sbs_server.app.utils import sbol_validation_disabled
 
 from conftest import STUDY_URI, TOKEN, FakeResponse, capture_submitted
@@ -38,6 +40,9 @@ CANVAS_HOMESPACE = 'https://sbolcanvas.org/'
 # What SPARQL answers for the SBML file once SynBioHub has stored it.
 ATTACHMENT_URI = f'{STUDY_ROOT}/attachment_1/1'
 SBML = b'<sbml/>'
+UNEXPECTED_FAILURE = (
+    'The SBOL upload failed unexpectedly. The details are in the server log.'
+)
 
 PARAMS = {
     'sbh_url': SBH_URL,
@@ -260,10 +265,11 @@ def test_an_sbml_part_without_a_filename_is_ignored(client, legacy_sbh, sbol_fil
 
 
 def test_an_attachment_synbiohub_cannot_find_again_is_a_500(
-    client, legacy_sbh, design_file,
+    client, legacy_sbh, caplog, design_file,
 ):
     """Wart, pinned: sourceUri is only bound inside the loop over the lookup's
-    results, so an empty lookup raises -- after the file has been attached."""
+    results, so an empty lookup raises -- after the file has been attached.
+    Nothing anticipates that, so the caller learns only that it failed."""
     synbiohub_answers(legacy_sbh)  # every attachment lookup comes back empty
 
     response = upload(
@@ -271,10 +277,8 @@ def test_an_attachment_synbiohub_cannot_find_again_is_a_500(
     )
 
     assert response.status_code == 500
-    body = response.get_json()
-    assert set(body) == {'error', 'type', 'repr'}
-    assert body['type'] == 'UnboundLocalError'
-    assert 'sourceUri' in body['error']
+    assert response.get_json() == {'error': UNEXPECTED_FAILURE}
+    assert 'sourceUri' in caplog.text
     assert len(legacy_sbh.calls_matching('/attach')) == 1
     assert legacy_sbh.calls_matching('/submit') == []
 
@@ -417,10 +421,11 @@ def test_an_unusable_sbml_file_name_is_a_plain_text_400(client, legacy_sbh, sbol
     assert requested(legacy_sbh) == [f'GET {SBH_URL}/profile']
 
 
-def test_a_rejected_submit_is_a_500_carrying_the_exception(
+def test_a_rejected_submit_is_a_500_that_says_why(
     client, legacy_sbh, sbol_file, workdir,
 ):
-    """Wart, pinned: SynBioHub saying no is a 500 here, with type and repr."""
+    """Wart, pinned: SynBioHub saying no is a 500 here, where the XDC routes
+    answer 400."""
     synbiohub_answers(legacy_sbh, submit=FakeResponse(401, text='Unauthorized'))
 
     response = upload(client, sbol_file)
@@ -428,13 +433,57 @@ def test_a_rejected_submit_is_a_500_carrying_the_exception(
     assert response.status_code == 500
     assert response.get_json() == {
         'error': 'SynBioHub submit failed (401): Unauthorized',
-        'type': 'Exception',
-        'repr': "Exception('SynBioHub submit failed (401): Unauthorized')",
     }
     assert leftovers(workdir / 'uploads') == []
 
 
-def test_a_file_that_is_not_sbol_is_a_500(client, legacy_sbh, tmp_path):
+def test_a_failed_member_query_is_a_500_that_says_why(client, legacy_sbh, sbol_file):
+    synbiohub_answers(legacy_sbh, members=FakeResponse(500, text='boom'))
+
+    response = upload(client, sbol_file)
+
+    assert response.status_code == 500
+    assert response.get_json() == {
+        'error': 'SynBioHub sparql query failed (500): boom',
+    }
+
+
+def test_a_rejected_sbml_attachment_is_a_500_that_says_why(
+    client, legacy_sbh, design_file,
+):
+    synbiohub_answers(legacy_sbh, attach=FakeResponse(500, text='no room'))
+
+    response = upload(
+        client, design_file, importType='Designs', sbml=raw_part(SBML, 'model.xml'),
+    )
+
+    assert response.status_code == 500
+    assert response.get_json() == {
+        'error': 'Uploading attachments to SynBioHub failed (500): no room',
+    }
+
+
+@pytest.mark.parametrize('failure', [
+    requests.exceptions.ConnectionError('connection refused'),
+    requests.exceptions.ReadTimeout('timed out'),
+    BlockedDestinationError('Refusing to connect to x: it resolves to a non-public address'),
+])
+def test_a_synbiohub_that_cannot_be_reached_is_a_500_that_says_why(
+    client, legacy_sbh, sbol_file, failure,
+):
+    synbiohub_answers(legacy_sbh, submit=failure)
+
+    response = upload(client, sbol_file)
+
+    assert response.status_code == 500
+    assert response.get_json() == {'error': str(failure)}
+
+
+def test_a_file_that_is_not_xml_is_a_500_that_says_where_it_went_wrong(
+    client, legacy_sbh, tmp_path,
+):
+    """The parser's own message starts with the path of the temp file on this
+    server; the caller gets the reason and the position, not the path."""
     synbiohub_answers(legacy_sbh)
     junk = tmp_path / 'junk.xml'
     junk.write_text('this is not SBOL')
@@ -442,8 +491,51 @@ def test_a_file_that_is_not_sbol_is_a_500(client, legacy_sbh, tmp_path):
     response = upload(client, junk)
 
     assert response.status_code == 500
-    assert set(response.get_json()) == {'error', 'type', 'repr'}
+    assert response.get_json() == {
+        'error': 'Could not parse the SBOL file: syntax error (line 1, column 0)',
+    }
     assert requested(legacy_sbh) == [f'GET {SBH_URL}/profile']
+
+
+def test_a_document_sbol2_rejects_is_a_500_carrying_its_message(
+    client, legacy_sbh, tmp_path,
+):
+    """A file that already holds the sub-collection's URI -- an export of this
+    very collection, say -- cannot have that sub-collection added to it."""
+    synbiohub_answers(legacy_sbh)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
+    sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
+    sbol2.setHomespace('https://example.com/')
+    doc = sbol2.Document()
+    doc.addComponentDefinition(sbol2.ComponentDefinition('test_part'))
+    doc.addCollection(sbol2.Collection('Devices'))
+    exported = tmp_path / 'exported.xml'
+    with sbol_validation_disabled():
+        doc.write(str(exported))
+
+    response = upload(client, exported)
+
+    assert response.status_code == 500
+    body = response.get_json()
+    assert set(body) == {'error'}
+    assert 'already contained in the Document' in body['error']
+    assert legacy_sbh.calls_matching('/submit') == []
+
+
+def test_an_unexpected_failure_tells_the_caller_nothing_about_it(
+    client, legacy_sbh, caplog, sbol_file,
+):
+    """Here, a collection URL too short to carry a version segment."""
+    synbiohub_answers(legacy_sbh)
+
+    response = upload(
+        client, sbol_file, collection_url='https://synbiohub.org/user/pmeka12/Test',
+    )
+
+    assert response.status_code == 500
+    assert response.get_json() == {'error': UNEXPECTED_FAILURE}
+    assert 'IndexError' in caplog.text
+    assert legacy_sbh.calls_matching('/submit') == []
 
 
 def test_an_attribute_error_is_a_400(client, legacy_sbh, monkeypatch, sbol_file):

@@ -15,6 +15,7 @@ import socket
 import time
 
 from . import sbh_http
+from .sbh_http import SynBioHubError
 from typing import Iterator, List, Tuple
 
 # (connect, read) seconds for requests to SynBioHub. Without a timeout a hung
@@ -68,7 +69,7 @@ def get_sbh_user(sbh_url, sbh_token):
             }
     )
     if not response.ok:
-        raise Exception(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
+        raise SynBioHubError(f"Error accessing SynBioHub profile ({response.status_code}): {response.text}")
     return { 'user': response.json()["username"],
             'graph': response.json()['graphUri'] }
 
@@ -83,8 +84,12 @@ def sparql_query(sbh_url, sbh_token, query):
         timeout=SBH_TIMEOUT,
     )
     if not response.ok:
-        raise Exception(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")
-    return response.json()
+        raise SynBioHubError(f"SynBioHub sparql query failed ({response.status_code}): {response.text}")
+    try:
+        return response.json()
+    except ValueError as error:
+        # A 200 whose body is not JSON: still SynBioHub's failure, same text.
+        raise SynBioHubError(str(error)) from error
 
 '''
 Helper function to perform SPARQL queries to fetch URIs from SynBioHub

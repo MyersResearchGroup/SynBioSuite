@@ -1,7 +1,7 @@
 import sbol2
 import sbol2.model
 from . import sbh_http
-from .sbh_http import rebase_uri
+from .sbh_http import SynBioHubError, rebase_uri
 from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri, sbol_validation_disabled
 import os
 
@@ -20,7 +20,7 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                 uri = rebase_uri(sbh_url, binding["s"]["value"])
                 response = sbh_http.get(f'{uri}/remove', headers=headers)
                 if not response.ok:
-                    raise Exception(f"Deleting existing attachment failed ({response.status_code}): {response.text}")
+                    raise SynBioHubError(f"Deleting existing attachment failed ({response.status_code}): {response.text}")
 
             if isinstance(file, str):
                 with open(file, 'rb') as fobj:
@@ -32,7 +32,7 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                     collectionVersion = sbh_collection_url.split("/")[-1]
                     response = sbh_http.post(f'{sbh_url}/user/{sbh_user}/{collectionID}/{collectionDisplayId}/{collectionVersion}/attach', headers=headers, files=upload_file)
                     if not response.ok:
-                        raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
+                        raise SynBioHubError(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
             else:
                 filename = getattr(file, 'filename', None) or getattr(file, 'name', None) or resolved_name
                 fobj = getattr(file, 'stream', None) or getattr(file, 'file', None) or file
@@ -44,7 +44,7 @@ def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_gr
                 collectionVersion = sbh_collection_url.split("/")[-1]
                 response = sbh_http.post(f'{sbh_url}/user/{sbh_user}/{collectionID}/{collectionDisplayId}/{collectionVersion}/attach', headers=headers, files=upload_file)
                 if not response.ok:
-                    raise Exception(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
+                    raise SynBioHubError(f"Uploading attachments to SynBioHub failed ({response.status_code}): {response.text}")
 
 def subcollection_members(doc, sbh_prefix, keep=frozenset()):
     """The top-level objects of `doc` that upload_to_sbh lists in the sub-collection.
@@ -92,5 +92,5 @@ def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection
             timeout=SBH_SUBMIT_TIMEOUT,
         )
     if not response.ok:
-        raise Exception(f"SynBioHub submit failed ({response.status_code}): {response.text}")
+        raise SynBioHubError(f"SynBioHub submit failed ({response.status_code}): {response.text}")
     return subCollection_url

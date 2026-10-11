@@ -4,14 +4,16 @@ Behind POST /api/uploadSBOL.
 """
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import Optional, Tuple
 from uuid import uuid4
+from xml.sax import SAXParseException
 
 import sbol2
 import sbol2.model
-from flask import Response, abort, jsonify
+from flask import Response, abort
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
@@ -24,9 +26,26 @@ from ..utils import (
     make_identifier,
     sbh_get_attachment_uri,
 )
-from .common import SbhUser, login, overwrite_merge, read_params, sbh_base_url
+from .common import (
+    SYNBIOHUB_FAILURES,
+    SbhUser,
+    login,
+    overwrite_merge,
+    read_params,
+    sbh_base_url,
+)
+
+logger = logging.getLogger(__name__)
 
 REQUIRED_PARAMS = ('sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite')
+
+# Failures whose message is fit to show the caller: SynBioHub's, and sbol2
+# rejecting the document. Anything else is unexpected; the caller is told only
+# that it failed, and the exception goes to the log.
+REPORTED_FAILURES = (*SYNBIOHUB_FAILURES, sbol2.SBOLError)
+UNEXPECTED_FAILURE = (
+    'The SBOL upload failed unexpectedly. The details are in the server log.'
+)
 
 # Import types whose upload is named after its root object, by that root's kind.
 COMPONENT_ROOTED = ('Devices', 'Plasmids')
@@ -122,8 +141,7 @@ def run(req: SbolUploadRequest) -> dict:
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
         sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
         sbol2.setHomespace(homespace_for(req.import_type))
-        doc = sbol2.Document()
-        doc.read(sbol_path)
+        doc = _read_document(sbol_path)
         if req.sbml_file is not None:
             attach_sbml_model(doc, req, user)
         top_level = top_level_uri(doc, req.import_type, req.collection_parts)
@@ -131,13 +149,17 @@ def run(req: SbolUploadRequest) -> dict:
             doc, req.sbh_url, req.sbh_prefix, req.sbh_token, req.usergraph,
             req.collection_url, req.import_type, sbol_out_path, req.overwrite_merge,
         )
+    except ApiError:
+        raise
     except AttributeError as e:
         print('Attribute Error: ', str(e))
-        raise ApiError(400, str(e))
-    except Exception as e:
-        # Transitional: the body this route has always answered, kept as it
-        # was while the code moved.
-        abort(_exception_response(e))
+        raise ApiError(400, str(e)) from e
+    except REPORTED_FAILURES as e:
+        # A 500 here, where the XDC routes answer SynBioHub's refusals with 400.
+        raise ApiError(500, str(e)) from e
+    except Exception:
+        logger.exception('Unexpected failure in /api/uploadSBOL')
+        raise ApiError(500, UNEXPECTED_FAILURE)
     finally:
         _remove_temp_files(sbol_path, sbol_out_path, sbml_path)
 
@@ -200,14 +222,18 @@ def top_level_uri(doc: sbol2.Document, import_type: str,
     return uri
 
 
-def _exception_response(error: Exception) -> Response:
-    response = jsonify({
-        "error": str(error),
-        "type": type(error).__name__,
-        "repr": repr(error),
-    })
-    response.status_code = 500
-    return response
+def _read_document(path: str) -> sbol2.Document:
+    doc = sbol2.Document()
+    try:
+        doc.read(path)
+    except SAXParseException as e:
+        # str(e) leads with the temp file's path on this server; give the rest.
+        raise ApiError(
+            500,
+            f'Could not parse the SBOL file: {e.getMessage()} '
+            f'(line {e.getLineNumber()}, column {e.getColumnNumber()})',
+        ) from e
+    return doc
 
 
 def _remove_temp_files(sbol_path: str, sbol_out_path: str, sbml_path: Optional[str]) -> None:

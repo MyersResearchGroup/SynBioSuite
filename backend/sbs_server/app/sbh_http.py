@@ -48,6 +48,14 @@ class BlockedDestinationError(Exception):
     """
 
 
+class SynBioHubError(Exception):
+    """SynBioHub answered, and the answer was a refusal or was unusable.
+
+    The message says what was asked and what came back, and is written to be
+    shown to the caller.
+    """
+
+
 def is_public_address(address: str) -> bool:
     """True for a globally routable unicast address."""
     ip = ipaddress.ip_address(address)
