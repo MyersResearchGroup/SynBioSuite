@@ -8,7 +8,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
-from uuid import uuid4
 
 import sbol2
 from werkzeug.datastructures import FileStorage
@@ -19,7 +18,15 @@ from ..errors import ApiError
 from ..synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from ..utils import convert_to_sbol
 from . import flapjack_push
-from .common import SbhUser, login, overwrite_merge, read_params, sbh_base_url
+from .common import (
+    SbhUser,
+    Workspace,
+    login,
+    overwrite_merge,
+    read_params,
+    sbh_base_url,
+    upload_workspace,
+)
 
 REQUIRED_PARAMS = (
     'sbh_url', 'sbh_prefix', 'sbh_token', 'fj_url', 'fj_token', 'collection_url',
@@ -99,13 +106,15 @@ def parse_request(files) -> XdcRequest:
 
 
 def run(req: XdcRequest) -> dict:
-    upload_dir = os.path.join(os.getcwd(), 'uploads')
-    os.makedirs(upload_dir, exist_ok=True)
+    with upload_workspace() as workspace:
+        return _run(req, workspace)
 
+
+def _run(req: XdcRequest, workspace: Workspace) -> dict:
     safe_metadata_filename = secure_filename(req.metadata_file.filename)
     if safe_metadata_filename == '':
         raise ApiError(400, 'Invalid Metadata file name')
-    metadata_path = os.path.join(upload_dir, f'{uuid4()}_{safe_metadata_filename}')
+    metadata_path = workspace.path(safe_metadata_filename)
     req.metadata_file.save(metadata_path)
 
     # Checked only now, with the workbook already on disk.
@@ -113,9 +122,9 @@ def run(req: XdcRequest) -> dict:
     plate_reader_attachments = _by_title(req.plate_reader_outputs, 'Plate Reader Output')
 
     try:
-        # A bare filename: it lands in the process CWD.
-        file_path_out = f'{uuid4()}_converted_SBOL.xml'
-        sbol_doc = convert_to_sbol(metadata_path, file_path_out, EXCEL_HOMESPACE)
+        sbol_doc = convert_to_sbol(
+            metadata_path, workspace.path('converted_SBOL.xml'), EXCEL_HOMESPACE,
+        )
     except Exception as e:
         raise ApiError(400, 'SBOL Conversion Failed: ' + str(e)) from e
 
@@ -125,11 +134,10 @@ def run(req: XdcRequest) -> dict:
     user = login(req.sbh_url, req.sbh_token)
 
     try:
-        # A bare filename here too.
-        file_path_out_final = f'{uuid4()}_SBOL_final.xml'
         sub_collection_url = upload_to_sbh(
             sbol_doc, req.sbh_url, req.sbh_prefix, req.sbh_token, user.graph,
-            req.collection_url, req.import_type, file_path_out_final, req.overwrite_merge,
+            req.collection_url, req.import_type, workspace.path('SBOL_final.xml'),
+            req.overwrite_merge,
         )
     except Exception as e:
         print('Error uploading to SynBioHub')
@@ -146,17 +154,15 @@ def run(req: XdcRequest) -> dict:
     fj_url = req.fj_url
     if (req.fj_study_id is not None and req.fj_url is not None
             and req.fj_token is not None and plate_reader_attachments):
-        fj_url = flapjack_push.push(req, metadata_path, plate_reader_attachments, upload_dir)
+        fj_url = flapjack_push.push(req, metadata_path, plate_reader_attachments, workspace)
 
     print("XDC run complete")
-    result = {
+    return {
         'sbh_url': req.sbh_url,
         'subCollectionUrl': answer_url,
         'fj_url': fj_url,
         'status': 'success',
     }
-    os.remove(metadata_path)
-    return result
 
 
 def _titled_files(files, field: str, params: dict, key: str) -> Optional[TitledFiles]:

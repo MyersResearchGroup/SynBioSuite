@@ -8,7 +8,6 @@ import logging
 import os
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from uuid import uuid4
 from xml.sax import SAXParseException
 
 import sbol2
@@ -29,10 +28,12 @@ from ..utils import (
 from .common import (
     SYNBIOHUB_FAILURES,
     SbhUser,
+    Workspace,
     login,
     overwrite_merge,
     read_params,
     sbh_base_url,
+    upload_workspace,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,15 +116,16 @@ def parse_request(files) -> SbolUploadRequest:
 
 def run(req: SbolUploadRequest) -> dict:
     user = login(req.sbh_url, req.sbh_token)
+    with upload_workspace() as workspace:
+        return _upload(req, user, workspace)
 
-    upload_dir = os.path.join(os.getcwd(), 'uploads')
-    os.makedirs(upload_dir, exist_ok=True)
 
+def _upload(req: SbolUploadRequest, user: SbhUser, workspace: Workspace) -> dict:
     safe_sbol_filename = secure_filename(req.sbol_file.filename)
     if safe_sbol_filename == '':
         raise ApiError(400, 'Invalid SBOL file name')
-    sbol_path = os.path.join(upload_dir, f'{uuid4()}_{safe_sbol_filename}')
-    sbol_out_path = os.path.join(upload_dir, f'{uuid4()}_out_{safe_sbol_filename}')
+    sbol_path = workspace.path(safe_sbol_filename)
+    sbol_out_path = workspace.path(f'out_{safe_sbol_filename}')
     sbml_path = None
     if req.sbml_file is not None:
         safe_sbml_filename = secure_filename(req.sbml_file.filename)
@@ -131,7 +133,7 @@ def run(req: SbolUploadRequest) -> dict:
             # Transitional: this route's one error that is not JSON, kept as
             # it was while the code moved.
             abort(Response('Invalid SBML file name', status=400))
-        sbml_path = os.path.join(upload_dir, f'{uuid4()}_{safe_sbml_filename}')
+        sbml_path = workspace.path(safe_sbml_filename)
 
     try:
         req.sbol_file.save(sbol_path)
@@ -160,8 +162,6 @@ def run(req: SbolUploadRequest) -> dict:
     except Exception:
         logger.exception('Unexpected failure in /api/uploadSBOL')
         raise ApiError(500, UNEXPECTED_FAILURE)
-    finally:
-        _remove_temp_files(sbol_path, sbol_out_path, sbml_path)
 
     return {
         'sbh_url': req.sbh_url,
@@ -235,18 +235,3 @@ def _read_document(path: str) -> sbol2.Document:
         ) from e
     return doc
 
-
-def _remove_temp_files(sbol_path: str, sbol_out_path: str, sbml_path: Optional[str]) -> None:
-    if sbol_path is not None and os.path.exists(sbol_path):
-        _remove_each(sbol_path, sbol_out_path)
-    if sbml_path is not None and os.path.exists(sbml_path):
-        _remove_each(sbml_path, sbol_out_path)
-
-
-def _remove_each(*paths: str) -> None:
-    for path in paths:
-        try:
-            if os.path.exists(path):
-                os.remove(path)
-        except Exception as cleanup_error:
-            print(f"Warning: failed to remove temporary file {path}: {cleanup_error}")

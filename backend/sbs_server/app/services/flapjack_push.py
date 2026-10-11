@@ -8,12 +8,12 @@ from __future__ import annotations
 import os
 import traceback
 from typing import TYPE_CHECKING, Dict
-from uuid import uuid4
 
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from ..errors import ApiError
+from .common import Workspace
 
 if TYPE_CHECKING:
     from .xdc import XdcRequest
@@ -26,10 +26,11 @@ DEFAULT_TEMPERATURE = 37
 
 
 def push(req: XdcRequest, metadata_path: str,
-         plate_files_by_title: Dict[str, FileStorage], upload_dir: str) -> str:
+         plate_files_by_title: Dict[str, FileStorage], workspace: Workspace) -> str:
     """Import each plate file into the Flapjack study; return the URL used.
 
-    Any failure is a 400, although SynBioHub already holds the upload.
+    Any failure is a 400, although SynBioHub already holds the upload. The
+    plate files saved for the reader are the workspace's to remove.
     """
     try:
         # Imported here: a Flapjack install that will not load fails this
@@ -48,7 +49,7 @@ def push(req: XdcRequest, metadata_path: str,
         )
 
         plate_paths = [
-            _save_plate(plate_file, upload_dir)
+            _save_plate(plate_file, workspace)
             for plate_file in plate_files_by_title.values()
         ]
 
@@ -56,19 +57,13 @@ def push(req: XdcRequest, metadata_path: str,
         # study; zip() drops whichever side has more
         for (assay_id, assay_name, temperature), plate in zip(
                 fj_import.read_assays(metadata_path), plate_paths):
-            template_out = os.path.join(upload_dir, f'{uuid4()}_flapjack_input.xlsx')
+            template_out = workspace.path('flapjack_input.xlsx')
             fj_import.import_study(
                 shop, flapjack, metadata_path, plate,
                 int(req.fj_study_id), assay_name, template_out,
                 assay_id=assay_id, temperature=temperature or DEFAULT_TEMPERATURE)
+            # Raises if import_study left no template, as it always has.
             os.remove(template_out)
-
-        for plate in plate_paths:
-            try:
-                os.remove(plate)
-            except OSError:
-                # Don't fail the whole process if we can't delete a temporary file; just log it
-                print(f"Warning: failed to remove temporary plate file {plate}")
         return fj_url
     except Exception as e:
         traceback.print_exc()
@@ -76,9 +71,9 @@ def push(req: XdcRequest, metadata_path: str,
         raise ApiError(400, f'Error uploading to Flapjack: {e}') from e
 
 
-def _save_plate(plate_file: FileStorage, upload_dir: str) -> str:
+def _save_plate(plate_file: FileStorage, workspace: Workspace) -> str:
     # SynBioHub has just been sent this stream, so it is at its end.
     plate_file.stream.seek(0)
-    path = os.path.join(upload_dir, f'{uuid4()}_{secure_filename(plate_file.filename)}')
+    path = workspace.path(secure_filename(plate_file.filename))
     plate_file.save(path)
     return path

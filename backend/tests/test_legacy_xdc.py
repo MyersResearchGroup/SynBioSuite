@@ -1,10 +1,10 @@
-"""POST /api/uploadResource and /api/uploadExperiment as they behave today.
+"""POST /api/uploadResource and /api/uploadExperiment, through the HTTP client.
 
-Both routes run the same code. Every test goes through the HTTP client and
-patches only what stays where it is (sbh_http, excel2sbol.converter, the
-functions on the uploadFlapjack module), so this file holds unedited across
-the move into app/services. Warts are pinned as they are; a fix changes its
-test in the same commit.
+Both routes run the same code. The tests patch only what the service reaches
+its collaborators through (sbh_http, excel2sbol.converter, the functions on
+the uploadFlapjack module), never the service itself, so they held unedited
+while the code moved out of route.py. Behaviour that is odd but kept on
+purpose is marked "Wart, pinned".
 """
 import os
 import sys
@@ -245,17 +245,28 @@ def test_the_workbook_extension_is_not_case_sensitive(client, legacy_sbh):
     assert response.status_code == 200
 
 
-def test_a_successful_upload_leaves_its_sbol_in_the_working_directory(
-    client, legacy_sbh, workdir,
-):
-    """Wart, pinned: the converted and the submitted document are written to
-    the CWD under bare filenames and never removed."""
+def assert_nothing_left(workdir):
+    assert leftovers(workdir) == []
+    assert leftovers(workdir / 'uploads') == []
+
+
+def test_a_successful_upload_leaves_no_temp_files(client, legacy_sbh, workdir):
     synbiohub_answers(legacy_sbh)
 
     upload(client)
 
-    assert leftovers(workdir) == ['SBOL_final.xml', 'converted_SBOL.xml']
-    assert leftovers(workdir / 'uploads') == []
+    assert_nothing_left(workdir)
+
+
+def test_the_submitted_document_is_written_under_uploads(client, legacy_sbh, workdir):
+    """Not to the process CWD under a bare filename, as it used to be."""
+    synbiohub_answers(legacy_sbh)
+
+    upload(client)
+
+    [submit] = legacy_sbh.calls_matching('/submit')
+    written = submit.kwargs['files']['files'].name
+    assert os.path.dirname(written) == str(workdir / 'uploads')
 
 
 # ----------------------------------------------------------- with attachments
@@ -398,7 +409,7 @@ def test_a_flapjack_push_cleans_up_after_itself(
         **FLAPJACK,
     )
 
-    assert leftovers(workdir / 'uploads') == []
+    assert_nothing_left(workdir)
 
 
 @pytest.mark.parametrize('assay_count, plate_names, imported', [
@@ -463,10 +474,7 @@ def test_without_plate_files_flapjack_is_not_contacted(
 def test_a_flapjack_failure_is_a_400_after_synbiohub_has_the_upload(
     client, legacy_sbh, flapjack, converts_to_an_experiment, workdir,
 ):
-    """Pinned: the SynBioHub half has already happened and is not undone.
-
-    Wart, pinned: the workbook and the saved plate are left in uploads/.
-    """
+    """Pinned: the SynBioHub half has already happened and is not undone."""
     synbiohub_answers(legacy_sbh)
     flapjack([('a1', 'Assay 1', None)], failure=RuntimeError('flapjack is down'))
 
@@ -484,7 +492,7 @@ def test_a_flapjack_failure_is_a_400_after_synbiohub_has_the_upload(
     }
     assert len(legacy_sbh.calls_matching('/submit')) == 1
     assert len(legacy_sbh.calls_matching('/attach')) == 1
-    assert leftovers(workdir / 'uploads') == ['assay.xlsx', 'plate1.txt']
+    assert_nothing_left(workdir)
 
 
 def test_a_flapjack_module_that_will_not_import_is_a_400_too(
@@ -596,7 +604,6 @@ def test_none_of_those_saves_the_workbook(client, legacy_sbh, workdir):
 # --------------------------------------- rejected once the workbook is on disk
 
 def test_an_attachment_the_params_do_not_name_is_400(client, legacy_sbh, workdir):
-    """Wart, pinned: the workbook saved a moment earlier is left behind."""
     response = upload(
         client, attachment_files=[raw_part(b'lab notes', 'notes.txt')], attachments={},
     )
@@ -605,7 +612,7 @@ def test_an_attachment_the_params_do_not_name_is_400(client, legacy_sbh, workdir
         response, legacy_sbh,
         "Attachment metadata for file 'notes.txt' not found in request",
     )
-    assert leftovers(workdir / 'uploads') == ['resources.xlsx']
+    assert_nothing_left(workdir)
 
 
 def test_a_plate_file_the_params_do_not_name_is_400(client, legacy_sbh, workdir):
@@ -615,7 +622,7 @@ def test_a_plate_file_the_params_do_not_name_is_400(client, legacy_sbh, workdir)
         response, legacy_sbh,
         "Plate Reader Output metadata for file 'plate1.txt' not found in request",
     )
-    assert leftovers(workdir / 'uploads') == ['resources.xlsx']
+    assert_nothing_left(workdir)
 
 
 def test_a_workbook_that_will_not_convert_is_400(client, legacy_sbh, workdir):
@@ -624,7 +631,7 @@ def test_a_workbook_that_will_not_convert_is_400(client, legacy_sbh, workdir):
     assert response.status_code == 400
     assert response.get_json()['error'].startswith('SBOL Conversion Failed: ')
     assert legacy_sbh.calls == []
-    assert leftovers(workdir / 'uploads') == ['bad.xlsx']
+    assert_nothing_left(workdir)
 
 
 def test_an_empty_token_is_only_noticed_after_the_conversion(client, legacy_sbh):
@@ -655,9 +662,7 @@ def test_a_failed_login_is_400(client, legacy_sbh, workdir):
                  'Error accessing SynBioHub profile (401): bad token',
     }
     assert requested(legacy_sbh) == [f'GET {SBH_URL}/profile']
-    # Wart, pinned: nothing the request wrote is removed.
-    assert leftovers(workdir) == ['converted_SBOL.xml']
-    assert leftovers(workdir / 'uploads') == ['resources.xlsx']
+    assert_nothing_left(workdir)
 
 
 def test_a_rejected_submit_is_400(client, legacy_sbh, workdir):
@@ -669,11 +674,10 @@ def test_a_rejected_submit_is_400(client, legacy_sbh, workdir):
     assert response.get_json() == {
         'error': 'Error uploading to SynBioHub: SynBioHub submit failed (500): boom',
     }
-    assert leftovers(workdir) == ['SBOL_final.xml', 'converted_SBOL.xml']
-    assert leftovers(workdir / 'uploads') == ['resources.xlsx']
+    assert_nothing_left(workdir)
 
 
-def test_a_rejected_attachment_is_400(client, legacy_sbh):
+def test_a_rejected_attachment_is_400(client, legacy_sbh, workdir):
     synbiohub_answers(legacy_sbh, attach=FakeResponse(500, text='no room'))
 
     response = upload(
@@ -688,9 +692,10 @@ def test_a_rejected_attachment_is_400(client, legacy_sbh):
                  'Uploading attachments to SynBioHub failed (500): no room',
     }
     assert len(legacy_sbh.calls_matching('/submit')) == 1
+    assert_nothing_left(workdir)
 
 
-def test_a_rejected_plate_file_is_400(client, legacy_sbh):
+def test_a_rejected_plate_file_is_400(client, legacy_sbh, workdir):
     synbiohub_answers(legacy_sbh, attach=FakeResponse(500, text='no room'))
 
     response = upload(
@@ -702,6 +707,7 @@ def test_a_rejected_plate_file_is_400(client, legacy_sbh):
         'error': 'Error uploading plate reader attachments to SynBioHub: '
                  'Uploading attachments to SynBioHub failed (500): no room',
     }
+    assert_nothing_left(workdir)
 
 
 # ------------------------------------------------------- unhandled, so a 500

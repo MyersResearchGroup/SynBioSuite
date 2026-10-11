@@ -1,6 +1,7 @@
 """services/common.py: the request plumbing the legacy services share."""
 import io
 import json
+import os
 
 import pytest
 from werkzeug.datastructures import FileStorage, MultiDict
@@ -10,12 +11,23 @@ from sbs_server.app.sbh_http import BlockedDestinationError
 from sbs_server.app.services import common
 
 from conftest import TOKEN, FakeResponse
-from legacy_helpers import LOGIN_GRAPH, SBH_URL, SBH_USER, logged_in
+from legacy_helpers import (
+    LOGIN_GRAPH,
+    SBH_URL,
+    SBH_USER,
+    UUID_PREFIX_LENGTH,
+    logged_in,
+)
 
 
 def files_with(params, filename='parameters.json'):
     body = params if isinstance(params, bytes) else json.dumps(params).encode()
     return MultiDict({'Params': FileStorage(stream=io.BytesIO(body), filename=filename)})
+
+
+def leftovers_named(path):
+    """A temp file's name without its uuid prefix."""
+    return os.path.basename(path)[UUID_PREFIX_LENGTH:]
 
 
 # ---------------------------------------------------------------- read_params
@@ -97,6 +109,64 @@ def test_an_unusable_sbh_url_is_400(given, reason):
 ])
 def test_overwrite_merge_follows_sbh_overwrite(params, expected):
     assert common.overwrite_merge(params) == expected
+
+
+# ------------------------------------------------------------ upload_workspace
+
+def test_a_workspace_hands_out_unique_paths_under_uploads(workdir):
+    with common.upload_workspace() as workspace:
+        first = workspace.path('part.xml')
+        second = workspace.path('part.xml')
+
+    uploads = str(workdir / 'uploads')
+    assert os.path.isdir(uploads)
+    assert first != second
+    assert {os.path.dirname(first), os.path.dirname(second)} == {uploads}
+    assert leftovers_named(first) == leftovers_named(second) == 'part.xml'
+
+
+def test_a_workspace_removes_its_files_on_the_way_out(workdir):
+    with common.upload_workspace() as workspace:
+        path = workspace.path('part.xml')
+        open(path, 'w').close()
+        assert os.path.exists(path)
+
+    assert os.listdir(workdir / 'uploads') == []
+
+
+def test_a_workspace_removes_its_files_when_the_work_fails(workdir):
+    with pytest.raises(RuntimeError):
+        with common.upload_workspace() as workspace:
+            open(workspace.path('part.xml'), 'w').close()
+            raise RuntimeError('the upload went wrong')
+
+    assert os.listdir(workdir / 'uploads') == []
+
+
+def test_a_path_that_was_never_written_is_not_a_problem(workdir):
+    with common.upload_workspace() as workspace:
+        workspace.path('never_written.xml')
+
+    assert os.listdir(workdir / 'uploads') == []
+
+
+def test_a_file_that_cannot_be_removed_does_not_fail_the_request(workdir, capsys):
+    with common.upload_workspace() as workspace:
+        path = workspace.path('stuck')
+        os.mkdir(path)  # os.remove refuses a directory
+
+    assert 'failed to remove temporary file' in capsys.readouterr().out
+
+
+def test_a_workspace_leaves_other_requests_files_alone(workdir):
+    os.mkdir(workdir / 'uploads')
+    other = workdir / 'uploads' / 'someone_elses.xml'
+    other.write_text('still in use')
+
+    with common.upload_workspace() as workspace:
+        open(workspace.path('part.xml'), 'w').close()
+
+    assert os.listdir(workdir / 'uploads') == ['someone_elses.xml']
 
 
 # ---------------------------------------------------------------------- login

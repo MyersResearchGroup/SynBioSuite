@@ -46,9 +46,7 @@ def load_document(spec: CollectionSpec, file_storage, upload_dir: str) -> sbol2.
         raise ApiError(400, f'Invalid file name: {filename}')
 
     source_path = os.path.join(upload_dir, f'{uuid4()}_{safe_name}')
-    # convert_to_sbol writes its output to this path; the legacy XDC routes
-    # (services/xdc.py) pass a bare filename here, which lands in the process
-    # CWD and is never cleaned up.
+    # convert_to_sbol writes its output to this path.
     converted_path = os.path.join(upload_dir, f'{uuid4()}_converted_SBOL.xml')
 
     os.makedirs(upload_dir, exist_ok=True)

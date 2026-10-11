@@ -5,8 +5,11 @@ Each helper raises ApiError with the message these routes have always answered.
 from __future__ import annotations
 
 import json
+import os
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Iterator, List
+from uuid import uuid4
 
 from requests.exceptions import RequestException
 
@@ -23,6 +26,9 @@ SYNBIOHUB_FAILURES = (SynBioHubError, RequestException, BlockedDestinationError)
 # SynBioHub /submit overwrite_merge values; see MERGE_AND_OVERWRITE in api/sbh.py.
 MERGE_AND_OVERWRITE = 3
 MERGE_AND_PREVENT = 2
+
+# Under the process CWD; api/views.py uses the same directory.
+UPLOADS_DIRECTORY = 'uploads'
 
 
 @dataclass(frozen=True)
@@ -57,6 +63,44 @@ def sbh_base_url(params: dict) -> str:
         return normalise_base_url(params.get('sbh_url'))
     except ValueError as error:
         raise ApiError(400, f'Invalid sbh_url: {error}') from error
+
+
+class Workspace:
+    """Where one request keeps its temp files."""
+
+    def __init__(self, directory: str):
+        self.directory = directory
+        self._paths: List[str] = []
+
+    def path(self, name: str) -> str:
+        """A fresh path for a temp file called `name`. Nothing is created yet."""
+        path = os.path.join(self.directory, f'{uuid4()}_{name}')
+        self._paths.append(path)
+        return path
+
+    def remove_files(self) -> None:
+        for path in self._paths:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError as error:
+                # Not worth failing a request over: say so and carry on.
+                print(f'Warning: failed to remove temporary file {path}: {error}')
+
+
+@contextmanager
+def upload_workspace() -> Iterator[Workspace]:
+    """Temp file paths under uploads/, each removed on the way out.
+
+    However the block ends: with a result, an ApiError, or anything else.
+    """
+    directory = os.path.join(os.getcwd(), UPLOADS_DIRECTORY)
+    os.makedirs(directory, exist_ok=True)
+    workspace = Workspace(directory)
+    try:
+        yield workspace
+    finally:
+        workspace.remove_files()
 
 
 def overwrite_merge(params: dict) -> int:
