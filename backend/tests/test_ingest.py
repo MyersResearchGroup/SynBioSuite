@@ -238,9 +238,9 @@ FILLED_WORKBOOK = os.path.expanduser(
 def test_conversion_uses_the_excel_homespace_not_the_collections(tmp_path, monkeypatch):
     """Workbooks convert against EXCEL_HOMESPACE whatever collection they are for.
 
-    route.py:xdc_run hardcodes https://example.org/ for every workbook, so the
-    two upload paths have to agree. resources' own spec.homespace is different,
-    which is exactly the confusion this pins down.
+    The legacy XDC routes (services/xdc.py) convert every workbook against it
+    too, so the two upload paths agree. resources' own spec.homespace is
+    different, which is exactly the confusion this pins down.
     """
     seen = {}
 

@@ -53,7 +53,7 @@ def create_in_collection(spec: CollectionSpec):
 
     POST is the only add-or-update verb for collection content -- PATCH is
     scoped to assay attachments -- so it submits with merge-and-overwrite,
-    matching what xdc_run does today.
+    matching what the legacy XDC routes do (services/xdc.py).
     """
     ctx = _context_for(spec)
     _require_study(ctx)
@@ -185,6 +185,6 @@ def _require_study(ctx):
 
 
 def _upload_dir():
-    # Same location route.py uses for its temp files.
+    # Same location the legacy services use for their temp files.
     return os.path.join(os.getcwd(), 'uploads')
 

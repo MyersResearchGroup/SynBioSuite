@@ -46,8 +46,9 @@ def load_document(spec: CollectionSpec, file_storage, upload_dir: str) -> sbol2.
         raise ApiError(400, f'Invalid file name: {filename}')
 
     source_path = os.path.join(upload_dir, f'{uuid4()}_{safe_name}')
-    # convert_to_sbol writes its output to this path; xdc_run passes a bare
-    # filename here, which lands in the process CWD and is never cleaned up.
+    # convert_to_sbol writes its output to this path; the legacy XDC routes
+    # (services/xdc.py) pass a bare filename here, which lands in the process
+    # CWD and is never cleaned up.
     converted_path = os.path.join(upload_dir, f'{uuid4()}_converted_SBOL.xml')
 
     os.makedirs(upload_dir, exist_ok=True)
@@ -94,10 +95,11 @@ def _require_accepted(spec: CollectionSpec, kind: str, extension: str):
 def _convert_workbook(source_path: str, converted_path: str):
     """Convert a workbook against EXCEL_HOMESPACE, whatever collection it is for.
 
-    Not spec.homespace: route.py:xdc_run converts every workbook against
-    https://example.org/ regardless of type, and both upload paths should put an
-    object on the same URI before submission. SynBioHub re-homes on ingest, so
-    this is not visible in the final URI -- it just keeps the two paths honest.
+    Not spec.homespace: the legacy XDC routes (services/xdc.py) convert every
+    workbook against https://example.org/ regardless of type, and both upload
+    paths should put an object on the same URI before submission. SynBioHub
+    re-homes on ingest, so this is not visible in the final URI -- it just
+    keeps the two paths honest.
     """
     _validate_workbook(source_path)
     try:

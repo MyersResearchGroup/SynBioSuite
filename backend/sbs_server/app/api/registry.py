@@ -28,7 +28,7 @@ class CollectionSpec:
 
     ``homespace`` applies to the SBOL ingest path only; workbooks always convert
     against ``EXCEL_HOMESPACE`` (see ingest._convert_workbook), matching the
-    existing xdc_run behaviour.
+    legacy XDC routes (services/xdc.py).
     """
     path: str
     import_type: str
