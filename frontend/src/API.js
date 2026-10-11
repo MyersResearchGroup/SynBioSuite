@@ -435,7 +435,7 @@ export async function searchCollections(url, auth) {
         });
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
-            return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
+            return response.data.filter(item => typeof item.uri === 'string' && !/\/user\//.test(item.uri));
         } else {
             throw new Error("Response from SynbioHub is not an array");
         }
