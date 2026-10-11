@@ -1,10 +1,7 @@
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
-from flask import jsonify, send_file
 import requests
-from .sbh_http import BlockedDestinationError, normalise_base_url
 from .utils import sbh_get_subCollection_uris
-import json
 from io import BytesIO
 
 # (connect, read) seconds for the GitHub template download. /api/v1 reaches it,
@@ -94,7 +91,7 @@ def build_template(template_type, sbh_url, sbh_token, collection_url):
 
     # Resources is the one template with no SBH_* sheets to fill, so it is
     # returned byte-for-byte: an openpyxl load/save round trip gains nothing
-    # here and is lossy for .xlsm. Matches sbh_download_template on master.
+    # here and is lossy for .xlsm. Matches POST /api/downloadTemplate on master.
     if template_type == "synbio.object-type.resources":
         return BytesIO(template_bytes), filename
 
@@ -151,45 +148,3 @@ def build_template(template_type, sbh_url, sbh_token, collection_url):
     output.seek(0)
 
     return output, filename
-
-
-def sbh_download_template(files):
-    if 'Params' not in files:
-        return jsonify({"error": "No Params file part"}), 400
-
-    params_file = files['Params']
-    if params_file.filename == '':
-        return jsonify({"error": "No selected Params file"}), 400
-
-    params_from_request = json.loads(params_file.read())
-
-    required_params = ['template_type', 'sbh_url', 'sbh_token', 'collection_url']
-    for param in required_params:
-        if param not in params_from_request:
-            return jsonify({"error": f"Parameter {param} not found in request"}), 400
-
-    if params_from_request['sbh_token'] is None:
-        return jsonify({"error": "No SBH credentials provided"}), 400
-
-    try:
-        sbh_url = normalise_base_url(params_from_request['sbh_url'])
-    except ValueError as e:
-        return jsonify({"error": f"Invalid sbh_url: {e}"}), 400
-
-    try:
-        output, filename = build_template(
-            params_from_request['template_type'],
-            sbh_url,
-            params_from_request['sbh_token'],
-            params_from_request['collection_url'],
-        )
-        return send_file(
-            output,
-            as_attachment=True,
-            download_name=filename,
-            mimetype="application/vnd.ms-excel.sheet.macroEnabled.12",
-        )
-    except BlockedDestinationError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500

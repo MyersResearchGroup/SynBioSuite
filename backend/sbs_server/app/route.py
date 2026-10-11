@@ -1,12 +1,11 @@
 from __future__ import annotations
-from flask import request, jsonify
+from flask import request, jsonify, send_file
 import json
 
 from .main import app
 from .version import __version__
-from .downloadTemplates import sbh_download_template
 from .errors import ApiError
-from .services import sbol_upload, xdc
+from .services import sbol_upload, template_download, xdc
 
 # The services these routes call raise ApiError; this renders it the way the
 # /api/v1 blueprint does (api/errors.py). Anything else propagates as before.
@@ -22,7 +21,13 @@ def pin():
 
 @app.route('/api/downloadTemplate', methods = ['POST'])
 def download_template():
-    return sbh_download_template(request.files)
+    output, filename = template_download.run(template_download.parse_request(request.files))
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.ms-excel.sheet.macroEnabled.12",
+    )
 
 @app.route('/api/uploadSBOL', methods = ['POST'])
 def upload_sbol():
