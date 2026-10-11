@@ -604,10 +604,19 @@ def test_a_flapjack_url_needs_a_flapjack_token(client, legacy_sbh):
     )
 
 
-def test_none_of_those_saves_the_workbook(client, legacy_sbh, workdir):
-    upload(client, sbh_token=None)
+@pytest.mark.parametrize('overrides', [
+    {'sbh_token': None},
+    {'sbh_url': 'ftp://synbiohub.org'},
+    {'fj_url': LOCAL_FLAPJACK_URL},
+])
+def test_a_request_rejected_up_front_touches_no_disk(
+    client, legacy_sbh, workdir, overrides,
+):
+    """Not even uploads/ is created: these checks run before any file work."""
+    response = upload(client, **overrides)
 
-    assert leftovers(workdir / 'uploads') == []
+    assert response.status_code == 400
+    assert os.listdir(workdir) == []
 
 
 # --------------------------------------- rejected once the workbook is on disk
@@ -631,6 +640,23 @@ def test_a_plate_file_the_params_do_not_name_is_400(client, legacy_sbh, workdir)
         response, legacy_sbh,
         "Plate Reader Output metadata for file 'plate1.txt' not found in request",
     )
+    assert_nothing_left(workdir)
+
+
+def test_titles_are_checked_and_used_one_file_at_a_time(
+    unhandled_client, legacy_sbh, workdir,
+):
+    """Wart, pinned: a title that is not text fails at its own file, before a
+    later file with no title at all is noticed -- and nothing catches it."""
+    response = upload(
+        unhandled_client,
+        attachment_files=[raw_part(b'one', 'a.txt'), raw_part(b'two', 'b.txt')],
+        attachments={'a.txt': ['not', 'text']},
+    )
+
+    assert response.status_code == 500
+    assert response.mimetype == 'text/html'
+    assert legacy_sbh.calls == []
     assert_nothing_left(workdir)
 
 

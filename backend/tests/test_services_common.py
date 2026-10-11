@@ -1,4 +1,5 @@
 """services/common.py: the request plumbing the legacy services share."""
+import dataclasses
 import io
 import json
 import os
@@ -9,6 +10,9 @@ from werkzeug.datastructures import FileStorage, MultiDict
 from sbs_server.app.errors import ApiError
 from sbs_server.app.sbh_http import BlockedDestinationError
 from sbs_server.app.services import common
+from sbs_server.app.services.sbol_upload import SbolUploadRequest
+from sbs_server.app.services.template_download import TemplateRequest
+from sbs_server.app.services.xdc import XdcRequest
 
 from conftest import TOKEN, FakeResponse
 from legacy_helpers import (
@@ -28,6 +32,29 @@ def files_with(params, filename='parameters.json'):
 def leftovers_named(path):
     """A temp file's name without its uuid prefix."""
     return os.path.basename(path)[UUID_PREFIX_LENGTH:]
+
+
+# ------------------------------------------------------- the request objects
+
+@pytest.mark.parametrize('request_class, tokens', [
+    (SbolUploadRequest, {'sbh_token'}),
+    (XdcRequest, {'sbh_token', 'fj_token', 'fj_refresh_token'}),
+    (TemplateRequest, {'sbh_token'}),
+])
+def test_tokens_are_left_out_of_a_requests_repr(request_class, tokens):
+    """So a request that ends up in a log line or a traceback carries none."""
+    hidden = {f.name for f in dataclasses.fields(request_class) if not f.repr}
+
+    assert hidden == tokens
+
+
+def test_a_printed_request_does_not_show_its_token():
+    request = TemplateRequest(
+        template_type='synbio.object-type.strains', sbh_url=SBH_URL,
+        sbh_token='not-for-the-log', collection_url='https://synbiohub.org/c/1',
+    )
+
+    assert 'not-for-the-log' not in repr(request)
 
 
 # ---------------------------------------------------------------- read_params

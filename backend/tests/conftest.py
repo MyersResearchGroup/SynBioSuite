@@ -372,8 +372,9 @@ def legacy_sbh(monkeypatch, _block_network):
 def workdir(tmp_path, monkeypatch):
     """Run from an empty directory.
 
-    The legacy routes write temp files to the CWD and to uploads/ under it, so
-    whatever is here afterwards is exactly what the request left behind.
+    The legacy routes keep their temp files in uploads/ under the CWD -- and
+    once wrote some to the CWD itself -- so whatever is here afterwards is
+    exactly what the request left behind.
     """
     directory = tmp_path / 'cwd'
     directory.mkdir()

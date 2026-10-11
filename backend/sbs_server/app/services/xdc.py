@@ -6,7 +6,7 @@ Behind POST /api/uploadResource and POST /api/uploadExperiment.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
 
 import sbol2
@@ -50,14 +50,15 @@ class XdcRequest:
     metadata_file: FileStorage
     sbh_url: str
     sbh_prefix: Optional[str]
-    # May be '': that is only noticed after the conversion.
-    sbh_token: str
+    # May be '': that is only noticed after the conversion. Tokens stay out
+    # of the repr, so a request in a log line or traceback carries none.
+    sbh_token: str = field(repr=False)
     collection_url: str
     overwrite_merge: int
     import_type: str
     fj_url: Optional[str]
-    fj_token: Optional[str]
-    fj_refresh_token: Optional[str]
+    fj_token: Optional[str] = field(repr=False)
+    fj_refresh_token: Optional[str] = field(repr=False)
     fj_study_id: Optional[object]
     attachments: Optional[TitledFiles]
     plate_reader_outputs: Optional[TitledFiles]
@@ -173,15 +174,21 @@ def _titled_files(files, field: str, params: dict, key: str) -> Optional[TitledF
 
 
 def _by_title(titled: Optional[TitledFiles], kind: str) -> Optional[Dict[str, FileStorage]]:
-    """{title: file} for upload_sbh_attachments; 400 for a file with no title."""
+    """{title: file} for upload_sbh_attachments; 400 for a file with no title.
+
+    One file at a time, check then use, so the first file at fault decides
+    the answer.
+    """
     if titled is None:
         return None
+    by_title = {}
     for file in titled.files:
         if file.filename not in titled.titles:
             raise ApiError(
                 400, f"{kind} metadata for file '{file.filename}' not found in request",
             )
-    return {titled.titles[file.filename]: file for file in titled.files}
+        by_title[titled.titles[file.filename]] = file
+    return by_title
 
 
 def _experiment_id(doc: sbol2.Document) -> Optional[str]:

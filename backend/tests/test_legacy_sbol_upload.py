@@ -192,19 +192,23 @@ def test_the_sub_collection_is_created_under_the_import_types_homespace(
     assert list(collection.members) == ['https://example.com/test_part/1']
 
 
+def assert_nothing_left(workdir):
+    assert leftovers(workdir) == []
+    assert leftovers(workdir / 'uploads') == []
+
+
 def test_an_upload_leaves_no_temp_files(client, legacy_sbh, sbol_file, workdir):
     synbiohub_answers(legacy_sbh)
 
     upload(client, sbol_file)
 
-    assert leftovers(workdir) == []
-    assert leftovers(workdir / 'uploads') == []
+    assert_nothing_left(workdir)
 
 
 # ----------------------------------------------------------- with an SBML file
 
 def test_an_sbml_file_is_attached_and_linked_as_a_model(
-    client, legacy_sbh, monkeypatch, design_file,
+    client, legacy_sbh, monkeypatch, design_file, workdir,
 ):
     synbiohub_answers(
         legacy_sbh,
@@ -239,6 +243,7 @@ def test_an_sbml_file_is_attached_and_linked_as_a_model(
     assert model.framework == 'http://identifiers.org/biomodels.sbo/SBO:0000062'
     [design] = doc.moduleDefinitions
     assert list(design.models) == [model.identity]
+    assert_nothing_left(workdir)
 
 
 def test_the_attachment_is_looked_up_in_the_login_graph(client, legacy_sbh, design_file):
@@ -267,7 +272,7 @@ def test_an_sbml_part_without_a_filename_is_ignored(client, legacy_sbh, sbol_fil
 
 
 def test_an_attachment_synbiohub_cannot_find_again_is_a_500(
-    client, legacy_sbh, caplog, design_file,
+    client, legacy_sbh, caplog, design_file, workdir,
 ):
     """Wart, pinned: sourceUri is only bound inside the loop over the lookup's
     results, so an empty lookup raises -- after the file has been attached.
@@ -283,6 +288,7 @@ def test_an_attachment_synbiohub_cannot_find_again_is_a_500(
     assert 'sourceUri' in caplog.text
     assert len(legacy_sbh.calls_matching('/attach')) == 1
     assert legacy_sbh.calls_matching('/submit') == []
+    assert_nothing_left(workdir)
 
 
 # ------------------------------------------------- rejected before any request
@@ -424,7 +430,7 @@ def test_a_rejected_submit_is_a_500_that_says_why(
     assert response.get_json() == {
         'error': 'SynBioHub submit failed (401): Unauthorized',
     }
-    assert leftovers(workdir / 'uploads') == []
+    assert_nothing_left(workdir)
 
 
 def test_a_failed_member_query_is_a_500_that_says_why(client, legacy_sbh, sbol_file):
@@ -470,7 +476,7 @@ def test_a_synbiohub_that_cannot_be_reached_is_a_500_that_says_why(
 
 
 def test_a_file_that_is_not_xml_is_a_500_that_says_where_it_went_wrong(
-    client, legacy_sbh, tmp_path,
+    client, legacy_sbh, tmp_path, workdir,
 ):
     """The parser's own message starts with the path of the temp file on this
     server; the caller gets the reason and the position, not the path."""
@@ -485,6 +491,7 @@ def test_a_file_that_is_not_xml_is_a_500_that_says_where_it_went_wrong(
         'error': 'Could not parse the SBOL file: syntax error (line 1, column 0)',
     }
     assert requested(legacy_sbh) == [f'GET {SBH_URL}/profile']
+    assert_nothing_left(workdir)
 
 
 def test_a_document_sbol2_rejects_is_a_500_carrying_its_message(

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Tuple
 from xml.sax import SAXParseException
 
@@ -71,7 +71,8 @@ class SbolUploadRequest:
     sbml_file: Optional[FileStorage]
     sbh_url: str
     sbh_prefix: Optional[str]
-    sbh_token: str
+    # Out of the repr, so a request in a log line or traceback carries none.
+    sbh_token: str = field(repr=False)
     collection_url: str
     overwrite_merge: int
     import_type: str

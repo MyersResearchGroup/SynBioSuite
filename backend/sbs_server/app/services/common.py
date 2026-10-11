@@ -1,6 +1,6 @@
 """Request plumbing the legacy /api/* services share.
 
-Each helper raises ApiError with the message these routes have always answered.
+Each helper raises ApiError with the message the routes answer.
 """
 from __future__ import annotations
 

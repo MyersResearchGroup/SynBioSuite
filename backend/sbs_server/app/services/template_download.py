@@ -6,7 +6,7 @@ work, and GET /api/v1/{collection}/template shares it.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Tuple
 
@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 REQUIRED_PARAMS = ('template_type', 'sbh_url', 'sbh_token', 'collection_url')
 
 # Failures whose message is fit to show the caller: SynBioHub's or GitHub's,
-# and a template type that does not exist. Anything else is unexpected; the
-# caller is told only that it failed, and the exception goes to the log.
+# and a template type that does not exist. (A refused destination is among
+# SYNBIOHUB_FAILURES but is answered 400 before these are consulted.) Anything
+# else is unexpected; the caller is told only that it failed, and the
+# exception goes to the log.
 REPORTED_FAILURES = (*SYNBIOHUB_FAILURES, UnknownTemplateError)
 UNEXPECTED_FAILURE = (
     'The template download failed unexpectedly. The details are in the server log.'
@@ -34,7 +36,8 @@ class TemplateRequest:
 
     template_type: str
     sbh_url: str
-    sbh_token: str
+    # Out of the repr, so a request in a log line or traceback carries none.
+    sbh_token: str = field(repr=False)
     collection_url: str
 
 

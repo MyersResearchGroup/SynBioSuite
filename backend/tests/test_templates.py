@@ -1,8 +1,8 @@
 """GET /api/v1/{collection}/template, and the refactor that made it possible.
 
-build_template() was extracted out of sbh_download_template so the new route and
-the legacy POST /api/downloadTemplate share one implementation. The parity test
-below is what guards that extraction.
+build_template() was extracted out of the legacy POST /api/downloadTemplate
+handler so the new route and the legacy one share one implementation. The
+parity test below is what guards that extraction.
 """
 import io
 import json
