@@ -6,16 +6,10 @@ spec, and the shape route.py already returns from the legacy endpoints.
 from flask import current_app, jsonify
 from werkzeug.exceptions import HTTPException
 
+# Defined in app/errors.py, which the legacy routes share; the api modules and
+# their tests import it from here.
+from ..errors import ApiError
 from ..sbh_http import BlockedDestinationError
-
-
-class ApiError(Exception):
-    """An error with a deliberate HTTP status, raised from views or context parsing."""
-
-    def __init__(self, status: int, message: str):
-        super().__init__(message)
-        self.status = status
-        self.message = message
 
 
 def register_error_handlers(bp):

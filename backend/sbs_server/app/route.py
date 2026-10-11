@@ -13,9 +13,16 @@ import sbol2.model
 from .main import app
 from .version import __version__
 from .downloadTemplates import sbh_download_template
+from .errors import ApiError
 from .sbh_http import normalise_base_url
 from .synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from .utils import get_sbh_user, convert_to_sbol, make_identifier, sbh_get_attachment_uri, find_root_module_definitions, find_root_component_definitions
+
+# The services these routes call raise ApiError; this renders it the way the
+# /api/v1 blueprint does (api/errors.py). Anything else propagates as before.
+@app.errorhandler(ApiError)
+def handle_api_error(err):
+    return jsonify({"error": err.message}), err.status
 
 #routes
 #check if the app is running
