@@ -52,7 +52,9 @@ PARAMS = {
     'sbh_overwrite': True,
     'importType': 'Devices',
 }
-REQUIRED = ['sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite']
+REQUIRED = [
+    'sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite', 'importType',
+]
 
 
 @pytest.fixture
@@ -361,17 +363,6 @@ def assert_unhandled(response, sbh):
     assert response.status_code == 500
     assert response.mimetype == 'text/html'
     assert sbh.calls == []
-
-
-def test_a_missing_import_type_is_unhandled(unhandled_client, legacy_sbh, sbol_file):
-    """Wart, pinned: importType is read but is not in the required list."""
-    response = post(
-        unhandled_client, URL,
-        SBOL=file_part(sbol_file, 'part.xml'),
-        Params=params_part(without(PARAMS, 'importType')),
-    )
-
-    assert_unhandled(response, legacy_sbh)
 
 
 def test_params_that_are_not_json_are_unhandled(unhandled_client, legacy_sbh, sbol_file):

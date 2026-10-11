@@ -37,7 +37,9 @@ from .common import (
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_PARAMS = ('sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite')
+REQUIRED_PARAMS = (
+    'sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url', 'sbh_overwrite', 'importType',
+)
 
 # Failures whose message is fit to show the caller: SynBioHub's, and sbol2
 # rejecting the document. Anything else is unexpected; the caller is told only
@@ -94,7 +96,6 @@ def parse_request(files) -> SbolUploadRequest:
         raise ApiError(400, 'No SBH credentials provided')
     sbh_url = sbh_base_url(params)
     collection_url = params['collection_url']
-    # Not in REQUIRED_PARAMS, so a request without it is an unhandled KeyError.
     import_type = params['importType']
     parts = tuple(collection_url.split('/'))
 
