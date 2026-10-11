@@ -327,6 +327,16 @@ def test_a_params_part_without_a_filename_is_400(client, legacy_sbh, sbol_file):
     assert_rejected(response, legacy_sbh, 'No selected Params file')
 
 
+def test_params_that_are_not_json_are_400(client, legacy_sbh, sbol_file):
+    response = post(
+        client, URL,
+        SBOL=file_part(sbol_file, 'part.xml'),
+        Params=raw_part(b'{not json', 'parameters.json'),
+    )
+
+    assert_rejected(response, legacy_sbh, 'Params is not valid JSON')
+
+
 @pytest.mark.parametrize('missing', REQUIRED)
 def test_each_required_param_is_checked(client, legacy_sbh, sbol_file, missing):
     response = post(
@@ -363,17 +373,6 @@ def assert_unhandled(response, sbh):
     assert response.status_code == 500
     assert response.mimetype == 'text/html'
     assert sbh.calls == []
-
-
-def test_params_that_are_not_json_are_unhandled(unhandled_client, legacy_sbh, sbol_file):
-    """Wart, pinned."""
-    response = post(
-        unhandled_client, URL,
-        SBOL=file_part(sbol_file, 'part.xml'),
-        Params=raw_part(b'{not json', 'parameters.json'),
-    )
-
-    assert_unhandled(response, legacy_sbh)
 
 
 def test_a_null_collection_url_is_unhandled_before_login(

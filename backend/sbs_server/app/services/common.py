@@ -46,7 +46,10 @@ def read_params(files, required: Iterable[str]) -> dict:
     params_file = files[PARAMS_FIELD]
     if params_file.filename == '':
         raise ApiError(400, 'No selected Params file')
-    params = json.loads(params_file.read())
+    try:
+        params = json.loads(params_file.read())
+    except ValueError as error:
+        raise ApiError(400, 'Params is not valid JSON') from error
 
     for param in required:
         if param not in params:

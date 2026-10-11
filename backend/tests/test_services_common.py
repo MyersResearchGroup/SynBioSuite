@@ -66,10 +66,13 @@ def test_read_params_accepts_a_key_whose_value_is_null():
     assert common.read_params(files_with({'a': None}), ['a']) == {'a': None}
 
 
-def test_read_params_does_not_catch_invalid_json():
-    """Wart, pinned: the routes answer this with Flask's own 500."""
-    with pytest.raises(ValueError):
-        common.read_params(files_with(b'{not json'), ['a'])
+@pytest.mark.parametrize('body', [b'{not json', b'', b'\xff'])
+def test_read_params_rejects_a_part_that_is_not_json(body):
+    """Truncated, empty, or not even text."""
+    with pytest.raises(ApiError) as excinfo:
+        common.read_params(files_with(body), ['a'])
+
+    assert (excinfo.value.status, excinfo.value.message) == (400, 'Params is not valid JSON')
 
 
 # --------------------------------------------------------------- sbh_base_url
