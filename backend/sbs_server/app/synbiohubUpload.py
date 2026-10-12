@@ -2,7 +2,7 @@ import sbol2
 import sbol2.model
 from . import sbh_http
 from .sbh_http import SynBioHubError, rebase_uri
-from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri, sbol_validation_disabled
+from .utils import SBH_SUBMIT_TIMEOUT, sbh_get_subCollection_uris, sbh_get_attachment_uri, sbol_validation_disabled, with_sbol2_lock
 import os
 
 def upload_sbh_attachments(sbh_url, sbh_prefix, sbh_token, sbh_user, sbh_user_graph, sbh_collection_url, attachments, experimentId=None):
@@ -56,6 +56,10 @@ def subcollection_members(doc, sbh_prefix, keep=frozenset()):
     return [tl for tl in doc
             if not tl.identity.startswith(sbh_prefix) or tl.identity in keep]
 
+# The sub-collection is created under sbol2's current homespace, and the write
+# switches sbol2's validation off and back on. Callers that set the homespace
+# earlier already hold the lock, so it is still theirs here.
+@with_sbol2_lock
 def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection_url, importType, file_path_out_final, sbh_overwrite_num, members=None):
     subCollection = sbol2.Collection(importType)
     parts = sbh_collection_url.split("/")

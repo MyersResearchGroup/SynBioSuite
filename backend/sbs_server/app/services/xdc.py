@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 from ..api.registry import EXCEL_HOMESPACE
 from ..errors import ApiError, parser_message, without_directory
 from ..synbiohubUpload import upload_sbh_attachments, upload_to_sbh
-from ..utils import convert_to_sbol
+from ..utils import SBOL2_LOCK, convert_to_sbol
 from . import flapjack_push
 from .common import (
     SbhUser,
@@ -123,6 +123,37 @@ def _run(req: XdcRequest, workspace: Workspace) -> dict:
     attachments = _by_title(req.attachments, 'Attachment')
     plate_reader_attachments = _by_title(req.plate_reader_outputs, 'Plate Reader Output')
 
+    # Held from the conversion to the submit: the sub-collection is created
+    # under the homespace the conversion left (see utils.SBOL2_LOCK).
+    with SBOL2_LOCK:
+        sbol_doc, user, sub_collection_url = _convert_and_submit(
+            req, workspace, metadata_path,
+        )
+
+    experiment_id = _experiment_id(sbol_doc)
+    answer_url = _named_after(sub_collection_url, req.import_type, experiment_id)
+
+    if attachments is not None:
+        _attach(req, user, attachments, experiment_id, 'attachments')
+    if plate_reader_attachments is not None:
+        _attach(req, user, plate_reader_attachments, experiment_id, 'plate reader attachments')
+
+    fj_url = req.fj_url
+    if (req.fj_study_id is not None and req.fj_url is not None
+            and req.fj_token is not None and plate_reader_attachments):
+        fj_url = flapjack_push.push(req, metadata_path, plate_reader_attachments, workspace)
+
+    print("XDC run complete")
+    return {
+        'sbh_url': req.sbh_url,
+        'subCollectionUrl': answer_url,
+        'fj_url': fj_url,
+        'status': 'success',
+    }
+
+
+def _convert_and_submit(req: XdcRequest, workspace: Workspace, metadata_path: str):
+    """The converted document, the logged-in user and the sub-collection's URL."""
     try:
         sbol_doc = convert_to_sbol(
             metadata_path, workspace.path('converted_SBOL.xml'), EXCEL_HOMESPACE,
@@ -148,27 +179,7 @@ def _run(req: XdcRequest, workspace: Workspace) -> dict:
     except Exception as e:
         print('Error uploading to SynBioHub')
         raise ApiError(400, f'Error uploading to SynBioHub: {e}') from e
-
-    experiment_id = _experiment_id(sbol_doc)
-    answer_url = _named_after(sub_collection_url, req.import_type, experiment_id)
-
-    if attachments is not None:
-        _attach(req, user, attachments, experiment_id, 'attachments')
-    if plate_reader_attachments is not None:
-        _attach(req, user, plate_reader_attachments, experiment_id, 'plate reader attachments')
-
-    fj_url = req.fj_url
-    if (req.fj_study_id is not None and req.fj_url is not None
-            and req.fj_token is not None and plate_reader_attachments):
-        fj_url = flapjack_push.push(req, metadata_path, plate_reader_attachments, workspace)
-
-    print("XDC run complete")
-    return {
-        'sbh_url': req.sbh_url,
-        'subCollectionUrl': answer_url,
-        'fj_url': fj_url,
-        'status': 'success',
-    }
+    return sbol_doc, user, sub_collection_url
 
 
 def _titled_files(files, field: str, params: dict, key: str) -> Optional[TitledFiles]:

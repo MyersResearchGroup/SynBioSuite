@@ -8,10 +8,12 @@ from sbol2build import abstract_translator as at
 from contextlib import contextmanager
 from requests.adapters import HTTPAdapter
 from urllib.parse import urlencode, urlsplit
+import functools
 import http.client
 import os
 import re
 import socket
+import threading
 import time
 
 from . import sbh_http
@@ -27,6 +29,27 @@ SBH_TIMEOUT = (5, 30)
 # so it gets longer -- still under harakiri, and generous enough that the legacy
 # upload routes keep finishing slow submits they finish today.
 SBH_SUBMIT_TIMEOUT = (5, 120)
+
+# sbol2 keeps its homespace, its URI options and its VALIDATE flag in one
+# process-global Config, and builds every new object under whatever they are at
+# that moment. An upload sets them, reads or converts its file, and later
+# creates the sub-collection it submits -- so two uploads on different threads
+# could build under each other's homespace, or switch validation back on in
+# the middle of the other's write. Everything that sets one of those settings,
+# or builds on one it set earlier, holds this lock from the first to the last.
+# uwsgi runs one request per worker (sbs_server/uwsgi.ini), so it is contended
+# only under a threaded server such as `flask run`. Re-entrant: an upload holds
+# it across calls that take it themselves.
+SBOL2_LOCK = threading.RLock()
+
+
+def with_sbol2_lock(function):
+    """Run `function` with SBOL2_LOCK held."""
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        with SBOL2_LOCK:
+            return function(*args, **kwargs)
+    return wrapper
 
 def make_identifier(text: str) -> str:
     """
@@ -157,8 +180,9 @@ def sbol_validation_disabled() -> Iterator[None]:
     verdict as a string that no caller here reads: excel2sbol's compiler and
     upload_to_sbh both discard it. "Invalid" blocks nothing; an unreachable or
     slow validator fails or hangs the upload. The previous value is restored
-    on the way out. Process-global, like the rest of sbol2's Config: fine under
-    the shipped uwsgi.ini (processes = 4, no threads).
+    on the way out. Process-global, like the rest of sbol2's Config, so callers
+    hold SBOL2_LOCK around it: two overlapping blocks would otherwise restore
+    each other's value and leave validation on during a write.
     """
     previous = sbol2.Config.getOption(sbol2.ConfigOptions.VALIDATE)
     sbol2.Config.setOption(sbol2.ConfigOptions.VALIDATE, False)
@@ -348,6 +372,9 @@ def excel2sbol_offline() -> Iterator[None]:
     finally:
         _clear_excel2sbol_env()
 
+# Held for the whole conversion, Ontobee lookups included: excel2sbol sets the
+# homespace itself and builds every object under it.
+@with_sbol2_lock
 def convert_to_sbol(input_excel_path: str, file_path_out: str, homespace: str) -> sbol2.Document:
     print("converting to SBOL")
     try:

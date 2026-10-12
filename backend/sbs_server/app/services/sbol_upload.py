@@ -23,6 +23,7 @@ from ..utils import (
     find_root_module_definitions,
     make_identifier,
     sbh_get_attachment_uri,
+    with_sbol2_lock,
 )
 from .common import (
     SYNBIOHUB_FAILURES,
@@ -121,6 +122,9 @@ def run(req: SbolUploadRequest) -> dict:
         return _upload(req, user, workspace)
 
 
+# From setting the homespace to submitting: the Model and the sub-collection
+# are both created under it, after calls to SynBioHub.
+@with_sbol2_lock
 def _upload(req: SbolUploadRequest, user: SbhUser, workspace: Workspace) -> dict:
     safe_sbol_filename = secure_filename(req.sbol_file.filename)
     if safe_sbol_filename == '':

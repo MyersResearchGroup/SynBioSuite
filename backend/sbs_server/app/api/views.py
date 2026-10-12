@@ -8,6 +8,7 @@ import os
 from flask import Response, jsonify, request, send_file
 
 from ..downloadTemplates import build_template
+from ..utils import SBOL2_LOCK
 from ..version import __version__
 from . import sbh
 from .context import StudyContext
@@ -59,11 +60,14 @@ def create_in_collection(spec: CollectionSpec):
     _require_study(ctx)
     upload_dir = _upload_dir()
 
-    doc = load_document(spec, _uploaded_file(), upload_dir)
-    # Count before submitting: upload_to_sbh adds the sub-collection object to
-    # the document, so len(doc) afterwards is one too high.
-    uploaded = len(doc)
-    sbh.submit(ctx, spec, doc, upload_dir, overwrite_merge=sbh.MERGE_AND_OVERWRITE)
+    # Held from reading the file to submitting it: the sub-collection is
+    # created under the homespace the read set (see utils.SBOL2_LOCK).
+    with SBOL2_LOCK:
+        doc = load_document(spec, _uploaded_file(), upload_dir)
+        # Count before submitting: upload_to_sbh adds the sub-collection object
+        # to the document, so len(doc) afterwards is one too high.
+        uploaded = len(doc)
+        sbh.submit(ctx, spec, doc, upload_dir, overwrite_merge=sbh.MERGE_AND_OVERWRITE)
 
     return jsonify({
         'status': 'success',
@@ -82,10 +86,12 @@ def replace_collection(spec: CollectionSpec):
     _require_study(ctx)
     upload_dir = _upload_dir()
 
-    doc = load_document(spec, _uploaded_file(), upload_dir)
-    # What the sub-collection lists, not len(doc): a GET export also carries
-    # the sub-collection itself, and objects it references without listing.
-    listed = sbh.replace(ctx, spec, doc, upload_dir)
+    # Held from reading the file to submitting it, as in create_in_collection.
+    with SBOL2_LOCK:
+        doc = load_document(spec, _uploaded_file(), upload_dir)
+        # What the sub-collection lists, not len(doc): a GET export also carries
+        # the sub-collection itself, and objects it references without listing.
+        listed = sbh.replace(ctx, spec, doc, upload_dir)
 
     return jsonify({
         'status': 'success',

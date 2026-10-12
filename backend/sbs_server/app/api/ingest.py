@@ -14,7 +14,7 @@ import sbol2
 from werkzeug.utils import secure_filename
 
 from ..errors import parser_message, without_directory
-from ..utils import OntologyLookupError, convert_to_sbol
+from ..utils import OntologyLookupError, convert_to_sbol, with_sbol2_lock
 from .errors import ApiError
 from .registry import EXCEL, EXCEL_HOMESPACE, SBOL, CollectionSpec
 
@@ -161,9 +161,11 @@ def _declared_sbol_version(path: str):
         raise ApiError(400, f"Could not read the workbook's Init sheet: {error}")
 
 
+@with_sbol2_lock
 def _read_sbol(spec: CollectionSpec, path: str) -> sbol2.Document:
-    # These are process-global in sbol2. Safe under the shipped uwsgi.ini
-    # (processes = 4, no threads); not under a threaded dev server.
+    # These are process-global in sbol2, hence the lock. The caller holds it
+    # too, until the document is submitted: the sub-collection is created
+    # under the homespace set here.
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_COMPLIANT_URIS, True)
     sbol2.Config.setOption(sbol2.ConfigOptions.SBOL_TYPED_URIS, False)
     sbol2.setHomespace(spec.homespace)
