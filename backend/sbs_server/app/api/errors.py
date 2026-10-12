@@ -11,6 +11,10 @@ from werkzeug.exceptions import HTTPException
 from ..errors import ApiError
 from ..sbh_http import BlockedDestinationError
 
+UNEXPECTED_FAILURE = (
+    'The request failed unexpectedly. The details are in the server log.'
+)
+
 
 def register_error_handlers(bp):
     @bp.errorhandler(ApiError)
@@ -28,5 +32,6 @@ def register_error_handlers(bp):
 
     @bp.errorhandler(Exception)
     def _handle_unexpected(err):
+        # The caller is told only that it failed; the exception goes to the log.
         current_app.logger.exception('Unhandled error in /api/v1')
-        return jsonify({'error': str(err)}), 500
+        return jsonify({'error': UNEXPECTED_FAILURE}), 500

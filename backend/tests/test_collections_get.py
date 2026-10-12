@@ -1,9 +1,11 @@
 """GET /api/v1/{collection}: the collection's contents as JSON or SBOL."""
 import pytest
 
+from sbs_server.app.api import sbh
+
 from conftest import STUDY_URI, FakeResponse, auth_headers
 
-URI = 'https://synbiohub.org/user/pmeka12/Test/part_a/1'
+URI ='https://synbiohub.org/user/pmeka12/Test/part_a/1'
 
 
 def sparql(*rows):
@@ -24,6 +26,27 @@ def study_exists(fake_sbh):
 
 def get(client, path='devices', **kwargs):
     return client.get(f'/api/v1/{path}', headers=auth_headers(), **kwargs)
+
+
+# ------------------------------------------------------- an unexpected failure
+
+def test_an_unexpected_failure_is_a_500_that_keeps_the_details_in_the_log(
+    client, fake_sbh, monkeypatch, caplog,
+):
+    """Whatever the exception says stays on the server: it can carry paths and
+    other internals the caller has no use for."""
+    def broken(ctx, collection_uri):
+        raise RuntimeError('cannot open /srv/sbs/uploads/internal.xml')
+
+    monkeypatch.setattr(sbh, 'list_items', broken)
+
+    response = get(client)
+
+    assert response.status_code == 500
+    assert response.get_json() == {
+        'error': 'The request failed unexpectedly. The details are in the server log.',
+    }
+    assert 'cannot open /srv/sbs/uploads/internal.xml' in caplog.text
 
 
 # --------------------------------------------------------------- the JSON shape
