@@ -107,16 +107,26 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
         return () => window.removeEventListener('message', messageListener)
     }, [])
 
+    // fresh "Annotate Plasmid / Device" panels have no file handle, so fall back to the panel's subdirectory
+    const subdirectory = usePanelProperty(panelId, 'subdirectory')
+    const panelType = fileTypeObjectId
+        ?? (subdirectory === ObjectTypes.Plasmids.subdirectory ? ObjectTypes.Plasmids.id
+            : subdirectory === ObjectTypes.Devices.subdirectory ? ObjectTypes.Devices.id
+            : null)
+    const sentPanelType = useRef(undefined)
+
+    // the SeqImprove panel is a singleton: opening Annotate Device while the Annotate Plasmid tab is
+    // still open reuses the same iframe without reloading it, so tell SeqImprove the new type
+    useEffect(() => {
+        if (!iframeLoaded || sentPanelType.current === panelType) return
+        sentPanelType.current = panelType
+        reply({ type: 'panelType', panelType })
+    }, [iframeLoaded, panelType])
+
     const handleIFrameLoad = () => {
         setIFrameLoaded(true)
         setSbolContentLoaded(!sbolContent)
-
-        // fresh "Annotate Plasmid / Device" panels have no file handle, so fall back to the panel's subdirectory
-        const subdir = store.getState().panels.entities[panelId]?.subdirectory
-        const panelType = fileTypeObjectId
-            ?? (subdir === ObjectTypes.Plasmids.subdirectory ? ObjectTypes.Plasmids.id
-                : subdir === ObjectTypes.Devices.subdirectory ? ObjectTypes.Devices.id
-                : null)
+        sentPanelType.current = panelType
 
         iframeRef.current.contentWindow.postMessage(
             sbolContent
