@@ -11,6 +11,7 @@ import sys
 import pytest
 import requests
 import sbol2
+from werkzeug.test import Client, TestResponse
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
@@ -223,8 +224,21 @@ def app():
     return flask_app
 
 
+# Set to run every HTTP test against the generated server (connexion_app.py)
+# instead of main.app: the existing /api/v1 tests are its acceptance checklist.
+GENERATED_APP_ENV_VAR = 'SBS_TEST_GENERATED_APP'
+
+
+def generated_client():
+    """A test client for the generated server, through the adapter uwsgi uses."""
+    from sbs_server.app.connexion_app import application
+    return Client(application, TestResponse)
+
+
 @pytest.fixture
 def client(app):
+    if os.environ.get(GENERATED_APP_ENV_VAR):
+        return generated_client()
     return app.test_client()
 
 
