@@ -1,0 +1,26 @@
+# Copied into the output directory as .openapi-generator-ignore by generate.sh.
+# Everything listed here is left ungenerated because the application does not
+# use it.
+
+# The application serves sbs_server/app/static/openapi.yaml itself; a second,
+# rewritten copy would only drift.
+openapi_server/openapi/**
+
+# The application is assembled in sbs_server/app (it also hosts the legacy
+# routes), so the standalone runner is unused.
+openapi_server/__main__.py
+
+# Stub tests that assert 200 from placeholder requests.
+openapi_server/test/**
+
+# Packaging for a standalone project; this code ships inside the backend image.
+Dockerfile
+.dockerignore
+.gitignore
+.travis.yml
+git_push.sh
+setup.py
+tox.ini
+requirements.txt
+test-requirements.txt
+README.md

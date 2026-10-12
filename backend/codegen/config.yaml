@@ -1,0 +1,11 @@
+# OpenAPI Generator settings for the /api/v1 server. Used by generate.sh.
+generatorName: python-flask
+templateDir: /work/codegen/templates
+additionalProperties:
+  packageName: openapi_server
+  useConnexion3: true
+# A template the generator does not ship: the seam the controllers forward to.
+files:
+  impl.mustache:
+    templateType: SupportingFiles
+    destinationFilename: openapi_server/impl.py

@@ -1,0 +1,16 @@
+"""Generated from the OpenAPI spec. Do not edit: regenerating overwrites this file.
+
+Each function forwards to the hand-written implementation of the same name
+(see {{packageName}}/impl.py). Header parameters are not arguments; the
+implementation reads them from the request.
+"""
+from {{packageName}} import impl
+{{#operations}}
+{{#operation}}
+
+
+def {{operationId}}({{#allParams}}{{^isHeaderParam}}{{^isFormParam}}{{#isBodyParam}}body{{/isBodyParam}}{{^isBodyParam}}{{paramName}}{{/isBodyParam}}{{^required}}=None{{/required}}, {{/isFormParam}}{{#isFormParam}}{{#isFile}}{{paramName}}{{^required}}=None{{/required}}, {{/isFile}}{{/isFormParam}}{{/isHeaderParam}}{{/allParams}}{{#hasFormParams}}body=None{{/hasFormParams}}):
+    """{{summary}}{{^summary}}{{operationId}}{{/summary}}"""
+    return impl.{{operationId}}({{#allParams}}{{^isHeaderParam}}{{^isFormParam}}{{#isBodyParam}}body=body{{/isBodyParam}}{{^isBodyParam}}{{paramName}}={{paramName}}{{/isBodyParam}}, {{/isFormParam}}{{#isFormParam}}{{#isFile}}{{paramName}}={{paramName}}, {{/isFile}}{{^isFile}}{{paramName}}=(body or {}).get('{{baseName}}'), {{/isFile}}{{/isFormParam}}{{/isHeaderParam}}{{/allParams}})
+{{/operation}}
+{{/operations}}

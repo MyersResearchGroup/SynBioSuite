@@ -1,0 +1,15 @@
+"""Generated from the OpenAPI spec. Do not edit: regenerating overwrites this file.
+
+Connexion calls these to check credentials (x-bearerInfoFunc in the spec).
+Each forwards to the hand-written implementation of the same name.
+"""
+from {{packageName}} import impl
+{{#authMethods}}
+{{#isBasicBearer}}
+
+
+def info_from_{{name}}(token):
+    """Token information for a bearer token, or None to reject it."""
+    return impl.info_from_{{name}}(token=token)
+{{/isBasicBearer}}
+{{/authMethods}}

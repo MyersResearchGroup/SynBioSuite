@@ -1,0 +1,26 @@
+"""Generated. Do not edit: regenerating overwrites this file.
+
+The seam between the generated controllers and the hand-written code. The
+application calls bind() once at start-up with the package that implements
+the operations; `impl.<name>` then resolves to that package's `<name>`.
+
+The implementation is bound at run time, not imported by name, because the
+application package is importable under different names in different
+deployments.
+"""
+_implementation = None
+
+
+def bind(implementation):
+    """Use `implementation` (a module or package) for every operation."""
+    global _implementation
+    _implementation = implementation
+
+
+def __getattr__(name):
+    if _implementation is None:
+        raise RuntimeError(
+            'openapi_server.impl.bind() has not been called, so there is '
+            'nothing to forward ' + name + '() to'
+        )
+    return getattr(_implementation, name)
