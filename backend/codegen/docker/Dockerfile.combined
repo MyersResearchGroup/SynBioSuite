@@ -1,0 +1,13 @@
+# The backend image with the combined application (connexion_app.py) in place
+# of main.app. Build the regular image first, then this one, from backend/:
+#
+#   docker build -t sbs-backend:spike-base .
+#   docker build -t sbs-backend:spike-combined -f codegen/docker/Dockerfile.combined .
+ARG BASE=sbs-backend:spike-base
+FROM ${BASE}
+
+RUN pip install 'connexion[flask]>=3.3,<4'
+
+# The generated controllers; /app is on the Python path.
+COPY codegen_server_oag/openapi_server /app/openapi_server
+COPY codegen/docker/uwsgi.ini /app/uwsgi.ini
