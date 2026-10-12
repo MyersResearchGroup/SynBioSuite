@@ -69,7 +69,8 @@ def sparql_query(sbh_url, sbh_token, query):
 '''
 Helper function to perform SPARQL queries to fetch URIs from SynBioHub
 '''
-def sbh_get_subCollection_uris(sbh_url, sbh_prefix, sbh_token, usergraph, collectionUri, role = None, type = None):
+def sbh_get_subCollection_uris(sbh_url, sbh_prefix, sbh_token, usergraph, collectionUri, 
+                               role = None, type = None, recursiveMembers = True):
     conditions = []
     publicgraph = sbh_prefix + '/public'
     if role is not None:
@@ -77,11 +78,18 @@ def sbh_get_subCollection_uris(sbh_url, sbh_prefix, sbh_token, usergraph, collec
     if type is not None:
         conditions.append(f'?s sbol:type <{type}> .')
 
-    where_parts = [
-        f'<{collectionUri}> sbol:member* ?s .',
-        'FILTER(?s != <' + collectionUri + '>)',
-        '?s sbol:displayId ?id .'
-    ]
+    if recursiveMembers:
+        where_parts = [
+            f'<{collectionUri}> sbol:member* ?s .',
+            'FILTER(?s != <' + collectionUri + '>)',
+            '?s sbol:displayId ?id .'
+        ]
+    else:
+        where_parts = [
+            f'<{collectionUri}> sbol:member ?s .',
+            'FILTER(?s != <' + collectionUri + '>)',
+            '?s sbol:displayId ?id .'
+        ]        
     where_parts.extend(conditions)
 
     query = (
