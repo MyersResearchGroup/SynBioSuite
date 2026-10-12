@@ -1,7 +1,7 @@
 """Generic collection handlers for /api/v1.
 
 One implementation per verb, bound to every collection in the registry by
-__init__.py.
+route.py.
 """
 import os
 
