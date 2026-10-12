@@ -1,0 +1,3256 @@
+openapi: 3.0.3
+info:
+  title: SynBioSuite API
+  description: |
+    Bulk, collection-level REST API for SynBioSuite. Each collection exposes GET (get all contents), POST (add), PUT (replace all contents), and DELETE (empty). Excel-backed collections also expose GET /template.
+
+    Per-item access (fetch or edit a single object by id) is delegated to the SynBioHub API, which is the system of record for individual objects. The one exception is PATCH /assays/{id}/attachments, which attaches a file to a specific SBOL object and therefore must name that object.
+
+    Every request carries the study it applies to in the X-Study-Collection header (the SynBioHub collection selected when opening SynBioSuite). That study scopes all collections, which is why this API needs no per-item ids elsewhere. Because the SynBioHub API host differs from the host in that collection URI (api.synbiohub.org vs synbiohub.org), the API base is supplied separately in X-SynBioHub-Url.
+
+    Uploads take a single `file` part. Collections that accept both formats detect which from the file extension; Excel is converted to SBOL on ingest.
+
+    DELETE empties a collection by removing its members' membership. The sub-collection object survives and the SBOL objects themselves are not destroyed, so a subsequent GET returns an empty array rather than 404. A 404 means the study collection itself does not exist.
+
+    This version number is the API contract's; GET /status reports the running backend's version, which is tracked separately.
+
+    TBD collections, present but not yet specified: /models (SBML), /archives (OMEX), /analyses (iBioSim). They answer 501.
+
+    Trying it out: open these docs from a running server, click Authorize and paste a SynBioHub token, then on any operation click Try it out, paste your study's collection URI into X-Study-Collection, and Execute. Leave X-SynBioHub-Url blank -- the server derives https://api.<study host>. PUT and DELETE change real data; point them at a scratch study.
+  version: 1.0.0
+servers:
+- url: /api/v1
+  description: The server hosting these docs
+- url: http://127.0.0.1:5003/api/v1
+  description: Local SBS server
+security:
+- bearerAuth: []
+tags:
+- name: System
+- name: Resources
+- name: Devices
+- name: Designs
+- name: Plasmids
+- name: Strains
+- name: Sample Designs
+- name: Assays
+- name: Models
+- name: Archives
+- name: Analyses
+paths:
+  /status:
+    get:
+      tags:
+      - System
+      summary: Check the API is running
+      operationId: get_status
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+      security: []
+      x-openapi-router-controller: swagger_server.controllers.system_controller
+  /resources:
+    get:
+      tags:
+      - Resources
+      summary: Get all the contents of the resources collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_resources
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.resources_controller
+    put:
+      tags:
+      - Resources
+      summary: Replace the resources collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_resources
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.resources_controller
+    post:
+      tags:
+      - Resources
+      summary: Add to the resources collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_resources
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.resources_controller
+    delete:
+      tags:
+      - Resources
+      summary: Empty the resources collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_resources
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.resources_controller
+  /resources/template:
+    get:
+      tags:
+      - Resources
+      summary: Download the blank Excel template for resources
+      description: |
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are populated with URIs from this study so the sheet can cross-reference objects that already exist. To retrieve existing contents, use GET /resources instead.
+      operationId: get_resources_template
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            A blank macro-enabled Excel template (.xlsm). Data rows are empty; SBH_* lookup sheets are populated from the study.
+          content:
+            application/vnd.ms-excel.sheet.macroEnabled.12:
+              schema:
+                type: string
+                format: binary
+                x-content-type: application/vnd.ms-excel.sheet.macroEnabled.12
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.resources_controller
+  /devices:
+    get:
+      tags:
+      - Devices
+      summary: Get all the contents of the devices collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_devices
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.devices_controller
+    put:
+      tags:
+      - Devices
+      summary: Replace the devices collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_devices
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.devices_controller
+    post:
+      tags:
+      - Devices
+      summary: Add to the devices collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_devices
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.devices_controller
+    delete:
+      tags:
+      - Devices
+      summary: Empty the devices collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_devices
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.devices_controller
+  /designs:
+    get:
+      tags:
+      - Designs
+      summary: Get all the contents of the designs collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.designs_controller
+    put:
+      tags:
+      - Designs
+      summary: Replace the designs collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.designs_controller
+    post:
+      tags:
+      - Designs
+      summary: Add to the designs collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.designs_controller
+    delete:
+      tags:
+      - Designs
+      summary: Empty the designs collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.designs_controller
+  /plasmids:
+    get:
+      tags:
+      - Plasmids
+      summary: Get all the contents of the plasmids collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_plasmids
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.plasmids_controller
+    put:
+      tags:
+      - Plasmids
+      summary: Replace the plasmids collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_plasmids
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.plasmids_controller
+    post:
+      tags:
+      - Plasmids
+      summary: Add to the plasmids collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_plasmids
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.plasmids_controller
+    delete:
+      tags:
+      - Plasmids
+      summary: Empty the plasmids collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_plasmids
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.plasmids_controller
+  /strains:
+    get:
+      tags:
+      - Strains
+      summary: Get all the contents of the strains collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_strains
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.strains_controller
+    put:
+      tags:
+      - Strains
+      summary: Replace the strains collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_strains
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.strains_controller
+    post:
+      tags:
+      - Strains
+      summary: Add to the strains collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_strains
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.strains_controller
+    delete:
+      tags:
+      - Strains
+      summary: Empty the strains collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_strains
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.strains_controller
+  /strains/template:
+    get:
+      tags:
+      - Strains
+      summary: Download the blank Excel template for strains
+      description: |
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are populated with URIs from this study so the sheet can cross-reference objects that already exist. To retrieve existing contents, use GET /strains instead.
+      operationId: get_strains_template
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            A blank macro-enabled Excel template (.xlsm). Data rows are empty; SBH_* lookup sheets are populated from the study.
+          content:
+            application/vnd.ms-excel.sheet.macroEnabled.12:
+              schema:
+                type: string
+                format: binary
+                x-content-type: application/vnd.ms-excel.sheet.macroEnabled.12
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.strains_controller
+  /sample-designs:
+    get:
+      tags:
+      - Sample Designs
+      summary: Get all the contents of the sample designs collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_sample_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.sample_designs_controller
+    put:
+      tags:
+      - Sample Designs
+      summary: Replace the sample designs collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_sample_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.sample_designs_controller
+    post:
+      tags:
+      - Sample Designs
+      summary: Add to the sample designs collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_sample_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.sample_designs_controller
+    delete:
+      tags:
+      - Sample Designs
+      summary: Empty the sample designs collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_sample_designs
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.sample_designs_controller
+  /sample-designs/template:
+    get:
+      tags:
+      - Sample Designs
+      summary: Download the blank Excel template for sample designs
+      description: |
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are populated with URIs from this study so the sheet can cross-reference objects that already exist. To retrieve existing contents, use GET /sample-designs instead.
+      operationId: get_sample_designs_template
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            A blank macro-enabled Excel template (.xlsm). Data rows are empty; SBH_* lookup sheets are populated from the study.
+          content:
+            application/vnd.ms-excel.sheet.macroEnabled.12:
+              schema:
+                type: string
+                format: binary
+                x-content-type: application/vnd.ms-excel.sheet.macroEnabled.12
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.sample_designs_controller
+  /assays:
+    get:
+      tags:
+      - Assays
+      summary: Get all the contents of the assays collection
+      description: |
+        Returns an empty array when the study has no such sub-collection yet, which is the normal state of a freshly created study.
+      operationId: list_assays
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+                x-content-type: application/json
+            application/rdf+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.assays_controller
+    put:
+      tags:
+      - Assays
+      summary: Replace the assays collection contents
+      description: |
+        After this call the collection contains exactly what was uploaded.
+      operationId: replace_assays
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.assays_controller
+    post:
+      tags:
+      - Assays
+      summary: Add to the assays collection
+      description: |
+        Objects whose URIs already exist are updated in place; everything else is added. Nothing is removed.
+      operationId: create_assays
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      requestBody:
+        $ref: "#/components/requestBodies/FileUpload"
+      responses:
+        "201":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: |
+            The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "504":
+          description: |
+            SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.assays_controller
+    delete:
+      tags:
+      - Assays
+      summary: Empty the assays collection
+      description: |
+        Removes every member from the collection. The sub-collection object itself survives, and the SBOL objects are not destroyed -- only their membership is removed. A subsequent GET returns an empty array.
+      operationId: clear_assays
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "204":
+          description: Collection emptied. The sub-collection itself remains.
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not permitted (e.g. you do not own this collection).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.assays_controller
+  /assays/template:
+    get:
+      tags:
+      - Assays
+      summary: Download the blank Excel template for assays
+      description: |
+        A blank workbook: the data rows are empty. Its SBH_* lookup sheets are populated with URIs from this study so the sheet can cross-reference objects that already exist. To retrieve existing contents, use GET /assays instead.
+      operationId: get_assays_template
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "200":
+          description: |
+            A blank macro-enabled Excel template (.xlsm). Data rows are empty; SBH_* lookup sheets are populated from the study.
+          content:
+            application/vnd.ms-excel.sheet.macroEnabled.12:
+              schema:
+                type: string
+                format: binary
+                x-content-type: application/vnd.ms-excel.sheet.macroEnabled.12
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.assays_controller
+  /assays/{id}/attachments:
+    patch:
+      tags:
+      - Assays
+      summary: Add a new attachment to the pointed SBOL object
+      description: |
+        The one per-item endpoint in this API -- attaching a file requires naming the specific SBOL object. Maps to SynBioHub's POST <URI>/attach. The attachment is added; an existing attachment of the same name is not removed.
+      operationId: attach_to_assay
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      - name: id
+        in: path
+        description: |
+          displayId of the SBOL object to attach to (not its URI or version).
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        $ref: "#/components/requestBodies/AttachmentUpload"
+      responses:
+        "200":
+          description: "The upload, replace, or attach succeeded."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MutationResult"
+        "400":
+          description: |
+            Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing or invalid SynBioHub credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: |
+            The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: |
+            The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: SynBioHub rejected the request or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.assays_controller
+  /models:
+    get:
+      tags:
+      - Models
+      summary: "[TBD] Get all the contents of the models collection"
+      operationId: list_models
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.models_controller
+    put:
+      tags:
+      - Models
+      summary: "[TBD] Replace the models collection contents"
+      operationId: replace_models
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.models_controller
+    post:
+      tags:
+      - Models
+      summary: "[TBD] Add to the models collection"
+      operationId: create_models
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.models_controller
+    delete:
+      tags:
+      - Models
+      summary: "[TBD] Empty the models collection"
+      operationId: clear_models
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.models_controller
+  /archives:
+    get:
+      tags:
+      - Archives
+      summary: "[TBD] Get all the contents of the archives collection"
+      operationId: list_archives
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.archives_controller
+    put:
+      tags:
+      - Archives
+      summary: "[TBD] Replace the archives collection contents"
+      operationId: replace_archives
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.archives_controller
+    post:
+      tags:
+      - Archives
+      summary: "[TBD] Add to the archives collection"
+      operationId: create_archives
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.archives_controller
+    delete:
+      tags:
+      - Archives
+      summary: "[TBD] Empty the archives collection"
+      operationId: clear_archives
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.archives_controller
+  /analyses:
+    get:
+      tags:
+      - Analyses
+      summary: "[TBD] Get all the contents of the analyses collection"
+      operationId: list_analyses
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.analyses_controller
+    put:
+      tags:
+      - Analyses
+      summary: "[TBD] Replace the analyses collection contents"
+      operationId: replace_analyses
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.analyses_controller
+    post:
+      tags:
+      - Analyses
+      summary: "[TBD] Add to the analyses collection"
+      operationId: create_analyses
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.analyses_controller
+    delete:
+      tags:
+      - Analyses
+      summary: "[TBD] Empty the analyses collection"
+      operationId: clear_analyses
+      parameters:
+      - name: X_Study_Collection
+        in: header
+        description: |
+          The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+      - name: X_SynBioHub_Url
+        in: header
+        description: |
+          Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+          format: uri
+          example: https://api.synbiohub.org
+      responses:
+        "501":
+          description: This collection is not specified yet.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-openapi-router-controller: swagger_server.controllers.analyses_controller
+components:
+  schemas:
+    Status:
+      type: object
+      properties:
+        status:
+          type: string
+          example: working
+        version:
+          type: string
+          description: The running backend's version.
+          example: 1.9.0
+      example:
+        version: 1.9.0
+        status: working
+    Item:
+      type: object
+      properties:
+        uri:
+          type: string
+          format: uri
+        displayId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: array
+          description: "SBOL types. Multi-valued, so always an array."
+          items:
+            type: string
+        role:
+          type: array
+          description: "SBOL roles. Multi-valued, so always an array."
+          items:
+            type: string
+      additionalProperties: true
+      description: One object in a collection. Fields are collection-dependent.
+      example:
+        role:
+        - role
+        - role
+        name: name
+        description: description
+        displayId: displayId
+        type:
+        - type
+        - type
+        uri: http://example.com/aeiou
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    MutationResult:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+      example:
+        message: message
+        status: success
+  responses:
+    CollectionContents:
+      description: |
+        All contents of the collection. An empty array means the collection exists but has no members -- including the case where the study has no such sub-collection yet.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Item"
+            x-content-type: application/json
+        application/rdf+xml:
+          schema:
+            type: string
+            format: binary
+    MutationAccepted:
+      description: "The upload, replace, or attach succeeded."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MutationResult"
+    TemplateFile:
+      description: |
+        A blank macro-enabled Excel template (.xlsm). Data rows are empty; SBH_* lookup sheets are populated from the study.
+      content:
+        application/vnd.ms-excel.sheet.macroEnabled.12:
+          schema:
+            type: string
+            format: binary
+            x-content-type: application/vnd.ms-excel.sheet.macroEnabled.12
+    BadRequest:
+      description: |
+        Invalid request -- a malformed X-Study-Collection header, a missing file part, an unreadable file, or a workbook that is not a valid Excel-to-SBOL template.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid SynBioHub credentials.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Not permitted (e.g. you do not own this collection).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: |
+        The study collection named in X-Study-Collection does not exist, or -- for the per-item endpoint -- no such object exists in this collection. An empty collection is not a 404; it is a 200 with an empty array.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: |
+        The file's format is not one this collection accepts (e.g. an Excel workbook posted to an SBOL-only collection).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PayloadTooLarge:
+      description: |
+        The upload is larger than the server accepts. The limit is MAX_CONTENT_LENGTH, 64 MB by default; set SBS_MAX_UPLOAD_MB to change it per deployment.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotImplemented:
+      description: This collection is not specified yet.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadGateway:
+      description: SynBioHub rejected the request or could not be reached.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    GatewayTimeout:
+      description: |
+        SynBioHub did not answer in time. For a submit, whether the upload was applied is unknown -- SynBioHub may still finish it -- and sending the same request again is safe. Also returned when a workbook's Tyto Lookup columns need Ontobee and it did not answer.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  parameters:
+    StudyCollection:
+      name: X_Study_Collection
+      in: header
+      description: |
+        The SynBioHub collection URI of the study the request applies to -- the study the user selects when opening SynBioSuite. This scopes every collection to one study, which is why no per-item ids are needed elsewhere in this API. Must be of the form <scheme>://<host>/user/<user>/<studyId>/<displayId>/<version>.
+      required: true
+      style: simple
+      explode: false
+      schema:
+        type: string
+        format: uri
+        example: https://synbiohub.org/user/alice/MyStudy/MyStudy_collection/1
+    SynBioHubUrl:
+      name: X_SynBioHub_Url
+      in: header
+      description: |
+        Base URL of the SynBioHub API to talk to. This is a different host from the one in X-Study-Collection (api.synbiohub.org vs synbiohub.org), so it cannot be derived from it reliably. Falls back to the server's SBS_SBH_URL setting, then to https://api.<study host>. Whichever is used must be an http(s) URL with no query string, fragment or credentials, and its host must resolve to a public address; otherwise the request fails with 400 before anything is sent. The server's own SBS_SBH_URL origin is exempt from the public-address rule, so a local SynBioHub works in development.
+      required: false
+      style: simple
+      explode: false
+      schema:
+        type: string
+        format: uri
+        example: https://api.synbiohub.org
+  requestBodies:
+    FileUpload:
+      description: |
+        A file -- an Excel template (.xlsx/.xlsm) or SBOL XML (.xml/.rdf/.sbol), depending on what the collection accepts -- plus an optional JSON params blob for processing options. Excel is converted to SBOL on the way in. Which format was sent is determined from the file extension. The target study comes from the X-Study-Collection header, not from params.
+      content:
+        multipart/form-data:
+          schema:
+            required:
+            - file
+            type: object
+            properties:
+              file:
+                type: string
+                format: binary
+              params:
+                type: string
+                description: Optional JSON string of processing parameters.
+      required: true
+    AttachmentUpload:
+      description: A file to attach to one SBOL object.
+      content:
+        multipart/form-data:
+          schema:
+            required:
+            - file
+            type: object
+            properties:
+              file:
+                type: string
+                description: The attachment to add.
+                format: binary
+      required: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: |
+        SynBioHub access token. The server forwards it to SynBioHub as the X-authorization header that SynBioHub itself expects.
+      scheme: bearer
+      x-bearerInfoFunc: swagger_server.controllers.authorization_controller.check_bearerAuth
+
