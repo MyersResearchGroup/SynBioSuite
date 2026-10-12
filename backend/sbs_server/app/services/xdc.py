@@ -8,13 +8,14 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple
+from xml.sax import SAXParseException
 
 import sbol2
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from ..api.registry import EXCEL_HOMESPACE
-from ..errors import ApiError
+from ..errors import ApiError, parser_message, without_directory
 from ..synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from ..utils import convert_to_sbol
 from . import flapjack_push
@@ -126,8 +127,12 @@ def _run(req: XdcRequest, workspace: Workspace) -> dict:
         sbol_doc = convert_to_sbol(
             metadata_path, workspace.path('converted_SBOL.xml'), EXCEL_HOMESPACE,
         )
+    except SAXParseException as e:
+        raise ApiError(400, 'SBOL Conversion Failed: ' + parser_message(e)) from e
     except Exception as e:
-        raise ApiError(400, 'SBOL Conversion Failed: ' + str(e)) from e
+        # The message may name a temp file: by its name, not where it is kept.
+        message = without_directory(str(e), workspace.directory)
+        raise ApiError(400, 'SBOL Conversion Failed: ' + message) from e
 
     if not req.sbh_token:
         print('Unable to login to SynBioHub')

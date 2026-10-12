@@ -684,6 +684,42 @@ def test_a_bad_workbook_is_reported_ahead_of_an_empty_token(client, legacy_sbh):
     assert response.get_json()['error'].startswith('SBOL Conversion Failed: ')
 
 
+def test_a_conversion_that_writes_unparseable_sbol_says_where_not_which_file(
+    client, legacy_sbh, workdir, monkeypatch,
+):
+    """The parser's own message starts with the path of the temp file on this
+    server; the caller gets the reason and the position, not the path."""
+    def converter(file_path_in, file_path_out, homespace, sbol_version):
+        with open(file_path_out, 'w') as out:
+            out.write('this is not SBOL')
+
+    monkeypatch.setattr(excel2sbol, 'converter', converter)
+
+    response = upload(client, metadata=assay_workbook())
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        'error': 'SBOL Conversion Failed: syntax error (line 1, column 0)',
+    }
+    assert legacy_sbh.calls == []
+    assert_nothing_left(workdir)
+
+
+def test_a_conversion_that_writes_nothing_does_not_name_the_uploads_directory(
+    client, legacy_sbh, workdir, monkeypatch,
+):
+    monkeypatch.setattr(excel2sbol, 'converter', lambda **kwargs: None)
+
+    response = upload(client, metadata=assay_workbook())
+
+    assert response.status_code == 400
+    error = response.get_json()['error']
+    assert error.startswith('SBOL Conversion Failed: ')
+    assert str(workdir) not in error
+    assert legacy_sbh.calls == []
+    assert_nothing_left(workdir)
+
+
 # -------------------------------------------------------- SynBioHub says no
 
 def test_a_failed_login_is_400(client, legacy_sbh, workdir):

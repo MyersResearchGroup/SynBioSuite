@@ -16,7 +16,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from ..api.registry import homespace_for
-from ..errors import ApiError
+from ..errors import ApiError, parser_message
 from ..synbiohubUpload import upload_sbh_attachments, upload_to_sbh
 from ..utils import (
     find_root_component_definitions,
@@ -226,11 +226,6 @@ def _read_document(path: str) -> sbol2.Document:
     try:
         doc.read(path)
     except SAXParseException as e:
-        # str(e) leads with the temp file's path on this server; give the rest.
-        raise ApiError(
-            500,
-            f'Could not parse the SBOL file: {e.getMessage()} '
-            f'(line {e.getLineNumber()}, column {e.getColumnNumber()})',
-        ) from e
+        raise ApiError(500, f'Could not parse the SBOL file: {parser_message(e)}') from e
     return doc
 
