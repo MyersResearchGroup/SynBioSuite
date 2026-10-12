@@ -390,6 +390,19 @@ def test_every_operation_in_the_spec_has_a_generated_controller_function():
     assert missing == []
 
 
+def test_unspecified_collections_document_the_errors_they_can_answer_with():
+    """Credentials and the study header are checked before the 501."""
+    unspecified = [
+        operation for operation in _operations()
+        if operation['summary'].startswith('[TBD]')
+    ]
+
+    assert len(unspecified) == 12
+    assert {tuple(sorted(operation['responses'])) for operation in unspecified} == {
+        ('400', '401', '501'),
+    }
+
+
 def test_the_served_spec_keeps_the_hyphenated_header_names(v1):
     spec = v1.get('/static/openapi.yaml').get_data(as_text=True)
 

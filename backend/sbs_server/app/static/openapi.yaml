@@ -693,6 +693,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Get all the contents of the models collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       tags: [Models]
@@ -700,6 +702,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Add to the models collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       tags: [Models]
@@ -707,6 +711,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Replace the models collection contents"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       tags: [Models]
@@ -714,6 +720,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Empty the models collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
   # archives (OMEX, not yet specified) ---------------------------------------
   /archives:
@@ -726,6 +734,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Get all the contents of the archives collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       tags: [Archives]
@@ -733,6 +743,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Add to the archives collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       tags: [Archives]
@@ -740,6 +752,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Replace the archives collection contents"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       tags: [Archives]
@@ -747,6 +761,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Empty the archives collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
   # analyses (iBioSim, not yet specified) ------------------------------------
   /analyses:
@@ -759,6 +775,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Get all the contents of the analyses collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       tags: [Analyses]
@@ -766,6 +784,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Add to the analyses collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       tags: [Analyses]
@@ -773,6 +793,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Replace the analyses collection contents"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       tags: [Analyses]
@@ -780,6 +802,8 @@ paths:
       x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Empty the analyses collection"
       responses:
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '501': { $ref: '#/components/responses/NotImplemented' }
 
 components:
