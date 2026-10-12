@@ -13,6 +13,7 @@ import logging
 from connexion.exceptions import ProblemException
 from connexion.lifecycle import ConnexionResponse
 from starlette.exceptions import HTTPException
+from starlette.formparsers import MultiPartException
 from werkzeug.exceptions import InternalServerError, default_exceptions
 
 from ..sbh_http import BlockedDestinationError
@@ -28,6 +29,7 @@ def register(connexion_app):
     connexion_app.add_error_handler(BlockedDestinationError, _blocked_destination)
     connexion_app.add_error_handler(ProblemException, _problem)
     connexion_app.add_error_handler(HTTPException, _http_error)
+    connexion_app.add_error_handler(MultiPartException, _unparseable_form)
     connexion_app.add_error_handler(Exception, _unexpected)
 
 
@@ -43,6 +45,11 @@ def _blocked_destination(request, error):
 def _problem(request, error):
     """What Connexion itself rejected: validation, security, an unknown path."""
     return _error(error.status, error.detail or error.title)
+
+
+def _unparseable_form(request, error):
+    # Raised while Connexion validates a multipart body it cannot parse.
+    return _error(400, error.message)
 
 
 def _http_error(request, error):

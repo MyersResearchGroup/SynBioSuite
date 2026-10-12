@@ -8,6 +8,10 @@ FROM ${BASE}
 
 RUN pip install 'connexion[flask]>=3.3,<4'
 
+# The base image writes this into nginx as client_max_body_size; its default
+# is 0, no limit. Keep it equal to the application's SBS_MAX_UPLOAD_MB (64).
+ENV NGINX_MAX_UPLOAD=64m
+
 # The generated controllers; /app is on the Python path.
 COPY codegen_server_oag/openapi_server /app/openapi_server
 COPY codegen/docker/uwsgi.ini /app/uwsgi.ini

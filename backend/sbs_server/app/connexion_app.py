@@ -25,6 +25,7 @@ import openapi_server.impl
 from . import main as legacy
 from . import route as legacy_routes
 from .api import connexion_errors, impl
+from .api.size_limit import RequestSizeLimitMiddleware
 from .errors import ApiError
 
 SPEC_DIR = 'static'
@@ -45,6 +46,14 @@ def create_app() -> connexion.FlaskApp:
         allow_origins=['*'],
         allow_methods=['*'],
         allow_headers=['*'],
+    )
+    # Inside the exception handling, so its 413 is rendered like any other
+    # error, and ahead of the validation that reads the body.
+    app.add_middleware(
+        RequestSizeLimitMiddleware,
+        position=MiddlewarePosition.BEFORE_SWAGGER,
+        max_bytes=legacy.app.config['MAX_CONTENT_LENGTH'],
+        path_prefix=connexion_errors.API_PREFIX,
     )
     app.add_api(
         SPEC_FILE,

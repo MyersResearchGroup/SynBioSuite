@@ -13,6 +13,8 @@ from ..registry import COLLECTIONS, CollectionSpec
 
 JSON = 'application/json'
 RDF = 'application/rdf+xml'
+# The operationId prefixes of the four collection-level verbs.
+COLLECTION_VERBS = ('list', 'create', 'replace', 'clear')
 
 
 def list_collection(spec: CollectionSpec):
@@ -57,4 +59,18 @@ def _require_study(ctx: StudyContext):
         raise ApiError(404, f'No study collection at {ctx.study_uri}')
 
 
+def _not_specified(spec: CollectionSpec):
+    def handler(**_arguments):
+        raise ApiError(501, f'/{spec.path} is not specified yet')
+    return handler
+
+
 list_strains = partial(list_collection, COLLECTIONS['strains'])
+
+# Every operation of the collections whose formats are not specified yet, by
+# the name its generated controller forwards to.
+UNSPECIFIED_OPERATIONS = {
+    f'{verb}_{spec.path.replace("-", "_")}': _not_specified(spec)
+    for spec in COLLECTIONS.values() if not spec.implemented
+    for verb in COLLECTION_VERBS
+}

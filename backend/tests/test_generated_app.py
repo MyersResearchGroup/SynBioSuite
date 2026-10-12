@@ -4,6 +4,7 @@ and the error contract Connexion has to honour for every operation.
 These go through the same WSGI adapter uwsgi serves, so Connexion's routing,
 security and validation all run.
 """
+import asyncio
 import importlib
 import io
 import os
@@ -12,9 +13,12 @@ from urllib.parse import unquote_plus
 import pytest
 import yaml
 from inflection import underscore
+from starlette.exceptions import HTTPException
 
 from sbs_server.app.api import impl, sbh
 from sbs_server.app.api.errors import UNEXPECTED_FAILURE
+from sbs_server.app.api.size_limit import RequestSizeLimitMiddleware
+from sbs_server.app.main import app as flask_app
 from sbs_server.app.version import __version__
 
 from conftest import STUDY_URI, TOKEN, FakeResponse, auth_headers, generated_client
@@ -170,6 +174,16 @@ def test_a_method_the_spec_does_not_define_is_a_json_405(v1):
     assert_error(response, 405)
 
 
+@pytest.mark.parametrize('path', ['models', 'archives', 'analyses'])
+def test_an_unspecified_collection_asks_for_credentials_before_answering_501(v1, path):
+    """A change from the blueprint, which answered 501 without them."""
+    without_credentials = v1.get(f'/api/v1/{path}')
+    with_credentials = v1.get(f'/api/v1/{path}', headers=auth_headers())
+
+    assert_error(without_credentials, 401)
+    assert 'not specified' in assert_error(with_credentials, 501)
+
+
 def test_an_operation_with_no_implementation_yet_is_a_501(v1):
     response = v1.delete('/api/v1/strains', headers=auth_headers())
 
@@ -193,6 +207,17 @@ def test_an_upload_without_its_file_part_is_a_400(v1):
     assert 'file' in assert_error(response, 400)
 
 
+def test_a_multipart_body_that_cannot_be_parsed_is_a_400(v1):
+    response = v1.post(
+        '/api/v1/strains',
+        headers=auth_headers(),
+        data=b'not multipart at all',
+        content_type='multipart/form-data; boundary=x',
+    )
+
+    assert_error(response, 400)
+
+
 def test_an_unexpected_failure_is_a_500_that_keeps_the_details_in_the_log(
     v1, monkeypatch, caplog,
 ):
@@ -212,6 +237,85 @@ def test_errors_carry_cors_headers_so_a_browser_can_read_them(v1):
 
     assert response.status_code == 401
     assert response.headers['Access-Control-Allow-Origin'] == '*'
+
+
+# --------------------------------------------------------------- the size limit
+
+def _post_through_size_limit(max_bytes, chunks, declared_length=None):
+    """Run one POST with a body of `chunks` through the middleware alone.
+
+    Returns the bytes the wrapped application read; the middleware's refusal
+    propagates as the HTTPException Connexion renders.
+    """
+    read = []
+
+    async def downstream(scope, receive, send):
+        while True:
+            message = await receive()
+            read.append(message.get('body', b''))
+            if not message.get('more_body'):
+                return
+
+    pending = [
+        {'type': 'http.request', 'body': chunk, 'more_body': index < len(chunks) - 1}
+        for index, chunk in enumerate(chunks)
+    ]
+
+    async def receive():
+        return pending.pop(0)
+
+    async def send(message):
+        raise AssertionError('the stub application sends nothing')
+
+    headers = []
+    if declared_length is not None:
+        headers.append((b'content-length', str(declared_length).encode()))
+    scope = {'type': 'http', 'path': '/api/v1/strains', 'headers': headers}
+    middleware = RequestSizeLimitMiddleware(downstream, max_bytes, '/api/v1')
+
+    asyncio.run(middleware(scope, receive, send))
+    return b''.join(read)
+
+
+def test_a_body_within_the_limit_passes_through_untouched():
+    read = _post_through_size_limit(10, [b'12345', b'67890'], declared_length=10)
+
+    assert read == b'1234567890'
+
+
+def test_a_declared_length_over_the_limit_is_refused_without_reading_the_body():
+    with pytest.raises(HTTPException) as refusal:
+        _post_through_size_limit(10, [b'x' * 11], declared_length=11)
+
+    assert refusal.value.status_code == 413
+
+
+def test_a_streamed_body_is_refused_once_it_passes_the_limit():
+    with pytest.raises(HTTPException) as refusal:
+        _post_through_size_limit(10, [b'123456', b'789012', b'never read'])
+
+    assert refusal.value.status_code == 413
+
+
+def test_a_body_longer_than_it_declared_is_still_refused():
+    with pytest.raises(HTTPException) as refusal:
+        _post_through_size_limit(10, [b'x' * 11], declared_length=5)
+
+    assert refusal.value.status_code == 413
+
+
+def test_an_oversized_upload_is_a_json_413_from_the_application(v1):
+    over_the_limit = flask_app.config['MAX_CONTENT_LENGTH'] + 1
+
+    response = v1.post(
+        '/api/v1/strains',
+        headers=auth_headers(),
+        data=b'only the declared length matters',
+        content_type='multipart/form-data; boundary=x',
+        environ_overrides={'CONTENT_LENGTH': str(over_the_limit)},
+    )
+
+    assert 'MB limit' in assert_error(response, 413)
 
 
 # ------------------------------------------------------- uploads reach handlers

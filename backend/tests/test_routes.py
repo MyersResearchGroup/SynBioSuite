@@ -148,7 +148,10 @@ def test_valid_request_reaches_the_handler(client, fake_sbh, path):
 
 @pytest.mark.parametrize('path', sorted(UNSPECIFIED))
 def test_unspecified_collections_are_501_not_404(client, path):
-    response = client.get(f'/api/v1/{path}')
+    """Sent with credentials: the generated server authenticates every
+    operation the spec secures before any handler runs, so without them these
+    answer 401 there (the blueprint answered 501 first)."""
+    response = client.get(f'/api/v1/{path}', headers=auth_headers())
 
     assert response.status_code == 501
     assert 'not specified' in response.get_json()['error']
