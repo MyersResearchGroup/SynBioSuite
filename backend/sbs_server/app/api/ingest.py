@@ -7,11 +7,13 @@ sheet drive the conversion), so one path serves every Excel-backed collection.
 """
 import os
 from uuid import uuid4
+from xml.sax import SAXParseException
 
 import pandas as pd
 import sbol2
 from werkzeug.utils import secure_filename
 
+from ..errors import parser_message, without_directory
 from ..utils import OntologyLookupError, convert_to_sbol
 from .errors import ApiError
 from .registry import EXCEL, EXCEL_HOMESPACE, SBOL, CollectionSpec
@@ -107,8 +109,12 @@ def _convert_workbook(source_path: str, converted_path: str):
     except OntologyLookupError as error:
         # Ontobee's outage, not the workbook's fault.
         raise ApiError(504, str(error))
+    except SAXParseException as error:
+        raise ApiError(400, f'Excel to SBOL conversion failed: {parser_message(error)}')
     except Exception as error:
-        raise ApiError(400, f'Excel to SBOL conversion failed: {error}')
+        # The message may name a temp file: by its name, not where it is kept.
+        message = without_directory(str(error), os.path.dirname(converted_path))
+        raise ApiError(400, f'Excel to SBOL conversion failed: {message}')
 
 
 def _validate_workbook(path: str):
@@ -165,6 +171,8 @@ def _read_sbol(spec: CollectionSpec, path: str) -> sbol2.Document:
     doc = sbol2.Document()
     try:
         doc.read(path)
+    except SAXParseException as error:
+        raise ApiError(400, f'Could not parse the SBOL file: {parser_message(error)}')
     except Exception as error:
         raise ApiError(400, f'Could not parse the SBOL file: {error}')
     return doc

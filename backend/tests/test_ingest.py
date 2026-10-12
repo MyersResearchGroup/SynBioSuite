@@ -170,6 +170,51 @@ def test_unreadable_sbol_is_400(tmp_path, uploads):
     assert excinfo.value.status == 400
 
 
+def test_unreadable_sbol_says_where_not_which_file(tmp_path, uploads):
+    """The parser's own message starts with the path of the temp file on this
+    server; the caller gets the reason and the position, not the path."""
+    path = tmp_path / 'junk.xml'
+    path.write_text('this is not SBOL')
+
+    with pytest.raises(ApiError) as excinfo:
+        load('devices', upload(path), uploads)
+
+    assert excinfo.value.message == (
+        'Could not parse the SBOL file: syntax error (line 1, column 0)'
+    )
+
+
+def test_a_conversion_that_writes_unparseable_sbol_says_where_not_which_file(
+    uploads, monkeypatch,
+):
+    def converter(file_path_in, file_path_out, homespace, sbol_version):
+        with open(file_path_out, 'w') as out:
+            out.write('this is not SBOL')
+
+    monkeypatch.setattr(excel2sbol, 'converter', converter)
+
+    with pytest.raises(ApiError) as excinfo:
+        load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.message == (
+        'Excel to SBOL conversion failed: syntax error (line 1, column 0)'
+    )
+
+
+def test_a_conversion_that_writes_nothing_does_not_name_the_upload_directory(
+    uploads, monkeypatch,
+):
+    monkeypatch.setattr(excel2sbol, 'converter', lambda **kwargs: None)
+
+    with pytest.raises(ApiError) as excinfo:
+        load('resources', upload(SYNTHETIC_WORKBOOK), uploads)
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.message.startswith('Excel to SBOL conversion failed: ')
+    assert uploads not in excinfo.value.message
+
+
 def test_empty_sbol_document_is_400(tmp_path, uploads, sbol_file):
     """A document with no top-levels must not submit silently."""
     empty = tmp_path / 'empty.xml'
