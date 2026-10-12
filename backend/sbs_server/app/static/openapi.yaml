@@ -11,7 +11,7 @@ info:
 
     Per-item access (fetch or edit a single object by id) is delegated to the
     SynBioHub API, which is the system of record for individual objects. The one
-    exception is PATCH /assays/{id}/attachments, which attaches a file to a
+    exception is PATCH /assays/{display_id}/attachments, which attaches a file to a
     specific SBOL object and therefore must name that object.
 
 
@@ -75,6 +75,7 @@ paths:
     get:
       tags: [System]
       operationId: getStatus
+      x-openapi-router-controller: openapi_server.controllers.system_controller
       summary: Check the API is running
       security: []
       responses:
@@ -92,6 +93,7 @@ paths:
     get:
       tags: [Resources]
       operationId: listResources
+      x-openapi-router-controller: openapi_server.controllers.resources_controller
       summary: Get all the contents of the resources collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -105,6 +107,7 @@ paths:
     post:
       tags: [Resources]
       operationId: createResources
+      x-openapi-router-controller: openapi_server.controllers.resources_controller
       summary: Add to the resources collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -122,6 +125,7 @@ paths:
     put:
       tags: [Resources]
       operationId: replaceResources
+      x-openapi-router-controller: openapi_server.controllers.resources_controller
       summary: Replace the resources collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -138,6 +142,7 @@ paths:
     delete:
       tags: [Resources]
       operationId: clearResources
+      x-openapi-router-controller: openapi_server.controllers.resources_controller
       summary: Empty the resources collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -157,6 +162,7 @@ paths:
     get:
       tags: [Resources]
       operationId: getResourcesTemplate
+      x-openapi-router-controller: openapi_server.controllers.resources_controller
       summary: Download the blank Excel template for resources
       description: >
         A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
@@ -177,6 +183,7 @@ paths:
     get:
       tags: [Devices]
       operationId: listDevices
+      x-openapi-router-controller: openapi_server.controllers.devices_controller
       summary: Get all the contents of the devices collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -190,6 +197,7 @@ paths:
     post:
       tags: [Devices]
       operationId: createDevices
+      x-openapi-router-controller: openapi_server.controllers.devices_controller
       summary: Add to the devices collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -207,6 +215,7 @@ paths:
     put:
       tags: [Devices]
       operationId: replaceDevices
+      x-openapi-router-controller: openapi_server.controllers.devices_controller
       summary: Replace the devices collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -223,6 +232,7 @@ paths:
     delete:
       tags: [Devices]
       operationId: clearDevices
+      x-openapi-router-controller: openapi_server.controllers.devices_controller
       summary: Empty the devices collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -243,6 +253,7 @@ paths:
     get:
       tags: [Designs]
       operationId: listDesigns
+      x-openapi-router-controller: openapi_server.controllers.designs_controller
       summary: Get all the contents of the designs collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -256,6 +267,7 @@ paths:
     post:
       tags: [Designs]
       operationId: createDesigns
+      x-openapi-router-controller: openapi_server.controllers.designs_controller
       summary: Add to the designs collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -273,6 +285,7 @@ paths:
     put:
       tags: [Designs]
       operationId: replaceDesigns
+      x-openapi-router-controller: openapi_server.controllers.designs_controller
       summary: Replace the designs collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -289,6 +302,7 @@ paths:
     delete:
       tags: [Designs]
       operationId: clearDesigns
+      x-openapi-router-controller: openapi_server.controllers.designs_controller
       summary: Empty the designs collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -309,6 +323,7 @@ paths:
     get:
       tags: [Plasmids]
       operationId: listPlasmids
+      x-openapi-router-controller: openapi_server.controllers.plasmids_controller
       summary: Get all the contents of the plasmids collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -322,6 +337,7 @@ paths:
     post:
       tags: [Plasmids]
       operationId: createPlasmids
+      x-openapi-router-controller: openapi_server.controllers.plasmids_controller
       summary: Add to the plasmids collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -339,6 +355,7 @@ paths:
     put:
       tags: [Plasmids]
       operationId: replacePlasmids
+      x-openapi-router-controller: openapi_server.controllers.plasmids_controller
       summary: Replace the plasmids collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -355,6 +372,7 @@ paths:
     delete:
       tags: [Plasmids]
       operationId: clearPlasmids
+      x-openapi-router-controller: openapi_server.controllers.plasmids_controller
       summary: Empty the plasmids collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -375,6 +393,7 @@ paths:
     get:
       tags: [Strains]
       operationId: listStrains
+      x-openapi-router-controller: openapi_server.controllers.strains_controller
       summary: Get all the contents of the strains collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -388,6 +407,7 @@ paths:
     post:
       tags: [Strains]
       operationId: createStrains
+      x-openapi-router-controller: openapi_server.controllers.strains_controller
       summary: Add to the strains collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -405,6 +425,7 @@ paths:
     put:
       tags: [Strains]
       operationId: replaceStrains
+      x-openapi-router-controller: openapi_server.controllers.strains_controller
       summary: Replace the strains collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -421,6 +442,7 @@ paths:
     delete:
       tags: [Strains]
       operationId: clearStrains
+      x-openapi-router-controller: openapi_server.controllers.strains_controller
       summary: Empty the strains collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -440,6 +462,7 @@ paths:
     get:
       tags: [Strains]
       operationId: getStrainsTemplate
+      x-openapi-router-controller: openapi_server.controllers.strains_controller
       summary: Download the blank Excel template for strains
       description: >
         A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
@@ -460,6 +483,7 @@ paths:
     get:
       tags: [Sample Designs]
       operationId: listSampleDesigns
+      x-openapi-router-controller: openapi_server.controllers.sample_designs_controller
       summary: Get all the contents of the sample designs collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -473,6 +497,7 @@ paths:
     post:
       tags: [Sample Designs]
       operationId: createSampleDesigns
+      x-openapi-router-controller: openapi_server.controllers.sample_designs_controller
       summary: Add to the sample designs collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -490,6 +515,7 @@ paths:
     put:
       tags: [Sample Designs]
       operationId: replaceSampleDesigns
+      x-openapi-router-controller: openapi_server.controllers.sample_designs_controller
       summary: Replace the sample designs collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -506,6 +532,7 @@ paths:
     delete:
       tags: [Sample Designs]
       operationId: clearSampleDesigns
+      x-openapi-router-controller: openapi_server.controllers.sample_designs_controller
       summary: Empty the sample designs collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -525,6 +552,7 @@ paths:
     get:
       tags: [Sample Designs]
       operationId: getSampleDesignsTemplate
+      x-openapi-router-controller: openapi_server.controllers.sample_designs_controller
       summary: Download the blank Excel template for sample designs
       description: >
         A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
@@ -545,6 +573,7 @@ paths:
     get:
       tags: [Assays]
       operationId: listAssays
+      x-openapi-router-controller: openapi_server.controllers.assays_controller
       summary: Get all the contents of the assays collection
       description: >
         Returns an empty array when the study has no such sub-collection yet,
@@ -558,6 +587,7 @@ paths:
     post:
       tags: [Assays]
       operationId: createAssays
+      x-openapi-router-controller: openapi_server.controllers.assays_controller
       summary: Add to the assays collection
       description: >
         Objects whose URIs already exist are updated in place; everything else
@@ -575,6 +605,7 @@ paths:
     put:
       tags: [Assays]
       operationId: replaceAssays
+      x-openapi-router-controller: openapi_server.controllers.assays_controller
       summary: Replace the assays collection contents
       description: >
         After this call the collection contains exactly what was uploaded.
@@ -591,6 +622,7 @@ paths:
     delete:
       tags: [Assays]
       operationId: clearAssays
+      x-openapi-router-controller: openapi_server.controllers.assays_controller
       summary: Empty the assays collection
       description: >
         Removes every member from the collection. The sub-collection object
@@ -610,6 +642,7 @@ paths:
     get:
       tags: [Assays]
       operationId: getAssaysTemplate
+      x-openapi-router-controller: openapi_server.controllers.assays_controller
       summary: Download the blank Excel template for assays
       description: >
         A blank workbook: the data rows are empty. Its SBH_* lookup sheets are
@@ -622,11 +655,11 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '502': { $ref: '#/components/responses/BadGateway' }
-  /assays/{id}/attachments:
+  /assays/{display_id}/attachments:
     parameters:
       - $ref: '#/components/parameters/StudyCollection'
       - $ref: '#/components/parameters/SynBioHubUrl'
-      - name: id
+      - name: display_id
         in: path
         required: true
         description: >
@@ -635,6 +668,7 @@ paths:
     patch:
       tags: [Assays]
       operationId: attachToAssay
+      x-openapi-router-controller: openapi_server.controllers.assays_controller
       summary: Add a new attachment to the pointed SBOL object
       description: >
         The one per-item endpoint in this API -- attaching a file requires naming the
@@ -656,24 +690,28 @@ paths:
     get:
       tags: [Models]
       operationId: listModels
+      x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Get all the contents of the models collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       tags: [Models]
       operationId: createModels
+      x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Add to the models collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       tags: [Models]
       operationId: replaceModels
+      x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Replace the models collection contents"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       tags: [Models]
       operationId: clearModels
+      x-openapi-router-controller: openapi_server.controllers.models_controller
       summary: "[TBD] Empty the models collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
@@ -685,24 +723,28 @@ paths:
     get:
       tags: [Archives]
       operationId: listArchives
+      x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Get all the contents of the archives collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       tags: [Archives]
       operationId: createArchives
+      x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Add to the archives collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       tags: [Archives]
       operationId: replaceArchives
+      x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Replace the archives collection contents"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       tags: [Archives]
       operationId: clearArchives
+      x-openapi-router-controller: openapi_server.controllers.archives_controller
       summary: "[TBD] Empty the archives collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
@@ -714,24 +756,28 @@ paths:
     get:
       tags: [Analyses]
       operationId: listAnalyses
+      x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Get all the contents of the analyses collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       tags: [Analyses]
       operationId: createAnalyses
+      x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Add to the analyses collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     put:
       tags: [Analyses]
       operationId: replaceAnalyses
+      x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Replace the analyses collection contents"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
     delete:
       tags: [Analyses]
       operationId: clearAnalyses
+      x-openapi-router-controller: openapi_server.controllers.analyses_controller
       summary: "[TBD] Empty the analyses collection"
       responses:
         '501': { $ref: '#/components/responses/NotImplemented' }
@@ -742,6 +788,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+      x-bearerInfoFunc: openapi_server.controllers.security_controller.info_from_bearerAuth
       description: >
         SynBioHub access token. The server forwards it to SynBioHub as the
         X-authorization header that SynBioHub itself expects.
