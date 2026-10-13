@@ -179,9 +179,9 @@ export function useUnifiedModal() {
           studyDirectory,
           onComplete
         ) => {
-          open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+          open(MODAL_TYPES.SBH_INSTANCE_SELECTOR, {
             allowedModals: [
-              MODAL_TYPES.REPOSITORY_SELECTOR,
+              MODAL_TYPES.SBH_INSTANCE_SELECTOR,
               MODAL_TYPES.FLAPJACK_OPTIONS,
               MODAL_TYPES.SBH_LOGIN,
               MODAL_TYPES.FJ_LOGIN,
@@ -235,7 +235,7 @@ export function useUnifiedModal() {
 
         /**
          * Open collection browser workflow
-         * Steps: REPOSITORY_SELECTOR -> SBH_CREDENTIAL_CHECK -> COLLECTION_BROWSER
+         * Steps: SBH_INSTANCE_SELECTOR -> SBH_LOGIN -> COLLECTION_BROWSER
          * 
          * @param {function} onComplete - Callback function that receives selected collections
          * @param {object} props - Optional props for initial configuration
@@ -284,9 +284,9 @@ export function useUnifiedModal() {
                     return;
                 }
 
-                open(MODAL_TYPES.REPOSITORY_SELECTOR, {
+                open(MODAL_TYPES.SBH_INSTANCE_SELECTOR, {
                     allowedModals: [
-                        MODAL_TYPES.REPOSITORY_SELECTOR,
+                        MODAL_TYPES.SBH_INSTANCE_SELECTOR,
                         MODAL_TYPES.FLAPJACK_OPTIONS,
                         MODAL_TYPES.COLLECTION_BROWSER,
                         MODAL_TYPES.ADD_SBH_REPO,
@@ -358,54 +358,6 @@ export function useUnifiedModal() {
             executeImport();
         }, [open]),
 
-        /**
-         * Open collection browser workflow for resource selection (plasmids, backbones, etc.)
-         * This workflow skips repository selection and uses the provided repository.
-         * Silently validates credentials first - only shows UI if there's a problem.
-         * 
-         * @param {string} repositoryUrl - The repository URL to use (from previous selection)
-         * @param {string} expectedEmail - The email address to validate against (for cross-reference)
-         * @param {function} onComplete - Callback function that receives selected collections
-         * @param {object} props - Optional props for initial configuration
-         * @param {boolean} props.multiSelect - Whether to allow multiple selections (default: true)
-         * 
-         * The callback receives data only when the entire workflow completes:
-         * {
-         *   selectedRepo: string,
-         *   userInfo: { email, username, name, ... },
-         *   collections: [{ uri, name, displayId, ... }],
-         *   count: number,
-         *   completed: true,
-         *   validated: true  // indicates email was validated
-         * }
-         * 
-         * If credentials don't match, the workflow aborts and returns:
-         * {
-         *   error: 'Email mismatch',
-         *   expectedEmail: string,
-         *   actualEmail: string,
-         *   aborted: true
-         * }
-         */
-        browseCollectionsForResource: useCallback((repositoryUrl, expectedEmail, onComplete, props = {}) => {
-            open(MODAL_TYPES.COLLECTION_BROWSER, {
-                allowedModals: [
-                    MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                    MODAL_TYPES.COLLECTION_BROWSER,
-                    MODAL_TYPES.SBH_LOGIN,
-                    MODAL_TYPES.CREATE_COLLECTION
-                ],
-                props: {
-                    ...props,
-                    selectedRepo: repositoryUrl,
-                    expectedEmail: expectedEmail,
-                    skipRepositorySelection: true,
-                    silentCredentialCheck: true,
-                    multiSelect: props.multiSelect !== undefined ? props.multiSelect : true, // Default to multi-select for backward compatibility
-                },
-                onComplete,
-            });
-        }, [open]),
     };
 
     return {
