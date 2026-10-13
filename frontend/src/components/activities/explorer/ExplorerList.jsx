@@ -1,7 +1,9 @@
 import { useCreateFile, useFiles, createFileInDirectory, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import { useDispatch } from 'react-redux'
+import axios from 'axios'
 import CreateNewButton from "./CreateNewButton"
-import { Accordion, ScrollArea, Title} from '@mantine/core'
+import { Accordion, Group, ScrollArea, Text, Title} from '@mantine/core'
+import { AiOutlineLink } from 'react-icons/ai'
 import { ObjectTypes, BLANK_SBML } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import ImportFile from './ImportFile'
@@ -13,6 +15,7 @@ import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { readStudy } from "../../../modules/util";
+import { useLocalStorage } from '@mantine/hooks';
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -26,6 +29,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const { workflows } = useUnifiedModal()
 
     const [importedFile, setImportedFile] = useState(null)
+    const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
 
     // handle directory selection
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
@@ -165,6 +169,57 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         />
     )
 
+
+    const handleLinkStudyCollection = async (authToken, studyUri, memberUri) => {
+        if (!authToken || !studyUri || !memberUri) {
+            return
+        }
+
+        try {
+            const params = new URLSearchParams({ collections: studyUri })
+
+            await axios.post(`${memberUri}/addToCollection`, params.toString(), {
+                headers: {
+                    'Accept': 'text/plain',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-authorization': authToken,
+                },
+            })
+        } catch (err) {
+            console.error('Unable to link study to collection:', err)
+        }
+    }
+
+    const handleLinkResourcesClick = async () => {
+        try {
+            const study = await readStudy(workDir)
+            const selectedRepo = study.registryURL || null
+            const expectedEmail = study.userEmail || null
+            const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo)
+            const authToken = repoInfo?.authtoken
+
+            if (!selectedRepo) {
+                console.warn('No SynBioHub repository is configured for this study.')
+                return
+            }
+
+            workflows.browseCollectionsForResource(selectedRepo, expectedEmail, (result) => {
+                const collection = result?.collections?.[0]
+                if (!collection) {
+                    return
+                }
+                const memberUri = collection.uri?.replace(study.registryPrefix, study.registryAPI)
+                handleLinkStudyCollection(authToken,study.collectionUri,memberUri)
+            }, {
+                multiSelect: false,
+                rootOnly: false,
+                allowCreateCollection: false,
+            })
+        } catch (err) {
+            console.error('Unable to open collection browser for linking resources:', err)
+        }
+    }
+
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
             <Title mt={10} order={6} mb={10} >
@@ -192,6 +247,15 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
+                                        {objectType.id === 'synbio.object-type.resources' && (
+                                            <Group
+                                                sx={linkResourcesStyle}
+                                                onClick={handleLinkResourcesClick}
+                                            >
+                                                <AiOutlineLink />
+                                                <Text size='sm' sx={linkResourcesTextStyle}>Link {objectType.title}</Text>
+                                            </Group>
+                                        )}
                                         {objectType.createable &&
                                             <CreateNewButton
                                                 onCreate={handleCreateObject(objectType)}
@@ -264,4 +328,23 @@ const titleStyle = theme => ({
     fontWeight: 600,
     fontSize: 11,
     textTransform: 'uppercase',
+})
+
+const linkResourcesStyle = theme => ({
+    padding: '3px 0 3px 8px',
+    borderRadius: 3,
+    cursor: 'pointer',
+    color: theme.colors[theme.primaryColor][5],
+    '&:hover': {
+        backgroundColor: theme.colors.dark[5]
+    }
+})
+
+const linkResourcesTextStyle = theme => ({
+    flexGrow: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+    color: theme.colors[theme.primaryColor][5],
+    fontWeight: 500,
 })
