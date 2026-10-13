@@ -273,6 +273,7 @@ function UnifiedModal({
         switch (currentModal) {
             case MODAL_TYPES.SBH_LOGIN:
                 const shouldReturnToCredentialCheck = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
+                const shouldReturnToCollectionBrowser = modalHistory.includes(MODAL_TYPES.COLLECTION_BROWSER);
                 const loginModalData = modalData[MODAL_TYPES.SBH_LOGIN] || {};
                 const shouldNavigateToValidator =
                     loginModalData.returnTo === MODAL_TYPES.FLAPJACK_OPTIONS
@@ -296,6 +297,30 @@ function UnifiedModal({
                                     selectedRepo: nextSelectedRepo,
                                     expectedEmail: modalData.expectedEmail,
                                     skipRepositorySelection: modalData.skipRepositorySelection,
+                                });
+                                return;
+                            }
+
+                            if (shouldReturnToCollectionBrowser) {
+                                const nextSelectedRepo = loginModalData.selectedRepo || modalData.selectedRepo || result.selectedRepo;
+                                if (nextSelectedRepo) {
+                                    dispatch(setSBHPrimary(nextSelectedRepo));
+                                }
+                                setModalData(prev => ({
+                                    ...prev,
+                                    selectedRepo: nextSelectedRepo,
+                                    expectedEmail: modalData.expectedEmail,
+                                    skipRepositorySelection: modalData.skipRepositorySelection,
+                                    userInfo: result.userInfo || prev.userInfo,
+                                    authToken: result.authToken || prev.authToken,
+                                }));
+
+                                navigateTo(MODAL_TYPES.COLLECTION_BROWSER, {
+                                    selectedRepo: nextSelectedRepo,
+                                    expectedEmail: modalData.expectedEmail,
+                                    skipRepositorySelection: modalData.skipRepositorySelection,
+                                    userInfo: result.userInfo,
+                                    authToken: result.authToken,
                                 });
                                 return;
                             }
