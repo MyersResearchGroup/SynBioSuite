@@ -6,26 +6,142 @@ import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 
 const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
 
-//There is an issue with where the file upload is not being sent correctly to the server
-export async function upload_sbs(metadata, parameters) {
+function capitalizeFirst(str) {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export async function download_template(
+    sbh_url,
+    sbh_prefix,
+    sbh_token,
+    collectionUrl,
+    templateType) {
     try {
-        const formdata = new FormData();
-        
-        const metadataFile = await metadata.getFile();
-        formdata.append("Metadata", metadataFile, metadataFile.name || "metadata.xlsx");
-    
-        const parametersJson = JSON.stringify(parameters);
-        const paramBlob = new Blob([parametersJson], { type: 'application/json' });
-        formdata.append("Params", paramBlob, "parameters.json");
-        
-        const response = await axios.post(SBS_Server_Link + "/api/upload_sbs_up",
-            formdata
+        let data = new FormData();
+
+        const paramsObj = {
+          sbh_url: sbh_url,
+          sbh_prefix: sbh_prefix,
+          sbh_token: sbh_token,
+          collection_url: collectionUrl,
+          template_type: templateType
+        };
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/downloadTemplate',
+            data,
+            {
+                responseType: "blob",
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+            }
         );
-        
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
+        return response;
+    } catch (error) {
+        let msg = error.message;
+
+        if (error.response?.data instanceof Blob) {
+            try {
+                const text = await error.response.data.text();
+
+                try {
+                    msg = JSON.parse(text).error;
+                } catch {
+                    msg = text;
+                }
+            } catch {
+                // Ignore blob parsing errors
+            }
+        } else {
+            msg = error.response?.data?.error || msg;
+        }
+
+        showErrorNotification("Template Download Failed", msg);
+        throw error;
+    }
+}
+
+export async function upload_sbol(
+    file,
+    sbmlFile,
+    sbh_url,
+    sbh_prefix,
+    sbh_token,
+    collectionUrl,
+    sbh_overwrite = true,
+    workingDirectory = null,
+) {
+    try {
+        let data = new FormData();
+        if (file) {
+            let fileObject;
+            if (typeof file === 'string') {
+                if (!workingDirectory) {
+                    throw new Error('Working directory handle is required when file is provided as a path string');
+                }
+                fileObject = await readFileFromPath(workingDirectory, file);
+            } else {
+                fileObject = typeof file.getFile === 'function' ? await file.getFile() : file;
+            }
+            data.append('SBOL', fileObject);
+        }
+        if (sbmlFile) {
+            let sbmlFileObject;
+            try {
+                if (typeof sbmlFile === 'string') {
+                    if (!workingDirectory) {
+                        throw new Error('Working directory handle is required when file is provided as a path string');
+                    }
+                    sbmlFileObject = await readFileFromPath(workingDirectory, sbmlFile);
+                } else {
+                    sbmlFileObject = typeof sbmlFile.getFile === 'function' ? await sbmlFile.getFile() : sbmlFile;
+                }
+                data.append('SBML', sbmlFileObject);
+            } catch (error) {
+                sbmlFile = null;
+            }
+        }
+
+        const paramsObj = {
+          sbh_url: sbh_url,
+          sbh_prefix: sbh_prefix,
+          sbh_token: sbh_token,
+          collection_url: collectionUrl,
+          sbh_overwrite: sbh_overwrite,
+          importType: capitalizeFirst(workingDirectory)
+        };
+        const paramsJson = JSON.stringify(paramsObj);
+        const paramBlob = new Blob([paramsJson], { type: 'application/json' });
+        data.append('Params', paramBlob, 'parameters.json');
+
+        const response = await axios.post(
+            SBS_Server_Link + '/api/uploadSBOL',
+            data,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              },
+            }
+        );
+        // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-        console.error("Upload SBS error:", error);
-        showErrorNotification('Error', error.message);
+        let msg = "Unknown error";
+
+        if (typeof error.response?.data === "string") {
+            msg = error.response.data;
+        } else if (error.response?.data?.error) {
+            msg = error.response.data.error;
+        } else if (error.message) {
+            msg = error.message;
+        } 
+        showErrorNotification("SBOL Upload Failed", msg);
         throw error;
     }
 }
@@ -33,10 +149,12 @@ export async function upload_sbs(metadata, parameters) {
 export async function upload_resource(
     file,
     sbh_url,
+    sbh_prefix,
     sbh_token,
     collectionUrl,
     workingDirectory = null,
-    sbh_overwrite = 0
+    sbh_overwrite = true,
+    importType = null
 ) {
     try {
         let data = new FormData();
@@ -55,18 +173,17 @@ export async function upload_resource(
 
         const paramsObj = {
             sbh_url: sbh_url,
+            sbh_prefix: sbh_prefix,
             sbh_token: sbh_token,
-            fj_url: null,
-            sbh_user: null,
-            sbh_pass: null,
-            fj_token: null,
-            fj_user: null,
-            fj_pass: null,
             collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
+            fj_url: null,
+            fj_token: null,
+            fj_study_id: null,
             fj_overwrite: 1,
             version: "",
-            attachments: {}
+            attachments: {},
+            importType: capitalizeFirst(importType) 
         }
 
         const paramsJson = JSON.stringify(paramsObj);
@@ -85,7 +202,6 @@ export async function upload_resource(
         // showErrorNotification('Resource Upload Successful', 'Resource uploaded successfully');
         return response.data;
     } catch (error) {
-      console.log(error.response?.data);
       const msg =
             error.response?.data?.error ||
             error.message ||
@@ -98,10 +214,15 @@ export async function upload_resource(
 export async function uploadExperiment(
     file,
     sbh_url,
+    sbh_prefix,
     sbh_token,
     collectionUrl,
+    fj_url = null,
+    fj_token = null,
+    fj_refresh_token = null,
+    fj_study_id = null,
     workingDirectory = null,
-    sbh_overwrite = 0,
+    sbh_overwrite = true,
     extraFiles = {}
 ) {
     try {
@@ -142,19 +263,29 @@ export async function uploadExperiment(
 
         const paramsObj = {
             sbh_url: sbh_url,
+            sbh_prefix: sbh_prefix,
             sbh_token: sbh_token,
-            fj_url: null,
-            sbh_user: null,
-            sbh_pass: null,
-            fj_token: null,
-            fj_user: null,
-            fj_pass: null,
             collection_url: collectionUrl,
             sbh_overwrite: sbh_overwrite,
+            fj_url: fj_url,
+            fj_token: fj_token,
+            fj_refresh_token: fj_refresh_token,
+            fj_study_id: fj_study_id,
             fj_overwrite: 1,
             version: "",
+            importType: "Assays",
             attachments: Object.fromEntries(
                 (extraFiles.attachments || [])
+                    .filter(Boolean)
+                    .map((attachmentFile) => {
+                        const attachmentName = typeof attachmentFile === 'string'
+                            ? attachmentFile.split('/').pop()
+                            : attachmentFile.name;
+                        return [attachmentName, attachmentName];
+                    })
+            ),
+            plateReaderOutputs: Object.fromEntries(
+                (extraFiles.plateReaderOutputs || [])
                     .filter(Boolean)
                     .map((attachmentFile) => {
                         const attachmentName = typeof attachmentFile === 'string'
@@ -181,8 +312,13 @@ export async function uploadExperiment(
         );
         return response.data;
     } catch (error) {
-        console.error("Upload Experiment error:", error);
-        throw error;
+        const backendData = error.response?.data;
+        const backendMessage =
+          typeof backendData === 'string'
+            ? backendData
+            : backendData?.error || backendData?.message || error.message;
+        console.error("Upload Experiment error:", backendMessage, error);
+        throw new Error(backendMessage);
     }
 }
 
@@ -227,8 +363,6 @@ export async function submitAssembly(wizardInput, insertParts, acceptorBackbone)
 }
 
 export async function submitBuild(wizardInput, assemblyPlan) {
-    console.log(wizardInput)
-    console.log(assemblyPlan)
     
     var formdata = new FormData()
 
@@ -301,12 +435,9 @@ export async function searchCollections(url, auth) {
                 "X-authorization": auth
             }
         });
-      console.log('URL: '+url)
-      console.log('auth: '+auth)
-      console.log(response.data)
         // This filters out all the public root collections so only private ones are returned
         if (Array.isArray(response.data)) {
-            return response.data.filter(item => typeof item.uri === 'string' && !/\/public\//.test(item.uri));
+            return response.data.filter(item => typeof item.uri === 'string' && !/\/user\//.test(item.uri));
         } else {
             throw new Error("Response from SynbioHub is not an array");
         }
@@ -320,17 +451,61 @@ export async function searchCollections(url, auth) {
     }
 }
 
-export async function createCollection(id, version, name, description, citations, auth, url, overwrite) {
+export async function createStudyFJ(id, version, name, description, doi, auth, url, overwrite) {
     try {
-        if(url == "") return;
-        const formdata = new FormData();
-        formdata.append('id', id);
-        formdata.append('version', version);
-        formdata.append('name', name);
-        formdata.append('description', description);
-        formdata.append('citations', citations);
-        formdata.append('overwrite_merge', overwrite ? 1 : 0);
+         let response = await axios.get(
+            `${url}/api/study/`,
+            {
+                params: {
+                name,
+                public: false,
+                },
+                headers: {
+                Authorization: `Bearer ${auth}`,
+                },
+            }
+        );
+        if (response.data.count == 0) {
+            response = await axios.post(
+                `${url}/api/study/`,
+                {
+                    name: name,
+                    description: description ?? "",
+                    public: false,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+        } else {
+            return response.data.results[0].id
+        }
+        return response.data.id;
+    } catch (error) {
+        if (error.response && error.response.status == 401){
+            showErrorNotification('Flapjack Login Required', "Try logging out and logging back in again")
+        } else {
+            showErrorNotification('Flapjack Error', error.message);
+        }
+        throw error;
+    }
+}
 
+export async function createStudySBH(id, version, name, description, citations, auth, url, overwrite) {
+    if (url === "") return;
+
+    const formdata = new FormData();
+    formdata.append('id', id);
+    formdata.append('version', version);
+    formdata.append('name', name);
+    formdata.append('description', description);
+    formdata.append('citations', citations);
+    formdata.append('overwrite_merge', overwrite ? 1 : 0);
+
+    try {
         const response = await axios.post(
             `${url}/submit`,
             formdata,
@@ -340,20 +515,18 @@ export async function createCollection(id, version, name, description, citations
                     "X-authorization": auth
                 }
             }
-        );        
-        showNotification({
-            title: 'Collection Created',
-            message: `Collection "${name}" created successfully.`,
-            color: 'green',
-        });
+        );
         return response.data;
     } catch (error) {
-        if (error.response && error.response.status == 401 && error.response.data == "Login required"){
-            showErrorNotification('Your SynbioHub Credentials Have Expired', "Try logging out and logging back in again")
-        } else {
-            showErrorNotification('Create Collection Error', error.response.data);
-        }
-        throw error;
+        const backendMessage =
+            (typeof error?.response?.data === 'string' && error.response.data)
+            || error?.response?.data?.error
+            || error?.response?.data?.message
+            || error?.message
+            || 'Failed to create SynBioHub study';
+
+        console.error('createStudySBH error:', error);
+        throw new Error(backendMessage);
     }
 }
 
@@ -402,6 +575,35 @@ export async function FJLogin(instance, username, password){
     }
 };
 
+export async function CheckFJLogin(instance, authToken){
+    try {
+        if (!authToken) {
+            return { valid: false }
+        }
+
+        const response = await axios.get(`${instance}/api/auth/user_info/`, {
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        // Return user profile information for email verification
+        return { 
+            valid: true, 
+            profile: response.data
+        };
+    } catch (error) {
+        if (error.response?.status === 401) {
+            return { valid: false };
+        }   
+
+        console.error("CheckFJLogin error:", error);
+        showErrorNotification('Flapjack Login Error', error.message);
+        throw error;
+    }
+}
+
 export async function CheckLogin(instance, authToken){
     try {
         if (!authToken) {
@@ -425,12 +627,10 @@ export async function CheckLogin(instance, authToken){
             return { valid: false };
         }
 
-        console.error("CheckLogin error:", error);
-        showErrorNotification('Login Error', error.message);
+        showErrorNotification('SynBioHub Login Error', error.message);
         throw error;
     }
 }
-
 
 export async function getWebOfRegistries() {
     try {
@@ -460,7 +660,6 @@ export async function getWebOfRegistries() {
         throw error;
     }
 }
-
 
 // Function to clear invalid credentials from local storage
 export function clearInvalidCredentials(instanceUrl) {

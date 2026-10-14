@@ -2,7 +2,7 @@ import { createContext } from 'react'
 import { useSelector } from 'react-redux'
 import SeqImproveFrame from './SeqImproveFrame'
 import PanelSaver from './PanelSaver'
-import { panelsSlice } from '../../redux/store'
+import panelsSlice from '../../redux/slices/panelsSlice'
 
 const { selectors } = panelsSlice
 

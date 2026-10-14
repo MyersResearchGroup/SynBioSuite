@@ -21,7 +21,7 @@ app.register_blueprint(swaggerui_blueprint)
 
 # Import views AFTER creating app and registering Swagger UI
 # This ensures your routes take precedence in case of conflicts
-from . import views
+from . import route
 
 if __name__ == "__main__":
     # Only for debugging while developing

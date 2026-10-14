@@ -1,5 +1,5 @@
 import {Accordion, Group, Text} from '@mantine/core'
-import {panelsSlice} from "../../../redux/store.js"
+import panelsSlice from '../../../redux/slices/panelsSlice'
 const { actions } = panelsSlice
 import {useDispatch} from "react-redux";
 import { useState } from 'react'

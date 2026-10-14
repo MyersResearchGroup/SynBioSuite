@@ -42,6 +42,7 @@ export default function CollectionBrowserModal({
     skipRepositorySelection: skipRepositorySelectionFromProps,
     multiSelect: multiSelectFromProps,
     rootOnly: rootOnlyFromProps,
+    allowCreateCollection: allowCreateCollectionFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
@@ -53,6 +54,7 @@ export default function CollectionBrowserModal({
     const [currentPath, setCurrentPath] = useState([]);
     const [overwrite, setOverwrite] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const defaultCollectionUri = modalData.defaultCollectionUri || modalData.collectionUri || null;
 
     const isMountedRef = useRef(true);
     const abortControllerRef = useRef(null);
@@ -64,6 +66,7 @@ export default function CollectionBrowserModal({
     const silentCredentialCheck = silentCredentialCheckFromProps ?? modalData.silentCredentialCheck;
     const multiSelect = multiSelectFromProps ?? modalData.multiSelect ?? true;
     const rootOnly = rootOnlyFromProps ?? modalData.rootOnly ?? false;
+    const allowCreateCollection = allowCreateCollectionFromProps ?? modalData.allowCreateCollection ?? true;
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -99,6 +102,7 @@ export default function CollectionBrowserModal({
             }
 
             const authToken = repoInfo.authtoken;
+            const registryAPI = repoInfo.registryAPI;
 
             if (!authToken) {
                 setModalData?.(prev => ({
@@ -107,12 +111,14 @@ export default function CollectionBrowserModal({
                     expectedEmail,
                     skipRepositorySelection: true,
                 }));
-                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                    selectedRepo,
+                });
                 return;
             }
 
             try {
-                const loginResult = await CheckLogin(selectedRepo, authToken);
+                const loginResult = await CheckLogin(registryAPI || selectedRepo, authToken);
 
                 if (!loginResult.valid) {
                     clearInvalidCredentials(selectedRepo);
@@ -127,7 +133,10 @@ export default function CollectionBrowserModal({
                         message: 'Your login credentials have expired or are invalid. Please log in again.',
                         color: 'orange',
                     });
-                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                        selectedRepo,
+                        returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                    });
                     return;
                 }
 
@@ -148,7 +157,10 @@ export default function CollectionBrowserModal({
                         expectedEmail,
                         skipRepositorySelection: true,
                     }));
-                    navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                    navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                        selectedRepo,
+                        returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                    });
                     return;
                 }
 
@@ -179,7 +191,10 @@ export default function CollectionBrowserModal({
                     expectedEmail,
                     skipRepositorySelection: true,
                 }));
-                navigateTo(MODAL_TYPES.SBH_CREDENTIAL_CHECK);
+                navigateTo(MODAL_TYPES.SBH_LOGIN, {
+                    selectedRepo,
+                    returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
+                });
             }
         };
 
@@ -266,6 +281,15 @@ export default function CollectionBrowserModal({
         if (!authToken) return;
         fetchCollections();
     }, [fetchCollections, dataSBH, getAuthToken]);
+
+    useEffect(() => {
+        if (!defaultCollectionUri || collections.length === 0) return;
+
+        const matchingCollection = collections.find(collection => collection.uri === defaultCollectionUri);
+        if (!matchingCollection) return;
+
+        setSelectedCollections(new Map([[matchingCollection.uri, matchingCollection]]));
+    }, [collections, defaultCollectionUri]);
 
     const toggleSelection = useCallback((collection) => {
         setSelectedCollections(prev => {
@@ -362,20 +386,6 @@ export default function CollectionBrowserModal({
 
     return (
         <Stack spacing="md" style={{ height: '70vh', display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'stretch', padding: 0 }}>
-            <Breadcrumbs style={{ width: '100%' }}>
-                {breadcrumbs.map((crumb, index) => (
-                    <Anchor
-                        key={crumb.uri || 'root'}
-                        onClick={() => navigateToBreadcrumb(index)}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        {crumb.name}
-                    </Anchor>
-                ))}
-            </Breadcrumbs>
-
-            
-
             <Group position="right" mb={0} mt="xs">
                 <Tooltip label="Refresh collections list">
                     <ActionIcon 
@@ -388,9 +398,11 @@ export default function CollectionBrowserModal({
                         <IoMdRefresh size={18} />
                     </ActionIcon>
                 </Tooltip>
-                <Button onClick={handleCreateCollection} variant="outline" color="teal">
-                    Create Collection
-                </Button>
+                {allowCreateCollection && (
+                    <Button onClick={handleCreateCollection} variant="outline" color="teal">
+                        Create Collection
+                    </Button>
+                )}
             </Group>
 
             <TextInput
@@ -515,14 +527,6 @@ export default function CollectionBrowserModal({
                     </Group>
                 </Paper>
             )}
-
-            <Group position="right" mt="md">
-                <Checkbox
-                    label="Overwrite existing files in the collection"
-                    checked={overwrite}
-                    onChange={(event) => setOverwrite(event.currentTarget.checked)}
-                />
-            </Group>
 
             <Group position="apart" mt="md">
                 <Button variant="default" onClick={handleCancel}>

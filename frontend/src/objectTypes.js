@@ -1,14 +1,14 @@
-import { BiWorld } from "react-icons/bi"
+import { BiSpreadsheet } from "react-icons/bi"
 import { IoAnalyticsSharp } from "react-icons/io5"
 import { TbComponents } from "react-icons/tb"
 import { PiTreeStructureFill } from "react-icons/pi"
 import { GiSewingMachine } from "react-icons/gi"
 import { GiThorHammer} from "react-icons/gi"
-import { RiGitRepositoryLine } from "react-icons/ri";
-import { GrTestDesktop } from "react-icons/gr";
-import { MdAlignVerticalTop } from "react-icons/md";
-import { VscOutput } from "react-icons/vsc";
-import { FaFileArchive } from "react-icons/fa";
+import { AiOutlineExperiment } from "react-icons/ai";
+import { MdOutlineViewModule } from "react-icons/md";
+import { VscOutput, VscGraphLine } from "react-icons/vsc";
+import { FaDna } from "react-icons/fa";
+import { FiDatabase, FiArchive } from "react-icons/fi";
 
 const SEQ_IMPROVE_LINK = import.meta.env.VITE_SEQIMPROVE_URL
 
@@ -37,31 +37,53 @@ export const BLANK_SBML = `<?xml version="1.0" encoding="UTF-8"?>
 export const ObjectTypes = {
     SYNBIOHUB: {
         id: "synbio.object-type.synbiohub",
-        title: "SynBioHub Repository",
+        title: "Repository",
         listTitle: "SynBioHub Repositories",
-        icon: RiGitRepositoryLine,
+        icon: FiDatabase,
         isRepository: true,
     },
     Resources: {
         id: "synbio.object-type.resources",
         title: "Resources",
         listTitle: "Resources",
-        fileNameMatch: /\.json$/,
-        icon: FaFileArchive,
+        fileNameMatch: /\.(xlsm|xlsx)$/,
+        icon: BiSpreadsheet,
+        iframeUrl: SEQ_IMPROVE_LINK,
         createable: false,
         importable: true,
+        uploadable: true,
+        updateable: true,
+        annotatable: false,
         extension: '.json',
         subdirectory: "resources",
         downloadable: true,
+        limitOne: true,
     },
+     Devices: {
+        id: "synbio.object-type.devices",
+        title: "Device",
+        listTitle: "Devices",
+        fileMatch: /<sbol:/,
+        fileNameMatch: /\.xml$/,
+        icon: FaDna,
+        iframeUrl: SEQ_IMPROVE_LINK,
+        createable: true,
+        importable: true,
+        uploadable: true,
+        annotatable: true,
+        extension: '.xml',
+        subdirectory: "devices",
+    },   
     SBOL: {
         id: "synbio.object-type.sbol",
         title: "Design",
         listTitle: "Designs",
         fileMatch: /<sbol:/,
-        icon: TbComponents,
+        fileNameMatch: /\_sbol.xml$/,
+        icon: MdOutlineViewModule,
         createable: true,
-        uploadable: false,
+        importable: true,
+        uploadable: true,
         extension: '.xml',
         badgeLabel: "SBOL",
     },
@@ -70,8 +92,10 @@ export const ObjectTypes = {
         title: "Model",
         listTitle: "Models",
         fileMatch: /<sbml/,
+        fileNameMatch: /\_sbml.xml$/,
         icon: PiTreeStructureFill,
         importable: true,
+        uploadable: false,
         badgeLabel: "SBML",
     },
     OMEX: {
@@ -79,8 +103,9 @@ export const ObjectTypes = {
         title: "Archive",
         listTitle: "Archives",
         fileNameMatch: /\.omex$/,
-        icon: BiWorld,
+        icon: FiArchive,
         importable: true,
+        uploadable: false,
         badgeLabel: "OMEX",
     },
     Analysis: {
@@ -88,7 +113,7 @@ export const ObjectTypes = {
         title: "Analysis",
         listTitle: "Analyses",
         fileNameMatch: /\.analysis$/,
-        icon: IoAnalyticsSharp,
+        icon: VscGraphLine,
         createable: true,
         uploadable: false,
         extension: '.analysis',
@@ -97,12 +122,15 @@ export const ObjectTypes = {
         id: "synbio.object-type.plasmid",
         title: "Plasmid",
         listTitle: "Plasmids",
+        annotatable: true,
         createable: true,
         importable: true,
+        uploadable: true,
         iframeImport: true,
         iframeUrl: SEQ_IMPROVE_LINK,
         extension: '.xml',
-        icon: TbComponents,
+        icon: FaDna,
+        fileMatch: /<sbol:/,
         fileNameMatch: /\.xml$/,
         badgeLabel: "PLASMID",
         subdirectory: "plasmids"
@@ -112,13 +140,17 @@ export const ObjectTypes = {
         title: "Strains",
         listTitle: "Strains",
         fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         extension: '.json',
         createable: false,
         importable: true,
+        uploadable: true,
+        updateable: true,
         subdirectory: "strains",
         downloadable: true,
+        limitOne: true,
     },
+    /*
     BuildPlans: {
         id: "synbio.object-type.buildplans",
         title: "Build Plans",
@@ -130,64 +162,58 @@ export const ObjectTypes = {
         subdirectory: "buildPlans",
         visible: false
     },
+    */
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
         title: "Sample Designs",
         listTitle: "Sample Designs",
         fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         extension: '.json',
         createable: false,
         importable: true,
+        uploadable: true,
+        updateable: true,
         subdirectory: "sampleDesigns",
         downloadable: true,
+        limitOne: true,
     },
     Metadata: {
         id: "synbio.object-type.study-data",
         title: "Metadata",
-        listTitle: "Study Metadata",
+        listTitle: "Assays",
         fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: FaFileArchive,
+        icon: BiSpreadsheet,
         createable: false,
         importable: true,
-        subdirectory: "studies",
+        subdirectory: "assays",
         downloadable: true,
-    },
-    Results: {
-        id: "synbio.object-type.experimental-results",
-        title: "Experimental Results",
-        listTitle: "Experimental Results",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
-        icon: VscOutput,
-        createable: false,
-        importable: true,
-        subdirectory: "experimentalResults",
     },
     PlateReader: {
         id: "synbio.object-type.plate-reader",
         title: "Plate Reader Output",
-        listTitle: "Plate Reader Output",
-        fileNameMatch: /\.(xlsm|xlsx)$/,
+        listTitle: "Plate Reader Outputs",
+        fileNameMatch: /\.(xlsm|xlsx|txt|csv)$/,
         icon: VscOutput,
         createable: false,
         importable: true,
         subdirectory: "plateReaderOutputs",
     },
-    Studies: {
-        id: "synbio.object-type.experiment",
-        title: "Studies",
-        listTitle: "Studies",
-        fileNameMatch: /\.xdc$/,
-        icon: GrTestDesktop,
-        createable: true,
-        extension: ".xdc",
-        subdirectory: "xdc"
+    Results: {
+        id: "synbio.object-type.experimental-results",
+        title: "Experimental Results",
+        listTitle: "Other Experimental Results",
+        fileNameMatch: /.*/,
+        icon: VscOutput,
+        createable: false,
+        importable: true,
+        subdirectory: "experimentalResults",
     },
     Flapjack: {
         id: "synbio.object-type.flapjack",
-        title: "Flapjack Repository",
+        title: "Repository",
         listTitle: "Flapjack Repositories",
-        icon: RiGitRepositoryLine,
+        icon: FiDatabase,
         isRepository: true,
     },
 }
@@ -223,10 +249,10 @@ export async function classifyFile(file, subDirectoryName) {
         )?.id
     }
     else if (subDirectoryName) {
-        // try to match by subdirectory name
         const matchFromSubdirectory = getOBjectBySubdirectory(subDirectoryName)
-        if (matchFromSubdirectory) {
+        if (matchFromSubdirectory?.fileNameMatch?.test(file.name)) {
             return matchFromSubdirectory.id
         }
+        return null
     }
 }

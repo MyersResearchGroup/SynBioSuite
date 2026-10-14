@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { showNotification } from '@mantine/notifications';
 import { AiOutlinePlus, AiOutlineMinus } from 'react-icons/ai';
 
-const URLexpression = /^(localhost|\d{1,3}(\.\d{1,3}){3}|[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]+)(:\d+)?(\/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$/i;
+const URLexpression =
+  /^(localhost|(?:\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*)(?::\d+)?(?:\/[^\s]*)?$/i;
 const URLRegex = new RegExp(URLexpression);
 
 const SCHEMES = [

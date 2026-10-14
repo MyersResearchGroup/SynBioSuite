@@ -1,27 +1,46 @@
 import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
-import { useFile } from '../../../redux/hooks/workingDirectoryHooks'
+import { useFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
-import { uploadExperiment } from '../../../API'
+import { uploadExperiment, CheckLogin, CheckFJLogin } from '../../../API'
 import { showErrorNotification } from '../../../modules/util'
-import Dropzone from '../../Dropzone'
+import Dropzone, { MultiDropzone } from '../../Dropzone'
+import { readStudy } from "../../../modules/util";
+import { useSelector } from "react-redux";
+import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
 
 export default function CollectionWizard({ onUploadSuccess }) {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
-    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
+    const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })     
+    const [dataFJ] = useLocalStorage({ key: 'Flapjack', defaultValue: [] })
+    const { open, MODAL_TYPES } = useUnifiedModal()
 
-    const [metadataID, setMetadataID] = usePanelProperty(panelId, 'metadata', false)
-    const metadataFile = useFile(metadataID)
-
-    const [resultsID, setResultsID] = usePanelProperty(panelId, 'results', false)
-    const resultsFile = useFile(resultsID)
-
+    const metadataID = usePanelProperty(panelId, 'metadata')
+    const [resultsIDsRaw, setResultsIDsRaw] = usePanelProperty(panelId, 'results', false, [])
     const [plateOutputID, setPlateOutputID] = usePanelProperty(panelId, 'plateOutput', false)
-    const plateOutputFile = useFile(plateOutputID)
+    const files = useFiles()
+
+    const resolveStoredFileId = (value) => {
+        if (!value) return null
+        const directMatch = files.find(f => f.id === value)
+        if (directMatch) return directMatch.id
+        const normalized = String(value).split('/').pop()
+        const filenameMatch = files.find(f => f.name === normalized || f.id === normalized)
+        return filenameMatch?.id ?? value
+    }
+
+    const resultsIDs = Array.isArray(resultsIDsRaw) ? resultsIDsRaw : (resultsIDsRaw ? [resultsIDsRaw] : [])
+    const resolvedResultsIDs = resultsIDs.map(resolveStoredFileId)
+    const resultsFiles = (resolvedResultsIDs || []).map(id => files.find(f => f.id === id)).filter(Boolean)
+
+    const resolvedMetadataID = resolveStoredFileId(metadataID)
+    const metadataFile = useFile(resolvedMetadataID)
+    const resolvedPlateOutputID = resolveStoredFileId(plateOutputID)
+    const plateOutputFile = useFile(resolvedPlateOutputID)
 
     const [collection] = usePanelProperty(panelId, 'collection', false, {})
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
@@ -29,10 +48,83 @@ export default function CollectionWizard({ onUploadSuccess }) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [uploadSuccess, setUploadSuccess] = useState(false)
 
-    const selectedRepo = collection?.selectedRepo || collection?.modalResult?.selectedRepo || ''
-    const authToken = collection?.authToken || collection?.modalResult?.authToken || dataSBH.find((repo) => repo.registryURL === selectedRepo)?.authtoken || ''
-    const registryAPI = dataSBH.find((repo) => repo.registryURL === selectedRepo)?.registryAPI || selectedRepo
-    const collectionUrl = collection?.uri || collection?.collectionUrl || collection?.collections?.[0]?.uri || ''
+    const dirName = useSelector(
+      state => state.workingDirectory.directoryHandle
+    );
+
+    const [study, setStudy] = useState(null);
+
+    useEffect(() => {
+      async function loadStudy() {
+        if (!dirName) return;
+
+        try {
+          const study = await readStudy(dirName);
+          setStudy(study);
+        } catch (e) {
+          console.error("Failed to read study file", e);
+        }
+      }
+      loadStudy();
+    }, [dirName]);
+
+    const collectionUrl = study?.collectionUri ?? "";
+    const selectedRepo = study?.registryURL ?? "";
+    const registryAPI = study?.registryAPI ?? "";
+    const registryPrefix = study?.registryPrefix ?? "";
+    let studyFJid = study?.FJid ?? "";
+    const selectedFJRepo = study?.registryURLFJ ?? "";
+    let registryAPIFJ = study?.registryAPIFJ ?? "";
+
+    const getStoredToken = () => {
+        try {
+            const stored = localStorage.getItem('SynbioHub');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            return repos.find((repo) => repo.registryURL === selectedRepo)?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const getStoredFJToken = () => {
+        try {
+            const stored = localStorage.getItem('Flapjack');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            return repos.find((repo) => repo.registryURL === selectedFJRepo)?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const getStoredFJRefreshToken = () => {
+        try {
+            const stored = localStorage.getItem('Flapjack');
+            if (!stored) return null;
+            const repos = JSON.parse(stored);
+            return repos.find((repo) => repo.registryURL === selectedFJRepo)?.refresh || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const openLoginWorkflow = () => new Promise((resolve) => {
+        open(MODAL_TYPES.SBH_LOGIN, {
+            allowedModals: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
+            props: { selectedRepo },
+            onComplete: (result) => resolve(result || null),
+        });
+    });
+
+    const openFJLoginWorkflow = () => new Promise((resolve) => {
+        open(MODAL_TYPES.FJ_LOGIN, {
+            allowedModals: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO],
+            props: { selectedRepo: selectedFJRepo, selectedFJRepo },
+            onComplete: (result) => resolve(result || null),
+        });
+    });
+
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
 
@@ -47,31 +139,134 @@ export default function CollectionWizard({ onUploadSuccess }) {
             return
         }
 
+        const repoInfo = dataSBH.find(repo => repo.registryURL === selectedRepo);
+
+        let currentToken = repoInfo?.authtoken ?? "";
+
+        if (!currentToken) {
+            const loginResult = await openLoginWorkflow();
+            if (!loginResult?.completed) {
+                showErrorNotification('Login cancelled', 'Please log in to your SynBioHub repository before updating this Assay.')
+                return
+            }
+            currentToken = getStoredToken() || '';
+        }
+
+        if (!currentToken) {
+            showErrorNotification('Not logged in', 'Please log in to your SynBioHub repository before updating this Assay.')
+            return
+        }
+
+        try {
+            const loginResult = await CheckLogin(registryAPI || selectedRepo, currentToken);
+            if (!loginResult?.valid) {
+                const loginResult = await openLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your SynBioHub repository before updating this Assay.')
+                    return
+                }
+                currentToken = getStoredToken() || '';
+                if (!currentToken) {
+                    showErrorNotification('Not logged in', 'Please log in to your SynBioHub repository before updating this Assay.')
+                    return
+                }
+            }
+        } catch {
+            const loginResult = await openLoginWorkflow();
+            if (!loginResult?.completed) {
+                showErrorNotification('Login cancelled', 'Please log in to your SynBioHub repository before updating this Assay.')
+                return
+            }
+            currentToken = getStoredToken() || '';
+            if (!currentToken) {
+                showErrorNotification('Not logged in', 'Please log in to your SynBioHub repository before updating this Assay.')
+                return
+            }
+        }
+
+        const repoInfoFJ = dataFJ.find(repo => repo.registryURL === selectedFJRepo);
+
+        let currentFJToken = repoInfoFJ?.authtoken ?? "";
+        let currentFJRefreshToken = repoInfoFJ?.refresh ?? "";
+
+        if (plateOutputFile && selectedFJRepo) {
+            if (!currentFJToken) {
+                const loginResult = await openFJLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
+            }
+            currentFJToken = getStoredFJToken() || '';
+            currentFJRefreshToken = getStoredFJRefreshToken() || '';
+
+            if (!currentFJToken) {
+                showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                return
+             }
+
+            try {
+                const loginResult = await CheckFJLogin(registryAPIFJ || selectedFJRepo, currentFJToken);
+                if (!loginResult?.valid) {
+                    const loginResult = await openFJLoginWorkflow();
+                    if (!loginResult?.completed) {
+                        showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                        return
+                    }
+                    currentFJToken = getStoredFJToken() || '';
+                    if (!currentFJToken) {
+                        showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                        return
+                    }
+                }
+            } catch {
+                const loginResult = await openFJLoginWorkflow();
+                if (!loginResult?.completed) {
+                    showErrorNotification('Login cancelled', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
+                currentFJToken = getStoredFJToken() || '';
+                if (!currentFJToken) {
+                    showErrorNotification('Not logged in', 'Please log in to your Flapjack repository before updating this Assay.')
+                    return
+                }
+            }
+
+        } else {
+            registryAPIFJ = null;
+            studyFJid = null;
+        }
+
         setIsSubmitting(true)
         try {
             const response = await uploadExperiment(
                 metadataFile,
                 registryAPI,
-                authToken,
+                registryPrefix,
+                currentToken,
                 collectionUrl,
+                registryAPIFJ,
+                currentFJToken,
+                currentFJRefreshToken,
+                studyFJid || null,
                 null,
-                collection.sbh_overwrite,
+                true,
                 //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
-                    attachments: resultsFile ? [resultsFile] : [],
+                    attachments: (resultsFiles && resultsFiles.length) ? resultsFiles : [],
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
                 }
             )
-
             const uploadEntry = {
                 collectionName: collection?.name || collection?.displayId || collectionUrl,
-                uri: response?.sbh_url || collectionUrl,
+                uri: response.subCollectionUrl || collectionUrl,
                 date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
                 file: metadataFile.name,
+                results: resolvedResultsIDs,
+                plateOutput: resolvedPlateOutputID,
                 selectedRepo,
                 status: response?.status || 'success',
             }
-
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
             setUploadSuccess(true)
 
@@ -87,35 +282,28 @@ export default function CollectionWizard({ onUploadSuccess }) {
             <Stack gap="xl">
                 <div>
                     <Dropzone
-                        allowedTypes={[ObjectTypes.Metadata.id]}
-                        item={metadataFile?.name}
-                        onItemChange={setMetadataID}
-                    >
-                        Drag & drop Study Metadata from the explorer
-                    </Dropzone>
-                    <Space h="lg" />
-                    <Dropzone
-                        allowedTypes={[ObjectTypes.Results.id]}
-                        item={resultsFile?.name}
-                        onItemChange={setResultsID}
-                    >
-                        Drag & drop Experimental Results from the explorer
-                    </Dropzone>
-                    <Space h="lg" />
-                    <Dropzone
                         allowedTypes={[ObjectTypes.PlateReader.id]}
                         item={plateOutputFile?.name}
                         onItemChange={setPlateOutputID}
                     >
-                        Drag & drop Plate Reader Output from the explorer
+                        Drag & drop plate reader output from the explorer
                     </Dropzone>
+                    <MultiDropzone
+                        allowedTypes={[ObjectTypes.Results.id]}
+                        items={resultsIDs}
+                        onItemsChange={setResultsIDsRaw}
+                        onRemoveItem={item => setResultsIDsRaw((current) => (Array.isArray(current) ? current : (current ? [current] : [])).filter(x => x !== item))}
+                        labelForItem={id => (files.find(f => f.id === id)?.name) || id}
+                    >
+                        Drag & drop other experimental results from the explorer
+                    </MultiDropzone>
                 </div>
             </Stack>
             <Group position="center" style={{ width: '100%', marginTop: 20 }}>
                 <Button
                     variant='default'
                     onClick={handleSubmit}
-                    disabled={!metadataFile || isSubmitting}
+                    disabled={isSubmitting}
                 >
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>

@@ -1,7 +1,9 @@
 import { useCreateFile, useFiles, createFileInDirectory, writeToFileHandle } from '../../../redux/hooks/workingDirectoryHooks'
 import { useDispatch } from 'react-redux'
+import axios from 'axios'
 import CreateNewButton from "./CreateNewButton"
-import { Accordion, ScrollArea, Title} from '@mantine/core'
+import { Accordion, Group, ScrollArea, Text, Title} from '@mantine/core'
+import { AiOutlineLink } from 'react-icons/ai'
 import { ObjectTypes, BLANK_SBML } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import ImportFile from './ImportFile'
@@ -12,15 +14,22 @@ import DownloadMetadata from './DownloadMetadata.jsx'
 import OpenSeqImproveButton from './OpenSeqImproveButton.jsx'
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
+import { readStudy } from "../../../modules/util";
+import { useLocalStorage } from '@mantine/hooks';
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
     // grab file handles
     const files = useFiles()
 
+    const filteredFiles = files.filter(file =>
+        objectTypesToList.includes(file.objectType)
+    )
+
     const { workflows } = useUnifiedModal()
 
     const [importedFile, setImportedFile] = useState(null)
+    const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
 
     // handle directory selection
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
@@ -54,12 +63,43 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
 
     async function runImportCollectionWorkflow() {
-        return new Promise((resolve) => {
-            workflows.browseCollections(resolve, {
-                multiSelect: false,
-                rootOnly: true,
-            })
-        })
+        let selectedRepo = null;
+        let expectedEmail = null;
+        let selectedCollectionUri = null;
+        let selectedCollectionName = null;
+        let selectedCollectionId = null;
+
+        try {
+            const studyData = await readStudy(workDir);
+            selectedRepo = studyData.registryURL || null;
+            expectedEmail = studyData.userEmail || null;
+            selectedCollectionUri = studyData.collectionUri || null;
+            selectedCollectionName = studyData.name || null;
+            selectedCollectionId = studyData.id || null;
+
+            const stored = JSON.parse(localStorage.getItem('SynbioHub') || '[]');
+            const repoInfo = stored.find(repo => repo.registryURL === selectedRepo);
+            const authToken = repoInfo?.authtoken || null;
+
+            if (selectedRepo && selectedCollectionUri && authToken) {
+                return {
+                    completed: true,
+                    selectedRepo,
+                    authToken,
+                    userInfo: { email: expectedEmail || '' },
+                    collections: [{
+                        uri: selectedCollectionUri,
+                        name: selectedCollectionName || selectedCollectionId || selectedCollectionUri,
+                        displayId: selectedCollectionId || selectedCollectionName || selectedCollectionUri,
+                        selectedRepo,
+                        authToken,
+                    }],
+                }
+            }
+        } catch (err) {
+            console.error("Problem accessing study:", err)
+            return null
+        }
     }
 
     // handle creation
@@ -67,9 +107,9 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const dispatch = useDispatch()
     const openPanel = useOpenPanel()
 
-    async function createStudyWorkflowFile(fileName, modalResult) {
-        const directory = await workDir.getDirectoryHandle(ObjectTypes.Studies.subdirectory, { create: true })
-        const fileHandle = await createFileInDirectory(directory, fileName + ObjectTypes.Studies.extension, ObjectTypes.Studies.id, dispatch)
+    async function createAssayWorkflowFile(fileName, modalResult) {
+        const directory = await workDir.getDirectoryHandle(ObjectTypes.Metadata.subdirectory, { create: true })
+        const fileHandle = await createFileInDirectory(directory, fileName + '.xdc', ObjectTypes.Metadata.id, dispatch)
 
         const selectedCollection = modalResult.collections?.[0]
 
@@ -97,13 +137,13 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const handleCreateObject = objectType => async fileName => {
         let tempDirectory;
         let modalResult = null;
-        if (objectType.id === ObjectTypes.Studies.id) {
+        if (objectType.id === ObjectTypes.Metadata.id) {
             modalResult = await runImportCollectionWorkflow()
             if (!modalResult?.completed) {
                 return
             }
 
-            await createStudyWorkflowFile(fileName, modalResult)
+            await createAssayWorkflowFile(fileName, modalResult)
             return
         }
         if(objectType.subdirectory){
@@ -121,14 +161,64 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     }
     
     // generate DragObjects based on data
-    const createListItems = (files, Icon, importable) => files.map((file, i) =>
+    const createListItems = (files, Icon) => files.map((file, i) =>
         <ExplorerListItem 
             fileId={file.id}
             icon={Icon && <Icon />}
             key={i}
-            importable={importable}
         />
     )
+
+
+    const handleLinkStudyCollection = async (authToken, studyUri, memberUri) => {
+        if (!authToken || !studyUri || !memberUri) {
+            return
+        }
+
+        try {
+            const params = new URLSearchParams({ collections: studyUri })
+
+            await axios.post(`${memberUri}/addToCollection`, params.toString(), {
+                headers: {
+                    'Accept': 'text/plain',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-authorization': authToken,
+                },
+            })
+        } catch (err) {
+            console.error('Unable to link study to collection:', err)
+        }
+    }
+
+    const handleLinkResourcesClick = async () => {
+        try {
+            const study = await readStudy(workDir)
+            const selectedRepo = study.registryURL || null
+            const expectedEmail = study.userEmail || null
+            const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo)
+            const authToken = repoInfo?.authtoken
+
+            if (!selectedRepo) {
+                console.warn('No SynBioHub repository is configured for this study.')
+                return
+            }
+
+            workflows.browseCollectionsForResource(selectedRepo, expectedEmail, (result) => {
+                const collection = result?.collections?.[0]
+                if (!collection) {
+                    return
+                }
+                const memberUri = collection.uri?.replace(study.registryPrefix, study.registryAPI)
+                handleLinkStudyCollection(authToken,study.collectionUri,memberUri)
+            }, {
+                multiSelect: false,
+                rootOnly: false,
+                allowCreateCollection: false,
+            })
+        } catch (err) {
+            console.error('Unable to open collection browser for linking resources:', err)
+        }
+    }
 
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
@@ -149,7 +239,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                     Object.values(ObjectTypes).map((objectType, i) => {
                         // grab files of current type
                         if(objectTypesToList.includes(objectType.id)){
-                            const filesOfType = files.filter(file => file.objectType == objectType.id)
+                            const filesOfType = filteredFiles.filter(file => file.objectType == objectType.id)
                                 .sort((a, b) => a.name?.localeCompare(b.name))
                             return (    
                                 <Accordion.Item value={objectType.id} key={i}>
@@ -157,23 +247,15 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
-                                        {objectType.downloadable &&
-                                            <DownloadMetadata objectType={objectType}>
-                                            </DownloadMetadata>
-                                        }
-                                        {objectType.importable && objectType.iframeImport &&
-                                            <OpenSeqImproveButton
-                                                text={`Import ${objectType.title}`}
-                                                url={objectType.iframeUrl}>
-                                            </OpenSeqImproveButton>
-                                        }
-                                        {objectType.importable && !objectType.iframeImport &&
-                                            <ImportFile
-                                            onSelect={finalImport}
-                                            text={`Import ${objectType.title}`}
-                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
-                                            </ImportFile>
-                                        }
+                                        {objectType.id === 'synbio.object-type.resources' && (
+                                            <Group
+                                                sx={linkResourcesStyle}
+                                                onClick={handleLinkResourcesClick}
+                                            >
+                                                <AiOutlineLink />
+                                                <Text size='sm' sx={linkResourcesTextStyle}>Link {objectType.title}</Text>
+                                            </Group>
+                                        )}
                                         {objectType.createable &&
                                             <CreateNewButton
                                                 onCreate={handleCreateObject(objectType)}
@@ -181,8 +263,39 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                             >
                                                 New {objectType.title}
                                             </CreateNewButton>
+                                        }   
+                                        {objectType.annotatable &&
+                                            <OpenSeqImproveButton
+                                                id={`Annotate_${objectType.title}`}
+                                                name={`Annotate ${objectType.title}`}
+                                                text={`Annotate ${objectType.title}`}
+                                                subdirectory={objectType.subdirectory}
+                                                url={objectType.iframeUrl}>
+                                            </OpenSeqImproveButton>
+                                        }                              
+                                        {(objectType.downloadable && (!objectType.limitOne || filesOfType.length === 0)) &&
+                                            <DownloadMetadata objectType={objectType}>
+                                            </DownloadMetadata>
                                         }
-                                        {createListItems(filesOfType, objectType.icon, objectType.importable)}
+                                        {(objectType.importable && (!objectType.limitOne || filesOfType.length === 0)) &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Import ${objectType.title}`}
+                                            importable={true}
+                                            uploadNow={false}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }    
+                                        {(objectType.uploadable && (!objectType.limitOne || filesOfType.length === 0)) &&
+                                            <ImportFile
+                                            onSelect={finalImport}
+                                            text={`Upload ${objectType.title}`}
+                                            importable={false}
+                                            uploadNow={true}
+                                            {...(objectType.subdirectory && {useSubdirectory: objectType.subdirectory})}>                                                                            
+                                            </ImportFile>
+                                        }   
+                                        {createListItems(filesOfType, objectType.icon)}
                                     {objectType.isRepository ?
                                         <Registries 
                                             typeOfRegistry={objectType.listTitle}
@@ -215,4 +328,23 @@ const titleStyle = theme => ({
     fontWeight: 600,
     fontSize: 11,
     textTransform: 'uppercase',
+})
+
+const linkResourcesStyle = theme => ({
+    padding: '3px 0 3px 8px',
+    borderRadius: 3,
+    cursor: 'pointer',
+    color: theme.colors[theme.primaryColor][5],
+    '&:hover': {
+        backgroundColor: theme.colors.dark[5]
+    }
+})
+
+const linkResourcesTextStyle = theme => ({
+    flexGrow: 1,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+    color: theme.colors[theme.primaryColor][5],
+    fontWeight: 500,
 })

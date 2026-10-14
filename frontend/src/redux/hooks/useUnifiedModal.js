@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { CheckLogin } from '../../API';
 import { openUnifiedModal, closeUnifiedModal, clearPendingCallback } from '../slices/modalSlice';
 import { MODAL_TYPES } from '../../modules/unified_modal/unifiedModal';
 
@@ -17,6 +18,51 @@ export function useUnifiedModal() {
     const modalProps = useSelector(state => state.modal.unifiedModalProps);
     const pendingCallback = useSelector(state => state.modal._pendingCallback);
     const pendingCallbackData = useSelector(state => state.modal._pendingCallbackData);
+    const dataPrimarySBH = useSelector(
+      state => state.primaryRepository.sbhPrimary
+    );
+
+    const getStoredSBHEntry = (selectedRepo) => {
+        try {
+            const repos = JSON.parse(localStorage.getItem('SynbioHub') || '[]');
+            return repos.find(r => r.registryURL === selectedRepo) || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const validateStoredSBHToken = async (selectedRepo, expectedEmail) => {
+        const entry = getStoredSBHEntry(selectedRepo);
+        const authToken = entry?.authtoken;
+
+        if (!authToken) return null;
+
+        try {
+            const registryAPI = entry.registryAPI || selectedRepo;
+            const loginResult = await CheckLogin(registryAPI, authToken);
+            if (!loginResult?.valid) {
+                return null;
+            }
+            if (expectedEmail) {
+                const actualEmail = (loginResult.profile?.email || '').toLowerCase();
+                if (actualEmail !== expectedEmail.toLowerCase()) {
+                    return null;
+                }
+            }
+
+            return {
+                authToken,
+                userInfo: {
+                    name: loginResult.profile?.name || 'Unknown',
+                    username: loginResult.profile?.username || 'Unknown',
+                    email: loginResult.profile?.email || '',
+                    affiliation: loginResult.profile?.affiliation || 'N/A',
+                },
+            };
+        } catch (error) {
+            return null;
+        }
+    };
 
     // Handle pending callback execution
     useEffect(() => {
@@ -108,7 +154,7 @@ export function useUnifiedModal() {
          * Open create collection workflow
          * Allows: CREATE_COLLECTION -> SBH_LOGIN -> ADD_SBH_REPO
          */
-        createCollection: useCallback((libraryName, libraryDescription, onComplete) => {
+        createCollection: useCallback((studyName, studyDescription, onComplete) => {
             open(MODAL_TYPES.CREATE_COLLECTION, {
                 allowedModals: [
                     MODAL_TYPES.CREATE_COLLECTION, 
@@ -116,10 +162,44 @@ export function useUnifiedModal() {
                     MODAL_TYPES.ADD_SBH_REPO,
                     MODAL_TYPES.COLLECTION_BROWSER,
                 ],
-                props: { libraryName, libraryDescription },
+                props: { studyName, studyDescription },
                 onComplete,
             });
         }, [open]),
+
+        /**
+         * Open create study workflow
+         * Allows:
+         *   SBH_CREDENTIAL_CHECK
+         *     -> SBH_LOGIN
+         *     -> ADD_SBH_REPO
+         *     -> CREATE_COLLECTION
+         */
+        createStudy: useCallback((
+          studyDirectory,
+          onComplete
+        ) => {
+          open(MODAL_TYPES.SBH_INSTANCE_SELECTOR, {
+            allowedModals: [
+              MODAL_TYPES.SBH_INSTANCE_SELECTOR,
+              MODAL_TYPES.FLAPJACK_OPTIONS,
+              MODAL_TYPES.SBH_LOGIN,
+              MODAL_TYPES.FJ_LOGIN,
+              MODAL_TYPES.ADD_SBH_REPO,
+              MODAL_TYPES.CREATE_COLLECTION,
+              MODAL_TYPES.FJ_INSTANCE_SELECTOR,
+            ],
+            props: {
+              selectedRepo: dataPrimarySBH,
+              silentCredentialCheck: true,
+              skipRepositorySelection: true,
+              nextModal: MODAL_TYPES.FLAPJACK_OPTIONS,
+              studyDirectory,
+              studyName: studyDirectory.name,
+            },
+            onComplete,
+          });
+        }, [open, dataPrimarySBH]),
 
         /**
          * Open add repository workflow (SBH or FJ)
@@ -155,7 +235,7 @@ export function useUnifiedModal() {
 
         /**
          * Open collection browser workflow
-         * Steps: REPOSITORY_SELECTOR -> SBH_CREDENTIAL_CHECK -> COLLECTION_BROWSER
+         * Steps: SBH_INSTANCE_SELECTOR -> SBH_LOGIN -> COLLECTION_BROWSER
          * 
          * @param {function} onComplete - Callback function that receives selected collections
          * @param {object} props - Optional props for initial configuration
@@ -169,68 +249,115 @@ export function useUnifiedModal() {
          * }
          */
         browseCollections: useCallback((onComplete, props = {}) => {
-            open(MODAL_TYPES.REPOSITORY_SELECTOR, {
-                allowedModals: [
-                    MODAL_TYPES.REPOSITORY_SELECTOR,
-                    MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                    MODAL_TYPES.COLLECTION_BROWSER,
-                    MODAL_TYPES.ADD_SBH_REPO,
-                    MODAL_TYPES.SBH_LOGIN,
-                    MODAL_TYPES.CREATE_COLLECTION,
-                ],
-                props,
-                onComplete,
-            });
-        }, [open]),
+            const executeBrowseCollections = async () => {
+                const selectedRepo = props.selectedRepo || dataPrimarySBH;
+                const modalProps = {
+                    ...props,
+                    selectedRepo,
+                    skipRepositorySelection: true,
+                    silentCredentialCheck: true,
+                };
+
+                if (selectedRepo) {
+                    const validToken = await validateStoredSBHToken(selectedRepo, props.expectedEmail);
+                    if (validToken) {
+                        open(MODAL_TYPES.COLLECTION_BROWSER, {
+                            allowedModals: [
+                                MODAL_TYPES.COLLECTION_BROWSER,
+                                MODAL_TYPES.FLAPJACK_OPTIONS,
+                                MODAL_TYPES.SBH_LOGIN,
+                            ],
+                            props: modalProps,
+                            onComplete,
+                        });
+                        return;
+                    }
+
+                    open(MODAL_TYPES.FLAPJACK_OPTIONS, {
+                        allowedModals: [
+                            MODAL_TYPES.FLAPJACK_OPTIONS,
+                            MODAL_TYPES.SBH_LOGIN,
+                        ],
+                        props: modalProps,
+                        onComplete,
+                    });
+                    return;
+                }
+
+                open(MODAL_TYPES.SBH_INSTANCE_SELECTOR, {
+                    allowedModals: [
+                        MODAL_TYPES.SBH_INSTANCE_SELECTOR,
+                        MODAL_TYPES.FLAPJACK_OPTIONS,
+                        MODAL_TYPES.COLLECTION_BROWSER,
+                        MODAL_TYPES.ADD_SBH_REPO,
+                        MODAL_TYPES.SBH_LOGIN,
+                        MODAL_TYPES.CREATE_COLLECTION,
+                    ],
+                    props: modalProps,
+                    onComplete,
+                });
+            };
+
+            executeBrowseCollections();
+        }, [open, dataPrimarySBH]),
 
         /**
-         * Open collection browser workflow for resource selection (plasmids, backbones, etc.)
-         * This workflow skips repository selection and uses the provided repository.
-         * Silently validates credentials first - only shows UI if there's a problem.
+         * Import to study workflow
+         * Steps: SBH_CREDENTIAL_CHECK -> SBH_LOGIN
          * 
-         * @param {string} repositoryUrl - The repository URL to use (from previous selection)
-         * @param {string} expectedEmail - The email address to validate against (for cross-reference)
          * @param {function} onComplete - Callback function that receives selected collections
          * @param {object} props - Optional props for initial configuration
-         * @param {boolean} props.multiSelect - Whether to allow multiple selections (default: true)
          * 
          * The callback receives data only when the entire workflow completes:
          * {
-         *   selectedRepo: string,
-         *   userInfo: { email, username, name, ... },
+         *   repository: { uri, name, ... },
          *   collections: [{ uri, name, displayId, ... }],
          *   count: number,
-         *   completed: true,
-         *   validated: true  // indicates email was validated
-         * }
-         * 
-         * If credentials don't match, the workflow aborts and returns:
-         * {
-         *   error: 'Email mismatch',
-         *   expectedEmail: string,
-         *   actualEmail: string,
-         *   aborted: true
+         *   completed: true
          * }
          */
-        browseCollectionsForResource: useCallback((repositoryUrl, expectedEmail, onComplete, props = {}) => {
-            open(MODAL_TYPES.COLLECTION_BROWSER, {
-                allowedModals: [
-                    MODAL_TYPES.SBH_CREDENTIAL_CHECK,
-                    MODAL_TYPES.COLLECTION_BROWSER,
-                    MODAL_TYPES.SBH_LOGIN,
-                    MODAL_TYPES.CREATE_COLLECTION
-                ],
-                props: {
-                    ...props,
-                    selectedRepo: repositoryUrl,
-                    expectedEmail: expectedEmail,
-                    skipRepositorySelection: true,
-                    silentCredentialCheck: true,
-                    multiSelect: props.multiSelect !== undefined ? props.multiSelect : true, // Default to multi-select for backward compatibility
-                },
-                onComplete,
-            });
+        importToStudy: useCallback((onComplete, props = {}) => {
+            const executeImport = async () => {
+                const selectedRepo = props.selectedRepo;
+                if (!selectedRepo) {
+                    onComplete?.({completed: false, error: 'Study has no configured SynBioHub repository.',});
+                    return;
+                }
+                // First see if we already have valid credentials.
+                const validToken = await validateStoredSBHToken(selectedRepo,props.expectedEmail);
+                if (validToken) {
+                    onComplete?.({
+                        selectedRepo,
+                        authToken: validToken.authToken,
+                        userInfo: validToken.userInfo,
+                        completed: true,
+                    });
+                    return;
+                }
+                open(MODAL_TYPES.SBH_LOGIN, {
+                    allowedModals: [MODAL_TYPES.SBH_LOGIN,],
+                    props: {
+                        ...props,
+                        selectedRepo,
+                        skipRepositorySelection: true,
+                    },
+                    onComplete: result => {
+                        if (!result?.authToken) {
+                            onComplete?.({completed: false, error: 'SynBioHub login did not return credentials.',})
+                            return
+                        }
+                        onComplete?.({
+                            selectedRepo,
+                            authToken: result.authToken,
+                            userInfo: result.userInfo,
+                            completed: true,
+                        })
+                    },
+                })
+            };
+            executeImport();
         }, [open]),
+
     };
 
     return {

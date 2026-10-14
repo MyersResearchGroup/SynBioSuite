@@ -73,7 +73,7 @@ export const PanelTypes = {
         id: "synbio.panel-type.sbol-editor",
         title: "SBOL Canvas",
         component: SBOLEditorPanel,
-        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id ],
+        objectTypes: [ ObjectTypes.SBOL.id, ObjectTypes.Plasmids.id, ObjectTypes.Devices.id ],
         icon: CanvasIcon,
 
         deserialize: content => ({
@@ -87,6 +87,7 @@ export const PanelTypes = {
             return panel.sbol;
         }
     },
+    /*
     BuildPlans: {
         id: "synbio.panel-type.buildplans",
         title: "Build Plans",
@@ -108,11 +109,12 @@ export const PanelTypes = {
             return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
         }
     },
+    */
     Experiment: {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",
         component: CollectionPanel,
-        objectTypes: [ ObjectTypes.Studies.id ],
+        objectTypes: [ ObjectTypes.Metadata.id ],
         icon: FcAddDatabase,
 
         //To be implemented
@@ -159,6 +161,28 @@ export function getPanelType(id) {
     return Object.values(PanelTypes).find(pt => pt.id == id)
 }
 
-export function getPanelTypeForObject(objectType) {
-    return Object.values(PanelTypes).find(pt => Array.isArray(pt.objectTypes) && pt.objectTypes.includes(objectType))
+export function getPanelTypeForObject(file) {
+    const objectType = file.objectType;
+    const fileName = file.name.toLowerCase();
+
+    if ((objectType === ObjectTypes.Resources.id || 
+        objectType === ObjectTypes.Strains.id ||
+        objectType === ObjectTypes.SampleDesigns.id) &&
+        fileName.endsWith(".xlsm")) {
+        return null;
+    }
+
+    if (objectType === ObjectTypes.Devices.id && fileName.endsWith(".xml")) {
+        return PanelTypes.SBOLEditor;
+    }
+
+    if (objectType === ObjectTypes.Metadata.id && fileName.endsWith(".xlsm")) {
+        return PanelTypes.Experiment;
+    }
+
+    return Object.values(PanelTypes).find(
+        pt =>
+            Array.isArray(pt.objectTypes) &&
+            pt.objectTypes.includes(objectType)
+    );
 }

@@ -18,7 +18,7 @@ export default function CollectionUploads() {
                         const isNewest = idx === 0
 
                         return (
-                            <div key={`${upload.uri || upload.file || idx}`} style={{ marginBottom: 16, padding: 8, border: '1px solid #eee', borderRadius: 4 }}>
+                            <div key={`${upload.uri}-${upload.date}-${upload.file}`} style={{ marginBottom: 16, padding: 8, border: '1px solid #eee', borderRadius: 4 }}>
                                 <div style={{ marginBottom: 4 }}>
                                     <strong style={{ color: isNewest ? undefined : '#cf740d' }}>
                                         {isNewest ? 'Uploaded' : 'Upload of Older Version'}

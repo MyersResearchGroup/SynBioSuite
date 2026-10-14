@@ -1,7 +1,7 @@
 import { Group, Text } from '@mantine/core'
 import React from 'react'
 
-export default function DragObject({ icon, type, title, fileId, ...props }) {
+export default function DragObject({ icon, type, title, fileId, uploadInfo, ...props }) {
 
     const handleDragStart = event => {
         event.dataTransfer.setData("name", title)
@@ -17,13 +17,23 @@ export default function DragObject({ icon, type, title, fileId, ...props }) {
 
     return (
         <Group
-            sx={groupStyle}
-            draggable={true}
-            onDragStart={handleDragStart}
             {...props}
+            sx={(theme) => ({...groupStyle(theme),
+                color: uploadInfo!=null?theme.colors.green[6]:undefined,
+            })}
+            draggable
+            onDragStart={handleDragStart}
         >
             {icon}
-            <Text size='sm' sx={textStyle}>{title}</Text>
+            <Text
+                size="sm"
+                sx={(theme) => ({
+                    ...textStyle(theme),
+                    color: uploadInfo!=null?theme.colors.green[6]:undefined,
+                })}
+            >
+            {title}
+            </Text>
         </Group>
     )
 }

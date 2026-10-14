@@ -87,7 +87,8 @@ export default function Dropzone({ children, allowedTypes, item, onItemChange, r
     )
 }
 
-export function MultiDropzone({ children, allowedTypes, items = [], onItemsChange, onRemoveItem }) {
+export function MultiDropzone({ children, allowedTypes, items = [], onItemsChange, onRemoveItem, item, onItemChange, labelForItem }) {
+    const theme = useMantineTheme()
     const [allowedToDrop, setAllowedToDrop] = useState(null);
   
     const handleDragLeave = () => {
@@ -103,46 +104,77 @@ export function MultiDropzone({ children, allowedTypes, items = [], onItemsChang
       setAllowedToDrop(!allowedTypes || allowedTypes.includes(itemType));
     };
   
-    const handleDrop = event => {
-      event.preventDefault();
-      if (allowedToDrop) {
-        const newItem = event.dataTransfer.getData("fileId") || event.dataTransfer.getData("name");
-        if (newItem && !items.includes(newItem)) {
-          onItemsChange(newItem);
-        }
-      }
-      setAllowedToDrop(null);
-    };
+        const handleDrop = event => {
+            event.preventDefault();
+            if (allowedToDrop) {
+                const newItem = event.dataTransfer.getData("fileId") || event.dataTransfer.getData("name");
+                if (!newItem) {
+                    setAllowedToDrop(null);
+                    return
+                }
+
+                // Determine current list (support single-item `item` API for backward compatibility)
+                const currentItems = (items && items.length) ? items : (item ? [item] : [])
+
+                if (!currentItems.includes(newItem)) {
+                    if (typeof onItemsChange === 'function') {
+                        onItemsChange([...currentItems, newItem])
+                    } else if (typeof onItemChange === 'function') {
+                        // single-item setter expects a single value
+                        onItemChange(newItem)
+                    }
+                }
+            }
+            setAllowedToDrop(null);
+        };
+  
+        // current items list for rendering
+        const currentItems = (items && items.length) ? items : (item ? [item] : [])
   
     return (
-      <Center
-        sx={containerStyle(allowedToDrop)}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <Stack gap="xl">
-        {items?.length > 0 ? (
-                items.map(item => (
-                    <Center key={item} sx={MultisuccessStyles.container}>
-                    <CgCheckO style={MultisuccessStyles.icon} />
-                    <Title order={3} sx={MultisuccessStyles.title}>{item}</Title>
-                    <ActionIcon sx={MultisuccessStyles.removeIcon} onClick={() => onRemoveItem(item)}>
-                        <IoClose />
-                    </ActionIcon>
-                    </Center>
-                ))
-            ) : (
-                allowedToDrop == null ? (
-                    <Title order={3} sx={titleStyle}>{children}</Title>
-                ) : allowedToDrop ? (
-                    <Text sx={iconStyle}><AiOutlineSmile /></Text>
-                ) : (
-                    <Title order={3} sx={errorTitleStyle}>Item not allowed</Title>
-                )
-            )}
-        </Stack>
-      </Center>
+            <Center
+                sx={containerStyle(allowedToDrop, false)(theme)}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
+                <Stack spacing="sm" style={{ minHeight: 48, maxHeight: 400, overflowY: 'auto', width: '100%', border: `3px dashed ${theme.colors.dark[4]}`, padding: 20, borderRadius: 12 }}>
+                {
+                    currentItems.length > 0 ? (
+                        currentItems.map(it => {
+                            const label = typeof labelForItem === 'function' ? labelForItem(it) : it
+                            return (
+                                <Center key={it} sx={MultisuccessStyles.container(theme)}>
+                                    <CgCheckO style={MultisuccessStyles.icon(theme)} />
+                                    <Title order={3} sx={MultisuccessStyles.title(theme)}>{label}</Title>
+                                    <ActionIcon sx={MultisuccessStyles.removeIcon(theme)} onClick={() => {
+                                            if (typeof onItemsChange === 'function') {
+                                                onItemsChange(currentItems.filter(x => x !== it))
+                                            }
+                                            if (typeof onRemoveItem === 'function') {
+                                                onRemoveItem(it)
+                                            }
+                                            if (typeof onItemChange === 'function') {
+                                                onItemChange(null)
+                                            }
+                                    }}>
+                                            <IoClose />
+                                    </ActionIcon>
+                                </Center>
+                            )
+                        })
+                    ) : (
+                        allowedToDrop == null ? ( 
+                            <Center><Title order={3} sx={titleStyle(theme)}>{children}</Title></Center>
+                        ) : allowedToDrop ? (
+                            <Center><Text sx={iconStyle(theme)}><AiOutlineSmile /></Text></Center>
+                        ) : (
+                            <Center><Title order={3} sx={errorTitleStyle(theme)}>Item not allowed</Title></Center>
+                        )
+                    )
+                }
+                </Stack>
+            </Center>
     );
   }
 
@@ -177,11 +209,13 @@ const successStyles = {
 
 const MultisuccessStyles = {
     container: theme => ({
-        padding: "20px 30px",
-        margin: "20px auto",
+        padding: "8px 12px",
+        margin: "8px 0",
         width: "100%",
-        borderRadius: 15,
-        border: "3px solid " + theme.colors.green[6]
+        borderRadius: 8,
+        border: "2px solid " + theme.colors.green[6],
+        display: 'flex',
+        alignItems: 'center'
     }),
     icon: theme => ({
         color: theme.colors.green[6],
@@ -214,22 +248,22 @@ const titleStyle = theme => ({
     fontWeight: 600
 })
 
-const containerStyle = allowedToDrag => theme => ({
-    padding: "60px 0",
+const containerStyle = (allowedToDrag, showBorder = true) => theme => ({
+    padding: "20px 0",
     margin: "20px auto",
     width: "80%",
     borderRadius: 15,
     ...(allowedToDrag == null ?
         {
-            border: "3px dashed " + theme.colors.dark[4]        // neutral case
+            ...(showBorder ? { border: "3px dashed " + theme.colors.dark[4] } : {} )        // neutral case
         } :
         allowedToDrag ?
             {
-                border: "3px dashed " + theme.colors.blue[6],    // good case
-                padding: "50px 0"
+                ...(showBorder ? { border: "3px dashed " + theme.colors.blue[6] } : {}),    // good case
+                padding: "30px 0"
             } :
             {
-                border: "3px dashed " + theme.colors.red[6]     // bad case
+                ...(showBorder ? { border: "3px dashed " + theme.colors.red[6] } : {})     // bad case
             })
 })
 

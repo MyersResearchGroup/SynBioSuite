@@ -14,7 +14,9 @@ export default function TabLabel({ title, icon, id, onClose }) {
         <Group sx={groupStyle} spacing='sm' >
             <SVGIcon icon={icon} size='md' />
             <span style={spanStyle}>{title}</span>
-            <ActionIcon sx={iconStyle} onMouseUp={handleClose} ><IoClose /></ActionIcon>
+            <ActionIcon component="span" sx={iconStyle} onMouseDown={(e) => e.stopPropagation()} onClick={handleClose}>
+                <IoClose />
+            </ActionIcon>
         </Group>
     )
 }
