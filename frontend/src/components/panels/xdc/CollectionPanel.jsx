@@ -30,7 +30,7 @@ export default function CollectionPanel({ id }) {
                 </Tabs.List>
 
                 <Tabs.Panel value={TabValues.UPLOAD}>
-                    <CollectionWizard />
+                    <CollectionWizard onUploadSuccess={() => setActiveTab(TabValues.RESULTS)}/>
                     <ScrollArea style={{ height: 'calc(100vh - 93px)' }}>
                         <Space h={20} />
                     </ScrollArea>
