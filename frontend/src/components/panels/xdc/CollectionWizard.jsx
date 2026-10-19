@@ -46,7 +46,7 @@ export default function CollectionWizard({ onUploadSuccess }) {
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
 
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [uploadSuccess, setUploadSuccess] = useState(false)
+    // const [uploadSuccess, setUploadSuccess] = useState(false)
 
     const dirName = useSelector(
       state => state.workingDirectory.directoryHandle
@@ -127,6 +127,18 @@ export default function CollectionWizard({ onUploadSuccess }) {
 
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
+
+    // Derive uploadSuccess from uploads
+    const lastUpload = uploads?.length ? uploads[uploads.length - 1] : null
+
+    const sameIds = (a = [], b = []) =>
+        a.length === b.length && a.every(id => b.includes(id))
+
+    const filesUnchangedSinceUpload =
+        !!lastUpload &&
+        lastUpload.file === metadataFile?.name &&
+        (lastUpload.plateOutput ?? null) === (resolvedPlateOutputID ?? null) &&
+        sameIds(lastUpload.results ?? [], resolvedResultsIDs)
 
     const handleSubmit = async () => {
         if (!metadataFile) {
@@ -268,7 +280,7 @@ export default function CollectionWizard({ onUploadSuccess }) {
                 status: response?.status || 'success',
             }
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
-            setUploadSuccess(true)
+            // setUploadSuccess(true)
 
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
@@ -309,15 +321,21 @@ export default function CollectionWizard({ onUploadSuccess }) {
                 </Button>
             </Group>
 
-            {uploadSuccess && (
-            <Button 
-                onClick={onUploadSuccess}
-                color="green"
-                style={{ marginTop: 20 }}
-            >
-                See Results
-            </Button>
-            )}
+            <Group position="center" style={{ width: '100%', marginTop: 20 }}>
+                {filesUnchangedSinceUpload ? (
+                    <Button color="green" onClick={onUploadSuccess}>
+                        See Results
+                    </Button>
+                ) : (
+                    <Button
+                        variant="default"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? <Loader size="xs" /> : uploadLabel}
+                    </Button>
+                )}
+            </Group>
 
         </Container>
     )
