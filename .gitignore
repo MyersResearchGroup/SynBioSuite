@@ -66,3 +66,6 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Ignore graft for AI development. This is not referring to the Terraform graft.
+/graft/
