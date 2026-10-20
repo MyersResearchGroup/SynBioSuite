@@ -23,6 +23,10 @@ from conftest import (
     missing_study,
 )
 
+# The web host the study lives under: what the frontend sends as sbh_prefix to
+# POST /api/downloadTemplate, and what StudyContext derives for /api/v1.
+SBH_PREFIX = 'https://synbiohub.org'
+
 EXCEL_BACKED = sorted(p for p, s in COLLECTIONS.items() if s.template_type)
 CHASSIS_URI = 'https://synbiohub.org/user/pmeka12/Test/e_coli/1'
 LOOKUP_ROW = {'results': {'bindings': [
@@ -162,6 +166,7 @@ def test_legacy_route_returns_the_same_bytes(client, blank_template):
     params = json.dumps({
         'template_type': 'synbio.object-type.resources',
         'sbh_url': 'https://api.synbiohub.org',
+        'sbh_prefix': SBH_PREFIX,
         'sbh_token': TOKEN,
         'collection_url': STUDY_URI,
     }).encode()
@@ -238,6 +243,7 @@ def legacy_template(client, sbh_url, template_type='synbio.object-type.strains')
     params = json.dumps({
         'template_type': template_type,
         'sbh_url': sbh_url,
+        'sbh_prefix': SBH_PREFIX,
         'sbh_token': TOKEN,
         'collection_url': STUDY_URI,
     }).encode()
@@ -246,6 +252,25 @@ def legacy_template(client, sbh_url, template_type='synbio.object-type.strains')
         data={'Params': (io.BytesIO(params), 'parameters.json')},
         content_type='multipart/form-data',
     )
+
+
+def test_legacy_route_requires_sbh_prefix(client, blank_template):
+    params = json.dumps({
+        'template_type': 'synbio.object-type.strains',
+        'sbh_url': 'https://api.synbiohub.org',
+        'sbh_token': TOKEN,
+        'collection_url': STUDY_URI,
+    }).encode()
+
+    response = client.post(
+        '/api/downloadTemplate',
+        data={'Params': (io.BytesIO(params), 'parameters.json')},
+        content_type='multipart/form-data',
+    )
+
+    assert response.status_code == 400
+    assert 'sbh_prefix' in response.get_json()['error']
+    assert blank_template.requested == []
 
 
 def test_legacy_route_rejects_a_malformed_sbh_url(client, blank_template):

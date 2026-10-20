@@ -89,16 +89,35 @@ def sparql_query(sbh_url, sbh_token, query):
 '''
 Helper function to perform SPARQL queries to fetch URIs from SynBioHub
 '''
-def sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, collectionUri, role = None, type = None):
-    if role is None and type is None:
-        query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s ?id FROM <{usergraph}> WHERE {{ <{collectionUri}> sbol:member ?s . ?s sbol:displayId ?id }}'
-    elif type is None:
-        query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s ?id FROM <{usergraph}> WHERE {{ ?s sbol:role <{role}> . <{collectionUri}> sbol:member ?s . ?s sbol:displayId ?id }}'
-    elif role is None:
-        query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s ?id FROM <{usergraph}> WHERE {{ ?s sbol:type <{type}> . <{collectionUri}> sbol:member ?s . ?s sbol:displayId ?id }}'
-    else:
-        query = f'PREFIX sbol: <http://sbols.org/v2#> SELECT ?s ?id FROM <{usergraph}> WHERE {{ ?s sbol:type <{type}> . ?s sbol:role <{role}> . <{collectionUri}> sbol:member ?s . ?s sbol:displayId ?id }}'
+def sbh_get_subCollection_uris(sbh_url, sbh_prefix, sbh_token, usergraph, collectionUri, 
+                               role = None, type = None, recursiveMembers = True):
+    conditions = []
+    publicgraph = sbh_prefix + '/public'
+    if role is not None:
+        conditions.append(f'?s sbol:role <{role}> .')
+    if type is not None:
+        conditions.append(f'?s sbol:type <{type}> .')
 
+    if recursiveMembers:
+        where_parts = [
+            f'<{collectionUri}> sbol:member* ?s .',
+            'FILTER(?s != <' + collectionUri + '>)',
+            '?s sbol:displayId ?id .'
+        ]
+    else:
+        where_parts = [
+            f'<{collectionUri}> sbol:member ?s .',
+            'FILTER(?s != <' + collectionUri + '>)',
+            '?s sbol:displayId ?id .'
+        ]        
+    where_parts.extend(conditions)
+
+    query = (
+        f'PREFIX sbol: <http://sbols.org/v2#> '
+        f'SELECT DISTINCT ?s ?id FROM <{usergraph}> FROM <{publicgraph}> WHERE {{ '
+        f'{" ".join(where_parts)}'
+        f' }}'
+    )
     return sparql_query(sbh_url, sbh_token, query)
  
 def sbh_get_attachment_uri(sbh_url, sbh_token, usergraph, collectionUri, attachmentName):

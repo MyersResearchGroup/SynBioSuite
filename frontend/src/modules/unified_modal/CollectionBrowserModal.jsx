@@ -42,6 +42,7 @@ export default function CollectionBrowserModal({
     skipRepositorySelection: skipRepositorySelectionFromProps,
     multiSelect: multiSelectFromProps,
     rootOnly: rootOnlyFromProps,
+    allowCreateCollection: allowCreateCollectionFromProps,
 }) {
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
     const dataPrimarySBH = useSelector(state => state.primaryRepository.sbhPrimary);
@@ -65,6 +66,7 @@ export default function CollectionBrowserModal({
     const silentCredentialCheck = silentCredentialCheckFromProps ?? modalData.silentCredentialCheck;
     const multiSelect = multiSelectFromProps ?? modalData.multiSelect ?? true;
     const rootOnly = rootOnlyFromProps ?? modalData.rootOnly ?? false;
+    const allowCreateCollection = allowCreateCollectionFromProps ?? modalData.allowCreateCollection ?? true;
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -111,7 +113,6 @@ export default function CollectionBrowserModal({
                 }));
                 navigateTo(MODAL_TYPES.SBH_LOGIN, {
                     selectedRepo,
-                    returnTo: MODAL_TYPES.FLAPJACK_OPTIONS,
                 });
                 return;
             }
@@ -385,20 +386,6 @@ export default function CollectionBrowserModal({
 
     return (
         <Stack spacing="md" style={{ height: '70vh', display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'stretch', padding: 0 }}>
-            <Breadcrumbs style={{ width: '100%' }}>
-                {breadcrumbs.map((crumb, index) => (
-                    <Anchor
-                        key={crumb.uri || 'root'}
-                        onClick={() => navigateToBreadcrumb(index)}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        {crumb.name}
-                    </Anchor>
-                ))}
-            </Breadcrumbs>
-
-            
-
             <Group position="right" mb={0} mt="xs">
                 <Tooltip label="Refresh collections list">
                     <ActionIcon 
@@ -411,9 +398,11 @@ export default function CollectionBrowserModal({
                         <IoMdRefresh size={18} />
                     </ActionIcon>
                 </Tooltip>
-                <Button onClick={handleCreateCollection} variant="outline" color="teal">
-                    Create Collection
-                </Button>
+                {allowCreateCollection && (
+                    <Button onClick={handleCreateCollection} variant="outline" color="teal">
+                        Create Collection
+                    </Button>
+                )}
             </Group>
 
             <TextInput
@@ -538,14 +527,6 @@ export default function CollectionBrowserModal({
                     </Group>
                 </Paper>
             )}
-
-            <Group position="right" mt="md">
-                <Checkbox
-                    label="Overwrite existing files in the collection"
-                    checked={overwrite}
-                    onChange={(event) => setOverwrite(event.currentTarget.checked)}
-                />
-            </Group>
 
             <Group position="apart" mt="md">
                 <Button variant="default" onClick={handleCancel}>

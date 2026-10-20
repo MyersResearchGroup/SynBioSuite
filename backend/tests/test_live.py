@@ -61,7 +61,7 @@ def test_study_collection_is_reachable(app, live):
     ctx = context_for(app, live)
 
     result = sbh_get_subCollection_uris(
-        ctx.sbh_url, ctx.token, ctx.usergraph, ctx.study_uri
+        ctx.sbh_url, ctx.sbh_prefix, ctx.token, ctx.usergraph, ctx.study_uri
     )
 
     assert 'results' in result
@@ -80,7 +80,7 @@ def test_every_subcollection_query_succeeds(app, live, path):
     spec = COLLECTIONS[path]
 
     result = sbh_get_subCollection_uris(
-        ctx.sbh_url, ctx.token, ctx.usergraph, ctx.subcollection_uri(spec.import_type)
+        ctx.sbh_url, ctx.sbh_prefix, ctx.token, ctx.usergraph, ctx.subcollection_uri(spec.import_type)
     )
 
     assert isinstance(result['results']['bindings'], list)
@@ -91,7 +91,8 @@ def test_study_members_are_visible(app, live):
     ctx = context_for(app, live)
 
     result = sbh_get_subCollection_uris(
-        ctx.sbh_url, ctx.token, ctx.usergraph, ctx.study_uri
+        ctx.sbh_url, ctx.sbh_prefix, ctx.token, ctx.usergraph, ctx.study_uri,
+        recursiveMembers=False,
     )
     bindings = result['results']['bindings']
 

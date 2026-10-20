@@ -116,7 +116,7 @@ def download_template(spec: CollectionSpec):
     _require_study(ctx)
     try:
         output, filename = build_template(
-            spec.template_type, ctx.sbh_url, ctx.token, ctx.study_uri
+            spec.template_type, ctx.sbh_url, ctx.sbh_prefix, ctx.token, ctx.study_uri
         )
     except Exception as error:
         raise ApiError(502, f'Could not build the {spec.path} template: {error}')
