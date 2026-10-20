@@ -31,7 +31,13 @@ Install dependencies
 npm install
 ```
 
-Add .env file (see *Environment Variables* section below). 
+Create a local `.env` from the provided example (see *Environment Variables* below):
+
+```bash
+cp env.example .env
+```
+
+Restart the development server after changing `.env`. Without `VITE_SBOL_CANVAS_URL`, the app fails during startup and the page remains blank.
 
 Start the development server
 
