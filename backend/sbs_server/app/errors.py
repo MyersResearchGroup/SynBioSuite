@@ -7,7 +7,7 @@ class ApiError(Exception):
     """An error with a deliberate HTTP status, raised below the route handlers.
 
     Each surface renders it as ``{"error": message}`` with that status: the
-    /api/v1 blueprint in api/errors.py, the legacy routes in route.py.
+    /api/v1 blueprint in api/errors.py, the legacy routes in legacy_routes.py.
     """
 
     def __init__(self, status: int, message: str):

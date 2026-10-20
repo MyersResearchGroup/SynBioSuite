@@ -1,7 +1,7 @@
 """Uniform JSON errors for /api/v1.
 
 Every failure renders as ``{"error": "..."}`` -- the Error schema in the OpenAPI
-spec, and the shape route.py already returns from the legacy endpoints.
+spec, and the shape legacy_routes.py already returns from the legacy endpoints.
 """
 from flask import current_app, jsonify
 from werkzeug.exceptions import HTTPException

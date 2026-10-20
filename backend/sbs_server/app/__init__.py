@@ -6,6 +6,7 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "*"}})
     
     # Import views after creating app instance
+    from . import legacy_routes
     from . import route
     
     # Import and register any blueprints here if you use them

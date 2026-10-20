@@ -48,8 +48,9 @@ for name, swagger_url in (('docs', '/api/docs'), ('v1_docs', '/api/v1/docs')):
 
 # Import views AFTER creating app and registering Swagger UI
 # This ensures your routes take precedence in case of conflicts
-# route.py is the routing table: the legacy /api/* routes, then the /api/v1
-# blueprint.
+# The legacy /api/* routes (legacy_routes.py), then the /api/v1 blueprint
+# (route.py), registered in that order.
+from . import legacy_routes
 from . import route
 
 if __name__ == "__main__":
