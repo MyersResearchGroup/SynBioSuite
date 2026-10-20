@@ -333,7 +333,7 @@ def _ontobee_lookups() -> Iterator[None]:
 def excel2sbol_offline() -> Iterator[None]:
     """Run excel2sbol without it making any request, from fresh state.
 
-    Left alone, excel2sbol (5910698) GETs every URL in a Sequence or (URI) cell
+    Left alone, excel2sbol (seen in 5910698 and 2.0.1) GETs every URL in a Sequence or (URI) cell
     (library2.link_validation) and, when the welcome sheet sets a Domain,
     searches that host for every displayId and sequence -- no timeout, and the
     uploaded workbook picks the host. None of the responses end up in the

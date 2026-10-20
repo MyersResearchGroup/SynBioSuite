@@ -16,8 +16,8 @@ SynBioHub during conversion.
 
 `build_resources_fixture.py` derives it from `resources/templates/Resources.xlsm`
 in [SynBioDex/Excel-to-SBOL](https://github.com/SynBioDex/Excel-to-SBOL) at
-commit `5910698`, the same commit `requirements.txt` pins the converter to. The
-script keeps only the sheets the two made-up rows need, replaces formulas with
+commit `5910698`. The conversion tests run it through the excel2sbol version
+`requirements.txt` pins (2.0.1). The script keeps only the sheets the two made-up rows need, replaces formulas with
 the values Excel cached for them, and writes the rows. Its comments say why
 each step is there.
 

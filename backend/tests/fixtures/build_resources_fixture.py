@@ -5,8 +5,7 @@ Run by hand when the fixture needs regenerating (pytest never collects this):
     python tests/fixtures/build_resources_fixture.py [path/to/Resources.xlsm]
 
 The template is resources/templates/Resources.xlsm from SynBioDex/Excel-to-SBOL
-at 5910698 -- the commit requirements.txt pins the converter to. Every value
-this script writes is made up; see README.md.
+at 5910698. Every value this script writes is made up; see README.md.
 """
 import argparse
 import os
