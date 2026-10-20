@@ -67,5 +67,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# graft's local graph cache — regenerable, not committed (run `graft build`).
+# Ignore graft for AI development. This is not referring to the Terraform graft.
 /graft/

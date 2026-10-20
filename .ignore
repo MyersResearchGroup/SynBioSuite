@@ -1,3 +1,4 @@
+# Ignore graft for AI development. This is not referring to the Terraform graft.
 # graft's cards are gitignored but should stay greppable: ripgrep reads
 # .ignore before .gitignore, so this re-admits the tree to search only.
 !graft/
