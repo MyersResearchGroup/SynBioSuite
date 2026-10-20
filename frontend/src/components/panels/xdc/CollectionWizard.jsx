@@ -46,7 +46,6 @@ export default function CollectionWizard({ onUploadSuccess }) {
     const [uploads, setUploads] = usePanelProperty(panelId, 'uploads', false, [])
 
     const [isSubmitting, setIsSubmitting] = useState(false)
-    // const [uploadSuccess, setUploadSuccess] = useState(false)
 
     const dirName = useSelector(
       state => state.workingDirectory.directoryHandle
@@ -127,18 +126,6 @@ export default function CollectionWizard({ onUploadSuccess }) {
 
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
-
-    // Derive uploadSuccess from uploads
-    const lastUpload = uploads?.length ? uploads[uploads.length - 1] : null
-
-    const sameIds = (a = [], b = []) =>
-        a.length === b.length && a.every(id => b.includes(id))
-
-    const filesUnchangedSinceUpload =
-        !!lastUpload &&
-        lastUpload.file === metadataFile?.name &&
-        (lastUpload.plateOutput ?? null) === (resolvedPlateOutputID ?? null) &&
-        sameIds(lastUpload.results ?? [], resolvedResultsIDs)
 
     const handleSubmit = async () => {
         if (!metadataFile) {
@@ -263,7 +250,6 @@ export default function CollectionWizard({ onUploadSuccess }) {
                 studyFJid || null,
                 null,
                 true,
-                //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
                     attachments: (resultsFiles && resultsFiles.length) ? resultsFiles : [],
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
@@ -280,7 +266,6 @@ export default function CollectionWizard({ onUploadSuccess }) {
                 status: response?.status || 'success',
             }
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
-            // setUploadSuccess(true)
 
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
@@ -304,35 +289,27 @@ export default function CollectionWizard({ onUploadSuccess }) {
                         allowedTypes={[ObjectTypes.Results.id]}
                         items={resultsIDs}
                         onItemsChange={setResultsIDsRaw}
-                        onRemoveItem={item => setResultsIDsRaw((current) => (Array.isArray(current) ? current : (current ? [current] : [])).filter(x => x !== item))}
                         labelForItem={id => (files.find(f => f.id === id)?.name) || id}
                     >
                         Drag & drop other experimental results from the explorer
                     </MultiDropzone>
                 </div>
             </Stack>
-            <Group position="center" style={{ width: '100%', marginTop: 20 }}>
+            <Group position="center" mt="xl">
                 <Button
-                    variant='default'
+                    variant="default"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
-            </Group>
-
-            <Group position="center" style={{ width: '100%', marginTop: 20 }}>
-                {filesUnchangedSinceUpload ? (
-                    <Button color="green" onClick={onUploadSuccess}>
-                        See Results
-                    </Button>
-                ) : (
+                {uploadCount > 0 && (
                     <Button
-                        variant="default"
-                        onClick={handleSubmit}
+                        color="green"
+                        onClick={onUploadSuccess}
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? <Loader size="xs" /> : uploadLabel}
+                        View Results
                     </Button>
                 )}
             </Group>
