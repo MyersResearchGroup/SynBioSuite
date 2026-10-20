@@ -17,6 +17,7 @@ from sbs_server.app import downloadTemplates
 from conftest import STUDY_URI, TOKEN, FakeResponse
 from legacy_helpers import (
     COLLECTION_GRAPH,
+    SBH_PREFIX,
     SBH_URL,
     params_part,
     post,
@@ -44,10 +45,11 @@ UNEXPECTED_FAILURE = (
 PARAMS = {
     'template_type': 'synbio.object-type.strains',
     'sbh_url': SBH_URL,
+    'sbh_prefix': SBH_PREFIX,
     'sbh_token': TOKEN,
     'collection_url': STUDY_URI,
 }
-REQUIRED = ['template_type', 'sbh_url', 'sbh_token', 'collection_url']
+REQUIRED = ['template_type', 'sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url']
 
 
 def strains_template() -> bytes:
@@ -101,7 +103,9 @@ def test_the_template_is_fetched_and_the_study_queried(client, legacy_sbh):
     ]
     for query in sparql_queries(legacy_sbh):
         assert f'FROM <{COLLECTION_GRAPH}>' in query
-        assert f'<{STUDY_URI}> sbol:member' in query
+        assert f'FROM <{SBH_PREFIX}/public>' in query
+        # Linked collections too: the lookup sheets list their members.
+        assert f'<{STUDY_URI}> sbol:member* ?s' in query
 
 
 # ------------------------------------------------- rejected before any request

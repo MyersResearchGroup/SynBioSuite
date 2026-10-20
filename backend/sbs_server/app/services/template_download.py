@@ -17,7 +17,7 @@ from .common import SYNBIOHUB_FAILURES, read_params, sbh_base_url
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_PARAMS = ('template_type', 'sbh_url', 'sbh_token', 'collection_url')
+REQUIRED_PARAMS = ('template_type', 'sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url')
 
 # Failures whose message is fit to show the caller: SynBioHub's or GitHub's,
 # and a template type that does not exist. (A refused destination is among
@@ -36,6 +36,8 @@ class TemplateRequest:
 
     template_type: str
     sbh_url: str
+    # The web host the study lives under; the lookups also read its public graph.
+    sbh_prefix: str
     # Out of the repr, so a request in a log line or traceback carries none.
     sbh_token: str = field(repr=False)
     collection_url: str
@@ -48,6 +50,7 @@ def parse_request(files) -> TemplateRequest:
     return TemplateRequest(
         template_type=params['template_type'],
         sbh_url=sbh_base_url(params),
+        sbh_prefix=params['sbh_prefix'],
         sbh_token=params['sbh_token'],
         collection_url=params['collection_url'],
     )
@@ -57,7 +60,8 @@ def run(req: TemplateRequest) -> Tuple[BytesIO, str]:
     """The filled template, and the filename to offer it under."""
     try:
         return build_template(
-            req.template_type, req.sbh_url, req.sbh_token, req.collection_url,
+            req.template_type, req.sbh_url, req.sbh_prefix, req.sbh_token,
+            req.collection_url,
         )
     except BlockedDestinationError as e:
         raise ApiError(400, str(e)) from e

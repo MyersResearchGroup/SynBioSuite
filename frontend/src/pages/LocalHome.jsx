@@ -7,7 +7,7 @@ import { closeModal, closeSBH, closeFJ, closeCreateCollection, closeSBHLogin } f
 import FJModal from '../modules/modular_login/FJModal';
 import SBHModal from '../modules/modular_login/SBHModal';
 import CreateCollectionModal from '../modules/CreateCollectionModal';
-import SBHOnly from '../modules/modular_login/SBHOnly';
+import SBHLogin from '../modules/modular_login/SBHLogin';
 import UnifiedModal from '../modules/unified_modal/unifiedModal';
 
 
@@ -18,7 +18,7 @@ export default function LocalHome() {
     
     const collectionModalOpened = useSelector((state) => state.modal.addCollections)
     
-    const SBHOnlyOpened = useSelector((state) => state.modal.sbhLoginOpen)
+    const sbhLoginOpened = useSelector((state) => state.modal.sbhLoginOpen)
 
     const libraryName = useSelector((state) => state.modal.libraryName)
     const libraryDescription = useSelector((state) => state.modal.libraryDescription)
@@ -64,8 +64,8 @@ export default function LocalHome() {
                 onComplete={unifiedModalCallback}
                 modalProps={unifiedModalProps}
             />
-            <SBHOnly
-                opened={SBHOnlyOpened}
+            <SBHLogin
+                opened={sbhLoginOpened}
                 onClose={() => dispatch(closeSBHLogin())}
             />
         </>

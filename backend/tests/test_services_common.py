@@ -17,6 +17,7 @@ from sbs_server.app.services.xdc import XdcRequest
 from conftest import TOKEN, FakeResponse
 from legacy_helpers import (
     LOGIN_GRAPH,
+    SBH_PREFIX,
     SBH_URL,
     SBH_USER,
     UUID_PREFIX_LENGTH,
@@ -51,7 +52,7 @@ def test_tokens_are_left_out_of_a_requests_repr(request_class, tokens):
 def test_a_printed_request_does_not_show_its_token():
     request = TemplateRequest(
         template_type='synbio.object-type.strains', sbh_url=SBH_URL,
-        sbh_token='not-for-the-log', collection_url='https://synbiohub.org/c/1',
+        sbh_prefix=SBH_PREFIX, sbh_token='not-for-the-log', collection_url='https://synbiohub.org/c/1',
     )
 
     assert 'not-for-the-log' not in repr(request)

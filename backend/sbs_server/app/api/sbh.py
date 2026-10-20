@@ -116,7 +116,8 @@ def members(ctx, collection_uri: str):
     """
     try:
         result = sbh_get_subCollection_uris(
-            ctx.sbh_url, ctx.token, ctx.usergraph, collection_uri
+            ctx.sbh_url, ctx.sbh_prefix, ctx.token, ctx.usergraph, collection_uri,
+            recursiveMembers=False,
         )
     except BlockedDestinationError:
         raise  # the caller's URL is at fault, not SynBioHub: errors.py makes it a 400

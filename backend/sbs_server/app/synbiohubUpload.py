@@ -70,7 +70,7 @@ def upload_to_sbh(doc, sbh_url, sbh_prefix, sbh_token, usergraph, sbh_collection
     # document's new objects. Passing `members` lists exactly those URIs
     # instead: /api/v1's PUT.
     if members is None:
-        search_result = sbh_get_subCollection_uris(sbh_url, sbh_token, usergraph, subCollection_url)
+        search_result = sbh_get_subCollection_uris(sbh_url, sbh_prefix, sbh_token, usergraph, subCollection_url, recursiveMembers=False)
         for binding in search_result["results"]["bindings"]:
             uri = binding["s"]["value"]
             subCollection.members = subCollection.members + [ uri ]
