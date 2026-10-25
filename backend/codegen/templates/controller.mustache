@@ -6,6 +6,7 @@ from typing import Union
 {{#imports}}{{import}}  # noqa: E501
 {{/imports}}
 from {{packageName}} import util
+from sbs_v1 import handlers
 {{#operations}}
 {{#operation}}
 
@@ -66,59 +67,6 @@ def {{operationId}}({{#allParams}}{{^isHeaderParam}}{{^isFormParam}}{{^isBodyPar
     {{/isFile}}
     {{/isFormParam}}
     {{/allParams}}
-    {{#allParams}}
-        {{#isBodyParam}}
-    {{paramName}} = body
-        {{/isBodyParam}}
-        {{^isContainer}}
-            {{#isDate}}
-    {{paramName}} = util.deserialize_date({{paramName}})
-            {{/isDate}}
-            {{#isDateTime}}
-    {{paramName}} = util.deserialize_datetime({{paramName}})
-            {{/isDateTime}}
-            {{^isPrimitiveType}}
-                {{^isFile}}
-                    {{^isUuid}}
-    if flask.request.is_json:
-        {{paramName}} = {{baseType}}{{^baseType}}{{#dataType}} {{.}}{{/dataType}}{{/baseType}}.from_dict(flask.request.get_json())  # noqa: E501
-                    {{/isUuid}}
-                {{/isFile}}
-            {{/isPrimitiveType}}
-        {{/isContainer}}
-        {{#isArray}}
-            {{#items}}
-                {{#isDate}}
-    if flask.request.is_json:
-        {{paramName}} = [util.deserialize_date(s) for s in flask.request.get_json()]  # noqa: E501
-                {{/isDate}}
-                {{#isDateTime}}
-    if flask.request.is_json:
-        {{paramName}} = [util.deserialize_datetime(s) for s in flask.request.get_json()]  # noqa: E501
-                {{/isDateTime}}
-                {{#complexType}}
-    if flask.request.is_json:
-        {{paramName}} = [{{complexType}}.from_dict(d) for d in flask.request.get_json()]  # noqa: E501
-                {{/complexType}}
-            {{/items}}
-        {{/isArray}}
-        {{#isMap}}
-            {{#items}}
-                {{#isDate}}
-    if flask.request.is_json:
-        {{paramName}} = {k: util.deserialize_date(v) for k, v in flask.request.get_json().items()}  # noqa: E501
-                {{/isDate}}
-                {{#isDateTime}}
-    if flask.request.is_json:
-        {{paramName}} = {k: util.deserialize_datetime(v) for k, v in flask.request.get_json().items()}  # noqa: E501
-                {{/isDateTime}}
-                {{#complexType}}
-    if flask.request.is_json:
-        {{paramName}} = {k: {{baseType}}.from_dict(v) for k, v in flask.request.get_json().items()}  # noqa: E501
-                {{/complexType}}
-            {{/items}}
-        {{/isMap}}
-    {{/allParams}}
-    return 'do some magic!'
+    return handlers.handle("{{httpMethod}}", "{{path}}"{{#allParams}}{{^isHeaderParam}}{{#isBodyParam}}, body=body{{/isBodyParam}}{{^isBodyParam}}, {{paramName}}={{paramName}}{{/isBodyParam}}{{/isHeaderParam}}{{/allParams}})
 {{/operation}}
 {{/operations}}
