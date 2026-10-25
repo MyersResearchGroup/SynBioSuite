@@ -1,0 +1,4 @@
+generated_raw/
+generated_v1/
+codegen/templates_default/
+.venv*/
