@@ -69,6 +69,24 @@ tags:
 security:
   - bearerAuth: []
 
+# SynBioSuite settings for each collection, read by sbs_v1/config.py.
+# Adding a collection: add its paths below, plus one line here.
+x-sbs-collections:
+  resources:      {import_type: Resources,     accepts: [excel, sbol], template: synbio.object-type.resources}
+  devices:        {import_type: Devices,       accepts: [sbol],        homespace: "https://example.com/"}
+  designs:        {import_type: Designs,       accepts: [sbol],        homespace: "https://sbolcanvas.org/"}
+  plasmids:       {import_type: Plasmids,      accepts: [sbol],        homespace: "https://example.com/"}
+  strains:        {import_type: Strains,       accepts: [excel, sbol], template: synbio.object-type.strains}
+  sample-designs: {import_type: SampleDesigns, accepts: [excel, sbol], template: synbio.object-type.sample-designs}
+  assays:         {import_type: Assays,        accepts: [excel, sbol], template: synbio.object-type.study-data}
+  models:         {import_type: Models,        accepts: [],            homespace: "https://sbolcanvas.org/", implemented: false}
+  archives:       {import_type: Archives,      accepts: [],            implemented: false}
+  analyses:       {import_type: Analyses,      accepts: [],            implemented: false}
+
+x-sbs-defaults:
+  homespace: "https://synbiosuite.org/"       # used when a collection doesn't set one
+  excel_homespace: "https://example.org/"     # Excel conversion always uses this one
+
 paths:
 
   /status:
