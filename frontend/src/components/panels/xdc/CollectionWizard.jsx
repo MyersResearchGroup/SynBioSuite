@@ -1,16 +1,18 @@
 import { Button, Container, Group, Loader, Space, Stack } from '@mantine/core'
-import { useContext, useState, useEffect } from 'react'
+import { useContext, useState, useEffect, useRef } from 'react'
 import { usePanelProperty, useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { useFile, useFiles } from '../../../redux/hooks/workingDirectoryHooks'
 import { useLocalStorage } from '@mantine/hooks'
 import { PanelContext } from './CollectionPanel'
 import { ObjectTypes } from '../../../objectTypes'
-import { uploadExperiment, CheckLogin, CheckFJLogin } from '../../../API'
+import { uploadExperiment, CheckLogin, CheckFJLogin, CheckBOBLogin, checkBOBUpload } from '../../../API'
+import { showNotification } from '@mantine/notifications'
 import { showErrorNotification } from '../../../modules/util'
 import Dropzone, { MultiDropzone } from '../../Dropzone'
 import { readStudy } from "../../../modules/util";
 import { useSelector } from "react-redux";
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
+import BOBCheckModal from './BOBCheckModal';
 
 export default function CollectionWizard() {
     const panelId = useContext(PanelContext)
@@ -74,6 +76,9 @@ export default function CollectionWizard() {
     let studyFJid = study?.FJid ?? "";
     const selectedFJRepo = study?.registryURLFJ ?? "";
     let registryAPIFJ = study?.registryAPIFJ ?? "";
+    const studyBOBid = study?.BOBid ?? "";
+    const selectedBOBRepo = study?.registryURLBOB ?? "";
+    const registryAPIBOB = study?.registryAPIBOB || selectedBOBRepo;
 
     const getStoredToken = () => {
         try {
@@ -123,6 +128,59 @@ export default function CollectionWizard() {
             onComplete: (result) => resolve(result || null),
         });
     });
+
+    const getStoredBOBToken = () => {
+        try {
+            const repos = JSON.parse(localStorage.getItem('BOB') || '[]');
+            return repos.find((repo) => repo.registryURL === selectedBOBRepo)?.authtoken || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const openBOBLoginWorkflow = () => new Promise((resolve) => {
+        open(MODAL_TYPES.BOB_LOGIN, {
+            allowedModals: [MODAL_TYPES.BOB_LOGIN, MODAL_TYPES.ADD_BOB_REPO],
+            props: { selectedRepo: selectedBOBRepo, selectedBOBRepo },
+            onComplete: (result) => resolve(result || null),
+        });
+    });
+
+    // BOB is asked what it would do before anything is written; the user confirms, or picks the assay, in a modal.
+    const [bobReview, setBobReview] = useState(null)
+    const bobReviewFlow = useRef(null)
+
+    const finishBOBReview = (result) => {
+        bobReviewFlow.current?.resolve(result)
+        bobReviewFlow.current = null
+        setBobReview(null)
+    }
+
+    const checkWithBOB = async (pairing) => {
+        const flow = bobReviewFlow.current
+        if (!flow) return
+        setBobReview((current) => ({ ...(current || {}), pairing, busy: true }))
+        try {
+            const { args } = flow
+            const plateAssays = Object.keys(pairing).length ? pairing : null
+            const found = await checkBOBUpload(args.metadataFile, args.sbhPrefix, args.sbhToken, [args.plate], { ...args.bob, plateAssays })
+            const suggested = Object.fromEntries(found.pairing.filter((x) => x.source === 'file name' && x.assay_id).map((x) => [x.plate, x.assay_id]))
+            if (!plateAssays && Object.keys(suggested).length === found.pairing.length) {
+                flow.suggested = suggested
+                return checkWithBOB(suggested)
+            }
+            setBobReview({ found, pairing, suggested: flow.suggested || {}, busy: false })
+        } catch (error) {
+            showErrorNotification('BOB check failed', error.message)
+            finishBOBReview(null)
+        }
+    }
+
+    const reviewBOBUpload = (args) => new Promise((resolve) => {
+        bobReviewFlow.current = { resolve, args }
+        setBobReview({ found: null, pairing: {}, busy: true })
+        checkWithBOB({})
+    })
 
     const uploadCount = uploads?.length ?? 0
     const uploadLabel = uploadCount > 0 ? 'Update' : 'Upload'
@@ -236,6 +294,38 @@ export default function CollectionWizard() {
             studyFJid = null;
         }
 
+        let currentBOBToken = '';
+        if (plateOutputFile && selectedBOBRepo && studyBOBid) {
+            currentBOBToken = getStoredBOBToken() || '';
+            let valid = false;
+            try {
+                valid = (await CheckBOBLogin(registryAPIBOB, currentBOBToken)).valid;
+            } catch {
+                valid = false;
+            }
+            if (!valid) {
+                const loginResult = await openBOBLoginWorkflow();
+                currentBOBToken = loginResult?.completed ? (getStoredBOBToken() || '') : '';
+            }
+            if (!currentBOBToken) {
+                showErrorNotification('Not logged in', 'Please log in to your BOB server before updating this Assay.')
+                return
+            }
+        }
+
+        let bobPlateAssays = null
+        if (currentBOBToken) {
+            const reviewed = await reviewBOBUpload({
+                metadataFile,
+                plate: plateOutputFile,
+                sbhPrefix: registryPrefix || selectedRepo,
+                sbhToken: currentToken,
+                bob: { url: registryAPIBOB, token: currentBOBToken, studyId: studyBOBid },
+            })
+            if (!reviewed) return
+            bobPlateAssays = reviewed.plateAssays
+        }
+
         setIsSubmitting(true)
         try {
             const response = await uploadExperiment(
@@ -254,8 +344,19 @@ export default function CollectionWizard() {
                 {
                     attachments: (resultsFiles && resultsFiles.length) ? resultsFiles : [],
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
-                }
+                },
+                currentBOBToken ? { url: registryAPIBOB, token: currentBOBToken, studyId: studyBOBid, plateAssays: bobPlateAssays } : null
             )
+            if (response?.bob) {
+                const warnings = response.bob.warnings || []
+                const saved = response.bob.assays.filter((a) => a.action !== 'unchanged').length
+                showNotification({
+                    title: 'Sent to BOB',
+                    message: (response.bob.changed === false ? 'BOB already had this upload; nothing changed.' : `${saved} assay(s) saved in the BOB study.`)
+                        + (warnings.length ? ' ' + warnings.join(' ') : ''),
+                    color: warnings.length ? 'yellow' : 'green',
+                })
+            }
             const uploadEntry = {
                 collectionName: collection?.name || collection?.displayId || collectionUrl,
                 uri: response.subCollectionUrl || collectionUrl,
@@ -276,6 +377,12 @@ export default function CollectionWizard() {
 
     return (
         <Container style={stepperContainerStyle}>
+            <BOBCheckModal
+                review={bobReview}
+                onPair={(pairing) => checkWithBOB(pairing)}
+                onConfirm={() => finishBOBReview({ plateAssays: Object.keys(bobReview.pairing).length ? bobReview.pairing : null })}
+                onCancel={() => finishBOBReview(null)}
+            />
             <Stack gap="xl">
                 <div>
                     <Dropzone

@@ -223,7 +223,8 @@ export async function uploadExperiment(
     fj_study_id = null,
     workingDirectory = null,
     sbh_overwrite = true,
-    extraFiles = {}
+    extraFiles = {},
+    bob = null
 ) {
     try {
         let data = new FormData();
@@ -272,6 +273,10 @@ export async function uploadExperiment(
             fj_refresh_token: fj_refresh_token,
             fj_study_id: fj_study_id,
             fj_overwrite: 1,
+            bob_url: bob?.url ?? null,
+            bob_token: bob?.token ?? null,
+            bob_study_id: bob?.studyId ?? null,
+            bob_plate_assays: bob?.plateAssays ?? null,
             version: "",
             importType: "Assays",
             attachments: Object.fromEntries(
@@ -319,6 +324,32 @@ export async function uploadExperiment(
             : backendData?.error || backendData?.message || error.message;
         console.error("Upload Experiment error:", backendMessage, error);
         throw new Error(backendMessage);
+    }
+}
+
+// What BOB would do with an experiment upload, asked before anything is written; BOB saves nothing.
+export async function checkBOBUpload(file, sbh_prefix, sbh_token, plateReaderOutputs, bob) {
+    const asFile = async (f) => (typeof f.getFile === 'function' ? await f.getFile() : f);
+    const data = new FormData();
+    data.append('Metadata', await asFile(file));
+    for (const plate of plateReaderOutputs) {
+        const fileObject = await asFile(plate);
+        data.append('Plate_Reader_Output', fileObject, fileObject.name);
+    }
+    const params = {
+        bob_url: bob.url,
+        bob_token: bob.token,
+        bob_study_id: bob.studyId,
+        bob_plate_assays: bob.plateAssays ?? null,
+        sbh_prefix,
+        sbh_token,
+    };
+    data.append('Params', new Blob([JSON.stringify(params)], { type: 'application/json' }), 'parameters.json');
+    try {
+        const response = await axios.post(SBS_Server_Link + '/api/checkBOB', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.error || error.message);
     }
 }
 
@@ -489,6 +520,87 @@ export async function createStudyFJ(id, version, name, description, doi, auth, u
             showErrorNotification('Flapjack Login Required', "Try logging out and logging back in again")
         } else {
             showErrorNotification('Flapjack Error', error.message);
+        }
+        throw error;
+    }
+}
+
+function bobDetail(error) {
+    const detail = error.response?.data?.detail;
+    return typeof detail === 'string' ? detail : error.message;
+}
+
+export async function loginBOB(instance, email, password) {
+    const response = await axios.post(`${instance}/api/auth/token`, { email, password, app: 'SynBioSuite' });
+    const { token, token_id, user } = response.data;
+    return { username: user.name || user.email, email: user.email, authtoken: token, tokenId: token_id };
+}
+
+export async function logoutBOB(instance, authToken, tokenId) {
+    if (!tokenId) return;
+    try {
+        await axios.delete(`${instance}/api/auth/tokens/${tokenId}`, { headers: { Authorization: `Bearer ${authToken}` } });
+    } catch (error) {
+        // 401 and 404 mean the token is already gone, which is what logging out wants.
+        if (![401, 404].includes(error.response?.status)) {
+            showErrorNotification('BOB Logout Error', bobDetail(error));
+        }
+    }
+}
+
+export async function CheckBOBLogin(instance, authToken) {
+    if (!authToken) {
+        return { valid: false };
+    }
+    try {
+        const response = await axios.get(`${instance}/api/auth/me`, { headers: { Authorization: `Bearer ${authToken}` } });
+        return { valid: true, profile: response.data.user };
+    } catch (error) {
+        if (error.response?.status === 401) {
+            return { valid: false };
+        }
+        throw error;
+    }
+}
+
+// Choices for where a new BOB study goes: an existing investigation, or a new one in a workspace the user can edit.
+export async function listBOBInvestigations(instance, authToken) {
+    const headers = { Authorization: `Bearer ${authToken}` };
+    const [investigations, me] = await Promise.all([
+        axios.get(`${instance}/api/investigations`, { headers }),
+        axios.get(`${instance}/api/auth/me`, { headers }),
+    ]);
+    const existing = investigations.data.map((inv) => ({ value: `investigation:${inv.id}`, label: `${inv.workspace_name} / ${inv.title}` }));
+    const fresh = me.data.workspaces
+        .filter((ws) => ws.role === 'owner' || ws.role === 'editor')
+        .map((ws) => ({ value: `workspace:${ws.id}`, label: `${ws.name} / new investigation named after this study` }));
+    return [...existing, ...fresh];
+}
+
+// Like createStudyFJ, a study with the same name is reused rather than duplicated.
+export async function createStudyBOB(name, description, target, authToken, instance) {
+    const headers = { Authorization: `Bearer ${authToken}` };
+    const body = { title: name, description: description ?? '' };
+    const sep = target.indexOf(':');
+    const kind = target.slice(0, sep);
+    let investigationId = target.slice(sep + 1);
+    try {
+        if (kind === 'workspace') {
+            const investigations = await axios.get(`${instance}/api/workspaces/${investigationId}/investigations`, { headers });
+            const same = investigations.data.find((inv) => inv.title === name);
+            investigationId = same ? same.id : (await axios.post(`${instance}/api/workspaces/${investigationId}/investigations`, body, { headers })).data.id;
+        }
+        const studies = await axios.get(`${instance}/api/investigations/${investigationId}/studies`, { headers });
+        const same = studies.data.find((study) => study.title === name);
+        if (same) {
+            return same.id;
+        }
+        return (await axios.post(`${instance}/api/investigations/${investigationId}/studies`, body, { headers })).data.id;
+    } catch (error) {
+        if (error.response?.status === 401) {
+            showErrorNotification('BOB Login Required', 'Try logging out and logging back in again');
+        } else {
+            showErrorNotification('BOB Error', bobDetail(error));
         }
         throw error;
     }

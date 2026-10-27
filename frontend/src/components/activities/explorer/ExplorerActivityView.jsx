@@ -55,6 +55,10 @@ export default function ExplorerActivityView({objectTypesToList }) {
           registryURLFJ,
           registryAPIFJ,
           registryPrefixFJ,
+          BOBid,
+          registryURLBOB,
+          registryAPIBOB,
+          registryPrefixBOB,
         } = data;
         
         const fh = await dirHandle.getFileHandle("study.json", {
@@ -78,6 +82,10 @@ export default function ExplorerActivityView({objectTypesToList }) {
             registryURLFJ,
             registryAPIFJ,
             registryPrefixFJ,
+            BOBid,
+            registryURLBOB,
+            registryAPIBOB,
+            registryPrefixBOB,
           }, null, 2)
         );
         

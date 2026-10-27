@@ -188,6 +188,7 @@ export function useUnifiedModal() {
               MODAL_TYPES.ADD_SBH_REPO,
               MODAL_TYPES.CREATE_COLLECTION,
               MODAL_TYPES.FJ_INSTANCE_SELECTOR,
+              MODAL_TYPES.BOB_INSTANCE_SELECTOR,
             ],
             props: {
               selectedRepo: dataPrimarySBH,

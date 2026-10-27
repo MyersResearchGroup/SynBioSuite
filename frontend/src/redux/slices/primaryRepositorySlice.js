@@ -5,6 +5,7 @@ const primaryRepositorySlice = createSlice({
     initialState: {
         sbhPrimary: '',
         fjPrimary: '',
+        bobPrimary: '',
     },
     reducers: {
         setSBHPrimary(state, action) {
@@ -13,8 +14,11 @@ const primaryRepositorySlice = createSlice({
         setFJPrimary(state, action) {
             state.fjPrimary = action.payload ?? '';
         },
+        setBOBPrimary(state, action) {
+            state.bobPrimary = action.payload ?? '';
+        },
     },
 })
 
-export const { setSBHPrimary, setFJPrimary } = primaryRepositorySlice.actions
+export const { setSBHPrimary, setFJPrimary, setBOBPrimary } = primaryRepositorySlice.actions
 export default primaryRepositorySlice

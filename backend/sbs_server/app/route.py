@@ -38,6 +38,10 @@ def upload_resource():
 def upload_experiment():
     return xdc_run(request.files)
 
+@app.route('/api/checkBOB', methods = ['POST'])
+def check_bob_upload():
+    return bob_check(request.files)
+
 @app.route('/api/uploadAssembly', methods = ['POST'])
 def upload_assembly():
     return 'Not implemented yet', 501
@@ -103,6 +107,10 @@ def xdc_run(files):
     fj_refresh_token = params_from_request.get('fj_refresh_token')
     fj_overwrite = params_from_request.get('fj_overwrite', 1)
     fj_study_id = params_from_request.get('fj_study_id')
+    bob_url = params_from_request.get('bob_url')
+    bob_token = params_from_request.get('bob_token')
+    bob_study_id = params_from_request.get('bob_study_id')
+    bob_plate_assays = params_from_request.get('bob_plate_assays')
     importType = params_from_request.get('importType')
 
     if (params_from_request['sbh_token'] is None):
@@ -110,6 +118,9 @@ def xdc_run(files):
 
     if fj_url and not fj_token:
         return jsonify({"error": "Flapjack URL was provided, but no Flapjack credentials were provided"}), 400
+
+    if bob_url and not (bob_token and bob_study_id):
+        return jsonify({"error": "BOB URL was provided, but no BOB credentials or study were provided"}), 400
 
     upload_dir = os.path.join(os.getcwd(), "uploads")
     os.makedirs(upload_dir, exist_ok=True)
@@ -147,6 +158,18 @@ def xdc_run(files):
             plate_reader_attachments[params_from_request['plateReaderOutputs'][file.filename]] = file
     else:
         plate_reader_attachments = None
+
+    # Ask BOB first, so an upload BOB would refuse leaves nothing behind on SynBioHub.
+    if bob_url and plate_reader_attachments:
+        try:
+            from .uploadBOB import check_bob
+            found = check_bob(bob_url, bob_token, bob_study_id, metadata_path, safe_metadata_filename,
+                              _plate_files(plate_reader_attachments), sbh_prefix, sbh_token, bob_plate_assays)
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({"error": f"Error checking the upload with BOB: {e}"}), 400
+        if not found.get("ok"):
+            return jsonify({"error": "BOB cannot import this upload: " + "; ".join(found.get("problems", [])), "bob_check": found}), 400
 
     try:
         file_path_out = f"{uuid4()}_converted_SBOL.xml"
@@ -237,6 +260,19 @@ def xdc_run(files):
             print('Error uploading to Flapjack')
             return jsonify({"error": f"Error uploading to Flapjack: {e}"}), 400
 
+    bob_result = None
+    if bob_url and plate_reader_attachments:
+        try:
+            from .uploadBOB import upload_to_bob
+
+            bob_result = upload_to_bob(bob_url, bob_token, bob_study_id, metadata_path, safe_metadata_filename,
+                                       _plate_files(plate_reader_attachments), synbiohub_collection=subCollectionUrl,
+                                       sbh_prefix=sbh_prefix, sbh_token=sbh_token, plate_assays=bob_plate_assays)
+        except Exception as e:
+            traceback.print_exc()
+            print('Error uploading to BOB')
+            return jsonify({"error": f"Error uploading to BOB: {e}"}), 400
+
     print("XDC run complete")
     
     sbs_upload_response_dict ={
@@ -245,8 +281,57 @@ def xdc_run(files):
         "fj_url": fj_url,
         "status": "success"
     }
+    if bob_result is not None:
+        sbs_upload_response_dict["bob"] = {
+            "assays": bob_result.get("assays", []),
+            "samples_created": bob_result.get("samples_created", 0),
+            "samples_updated": bob_result.get("samples_updated", 0),
+            "changed": bob_result.get("changed", True),
+            "warnings": bob_result.get("warnings", []),
+        }
     os.remove(metadata_path)
     return jsonify(sbs_upload_response_dict), 200
+
+
+def _plate_files(plate_reader_attachments):
+    """(file name, bytes) for each plate file, leaving each stream at its start for the next reader."""
+    plates = []
+    for pr_file in plate_reader_attachments.values():
+        pr_file.stream.seek(0)
+        plates.append((pr_file.filename, pr_file.read()))
+        pr_file.stream.seek(0)
+    return plates
+
+
+'''
+What BOB would do with an experiment upload, asked before anything is written anywhere.
+'''
+def bob_check(files):
+    if 'Metadata' not in files or 'Params' not in files or 'Plate_Reader_Output' not in files:
+        return jsonify({"error": "Send the Metadata workbook, the Params, and the plate reader output"}), 400
+    params = json.loads(files['Params'].read())
+    for param in ('bob_url', 'bob_token', 'bob_study_id'):
+        if not params.get(param):
+            return jsonify({"error": f"Parameter {param} not found in request"}), 400
+    metadata_file = files['Metadata']
+    safe_metadata_filename = secure_filename(metadata_file.filename or "")
+    if os.path.splitext(safe_metadata_filename)[1].lower() not in ('.xlsx', '.xlsm'):
+        return jsonify({"error": "Invalid Metadata file format"}), 400
+    upload_dir = os.path.join(os.getcwd(), "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    metadata_path = os.path.join(upload_dir, f"{uuid4()}_{safe_metadata_filename}")
+    metadata_file.save(metadata_path)
+    try:
+        from .uploadBOB import check_bob
+        plates = {f.filename: f for f in files.getlist('Plate_Reader_Output')}
+        found = check_bob(params['bob_url'], params['bob_token'], params['bob_study_id'], metadata_path, safe_metadata_filename,
+                          _plate_files(plates), params.get('sbh_prefix', ''), params.get('sbh_token', ''), params.get('bob_plate_assays'))
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Error checking the upload with BOB: {e}"}), 400
+    finally:
+        os.remove(metadata_path)
+    return jsonify(found), 200
 
 
 '''

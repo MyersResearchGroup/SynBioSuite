@@ -1,10 +1,10 @@
 import { Modal } from '@mantine/core';
-import { TextInput, Button, Group, Space, Checkbox } from '@mantine/core';
+import { TextInput, Button, Group, Space, Checkbox, Select } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { useSelector } from 'react-redux';
 import { showNotification } from '@mantine/notifications';
-import { createStudySBH, createStudyFJ } from '../API';
-import { useState } from 'react';
+import { createStudySBH, createStudyFJ, createStudyBOB, listBOBInvestigations } from '../API';
+import { useState, useEffect } from 'react';
 
 function CreateCollectionModal({
     opened,
@@ -22,6 +22,29 @@ function CreateCollectionModal({
     const [overwrite, setOverwrite] = useState(false);
     const studyId = makeIdentifier(studyName || "");
     const shouldCreateFlapjackStudy = Boolean(modalData?.createFlapjackStudy ?? createFlapjackStudy);
+
+    const wantsBOB = !!modalData?.createBOBStudy;
+    const [instanceDataBOB] = useLocalStorage({ key: "BOB", defaultValue: [] });
+    const selectedBOB = useSelector(state => state.primaryRepository.bobPrimary);
+    const instanceBOB = wantsBOB ? instanceDataBOB.find((inst) => inst.registryURL === selectedBOB) : null;
+    const registryAPIBOB = instanceBOB ? (instanceBOB.registryAPI || instanceBOB.registryURL) : null;
+    const [bobTargets, setBOBTargets] = useState([]);
+    const [bobTarget, setBOBTarget] = useState(null);
+
+    useEffect(() => {
+        if (!registryAPIBOB || !instanceBOB?.authtoken) {
+            return;
+        }
+        listBOBInvestigations(registryAPIBOB, instanceBOB.authtoken)
+            .then((targets) => {
+                setBOBTargets(targets);
+                setBOBTarget(targets[0]?.value ?? null);
+            })
+            .catch(() => {
+                setBOBTargets([]);
+                showNotification({ title: 'BOB unavailable', message: 'Could not list your BOB investigations. Try logging in to BOB again.', color: 'red' });
+            });
+    }, [registryAPIBOB, instanceBOB?.authtoken]);
 
     function makeIdentifier(text) {
         let id = text.trim()
@@ -85,13 +108,27 @@ function CreateCollectionModal({
                         return;
                     }
                     
+                    if (wantsBOB && (!instanceBOB?.authtoken || !bobTarget)) {
+                        showNotification({
+                            title: 'No BOB Investigation Selected',
+                            message: 'Log in to a BOB server and choose where the BOB study goes.',
+                            color: 'red',
+                        });
+                        return;
+                    }
+
                     try {
 
                         await createStudySBH(id, version, name, description, citations, auth, registryAPI, overwrite);
 
                         let FJid = null;
-                        if (shouldCreateFlapjackStudy && urlFJ) {
+                        if (shouldCreateFlapjackStudy && urlFJ && !wantsBOB) {
                             FJid = await createStudyFJ(id, version, name, description, citations, authFJ, registryAPIFJ, overwrite);
+                        }
+
+                        let BOBid = null;
+                        if (wantsBOB) {
+                            BOBid = await createStudyBOB(name, description, bobTarget, instanceBOB.authtoken, registryAPIBOB);
                         }
 
                         showNotification({
@@ -117,6 +154,10 @@ function CreateCollectionModal({
                             registryURLFJ: shouldCreateFlapjackStudy ? registryURLFJ : null,
                             registryAPIFJ: shouldCreateFlapjackStudy ? registryAPIFJ : null,
                             registryPrefixFJ: shouldCreateFlapjackStudy ? registryPrefixFJ : null,
+                            BOBid,
+                            registryURLBOB: BOBid ? instanceBOB.registryURL : null,
+                            registryAPIBOB: BOBid ? registryAPIBOB : null,
+                            registryPrefixBOB: BOBid ? (instanceBOB.registryPrefix || instanceBOB.registryURL) : null,
                         };
 
                         onClose(payload);
@@ -168,6 +209,20 @@ function CreateCollectionModal({
                     placeholder="Comma separated PubMed IDs (e.g. 12345,67890)"
                 />
                 <Space h="md" />
+                {wantsBOB && (
+                    <>
+                        <Select
+                            label="BOB investigation"
+                            description="The BOB study for the measurements is created here."
+                            placeholder={instanceBOB?.authtoken ? 'Pick one' : 'Log in to a BOB server first'}
+                            data={bobTargets}
+                            value={bobTarget}
+                            onChange={setBOBTarget}
+                            disabled={!instanceBOB?.authtoken}
+                        />
+                        <Space h="md" />
+                    </>
+                )}
                 <Group position="right" mt="md">
                     <Checkbox
                         label="Overwrite Existing Study and Remove All Prior Contents"

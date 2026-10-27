@@ -10,6 +10,8 @@ import FJLogin from '../modular_login/FJLogin';
 import CreateCollectionModal from '../CreateCollectionModal';
 import SBHInstanceSelector from '../modular_login/SBHInstanceSelector';
 import FJInstanceSelector from '../modular_login/FJInstanceSelector';
+import BOBLogin from '../modular_login/BOBLogin';
+import BOBInstanceSelector from '../modular_login/BOBInstanceSelector';
 import FlapjackOptionsModal from './FlapjackOptionsModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
 import AddRegistryModal from './AddRegistryModal';
@@ -18,11 +20,14 @@ import WellLocationsConfigModal from './WellLocationsConfigModal';
 export const MODAL_TYPES = {
     SBH_LOGIN: 'sbh_login',
     FJ_LOGIN: 'fj_login',
+    BOB_LOGIN: 'bob_login',
     ADD_SBH_REPO: 'add_sbh_repo',
     ADD_FJ_REPO: 'add_fj_repo',
+    ADD_BOB_REPO: 'add_bob_repo',
     CREATE_COLLECTION: 'create_collection',
     SBH_INSTANCE_SELECTOR: 'sbh_instance_selector',
     FJ_INSTANCE_SELECTOR: 'fj_instance_selector',
+    BOB_INSTANCE_SELECTOR: 'bob_instance_selector',
     DIRECTORY_SELECT: 'directory_select',
     SBH_CREDENTIAL_CHECK: 'sbh_credential_check',
     COLLECTION_BROWSER: 'collection_browser',
@@ -38,25 +43,31 @@ const MODAL_FLOWS = {
     [MODAL_TYPES.CREATE_COLLECTION]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.FLAPJACK_OPTIONS],
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.CREATE_COLLECTION],
+    [MODAL_TYPES.BOB_LOGIN]: [MODAL_TYPES.ADD_BOB_REPO],
+    [MODAL_TYPES.ADD_BOB_REPO]: [MODAL_TYPES.BOB_LOGIN],
+    [MODAL_TYPES.BOB_INSTANCE_SELECTOR]: [MODAL_TYPES.BOB_LOGIN, MODAL_TYPES.ADD_BOB_REPO, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.DIRECTORY_SELECT]: [],
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
     [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.CREATE_COLLECTION],
-    [MODAL_TYPES.FLAPJACK_OPTIONS]: [MODAL_TYPES.FJ_INSTANCE_SELECTOR, MODAL_TYPES.CREATE_COLLECTION],
+    [MODAL_TYPES.FLAPJACK_OPTIONS]: [MODAL_TYPES.FJ_INSTANCE_SELECTOR, MODAL_TYPES.BOB_INSTANCE_SELECTOR, MODAL_TYPES.CREATE_COLLECTION],
 };
 
 const titles = {
     [MODAL_TYPES.SBH_LOGIN]: 'Login to SynBioHub',
     [MODAL_TYPES.FJ_LOGIN]: 'Login to Flapjack',
+    [MODAL_TYPES.BOB_LOGIN]: 'Login to BOB',
     [MODAL_TYPES.ADD_SBH_REPO]: 'Add SynBioHub Repository',
     [MODAL_TYPES.ADD_FJ_REPO]: 'Add Flapjack Repository',
+    [MODAL_TYPES.ADD_BOB_REPO]: 'Add BOB Server',
     [MODAL_TYPES.CREATE_COLLECTION]: 'Create Collection',
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: 'Select SynBioHub Instance',
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: 'Select Flapjack Instance',
+    [MODAL_TYPES.BOB_INSTANCE_SELECTOR]: 'Select BOB Server',
     [MODAL_TYPES.DIRECTORY_SELECT]: 'Select Directory',
     [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'Verify Credentials',
     [MODAL_TYPES.COLLECTION_BROWSER]: 'Browse Collections',
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'Well Locations & Advanced Configurations',
-    [MODAL_TYPES.FLAPJACK_OPTIONS]: "Flapjack Options",
+    [MODAL_TYPES.FLAPJACK_OPTIONS]: "Measurements",
 };
 
 const sizes = {
@@ -65,6 +76,8 @@ const sizes = {
             [MODAL_TYPES.ADD_FJ_REPO]: 'xl',
             [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: 'xl',
             [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: 'xl',
+            [MODAL_TYPES.BOB_INSTANCE_SELECTOR]: 'xl',
+            [MODAL_TYPES.ADD_BOB_REPO]: 'xl',
             [MODAL_TYPES.COLLECTION_BROWSER]: 1200,
             [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'lg',
             [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'lg',
@@ -313,6 +326,34 @@ function UnifiedModal({
                     />
                 );
 
+            case MODAL_TYPES.BOB_LOGIN:
+                return (
+                    <BOBLogin
+                        opened={true}
+                        onClose={() => {
+                            completeWorkflow();
+                        }}
+                        onLoginSuccess={completeWorkflow}
+                        {...commonProps}
+                    />
+                );
+
+            case MODAL_TYPES.ADD_BOB_REPO:
+                return (
+                    <AddRegistryModal
+                        opened={true}
+                        onClose={handleClose}
+                        closeOnSubmit={false}
+                        onAdd={(data) => {
+                            addRegistryToStorage('BOB', data);
+                            setModalData(prev => ({ ...prev, selectedRepo: data.registryURL }));
+                            completeWorkflow({ selectedRepo: data.registryURL });
+                        }}
+                        title="BOB Server"
+                        existingRegistries={getStoredRegistries('BOB').map(item => item.registryURL)}
+                    />
+                );
+
             case MODAL_TYPES.ADD_SBH_REPO:
                 const hasCredentialCheckInHistory = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
                 const shouldReturnToValidator = hasCredentialCheckInHistory;
@@ -375,6 +416,16 @@ function UnifiedModal({
                         onClose={() => {navigateTo(MODAL_TYPES.CREATE_COLLECTION);}}
                         setRepoSelection={(selection) =>
                             setModalData(prev => ({...prev,selectedFJRepo: selection}))
+                        }
+                    />
+                );
+
+            case MODAL_TYPES.BOB_INSTANCE_SELECTOR:
+                return (
+                    <BOBInstanceSelector
+                        onClose={() => { navigateTo(MODAL_TYPES.CREATE_COLLECTION, { createBOBStudy: true }); }}
+                        setRepoSelection={(selection) =>
+                            setModalData(prev => ({ ...prev, selectedBOBRepo: selection }))
                         }
                     />
                 );
@@ -443,6 +494,7 @@ function UnifiedModal({
         MODAL_TYPES.SBH_LOGIN,
         MODAL_TYPES.ADD_SBH_REPO,
         MODAL_TYPES.ADD_FJ_REPO,
+        MODAL_TYPES.ADD_BOB_REPO,
         MODAL_TYPES.CREATE_COLLECTION,
     ];
 

@@ -14,18 +14,23 @@ export default function FlapjackOptionsModal({
     return (
         <>
             <Radio.Group
-                label="Create a Flapjack study?"
+                label="Where should the plate reader measurements go?"
                 value={choice}
                 onChange={setChoice}
             >
                 <Radio
                     value="none"
-                    label="No (SynBioHub only)"
+                    label="Nowhere else (SynBioHub only)"
                 />
 
                 <Radio
                     value="existing"
-                    label="Yes, use an existing Flapjack instance"
+                    label="A Flapjack study, on an existing Flapjack instance"
+                />
+
+                <Radio
+                    value="bob"
+                    label="A BOB study, on a BOB server"
                 />
             </Radio.Group>
 
@@ -40,6 +45,15 @@ export default function FlapjackOptionsModal({
                                 MODAL_TYPES.CREATE_COLLECTION,
                                 {
                                     createFlapjackStudy: false,
+                                }
+                            );
+
+                        } else if (choice === "bob") {
+
+                            navigateTo(
+                                MODAL_TYPES.BOB_INSTANCE_SELECTOR,
+                                {
+                                    createBOBStudy: true,
                                 }
                             );
 

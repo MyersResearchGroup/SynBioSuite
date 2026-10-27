@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Modal, Button } from '@mantine/core';
 import FJInstanceSelector from './FJInstanceSelector';
+import BOBInstanceSelector from './BOBInstanceSelector';
 import SBHInstanceSelector from './SBHInstanceSelector';
 import { Avatar, Text, Group, Grid } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { useDispatch, useSelector } from 'react-redux';
-import { setSBHPrimary, setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
+import { setSBHPrimary, setFJPrimary, setBOBPrimary } from '../../redux/slices/primaryRepositorySlice';
 
 
 function LoginModal({ opened, onClose, repoName }) {
@@ -18,12 +19,17 @@ function LoginModal({ opened, onClose, repoName }) {
     const [dataFJ, setDataFJ] = useLocalStorage({ key: "Flapjack", defaultValue: [] });
     const selectedFJ = useSelector(state => state.primaryRepository.fjPrimary);
     const setSelectedFJ = (value) => dispatch(setFJPrimary(typeof value === 'function' ? value(selectedFJ) : value));
+    const [dataBOB] = useLocalStorage({ key: "BOB", defaultValue: [] });
+    const selectedBOB = useSelector(state => state.primaryRepository.bobPrimary);
+    const setSelectedBOB = (value) => dispatch(setBOBPrimary(typeof value === 'function' ? value(selectedBOB) : value));
     
     const findInstance = (uri, repo) => {
         if (repo == "SBH")
             return dataSBH.find((element) => element.registryURL === uri);
         else if (repo == "FJ")
             return dataFJ.find((element) => element.registryURL === uri);
+        else if (repo == "BOB")
+            return dataBOB.find((element) => element.registryURL === uri);
     }
 
     const handleRemoveInstance = (repo) => {
@@ -31,6 +37,8 @@ function LoginModal({ opened, onClose, repoName }) {
             setSelectedSBH(null);
         } else if (repo == "Flapjack") {
             setSelectedFJ(null);
+        } else if (repo == "BOB") {
+            setSelectedBOB(null);
         }
     };
 
@@ -42,13 +50,14 @@ function LoginModal({ opened, onClose, repoName }) {
     // Safely resolve selected instance info to avoid undefined property access
     const sbhInfo = selectedSBH ? findInstance(selectedSBH, "SBH") : null;
     const fjInfo = selectedFJ ? findInstance(selectedFJ, "FJ") : null;
+    const bobInfo = selectedBOB ? findInstance(selectedBOB, "BOB") : null;
 
     return (
-        <Modal opened={opened} onClose={onClose} title={`Login to Repository`} size="lg">
+        <Modal opened={opened} onClose={onClose} title={`Login to Repository`} size="xl">
             {repoSelection === "" ? (
                 <>
                     <Grid>
-                        <Grid.Col span={5}>
+                        <Grid.Col span={4}>
                             <Avatar
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
@@ -76,8 +85,7 @@ function LoginModal({ opened, onClose, repoName }) {
                                 </Button>}
                             </div>
                         </Grid.Col>
-                        <Grid.Col span={2}></Grid.Col>
-                        <Grid.Col span={5}>
+                        <Grid.Col span={4}>
                             <Avatar
                                 src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
                                 size={94}
@@ -105,11 +113,39 @@ function LoginModal({ opened, onClose, repoName }) {
                                 </Button>}
                             </div>
                         </Grid.Col>
+                        <Grid.Col span={4}>
+                            <Avatar
+                                src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
+                                size={94}
+                                radius="md"
+                                style={{ opacity: selectedBOB ? 1 : 0.5 }}
+                            />
+                            <div>
+                                <Text fz="xs" mt={10} fw={700} c="dimmed">
+                                    Repository: {bobInfo ? bobInfo.registryURL : "Not Logged In"}
+                                </Text>
+                                <Text fz="lg" fw={500}>
+                                    Username: {bobInfo && bobInfo.authtoken ? bobInfo.username : "Not Logged In"}
+                                </Text>
+                                <Group noWrap spacing={10} mt={3}>
+                                    <Text fz="xs" c="dimmed">
+                                        Email: {bobInfo && bobInfo.authtoken ? bobInfo.email : "Not Logged In"}
+                                    </Text>
+                                </Group>
+                                {selectedBOB ? <Button mt="md" onClick={() => {handleRemoveInstance("BOB"); setRepoSelection("BOB")}}>
+                                    Change BOB Server
+                                </Button> : <Button mt="md" onClick={() => {setRepoSelection("BOB")}}>
+                                    Select BOB Server
+                                </Button>}
+                            </div>
+                        </Grid.Col>
                     </Grid>
                 </>
             ) : (
                 repoSelection === "SynbioHub" ?
                         (<SBHInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />)
+                    : repoSelection === "BOB" ?
+                        (<BOBInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />)
                     :
                         (<FJInstanceSelector onClose={onClose} setRepoSelection={setRepoSelection} />)
                 )
