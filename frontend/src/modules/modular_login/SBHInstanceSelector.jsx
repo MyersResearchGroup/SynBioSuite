@@ -24,7 +24,7 @@ const SBHInstanceSelector = ({
     const [nullSelected, setNullSelected] = useState(false);
     const dispatch = useDispatch();
     const selected = useSelector(state => state.primaryRepository.sbhPrimary);
-    const selectedRepo = modalData.selectedRepo || selected;
+    const selectedRepo = selected;
     const setSelected = (value) => {
         const nextValue = typeof value === 'function' ? value(selected) : value;
         dispatch(setSBHPrimary(nextValue));
