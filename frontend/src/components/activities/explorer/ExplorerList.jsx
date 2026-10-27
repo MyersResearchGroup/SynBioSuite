@@ -177,7 +177,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
         try {
             const params = new URLSearchParams({ collections: studyUri })
-
             await axios.post(`${memberUri}/addToCollection`, params.toString(), {
                 headers: {
                     'Accept': 'text/plain',
@@ -203,7 +202,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 return
             }
 
-            workflows.browseCollectionsForResource(selectedRepo, expectedEmail, (result) => {
+            workflows.browseCollections((result) => {
                 const collection = result?.collections?.[0]
                 if (!collection) {
                     return
@@ -211,6 +210,9 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                 const memberUri = collection.uri?.replace(study.registryPrefix, study.registryAPI)
                 handleLinkStudyCollection(authToken,study.collectionUri,memberUri)
             }, {
+                selectedRepo,
+                expectedEmail,
+                loginFirst: true,
                 multiSelect: false,
                 rootOnly: false,
                 allowCreateCollection: false,

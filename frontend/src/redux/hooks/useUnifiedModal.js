@@ -273,6 +273,18 @@ export function useUnifiedModal() {
                         return;
                     }
 
+                    if (props.loginFirst) {
+                        open(MODAL_TYPES.COLLECTION_BROWSER, {
+                            allowedModals: [
+                                MODAL_TYPES.COLLECTION_BROWSER,
+                                MODAL_TYPES.SBH_LOGIN,
+                            ],
+                            props: modalProps,
+                            onComplete,
+                        });
+                        return;
+                    }
+
                     open(MODAL_TYPES.FLAPJACK_OPTIONS, {
                         allowedModals: [
                             MODAL_TYPES.FLAPJACK_OPTIONS,

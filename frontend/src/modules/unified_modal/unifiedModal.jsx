@@ -53,6 +53,7 @@ const titles = {
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: 'Select SynBioHub Instance',
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: 'Select Flapjack Instance',
     [MODAL_TYPES.DIRECTORY_SELECT]: 'Select Directory',
+    [MODAL_TYPES.REPOSITORY_SELECTOR]: 'Select Repository',
     [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'Verify Credentials',
     [MODAL_TYPES.COLLECTION_BROWSER]: 'Browse Collections',
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'Well Locations & Advanced Configurations',
@@ -66,6 +67,7 @@ const sizes = {
             [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: 'xl',
             [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: 'xl',
             [MODAL_TYPES.COLLECTION_BROWSER]: 1200,
+            [MODAL_TYPES.REPOSITORY_SELECTOR]: 'lg',
             [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'lg',
             [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'lg',
         };
@@ -267,7 +269,9 @@ function UnifiedModal({
 
         switch (currentModal) {
             case MODAL_TYPES.SBH_LOGIN:
-                const shouldReturnToCredentialCheck = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
+                const shouldReturnToCredentialCheck =
+                    modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS)
+                    || modalHistory.includes(MODAL_TYPES.COLLECTION_BROWSER);
                 const loginModalData = modalData[MODAL_TYPES.SBH_LOGIN] || {};
                 const shouldNavigateToValidator =
                     loginModalData.returnTo === MODAL_TYPES.FLAPJACK_OPTIONS
@@ -315,7 +319,8 @@ function UnifiedModal({
 
             case MODAL_TYPES.ADD_SBH_REPO:
                 const hasCredentialCheckInHistory = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
-                const shouldReturnToValidator = hasCredentialCheckInHistory;
+                const hasRepoSelectorInHistory = modalHistory.includes(MODAL_TYPES.REPOSITORY_SELECTOR);
+                const shouldReturnToValidator = hasCredentialCheckInHistory || hasRepoSelectorInHistory;
                 return (
                     <AddRegistryModal
                         opened={true}
@@ -364,7 +369,15 @@ function UnifiedModal({
                         onClose={completeWorkflow}
                         studyName={modalProps.studyName}
                         studyDescription={modalProps.studyDescription}
-                        createFlapjackStudy={modalData[currentModal]?.createFlapjackStudy ?? modalProps.createFlapjackStudy ?? false}
+                        {...commonProps}
+                    />
+                );
+
+            case MODAL_TYPES.SBH_INSTANCE_SELECTOR:
+                return (
+                    <SBHInstanceSelector
+                        onClose={completeWorkflow}
+                        setRepoSelection={(selection) => setModalData(prev => ({ ...prev, selectedRepo: selection }))}
                         {...commonProps}
                     />
                 );
@@ -386,9 +399,9 @@ function UnifiedModal({
                     </Stack>
                 );
 
-            case MODAL_TYPES.SBH_INSTANCE_SELECTOR:
+            case MODAL_TYPES.REPOSITORY_SELECTOR:
                 return (
-                    <SBHInstanceSelector
+                    <RepositorySelectorModal
                         navigateTo={navigateTo}
                         goBack={goBack}
                         completeWorkflow={completeWorkflow}
@@ -396,6 +409,8 @@ function UnifiedModal({
                         {...commonProps}
                     />
                 );
+
+            /* SBH_CREDENTIAL_CHECK removed: flows now go directly to FLAPJACK_OPTIONS */
 
             case MODAL_TYPES.COLLECTION_BROWSER:
                 return (
