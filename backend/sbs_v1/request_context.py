@@ -5,7 +5,7 @@ Connexion has already checked that the token and X-Study-Collection are present
 URI's shape, and which SynBioHub API to talk to.
 """
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 from flask import request
@@ -13,13 +13,14 @@ from flask import request
 from .errors import ApiError
 from .http import SBH_URL_ENV, normalise_base_url
 
+
 STUDY_HEADER = "X-Study-Collection"
 SBH_URL_HEADER = "X-SynBioHub-Url"
 
 
 @dataclass(frozen=True)
 class StudyContext:
-    token: str      # the caller's SynBioHub token. Never log or return it.
+    token: str = field(repr=False)      # the caller's SynBioHub token. Never log or return it.
     study_uri: str  # https://<host>/user/<user>/<studyId>/<displayId>/<version>
     sbh_url: str    # the SynBioHub *API* base, e.g. https://api.synbiohub.org
 
