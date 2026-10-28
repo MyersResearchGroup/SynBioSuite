@@ -177,6 +177,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
         try {
             const params = new URLSearchParams({ collections: studyUri })
+
             await axios.post(`${memberUri}/addToCollection`, params.toString(), {
                 headers: {
                     'Accept': 'text/plain',
@@ -194,8 +195,6 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             const study = await readStudy(workDir)
             const selectedRepo = study.registryURL || null
             const expectedEmail = study.userEmail || null
-            const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo)
-            const authToken = repoInfo?.authtoken
 
             if (!selectedRepo) {
                 console.warn('No SynBioHub repository is configured for this study.')
@@ -208,7 +207,10 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                     return
                 }
                 const memberUri = collection.uri?.replace(study.registryPrefix, study.registryAPI)
-                handleLinkStudyCollection(authToken,study.collectionUri,memberUri)
+                const currentRepo = JSON.parse(localStorage.getItem('SynbioHub') || '[]')
+                    .find(repo => repo.registryURL === selectedRepo)
+                const authToken = result?.authToken || currentRepo?.authtoken
+                handleLinkStudyCollection(authToken, study.collectionUri, memberUri)
             }, {
                 selectedRepo,
                 expectedEmail,

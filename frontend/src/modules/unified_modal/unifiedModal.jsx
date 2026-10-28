@@ -269,13 +269,15 @@ function UnifiedModal({
 
         switch (currentModal) {
             case MODAL_TYPES.SBH_LOGIN:
+                const isCollectionBrowserLogin = modalHistory.includes(MODAL_TYPES.COLLECTION_BROWSER);
                 const shouldReturnToCredentialCheck =
                     modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS)
-                    || modalHistory.includes(MODAL_TYPES.COLLECTION_BROWSER);
+                    && !isCollectionBrowserLogin;
                 const loginModalData = modalData[MODAL_TYPES.SBH_LOGIN] || {};
                 const shouldNavigateToValidator =
                     loginModalData.returnTo === MODAL_TYPES.FLAPJACK_OPTIONS
-                    && allowedModals.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
+                    && allowedModals.includes(MODAL_TYPES.FLAPJACK_OPTIONS)
+                    && !isCollectionBrowserLogin;
 
                 return (
                     <SBHLogin
@@ -302,6 +304,7 @@ function UnifiedModal({
                             shouldReturnToCredentialCheck ? goBack() : completeWorkflow(result);
                         }}
                         {...commonProps}
+                        onBack={isCollectionBrowserLogin ? handleClose : undefined}
                     />
                 );
 

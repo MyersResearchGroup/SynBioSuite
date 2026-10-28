@@ -74,7 +74,7 @@ const getProfile = async (instance, auth) => {
     }
 };
 
-const SBHInstanceLogin = ({ opened = true, onClose, goBack, setRepoSelection }) => {
+const SBHInstanceLogin = ({ opened = true, onClose, onBack, goBack, setRepoSelection }) => {
     const [instanceData, setInstanceData] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] });
     const [registerOpened, setRegisterOpened] = useState(false);
     const dispatch = useDispatch();
@@ -232,7 +232,9 @@ const SBHInstanceLogin = ({ opened = true, onClose, goBack, setRepoSelection }) 
                     <Group position="apart" mt="xl">
                         {goBack && (
                             <Button variant="default" onClick={() => {
-                                if (instanceData.length === 0) {
+                                if (onBack) {
+                                    onBack();
+                                } else if (instanceData.length === 0) {
                                     setRepoSelection?.('');
                                 } else {
                                     goBack(false);
