@@ -218,7 +218,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             }
             await createWorkflowJSON(workDir, dispatch, response.data[0].displayId, 'collections', `${response.data[0].displayId}.json`, 'linked_collection', collectionData, initialUpload)
         } catch (err) {
-            console.error('Unable to fetch metadata for ${memberUri}:', err)
+            console.error(`Unable to fetch metadata for ${memberUri}:`, err)
         }
 
     }

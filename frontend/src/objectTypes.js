@@ -190,7 +190,6 @@ export const ObjectTypes = {
         renameable: true,
         openable: true,
         subdirectory: "strains",
-        downloadable: true,
         limitOne: true,
     },
     /*
@@ -219,7 +218,6 @@ export const ObjectTypes = {
         updateable: true,
         downloadable: true,
         subdirectory: "sampleDesigns",
-        downloadable: true,
         openable: true,
         renameable: true,
         limitOne: true,
@@ -236,7 +234,6 @@ export const ObjectTypes = {
         renameable: true,
         openable: true,
         subdirectory: "assays",
-        downloadable: true,
     },
     PlateReader: {
         id: "synbio.object-type.plate-reader",

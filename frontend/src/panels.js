@@ -165,6 +165,10 @@ export function getPanelTypeForObject(file) {
     const objectType = file.objectType;
     const fileName = file.name.toLowerCase();
 
+    if ((objectType === ObjectTypes.Collections.id) && fileName.endsWith(".json")) {
+        return null;
+    }
+
     if ((objectType === ObjectTypes.Resources.id || 
         objectType === ObjectTypes.Strains.id ||
         objectType === ObjectTypes.SampleDesigns.id) &&
