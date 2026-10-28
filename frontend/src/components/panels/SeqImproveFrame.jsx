@@ -1,11 +1,16 @@
 import { LoadingOverlay, Progress } from '@mantine/core'
 import { showNotification } from '@mantine/notifications'
+import { useLocalStorage } from '@mantine/hooks'
 import { useState, useEffect, useRef, useContext } from 'react'
+import { useSelector } from 'react-redux'
 import { PanelContext } from './SeqImprovePanel'
 import { usePanelProperty } from '../../redux/hooks/panelsHooks'
 import store from '../../redux/store'
 import { createFileInDirectory, writeToFileHandle } from '../../redux/hooks/workingDirectoryHooks'
 import { ObjectTypes } from '../../objectTypes'
+import { CheckLogin, clearInvalidCredentials } from '../../API'
+import { openUnifiedModal } from '../../redux/slices/modalSlice'
+import { MODAL_TYPES } from '../../modules/unified_modal/unifiedModal'
 
 export default function SeqImproveFrame({ fileTypeObjectId }) {
     const { url, panelId } = useContext(PanelContext)
@@ -18,16 +23,57 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
     const [sbolContentLoaded, setSbolContentLoaded] = useState(!sbolContent)
     const loadProgress = 10 + (iframeLoaded + sbolContentLoaded) * 45
 
+    // messages in are only taken from SeqImprove's origin, so a SynBioHub session only ever goes out in
+    // answer to SeqImprove itself. resolved as the iframe resolves its src, so a relative URL pins too
     const targetOrigin = (() => {
-        try { return new URL(url).origin } catch { return '*' }
+        try { return new URL(url, window.location.href).origin } catch { return '*' }
     })()
 
     const reply = message => iframeRef.current?.contentWindow?.postMessage(message, targetOrigin)
 
-    const messageListener = ({ data, source }) => {
-        if (source !== iframeRef.current?.contentWindow) return
+    // SeqImprove uses this app's SynBioHub login instead of its own. the document in the frame has to
+    // ask for it first, and every load of the frame starts over
+    const sessionAsked = useRef(false)
+    const frameLoads = useRef(0)
+
+    // answers SeqImprove's request (requestId), or pushes the session when the login changes
+    const sendSession = async requestId => {
+        const load = frameLoads.current
+        const repo = sharedSynBioHubRepo()
+        let check = null
+        if (repo) {
+            // a check that fails (SynBioHub unreachable, say) sends the login unchecked rather than log SeqImprove out
+            check = await CheckLogin(registryAPIOf(repo), repo.authtoken).catch(() => ({ valid: true }))
+        }
+        // a new document has loaded in the frame since, or the login changed while it was checked
+        // and the push for the new one is on its way
+        if (load !== frameLoads.current || sessionKey(sharedSynBioHubRepo()) !== sessionKey(repo)) return
+        // SynBioHub turned it down: drop it here too, so both apps agree it's gone
+        if (repo && !check.valid) clearInvalidCredentials(repo.registryURL)
+        const session = repo && check.valid
+            ? { token: repo.authtoken, urlPrefix: registryAPIOf(repo), username: check.profile?.username || repo.username || '' }
+            : null
+        reply(requestId ? { type: 'synBioHubSession', requestId, session } : { type: 'synBioHubSession', session })
+    }
+
+    const messageListener = ({ data, source, origin }) => {
+        if (source !== iframeRef.current?.contentWindow || origin !== targetOrigin) return
         if (data === 'graphServiceLoadedSBOL') {
             setSbolContentLoaded(true)
+            return
+        }
+        if (data?.type === 'getSynBioHubSession') {
+            sessionAsked.current = true
+            sendSession(data.requestId)
+            return
+        }
+        // SeqImprove's Log in button: already logged in here, it gets that login; otherwise this app's
+        // login form opens, and SeqImprove gets the session as it stands once that closes
+        if (data?.type === 'openSynBioHubLogin') {
+            sessionAsked.current = true
+            const load = frameLoads.current
+            if (sharedSynBioHubRepo()) sendSession(data.requestId)
+            else openSynBioHubLogin(() => load === frameLoads.current && sendSession(data.requestId))
             return
         }
         if (data?.type === 'checkFileName') {
@@ -123,7 +169,17 @@ export default function SeqImproveFrame({ fileTypeObjectId }) {
         reply({ type: 'panelType', panelType })
     }, [iframeLoaded, panelType])
 
+    // a login, logout or primary repository change goes to a SeqImprove that has asked for the session
+    const sbhPrimary = useSelector(state => state.primaryRepository.sbhPrimary)
+    const [sbhRepos] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })
+    const currentSessionKey = sessionKey(pickSharedSynBioHubRepo(sbhRepos, sbhPrimary))
+    useEffect(() => {
+        if (sessionAsked.current) sendSession()
+    }, [currentSessionKey])
+
     const handleIFrameLoad = () => {
+        frameLoads.current++
+        sessionAsked.current = false
         setIFrameLoaded(true)
         setSbolContentLoaded(!sbolContent)
         sentPanelType.current = panelType
@@ -165,6 +221,52 @@ async function getSaveDirectory(panelId) {
     const subdir = store.getState().panels.entities[panelId]?.subdirectory
     const dir = await workDir.getDirectoryHandle(subdir, { create: true })
     return { dir, subdir }
+}
+
+// the SynBioHub login SeqImprove gets: the primary repository's, or the only logged-in one when
+// there's no primary. none when the primary is logged out
+function pickSharedSynBioHubRepo(repos, sbhPrimary) {
+    const loggedIn = (Array.isArray(repos) ? repos : []).filter(repo => repo?.authtoken)
+    if (sbhPrimary) return loggedIn.find(repo => repo.registryURL === sbhPrimary) ?? null
+    return loggedIn.length === 1 ? loggedIn[0] : null
+}
+
+function sharedSynBioHubRepo() {
+    let repos = []
+    try { repos = JSON.parse(localStorage.getItem('SynbioHub')) } catch {}
+    return pickSharedSynBioHubRepo(repos, store.getState().primaryRepository.sbhPrimary)
+}
+
+function sessionKey(repo) {
+    return JSON.stringify([repo?.registryURL ?? null, repo?.authtoken ?? null])
+}
+
+function registryAPIOf(repo) {
+    return (repo.registryAPI || repo.registryURL).replace(/\/+$/, '')
+}
+
+// the same SBH_LOGIN workflow commands.js opens, for the primary repository (or the only one there
+// is); with neither, the repository picker comes first. onClosed runs once the modal has closed,
+// however that happened: a dismissed modal doesn't run a workflow callback
+function openSynBioHubLogin(onClosed) {
+    let repos = []
+    try { repos = JSON.parse(localStorage.getItem('SynbioHub')) || [] } catch {}
+    const selectedRepo = store.getState().primaryRepository.sbhPrimary || (repos.length === 1 ? repos[0]?.registryURL : '')
+    store.dispatch(openUnifiedModal(selectedRepo
+        ? {
+            modalType: MODAL_TYPES.SBH_LOGIN,
+            allowedModals: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
+            props: { selectedRepo },
+        }
+        : {
+            modalType: MODAL_TYPES.SBH_INSTANCE_SELECTOR,
+            allowedModals: [MODAL_TYPES.SBH_INSTANCE_SELECTOR, MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
+        }))
+    const unsubscribe = store.subscribe(() => {
+        if (store.getState().modal.unifiedModalOpen) return
+        unsubscribe()
+        onClosed()
+    })
 }
 
 function cleanFileName(name) {
