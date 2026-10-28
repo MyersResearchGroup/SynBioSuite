@@ -16,6 +16,8 @@ import useUnifiedModal from '../../../redux/hooks/useUnifiedModal.js'
 import { useOpenPanel } from '../../../redux/hooks/panelsHooks'
 import { readStudy } from "../../../modules/util";
 import { useLocalStorage } from '@mantine/hooks';
+import { createWorkflowJSON } from './createWorkflowJSON.js';
+import { TbLinkPlus } from 'react-icons/tb'
 
 export default function ExplorerList({workDir, objectTypesToList}) {
 
@@ -170,11 +172,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     )
 
 
-    const handleLinkStudyCollection = async (authToken, studyUri, memberUri) => {
+    const handleLinkStudyCollection = async (selectedRepo, expectedEmail, authToken, studyUri, studyName, studyDisplayId, memberUri, collectionUri) => {
         if (!authToken || !studyUri || !memberUri) {
             return
         }
-
+ 
         try {
             const params = new URLSearchParams({ collections: studyUri })
 
@@ -188,6 +190,37 @@ export default function ExplorerList({workDir, objectTypesToList}) {
         } catch (err) {
             console.error('Unable to link study to collection:', err)
         }
+
+        try {
+            const response = await axios.get(`${memberUri}/metadata`, {
+                headers: {
+                    'X-authorization': authToken,
+                },
+            })
+            const collectionData = {
+                name: response.data[0].name,
+                displayId: response.data[0].displayId,
+                uri: collectionUri,
+                selectedRepo: selectedRepo,
+                userEmail: expectedEmail,
+            }
+
+            const initialUpload = {
+                collectionName: studyName,
+                collectionUri: studyUri,
+                collectionDisplayId: studyDisplayId,
+                uri: collectionUri,
+                file: 'linked_collection',
+                date: new Date().toLocaleString(undefined, { timeZoneName: 'short' }),
+                selectedRepo: selectedRepo,
+                userEmail: expectedEmail,
+                type: 'initial',
+            }
+            await createWorkflowJSON(workDir, dispatch, response.data[0].displayId, 'collections', `${response.data[0].displayId}.json`, 'linked_collection', collectionData, initialUpload)
+        } catch (err) {
+            console.error(`Unable to fetch metadata for ${memberUri}:`, err)
+        }
+
     }
 
     const handleLinkResourcesClick = async () => {
@@ -195,22 +228,26 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             const study = await readStudy(workDir)
             const selectedRepo = study.registryURL || null
             const expectedEmail = study.userEmail || null
-            const repoInfo = dataSBH.find(r => r.registryURL === selectedRepo)
-            const authToken = repoInfo?.authtoken
 
             if (!selectedRepo) {
                 console.warn('No SynBioHub repository is configured for this study.')
                 return
             }
 
-            workflows.browseCollectionsForResource(selectedRepo, expectedEmail, (result) => {
+            workflows.browseCollections((result) => {
                 const collection = result?.collections?.[0]
                 if (!collection) {
                     return
                 }
                 const memberUri = collection.uri?.replace(study.registryPrefix, study.registryAPI)
-                handleLinkStudyCollection(authToken,study.collectionUri,memberUri)
+                const currentRepo = JSON.parse(localStorage.getItem('SynbioHub') || '[]')
+                    .find(repo => repo.registryURL === selectedRepo)
+                const authToken = result?.authToken || currentRepo?.authtoken
+                handleLinkStudyCollection(selectedRepo, expectedEmail, authToken, study.collectionUri, study.name, study.displayId, memberUri, collection.uri)
             }, {
+                selectedRepo,
+                expectedEmail,
+                loginFirst: true,
                 multiSelect: false,
                 rootOnly: false,
                 allowCreateCollection: false,
@@ -247,12 +284,12 @@ export default function ExplorerList({workDir, objectTypesToList}) {
                                         <Title order={6} sx={titleStyle} >{objectType.listTitle}</Title>
                                     </Accordion.Control>
                                     <Accordion.Panel>
-                                        {objectType.id === 'synbio.object-type.resources' && (
+                                        {objectType.id === 'synbio.object-type.collections' && (
                                             <Group
                                                 sx={linkResourcesStyle}
                                                 onClick={handleLinkResourcesClick}
                                             >
-                                                <AiOutlineLink />
+                                                <TbLinkPlus />
                                                 <Text size='sm' sx={linkResourcesTextStyle}>Link {objectType.title}</Text>
                                             </Group>
                                         )}
