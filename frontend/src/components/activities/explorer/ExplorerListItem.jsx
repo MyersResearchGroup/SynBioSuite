@@ -166,6 +166,9 @@ export default function ExplorerListItem({ fileId, icon }) {
         if (supportsFileOpen()) {
             await commands.FileOpen.execute(fileId)
             return
+        } else if (supportsFileView()) {
+            await commands.FileView.execute(fileId, uploadInfo)
+            return
         }
     }
 
@@ -178,7 +181,10 @@ export default function ExplorerListItem({ fileId, icon }) {
         setContextMenuOpen(true)
     }
 
-    const supportsFileOpen = () => {
+    const supportsFileOpen = () => {    
+        if (getObjectType(file?.objectType)?.openable != true) {
+            return false
+        }
         const fileName = file.name.toLowerCase()
         if (/\.(xls|xlsx|xlsm)$/i.test(fileName)) {
             return true
@@ -206,11 +212,14 @@ export default function ExplorerListItem({ fileId, icon }) {
     }
 
     const supportsFileDownload = () => {
-        return true
+        return getObjectType(file?.objectType)?.downloadable === true
     }
 
     const supportsFileRename = () => {
-        return !/_sbml\.xml$/i.test(file.name) && !fileInUse
+        if (getObjectType(file?.objectType)?.renameable === true) {
+            return !/_sbml\.xml$/i.test(file.name) && !fileInUse
+        }
+        return false
     }
 
     // command list
