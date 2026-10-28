@@ -686,8 +686,10 @@ export function clearInvalidCredentials(instanceUrl) {
             return repo;
         });
         
-        // Save updated data back to localStorage
+        // Save updated data back to localStorage, and tell every useLocalStorage('SynbioHub') (the
+        // SeqImprove panel among them) the way mantine's own setter does
         localStorage.setItem('SynbioHub', JSON.stringify(updatedData));
+        window.dispatchEvent(new CustomEvent('mantine-local-storage', { detail: { key: 'SynbioHub', value: updatedData } }));
     } catch (error) {
         console.error('Error clearing invalid credentials:', error);
     }

@@ -64,6 +64,8 @@ export default function Registries({typeOfRegistry, title, defaultRegistry = nul
         const storedRegistries = JSON.parse(localStorage.getItem(storageKey)) || [];
         const updatedRegistries = storedRegistries.filter(reg => reg.registryURL !== registryToDelete);
         localStorage.setItem(storageKey, JSON.stringify(updatedRegistries));
+        // as mantine's useLocalStorage setter does, so its hooks (the SeqImprove panel's among them) see the deletion
+        window.dispatchEvent(new CustomEvent('mantine-local-storage', { detail: { key: storageKey, value: updatedRegistries } }));
     }
     
     return(
