@@ -13,7 +13,6 @@ import FJInstanceSelector from '../modular_login/FJInstanceSelector';
 import FlapjackOptionsModal from './FlapjackOptionsModal';
 import CollectionBrowserModal from './CollectionBrowserModal';
 import AddRegistryModal from './AddRegistryModal';
-import WellLocationsConfigModal from './WellLocationsConfigModal';
 
 export const MODAL_TYPES = {
     SBH_LOGIN: 'sbh_login',
@@ -23,8 +22,6 @@ export const MODAL_TYPES = {
     CREATE_COLLECTION: 'create_collection',
     SBH_INSTANCE_SELECTOR: 'sbh_instance_selector',
     FJ_INSTANCE_SELECTOR: 'fj_instance_selector',
-    DIRECTORY_SELECT: 'directory_select',
-    SBH_CREDENTIAL_CHECK: 'sbh_credential_check',
     COLLECTION_BROWSER: 'collection_browser',
     WELL_LOCATIONS_CONFIG: 'well_locations_config',
     FLAPJACK_OPTIONS: 'flapjack_options',
@@ -38,7 +35,6 @@ const MODAL_FLOWS = {
     [MODAL_TYPES.CREATE_COLLECTION]: [MODAL_TYPES.SBH_LOGIN],
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO, MODAL_TYPES.FLAPJACK_OPTIONS],
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO, MODAL_TYPES.CREATE_COLLECTION],
-    [MODAL_TYPES.DIRECTORY_SELECT]: [],
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: [],
     [MODAL_TYPES.COLLECTION_BROWSER]: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.CREATE_COLLECTION],
     [MODAL_TYPES.FLAPJACK_OPTIONS]: [MODAL_TYPES.FJ_INSTANCE_SELECTOR, MODAL_TYPES.CREATE_COLLECTION],
@@ -52,9 +48,6 @@ const titles = {
     [MODAL_TYPES.CREATE_COLLECTION]: 'Create Collection',
     [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: 'Select SynBioHub Instance',
     [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: 'Select Flapjack Instance',
-    [MODAL_TYPES.DIRECTORY_SELECT]: 'Select Directory',
-    [MODAL_TYPES.REPOSITORY_SELECTOR]: 'Select Repository',
-    [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'Verify Credentials',
     [MODAL_TYPES.COLLECTION_BROWSER]: 'Browse Collections',
     [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'Well Locations & Advanced Configurations',
     [MODAL_TYPES.FLAPJACK_OPTIONS]: "Flapjack Options",
@@ -67,8 +60,6 @@ const sizes = {
             [MODAL_TYPES.SBH_INSTANCE_SELECTOR]: 'xl',
             [MODAL_TYPES.FJ_INSTANCE_SELECTOR]: 'xl',
             [MODAL_TYPES.COLLECTION_BROWSER]: 1200,
-            [MODAL_TYPES.REPOSITORY_SELECTOR]: 'lg',
-            [MODAL_TYPES.SBH_CREDENTIAL_CHECK]: 'lg',
             [MODAL_TYPES.WELL_LOCATIONS_CONFIG]: 'lg',
         };
 
@@ -321,9 +312,7 @@ function UnifiedModal({
                 );
 
             case MODAL_TYPES.ADD_SBH_REPO:
-                const hasCredentialCheckInHistory = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
-                const hasRepoSelectorInHistory = modalHistory.includes(MODAL_TYPES.REPOSITORY_SELECTOR);
-                const shouldReturnToValidator = hasCredentialCheckInHistory || hasRepoSelectorInHistory;
+                const shouldReturnToValidator = modalHistory.includes(MODAL_TYPES.FLAPJACK_OPTIONS);
                 return (
                     <AddRegistryModal
                         opened={true}
@@ -395,26 +384,6 @@ function UnifiedModal({
                     />
                 );
 
-            case MODAL_TYPES.DIRECTORY_SELECT:
-                return (
-                    <Stack spacing="md">
-                        <Button onClick={completeWorkflow}>Select Directory</Button>
-                    </Stack>
-                );
-
-            case MODAL_TYPES.REPOSITORY_SELECTOR:
-                return (
-                    <RepositorySelectorModal
-                        navigateTo={navigateTo}
-                        goBack={goBack}
-                        completeWorkflow={completeWorkflow}
-                        setModalData={setModalData}
-                        {...commonProps}
-                    />
-                );
-
-            /* SBH_CREDENTIAL_CHECK removed: flows now go directly to FLAPJACK_OPTIONS */
-
             case MODAL_TYPES.COLLECTION_BROWSER:
                 return (
                     <CollectionBrowserModal
@@ -423,18 +392,6 @@ function UnifiedModal({
                         completeWorkflow={completeWorkflow}
                         modalData={modalData}
                         setModalData={setModalData}
-                        onCancel={handleClose}
-                        {...commonProps}
-                    />
-                );
-
-            case MODAL_TYPES.WELL_LOCATIONS_CONFIG:
-                return (
-                    <WellLocationsConfigModal
-                        navigateTo={navigateTo}
-                        goBack={goBack}
-                        completeWorkflow={completeWorkflow}
-                        modalData={modalData}
                         onCancel={handleClose}
                         {...commonProps}
                     />
