@@ -1,10 +1,5 @@
 import { BiSpreadsheet } from "react-icons/bi"
-import { IoAnalyticsSharp } from "react-icons/io5"
-import { TbComponents } from "react-icons/tb"
 import { PiTreeStructureFill } from "react-icons/pi"
-import { GiSewingMachine } from "react-icons/gi"
-import { GiThorHammer} from "react-icons/gi"
-import { AiOutlineExperiment } from "react-icons/ai";
 import { MdOutlineViewModule } from "react-icons/md";
 import { VscOutput, VscGraphLine } from "react-icons/vsc";
 import { FaDna } from "react-icons/fa";
@@ -192,19 +187,6 @@ export const ObjectTypes = {
         subdirectory: "strains",
         limitOne: true,
     },
-    /*
-    BuildPlans: {
-        id: "synbio.object-type.buildplans",
-        title: "Build Plans",
-        listTitle: "Build Plans",
-        fileNameMatch: /\.json$/,
-        icon: GiSewingMachine,
-        createable: true,
-        extension: '.json',
-        subdirectory: "buildPlans",
-        visible: false
-    },
-    */
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
         title: "Sample Designs",
