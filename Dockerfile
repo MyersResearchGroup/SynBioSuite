@@ -56,6 +56,7 @@ COPY --from=frontend /frontend/dist/ \
 COPY docker/nginx.conf \
     /etc/nginx/conf.d/synbiosuite.conf
 
-EXPOSE 5002
+# Generate frontend runtime configuration on startup
+COPY --chmod=755 docker/entrypoint.sh /app/prestart.sh
 
-# Retain the base image's startup command
+EXPOSE 5002

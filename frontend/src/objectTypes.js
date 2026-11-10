@@ -11,7 +11,8 @@ import { FaDna } from "react-icons/fa";
 import { FiDatabase, FiArchive } from "react-icons/fi";
 import { TbLink } from "react-icons/tb";
 
-const SEQ_IMPROVE_LINK = import.meta.env.VITE_SEQIMPROVE_URL
+const SEQ_IMPROVE_LINK = (window.SYNBIOSUITE_CONFIG?.SEQIMPROVE_URL ??
+ import.meta.env.VITE_SEQIMPROVE_URL)
 
 export const BLANK_SBOL = `<?xml version="1.0" ?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:om="http://www.ontology-of-units-of-measure.org/resource/om-2/" xmlns:SBOLCanvas="https://sbolcanvas.org/">
