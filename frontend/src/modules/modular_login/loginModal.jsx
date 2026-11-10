@@ -7,6 +7,49 @@ import { useLocalStorage } from '@mantine/hooks';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSBHPrimary, setFJPrimary } from '../../redux/slices/primaryRepositorySlice';
 
+// Deterministic username -> "#rrggbb"
+const stringToHexColor = (str = "") => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0; // keep it a 32-bit int
+  }
+  return "#" + ((hash >>> 0) & 0xffffff).toString(16).padStart(6, "0");
+};
+
+// Pick black or white text depending on how light the background is
+const getContrastText = (hex) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#000000" : "#ffffff";
+};
+
+function UserAvatar({ username, size = 94 }) {
+  // Logged out: default placeholder, dimmed like your current avatars
+  if (!username) {
+    return <Avatar size={size} radius="md" style={{ opacity: 0.5 }} />;
+  }
+
+  const bg = stringToHexColor(username);
+
+  return (
+    <Avatar
+      size={size}
+      radius="md"
+      styles={{
+        placeholder: {
+          backgroundColor: bg,
+          color: getContrastText(bg),
+          fontWeight: 600,
+        },
+      }}
+    >
+      {Array.from(username)[0].toUpperCase()}
+    </Avatar>
+  );
+}
 
 function LoginModal({ opened, onClose, repoName }) {
     const [repoSelection, setRepoSelection] = useState(repoName);
@@ -54,12 +97,8 @@ function LoginModal({ opened, onClose, repoName }) {
                 <>
                     <Grid>
                         <Grid.Col span={5}>
-                            <Avatar
-                                src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
-                                size={94}
-                                radius="md"
-                                style={{ opacity: selectedSBH ? 1 : 0.5 }}
-                            />
+                            {/* SBH avatar */}
+                            <UserAvatar username={sbhInfo?.username} />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
                                     Repository: {sbhInfo ? sbhInfo.registryURL : "Not Logged In"}
@@ -83,12 +122,8 @@ function LoginModal({ opened, onClose, repoName }) {
                         </Grid.Col>
                         <Grid.Col span={2}></Grid.Col>
                         <Grid.Col span={5}>
-                            <Avatar
-                                src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-2.png"
-                                size={94}
-                                radius="md"
-                                style={{ opacity: selectedFJ ? 1 : 0.5 }}
-                            />
+                            {/* FJ avatar */}
+                            <UserAvatar username={fjInfo?.username} />
                             <div>
                                 <Text fz="xs" mt={10} fw={700} c="dimmed">
                                     Repository: {fjInfo ? fjInfo.registryURL : "Not Logged In"}
