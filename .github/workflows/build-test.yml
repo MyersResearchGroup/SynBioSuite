@@ -1,5 +1,8 @@
 name: Build Latest Docker Image
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: ./backend
