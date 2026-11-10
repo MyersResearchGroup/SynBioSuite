@@ -4,7 +4,6 @@ import { useDebouncedValue } from '@mantine/hooks'
 import { useContext, useEffect } from 'react'
 import { usePanelProperty } from '../../../redux/hooks/panelsHooks'
 import InputWrapper from "./InputWrapper"
-import RandomNumberInput from './RandomNumberInput'
 import { PanelContext } from './SimulatorPanel'
 
 
