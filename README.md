@@ -94,6 +94,6 @@ If you would like to run SynBioSuite as a single monolithic container, you can d
 
 ```bash
 docker build -t geneticlogiclab/synbiosuite:latest .
-docker run -d --name synbiosuite --platform linux/amd64 --restart unless-stopped -p 5002:5002 -e VITE_SYNBIOSUITE_API="" -e VITE_SEQIMPROVE_URL="https://seqimprove.synbiohub.org" -e VITE_SBOL_CANVAS_URL="https://sbolcanvas.org" -e VITE_IBIOSIM_API="https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze" synbiosuite/synbiosuite:latest
+docker run -d --name synbiosuite --restart unless-stopped -p 5002:5002 -e VITE_SYNBIOSUITE_API="" -e VITE_SEQIMPROVE_URL="https://seqimprove.synbiohub.org" -e VITE_SBOL_CANVAS_URL="https://sbolcanvas.org" -e VITE_IBIOSIM_API="https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze" synbiosuite/synbiosuite:latest
 ```
 
