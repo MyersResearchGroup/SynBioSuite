@@ -40,8 +40,13 @@ function LoginModal({ opened, onClose, repoName }) {
     }, [opened]);
 
     // Safely resolve selected instance info to avoid undefined property access
+    // also grabs usernames
     const sbhInfo = selectedSBH ? findInstance(selectedSBH, "SBH") : null;
     const fjInfo = selectedFJ ? findInstance(selectedFJ, "FJ") : null;
+
+    // get the first characters of all the usernames
+    // const sbhInitial = sbhInfo?.username?.charAt(0).toUpperCase() ?? "";
+    // const fjInitial = fjInfo?.username?.charAt(0).toUpperCase() ?? "";
 
     return (
         <Modal opened={opened} onClose={onClose} title={`Login to Repository`} size="lg">
