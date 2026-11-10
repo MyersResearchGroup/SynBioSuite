@@ -1,0 +1,21 @@
+name: Build Latest Full Docker Image
+
+defaults:
+  run:
+    working-directory: .
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: |
+        docker build -t geneticlogiclab/synbiosuite:latest .
