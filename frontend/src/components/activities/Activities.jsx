@@ -164,7 +164,7 @@ export default function Activities() {
     }
 
     return (
-        <div style={{ position: 'relative', display: 'flex' }}>
+        <div style={{ position: 'relative', display: 'flex' , height: '100vh' }}>
             <Tabs
                 value={activeActivity}
                 onTabChange={setActiveActivity}
@@ -222,7 +222,8 @@ const tabStyles = (theme, panelWidth) => {
     return {
         tabsList: {
             backgroundColor: dark ? theme.colors.dark[5] : theme.colors.gray[4],
-            maxHeight: '100vh'
+            height: '100vh',
+            overflowY: 'auto',
         },
         tabActive: {
 
@@ -257,6 +258,9 @@ const tabStyles = (theme, panelWidth) => {
         panel: {
             backgroundColor: dark ? theme.colors.dark[6] : theme.colors.gray[3],
             width: panelWidth,
+            minWidth: 0,
+            height: '100vh',
+            overflow: 'hidden',
             padding: '10px 6px 24px 6px',
             position: 'relative',
         },

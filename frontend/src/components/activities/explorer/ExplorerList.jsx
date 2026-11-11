@@ -33,6 +33,10 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const [importedFile, setImportedFile] = useState(null)
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
 
+    // Add state for sections (ie. are they expanded or collapsed) so that they don't automatically reopen when the sidebar is resized
+    const allSectionIds = Object.values(ObjectTypes).map(({ id }) => id)
+    const [openSections, setOpenSections] = useState(allSectionIds)
+
     // handle directory selection
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
 
@@ -267,10 +271,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
             <Accordion
                 mt={10}
                 multiple
-                defaultValue={[...Object.values(ObjectTypes).map(({ id }) => id)]}
+                value={openSections}
+                onChange={setOpenSections}
+                chevronPosition="left"
                 styles={accordionStyles}
-                key={Math.random()}     // this forces re-render and fixes accordion heights
-                >
+            >
                 {
                     // create AccordionItems by object type
                     Object.values(ObjectTypes).map((objectType, i) => {
