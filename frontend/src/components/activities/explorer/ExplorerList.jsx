@@ -35,7 +35,7 @@ export default function ExplorerList({workDir, objectTypesToList}) {
 
     // Add state for sections (ie. are they expanded or collapsed) so that they don't automatically reopen when the sidebar is resized
     const allSectionIds = Object.values(ObjectTypes).map(({ id }) => id)
-    const [openSections, setOpenSections] = useState([])
+    const [openSections, setOpenSections] = useState(allSectionIds)
 
     // handle directory selection
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
