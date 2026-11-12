@@ -87,3 +87,13 @@ If you are running SynBioHub or Flapjack locally, you will need this command to 
 ```bash
 docker network connect synbio-network synbiosuite
 ```
+
+## Running as a single container
+
+If you would like to run SynBioSuite as a single monolithic container, you can do so as follows:
+
+```bash
+docker build -t geneticlogiclab/synbiosuite:latest .
+docker run -d --name synbiosuite --restart unless-stopped -p 5002:5002 -e VITE_SYNBIOSUITE_API="" -e VITE_SEQIMPROVE_URL="https://seqimprove.synbiohub.org" -e VITE_SBOL_CANVAS_URL="https://sbolcanvas.org" -e VITE_IBIOSIM_API="https://ibiosimconnector-api.azurewebsites.net/api/orchestrators/analyze" geneticlogiclab/synbiosuite:latest
+```
+
