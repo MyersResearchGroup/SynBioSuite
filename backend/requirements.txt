@@ -2,9 +2,17 @@ Flask
 flask_cors
 requests
 packaging==21.3
-excel2flapjack==1.1.1
+# uploadFlapjack.py imports `flapjack`, which comes from pyflapjack. excel2flapjack
+# is never imported anywhere in this backend -- it is a leftover from the older
+# Flapjack path that uploadFlapjack.py replaced.
+# pyflapjack 1.1.1 accepts pandas>=2.0, which
+# excel2sbol 2.0.1 requires; 1.1.0 pins pandas==1.5.3 and cannot be installed
+# alongside it.
+pyflapjack==1.1.1
 excel2sbol==2.0.1
 sbol2build
 flask_swagger_ui
 xlsxwriter
+pandas
+openpyxl
 pudupy @ git+https://github.com/MyersResearchGroup/PUDU
