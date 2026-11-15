@@ -80,58 +80,6 @@ export function useCreateFile() {
     }
 }
 
-export function useReadFileById() {
-    const files = useFiles()
-    
-    return async (fileId) => {
-        const fileHandle = files.find(file => file.id === fileId)
-        
-        if (!fileHandle) {
-            console.error("File not found:", fileId)
-            return null
-        }
-        
-        try {
-            const file = await fileHandle.getFile()
-            const contents = await file.text()
-            return contents
-        } catch (error) {
-            console.error("Error reading file:", fileId, error)
-            return null
-        }
-    }
-}
-
-export function useCreateAssemblyFile() {
-    const dispatch = useDispatch()
-    const workDir = useSelector(state => state.workingDirectory.directoryHandle)
-    return async (fileName, objectType, directory = workDir) => { // Optional arg directory in which the file will be created 
-        const fileHandle = directory.getFileHandle(fileName, { create: true })
-        addFileMetadata(fileHandle, directory.name, { objectType })
-        dispatch(actions.addFile(fileHandle))
-        return fileHandle
-    }
-}
-
-export function useCreateFileWithFilePicker() {
-    const dispatch = useDispatch()
-    const openPanel = useOpenPanel()
-    return ({ extension, suggestedName, typeDescription }) => {
-        window.showSaveFilePicker({
-            suggestedName,
-            types: [{
-                description: typeDescription,
-                accept: { 'text/plain': [extension] }
-            }]
-        })
-            .then(fileHandle => {
-                addFileMetadata(fileHandle, null)
-                dispatch(actions.addFile(fileHandle))
-                openPanel(fileHandle)
-            })
-    }
-}
-
 export function useSafeName(baseName) {
 
     // using shallow equal selector for derived values

@@ -3,14 +3,12 @@ import { FaFileArchive } from "react-icons/fa";
 import { APP_VERSION } from "./version";
 import SBOLEditorPanel from "./components/panels/sbol-editor/SBOLEditorPanel";
 import SimulatorPanel from "./components/panels/simulator/SimulatorPanel";
-import TransformationPanel from "./components/panels/buildplans/BuildPlansPanel";
 import SynBioHubPanel from "./components/panels/SynBioHubPanel";
 import SeqImprovePanel from "./components/panels/SeqImprovePanel";
 import ResourcesPanel from "./components/panels/resources-editor/ResourcesPanel";
 import { CanvasIcon, SimulationIcon, SynBioHub } from "./icons";
 import CollectionPanel from "./components/panels/xdc/CollectionPanel";
 import { ObjectTypes, BLANK_SBOL } from "./objectTypes";
-import { GiSewingMachine, GiThorHammer } from "react-icons/gi";
 import { PiMicrosoftExcelLogoFill } from "react-icons/pi";
 import ExcelFilePanel from "./components/panels/ExcelFIlePanel";
 
@@ -87,29 +85,6 @@ export const PanelTypes = {
             return panel.sbol;
         }
     },
-    /*
-    BuildPlans: {
-        id: "synbio.panel-type.buildplans",
-        title: "Build Plans",
-        component: TransformationPanel,
-        objectTypes: [ ObjectTypes.BuildPlans.id ],
-        icon: GiSewingMachine,
-
-        deserialize: content => {
-            try {
-                return JSON.parse(content)
-            }
-            catch {
-                return {}
-            }
-        },
-
-        serialize: panel => {
-            const { id, fileHandle, type, ...restOfPanel } = panel
-            return JSON.stringify({ ...restOfPanel, _version: APP_VERSION })
-        }
-    },
-    */
     Experiment: {
         id: "synbio.panel-type.data-collector",
         title: "Data Collector",

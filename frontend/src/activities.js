@@ -63,7 +63,6 @@ export const Activities = {
         objectTypesToList: [
             ObjectTypes.Plasmids.id,
             ObjectTypes.Strains.id,
-            //ObjectTypes.BuildPlans.id, 
         ]
     },
     Test: {
@@ -87,12 +86,6 @@ export const Activities = {
             "synbio.object-type.flapjack"
         ]
     },
-    // RemoteFileExplorer: {
-    //     id: "synbio.activity.remote-file-explorer",
-    //     title: "Remote Explorer",
-    //     component: ExplorerActivityView,
-    //     icon: RemoteControlIcon
-    // },
 
     // Any activities below will be pushed to the bottom of the toolbar
     LoginStatusPanel: {
