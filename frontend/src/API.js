@@ -3,7 +3,10 @@ import commands from "./commands"
 import { showErrorNotification } from './modules/util'
 import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 
-const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
+const SBS_Server_Link =
+    window.SYNBIOSUITE_CONFIG?.SYNBIOSUITE_API ??
+    import.meta.env.VITE_SYNBIOSUITE_API ??
+    "";
 
 function capitalizeFirst(str) {
     if (!str) return str;

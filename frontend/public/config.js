@@ -1,0 +1,1 @@
+window.SYNBIOSUITE_CONFIG = {};

@@ -8,9 +8,9 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
-  REGISTRY: ghcr.io  # GitHub Container Registry
-  IMAGE_NAME: ${{ github.repository }}  # Uses your repo name as image name
-
+  REGISTRY: ghcr.io
+  IMAGE_NAME: myersresearchgroup/synbiosuite-api
+  
 jobs:
   build-and-push:
     name: Build and Push Docker Image
