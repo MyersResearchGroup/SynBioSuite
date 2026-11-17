@@ -12,7 +12,7 @@ import { readStudy } from "../../../modules/util";
 import { useSelector } from "react-redux";
 import useUnifiedModal from '../../../redux/hooks/useUnifiedModal';
 
-export default function CollectionWizard() {
+export default function CollectionWizard({ onUploadSuccess }) {
     const panelId = useContext(PanelContext)
     const openPanel = useOpenPanel()
     const [dataSBH] = useLocalStorage({ key: 'SynbioHub', defaultValue: [] })     
@@ -250,7 +250,6 @@ export default function CollectionWizard() {
                 studyFJid || null,
                 null,
                 true,
-                //uploadCount > 0 ? 3 : (collection?.sbh_overwrite ?? 0),
                 {
                     attachments: (resultsFiles && resultsFiles.length) ? resultsFiles : [],
                     plateReaderOutputs: plateOutputFile ? [plateOutputFile] : [],
@@ -267,6 +266,7 @@ export default function CollectionWizard() {
                 status: response?.status || 'success',
             }
             setUploads((currentUploads) => [...(currentUploads || []), uploadEntry])
+
         } catch (error) {
             showErrorNotification('Upload failed', error?.response?.data?.error || error.message || 'Unable to upload the collection metadata.')
         } finally {
@@ -289,22 +289,31 @@ export default function CollectionWizard() {
                         allowedTypes={[ObjectTypes.Results.id]}
                         items={resultsIDs}
                         onItemsChange={setResultsIDsRaw}
-                        onRemoveItem={item => setResultsIDsRaw((current) => (Array.isArray(current) ? current : (current ? [current] : [])).filter(x => x !== item))}
                         labelForItem={id => (files.find(f => f.id === id)?.name) || id}
                     >
                         Drag & drop other experimental results from the explorer
                     </MultiDropzone>
                 </div>
             </Stack>
-            <Group position="center" style={{ width: '100%', marginTop: 20 }}>
+            <Group position="center" mt="xl">
                 <Button
-                    variant='default'
+                    variant="default"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? <Loader size="xs" /> : uploadLabel}
                 </Button>
+                {uploadCount > 0 && (
+                    <Button
+                        color="green"
+                        onClick={onUploadSuccess}
+                        disabled={isSubmitting}
+                    >
+                        View Results
+                    </Button>
+                )}
             </Group>
+
         </Container>
     )
 }

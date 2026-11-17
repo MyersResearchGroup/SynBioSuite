@@ -97,16 +97,22 @@ export function MultiDropzone({ children, allowedTypes, items = [], onItemsChang
   
     const handleDragOver = event => {
       event.preventDefault();
-      event.dataTransfer.dropEffect = "link";
-      const itemType = event.dataTransfer.types
+      const itemType = Array.from(event.dataTransfer.types || [])
         .find(key => key.startsWith('type:'))
         ?.replace('type:', '');
-      setAllowedToDrop(!allowedTypes || allowedTypes.includes(itemType));
+      const isAllowed = !!itemType && (!allowedTypes || allowedTypes.includes(itemType));
+      event.dataTransfer.dropEffect = isAllowed ? "link" : "none";
+      setAllowedToDrop(isAllowed);
     };
   
         const handleDrop = event => {
             event.preventDefault();
-            if (allowedToDrop) {
+            const itemType = Array.from(event.dataTransfer.types || [])
+                .find(key => key.startsWith('type:'))
+                ?.replace('type:', '')
+            const isAllowed = !!itemType && (!allowedTypes || allowedTypes.includes(itemType))
+
+            if (isAllowed) {
                 const newItem = event.dataTransfer.getData("fileId") || event.dataTransfer.getData("name");
                 if (!newItem) {
                     setAllowedToDrop(null);
@@ -138,7 +144,7 @@ export function MultiDropzone({ children, allowedTypes, items = [], onItemsChang
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                <Stack spacing="sm" style={{ minHeight: 48, maxHeight: 400, overflowY: 'auto', width: '100%', border: `3px dashed ${theme.colors.dark[4]}`, padding: 20, borderRadius: 12 }}>
+                <Stack spacing="sm" style={{ minHeight: 48, maxHeight: 400, overflowY: 'auto', width: '100%', border: `3px dashed ${allowedToDrop == null ? theme.colors.dark[4] : allowedToDrop ? theme.colors.blue[6] : theme.colors.red[6]}`, padding: 20, borderRadius: 12 }}>
                 {
                     currentItems.length > 0 ? (
                         currentItems.map(it => {
@@ -164,7 +170,7 @@ export function MultiDropzone({ children, allowedTypes, items = [], onItemsChang
                             )
                         })
                     ) : (
-                        allowedToDrop == null ? ( 
+                        allowedToDrop == null ? (
                             <Center><Title order={3} sx={titleStyle(theme)}>{children}</Title></Center>
                         ) : allowedToDrop ? (
                             <Center><Text sx={iconStyle(theme)}><AiOutlineSmile /></Text></Center>
@@ -173,6 +179,9 @@ export function MultiDropzone({ children, allowedTypes, items = [], onItemsChang
                         )
                     )
                 }
+                {currentItems.length > 0 && allowedToDrop === false && (
+                    <Center><Title order={3} sx={errorTitleStyle(theme)}>Item not allowed</Title></Center>
+                )}
                 </Stack>
             </Center>
     );
