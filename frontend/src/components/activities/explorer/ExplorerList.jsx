@@ -7,7 +7,7 @@ import { AiOutlineLink } from 'react-icons/ai'
 import { ObjectTypes, BLANK_SBML } from '../../../objectTypes'
 import ExplorerListItem from './ExplorerListItem'
 import ImportFile from './ImportFile'
-import { useState} from 'react'
+import { useEffect, useState} from 'react'
 import Registries from './Registries.jsx'
 import { useWorkingDirectory } from '../../../redux/hooks/workingDirectoryHooks'
 import DownloadMetadata from './DownloadMetadata.jsx'
@@ -31,7 +31,31 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     const { workflows } = useUnifiedModal()
 
     const [importedFile, setImportedFile] = useState(null)
+    const [folderCollectionUri, setFolderCollectionUri] = useState(null)
     const [dataSBH] = useLocalStorage({ key: "SynbioHub", defaultValue: [] });
+
+    useEffect(() => {
+        let cancelled = false
+        setFolderCollectionUri(null)
+
+        readStudy(workDir)
+            .then(study => {
+                if (cancelled) return
+
+                const uri = study.collectionUri || null
+                const collectionUri = uri && study.registryPrefix && study.registryURL
+                    ? uri.replace(study.registryPrefix, study.registryURL)
+                    : uri
+                setFolderCollectionUri(collectionUri)
+            })
+            .catch(() => {
+                if (!cancelled) setFolderCollectionUri(null)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [workDir])
 
     // handle directory selection
     const [workingDirectory, setWorkingDirectory] = useWorkingDirectory()
@@ -260,7 +284,11 @@ export default function ExplorerList({workDir, objectTypesToList}) {
     return (
         <ScrollArea style={{ height: 'calc(100vh - 120px)'}}>
             <Title mt={10} order={6} mb={10} >
-                Current Folder: {workDir.name}            
+                Current Folder: {folderCollectionUri ? (
+                    <a href={folderCollectionUri} target="_blank" rel="noopener noreferrer">
+                        {workDir.name}
+                    </a>
+                ) : workDir.name}
             </Title>
             
 
