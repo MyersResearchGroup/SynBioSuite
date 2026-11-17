@@ -73,8 +73,7 @@ export default function CanvasFrame({fileTypeObjectId}) {
             sbolContent ?
                 { sbol: sbolContent, panelType: fileTypeObjectId} : // either send SBOL content
                 {panelType: fileTypeObjectId},         // if no sbolContent, just send in panel type
-            (window.SYNBIOSUITE_CONFIG?.SBOL_CANVAS_URL ??
- import.meta.env.VITE_SBOL_CANVAS_URL)
+                 expectedOrigin
         )
     }
 

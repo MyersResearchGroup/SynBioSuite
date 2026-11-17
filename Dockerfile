@@ -7,10 +7,11 @@ FROM node:20-bookworm AS frontend
 WORKDIR /frontend
 
 COPY frontend/package*.json ./
-COPY frontend/public ./public
-COPY frontend/ ./
+COPY frontend/public/vendor/xlsx-0.20.3.tgz ./public/vendor/xlsx-0.20.3.tgz
 
 RUN npm install
+
+COPY frontend/ ./
 
 # Same-origin backend requests
 ARG VITE_SYNBIOSUITE_API=""
