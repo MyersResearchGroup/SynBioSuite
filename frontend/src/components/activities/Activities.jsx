@@ -5,7 +5,7 @@ import { SVGIcon } from '../../icons'
 import SaveIndicatorDisplay from '../saveIndicatorDisplay'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useDispatch } from 'react-redux';
-import { openMicrosoft, openModal } from '../../redux/slices/modalSlice';
+import { openLogin, openMicrosoft } from '../../redux/slices/modalSlice';
 import { msalInstance } from '../../microsoft-utils/auth/msalInit'
 
 // constants for resizable sidebar
@@ -70,14 +70,12 @@ export default function Activities() {
     }, [handleResizeMove, handleResizeEnd])
 
     useEffect(() => {
-        if (activeActivity == "synbio.activity.login-status-panel") {
+        if (activeActivity === "synbio.activity.login-status-panel") {
             setActiveActivity("synbio.activity.local-file-explorer");
-            dispatch(openModal());
+            dispatch(openLogin());
         } else if (activeActivity === "synbio.activity.microsoft-status") {
             setActiveActivity("synbio.activity.microsoft-status");
             dispatch(openMicrosoft());
-        } else {
-            //dispatch(closeModal());
         }
     }, [activeActivity])
 

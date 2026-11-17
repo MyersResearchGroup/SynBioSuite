@@ -21,7 +21,8 @@ export async function submitAnalysis(input, { environment, parameters }) {
             )
 
     // send request
-    const response = await fetch(import.meta.env.VITE_IBIOSIM_API, {
+    const response = await fetch((window.SYNBIOSUITE_CONFIG?.IBIOSIM_API ??
+ import.meta.env.VITE_IBIOSIM_API), {
         method: 'POST',
         body: formdata,
         redirect: 'follow'

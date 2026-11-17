@@ -1,17 +1,13 @@
 import { BiSpreadsheet } from "react-icons/bi"
-import { IoAnalyticsSharp } from "react-icons/io5"
-import { TbComponents } from "react-icons/tb"
 import { PiTreeStructureFill } from "react-icons/pi"
-import { GiSewingMachine } from "react-icons/gi"
-import { GiThorHammer} from "react-icons/gi"
-import { AiOutlineExperiment } from "react-icons/ai";
 import { MdOutlineViewModule } from "react-icons/md";
 import { VscOutput, VscGraphLine } from "react-icons/vsc";
 import { FaDna } from "react-icons/fa";
 import { FiDatabase, FiArchive } from "react-icons/fi";
 import { TbLink } from "react-icons/tb";
 
-const SEQ_IMPROVE_LINK = import.meta.env.VITE_SEQIMPROVE_URL
+const SEQ_IMPROVE_LINK = (window.SYNBIOSUITE_CONFIG?.SEQIMPROVE_URL ??
+ import.meta.env.VITE_SEQIMPROVE_URL)
 
 export const BLANK_SBOL = `<?xml version="1.0" ?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sbol="http://sbols.org/v2#" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:om="http://www.ontology-of-units-of-measure.org/resource/om-2/" xmlns:SBOLCanvas="https://sbolcanvas.org/">
@@ -93,7 +89,7 @@ export const ObjectTypes = {
         importable: true,
         uploadable: true,
         annotatable: true,
-        downloadable: true,
+        downloadable: false,
         renameable: true,
         openable: true,
         extension: '.xml',
@@ -109,7 +105,7 @@ export const ObjectTypes = {
         createable: true,
         importable: true,
         uploadable: true,
-        downloadable: true,
+        downloadable: false,
         openable: true,
         extension: '.xml',
         renameable: true,
@@ -124,7 +120,7 @@ export const ObjectTypes = {
         icon: PiTreeStructureFill,
         importable: true,
         uploadable: false,
-        downloadable: true,
+        downloadable: false,
         openable: true,
         renameable: true,
         badgeLabel: "SBML",
@@ -137,7 +133,7 @@ export const ObjectTypes = {
         icon: FiArchive,
         importable: true,
         uploadable: false,
-        downloadable: true,
+        downloadable: false,
         openable: true,
         renameable: true,
         badgeLabel: "OMEX",
@@ -150,7 +146,7 @@ export const ObjectTypes = {
         icon: VscGraphLine,
         createable: true,
         uploadable: false,
-        downloadable: true,
+        downloadable: false,
         renameable: true,
         openable: true,
         extension: '.analysis',
@@ -163,7 +159,7 @@ export const ObjectTypes = {
         createable: true,
         importable: true,
         uploadable: true,
-        downloadable: true,
+        downloadable: false,
         renameable: true,
         openable: true,
         iframeImport: true,
@@ -192,19 +188,6 @@ export const ObjectTypes = {
         subdirectory: "strains",
         limitOne: true,
     },
-    /*
-    BuildPlans: {
-        id: "synbio.object-type.buildplans",
-        title: "Build Plans",
-        listTitle: "Build Plans",
-        fileNameMatch: /\.json$/,
-        icon: GiSewingMachine,
-        createable: true,
-        extension: '.json',
-        subdirectory: "buildPlans",
-        visible: false
-    },
-    */
     SampleDesigns: {
         id: "synbio.object-type.sample-designs",
         title: "Sample Designs",
@@ -243,7 +226,7 @@ export const ObjectTypes = {
         icon: VscOutput,
         createable: false,
         importable: true,
-        downloadable: true,
+        downloadable: false,
         renameable: true,
         openable: true,
         subdirectory: "plateReaderOutputs",
@@ -256,7 +239,7 @@ export const ObjectTypes = {
         icon: VscOutput,
         createable: false,
         importable: true,
-        downloadable: true,
+        downloadable: false,
         renameable: true,
         openable: true,
         subdirectory: "experimentalResults",

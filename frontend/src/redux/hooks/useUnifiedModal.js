@@ -113,67 +113,8 @@ export function useUnifiedModal() {
      */
     const workflows = {
         /**
-         * Open SynBioHub login workflow
-         * Allows: SBH_LOGIN -> ADD_SBH_REPO
-         */
-        loginToSBH: useCallback((onComplete) => {
-            open(MODAL_TYPES.SBH_LOGIN, {
-                allowedModals: [MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO],
-                onComplete,
-            });
-        }, [open]),
-
-        /**
-         * Open Flapjack login workflow
-         * Allows: FJ_LOGIN -> ADD_FJ_REPO
-         */
-        loginToFJ: useCallback((onComplete) => {
-            open(MODAL_TYPES.FJ_LOGIN, {
-                allowedModals: [MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO],
-                onComplete,
-            });
-        }, [open]),
-
-        /**
-         * Open both SBH and FJ login workflow chooser
-         * Allows switching between SBH and FJ login and adding repos for either
-         */
-        loginToSBHAndFJ: useCallback((onComplete) => {
-            open(MODAL_TYPES.SBH_LOGIN, {
-                allowedModals: [
-                    MODAL_TYPES.SBH_LOGIN,
-                    MODAL_TYPES.FJ_LOGIN,
-                    MODAL_TYPES.ADD_SBH_REPO,
-                    MODAL_TYPES.ADD_FJ_REPO,
-                ],
-                onComplete,
-            });
-        }, [open]),
-
-        /**
-         * Open create collection workflow
-         * Allows: CREATE_COLLECTION -> SBH_LOGIN -> ADD_SBH_REPO
-         */
-        createCollection: useCallback((studyName, studyDescription, onComplete) => {
-            open(MODAL_TYPES.CREATE_COLLECTION, {
-                allowedModals: [
-                    MODAL_TYPES.CREATE_COLLECTION, 
-                    MODAL_TYPES.SBH_LOGIN, 
-                    MODAL_TYPES.ADD_SBH_REPO,
-                    MODAL_TYPES.COLLECTION_BROWSER,
-                ],
-                props: { studyName, studyDescription },
-                onComplete,
-            });
-        }, [open]),
-
-        /**
          * Open create study workflow
-         * Allows:
-         *   SBH_CREDENTIAL_CHECK
-         *     -> SBH_LOGIN
-         *     -> ADD_SBH_REPO
-         *     -> CREATE_COLLECTION
+         * Starts at SBH_INSTANCE_SELECTOR, then continues to FLAPJACK_OPTIONS
          */
         createStudy: useCallback((
           studyDirectory,
@@ -200,38 +141,6 @@ export function useUnifiedModal() {
             onComplete,
           });
         }, [open, dataPrimarySBH]),
-
-        /**
-         * Open add repository workflow (SBH or FJ)
-         */
-        addRepository: useCallback((repoType, onComplete) => {
-            const modalType = repoType === 'sbh' 
-                ? MODAL_TYPES.ADD_SBH_REPO 
-                : MODAL_TYPES.ADD_FJ_REPO;
-            
-            open(modalType, {
-                allowedModals: [modalType],
-                onComplete,
-            });
-        }, [open]),
-
-        /**
-         * Open instance selector (for selecting existing repos)
-         */
-        selectInstance: useCallback((repoType, onComplete) => {
-            const modalType = repoType === 'sbh'
-                ? MODAL_TYPES.SBH_INSTANCE_SELECTOR
-                : MODAL_TYPES.FJ_INSTANCE_SELECTOR;
-            
-            const allowedModals = repoType === 'sbh'
-                ? [MODAL_TYPES.SBH_INSTANCE_SELECTOR, MODAL_TYPES.SBH_LOGIN, MODAL_TYPES.ADD_SBH_REPO]
-                : [MODAL_TYPES.FJ_INSTANCE_SELECTOR, MODAL_TYPES.FJ_LOGIN, MODAL_TYPES.ADD_FJ_REPO];
-            
-            open(modalType, {
-                allowedModals,
-                onComplete,
-            });
-        }, [open]),
 
         /**
          * Open collection browser workflow

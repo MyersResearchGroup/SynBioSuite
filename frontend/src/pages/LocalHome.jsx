@@ -3,32 +3,18 @@ import Panels from '../components/panels/Panels';
 import BrowserCompatibilityCatch from '../components/BrowserCompatibilityCatch';
 import LoginModal from '../modules/modular_login/loginModal';
 import { useSelector, useDispatch } from 'react-redux';
-import { closeModal, closeSBH, closeFJ, closeCreateCollection, closeSBHLogin } from '../redux/slices/modalSlice';
-import FJModal from '../modules/modular_login/FJModal';
-import SBHModal from '../modules/modular_login/SBHModal';
-import CreateCollectionModal from '../modules/CreateCollectionModal';
-import SBHLogin from '../modules/modular_login/SBHLogin';
+import { closeLogin } from '../redux/slices/modalSlice';
 import UnifiedModal from '../modules/unified_modal/unifiedModal';
 
-
 export default function LocalHome() {
-    const loginModalOpened = useSelector((state) => state.modal.bothOpen);
-    const sbhModalOpened = useSelector((state) => state.modal.sbhOpen);
-    const fjModalOpened = useSelector((state) => state.modal.fjOpen);
-    
-    const collectionModalOpened = useSelector((state) => state.modal.addCollections)
-    
-    const sbhLoginOpened = useSelector((state) => state.modal.sbhLoginOpen)
-
-    const libraryName = useSelector((state) => state.modal.libraryName)
-    const libraryDescription = useSelector((state) => state.modal.libraryDescription)
+    const loginModalOpened = useSelector((state) => state.modal.loginOpen);
 
     const unifiedModalOpen = useSelector((state) => state.modal.unifiedModalOpen);
     const unifiedModalType = useSelector((state) => state.modal.unifiedModalType);
     const unifiedModalAllowed = useSelector((state) => state.modal.unifiedModalAllowed);
     const unifiedModalProps = useSelector((state) => state.modal.unifiedModalProps);
     const unifiedModalCallback = useSelector((state) => state.modal.unifiedModalCallback);
-
+    
     const dispatch = useDispatch();
 
     return (
@@ -38,24 +24,8 @@ export default function LocalHome() {
             <BrowserCompatibilityCatch />
             <LoginModal
                 opened={loginModalOpened}
-                onClose={() => dispatch(closeModal())}
+                onClose={() => dispatch(closeLogin())}
                 repoName=""
-            />
-            <SBHModal
-                opened={sbhModalOpened}
-                onClose={() => dispatch(closeSBH())}
-                repoName=""
-            />
-            <FJModal
-                opened={fjModalOpened}
-                onClose={() => dispatch(closeFJ())}
-                repoName=""
-            />
-            <CreateCollectionModal 
-                opened={collectionModalOpened}
-                libraryName={libraryName}
-                libraryDescription={libraryDescription}
-                onClose={() => dispatch(closeCreateCollection())}
             />
             <UnifiedModal
                 opened={unifiedModalOpen}
@@ -63,10 +33,6 @@ export default function LocalHome() {
                 allowedModals={unifiedModalAllowed}
                 onComplete={unifiedModalCallback}
                 modalProps={unifiedModalProps}
-            />
-            <SBHLogin
-                opened={sbhLoginOpened}
-                onClose={() => dispatch(closeSBHLogin())}
             />
         </>
     );
