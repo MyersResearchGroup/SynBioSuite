@@ -1,10 +1,12 @@
 import axios from 'axios'
 import commands from "./commands"
 import { showErrorNotification } from './modules/util'
-import { showNotification } from '@mantine/notifications';
 import { readFileFromPath } from './redux/hooks/workingDirectoryHooks'
 
-const SBS_Server_Link = import.meta.env.VITE_SYNBIOSUITE_API
+const SBS_Server_Link =
+    window.SYNBIOSUITE_CONFIG?.SYNBIOSUITE_API ??
+    import.meta.env.VITE_SYNBIOSUITE_API ??
+    "";
 
 function capitalizeFirst(str) {
     if (!str) return str;
@@ -322,86 +324,6 @@ export async function uploadExperiment(
     }
 }
 
-export async function submitAssembly(wizardInput, insertParts, acceptorBackbone) {
-    var formdata = new FormData()
-
-    // ensure that file is serialized and saved
-    await commands.FileSave.execute(wizardInput.id)
-
-    // attach input file
-    const json = await wizardInput.getFile()
-    const text = await json.text()
-
-    for (const part of insertParts) formdata.append("insert_parts", await part.getFile())
-    formdata.append("plasmid_backbone", await acceptorBackbone.getFile())
-    formdata.append("wizard_selections", text)
-
-    try {
-        const response = await axios.post(SBS_Server_Link + '/sbol_2_build_golden_gate',
-            formdata,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            }
-        );
-    
-        return response.data;
-    } catch (error) {
-        console.error(error);
-    
-        if (error.response) {
-            showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
-        } else if (error.request) { // no response
-            showErrorNotification('Network error', 'No response from server.');
-        } else {
-            showErrorNotification('Unexpected error', error.message);
-        }
-    
-        throw error;
-    }
-}
-
-export async function submitBuild(wizardInput, assemblyPlan) {
-    
-    var formdata = new FormData()
-
-    // ensure that file is serialized and saved
-    await commands.FileSave.execute(wizardInput.id)
-
-    // attach input file
-    const json = await wizardInput.getFile()
-    const text = await json.text()
-
-    formdata.append("assembly_plan", await assemblyPlan.getFile())
-    formdata.append("wizard_selections", text)
-
-    try {
-        const response = await axios.post(SBS_Server_Link,
-            formdata,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            }
-        );
-    
-        return response.data;
-    } catch (error) {
-        console.error(error);
-    
-        if (error.response) {
-            showErrorNotification('Error ' + error.response.status, error.response.data?.error || 'Unknown server error');
-        } else if (error.request) { // no response
-            showErrorNotification('Network error', 'No response from server.');
-        } else {
-            showErrorNotification('Unexpected error', error.message);
-        }
-    
-        throw error;
-    }
-}
-
 export async function SBHLogin(url, username, password) {
     try {
         var formdata = new FormData();
@@ -686,8 +608,10 @@ export function clearInvalidCredentials(instanceUrl) {
             return repo;
         });
         
-        // Save updated data back to localStorage
+        // Save updated data back to localStorage, and tell every useLocalStorage('SynbioHub') (the
+        // SeqImprove panel among them) the way mantine's own setter does
         localStorage.setItem('SynbioHub', JSON.stringify(updatedData));
+        window.dispatchEvent(new CustomEvent('mantine-local-storage', { detail: { key: 'SynbioHub', value: updatedData } }));
     } catch (error) {
         console.error('Error clearing invalid credentials:', error);
     }

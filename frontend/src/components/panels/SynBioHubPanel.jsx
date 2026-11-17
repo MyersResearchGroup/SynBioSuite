@@ -9,23 +9,6 @@ export default function SynBioHubPanel({fileObjectTypeId}) {
     const activePanel = useSelector(state => state.panels.active)
     return (
         <PanelContext.Provider value={activePanel}>
-            {/* <Tabs styles={tabStyles} active={activeTab} onTabChange={setActiveTab}>
-                <Tabs.Tab label="Design" >
-                    <DesignView />
-                </Tabs.Tab>
-                <Tabs.Tab label="Export" >
-                    <Center sx={centerStyle}>
-                        <h3>COMING SOON</h3>
-                        <p>Export to SBOL, render images, etc.</p>
-                    </Center>
-                </Tabs.Tab>
-                <Tabs.Tab label="Upload" >
-                    <Center sx={centerStyle}>
-                        <h3>COMING SOON</h3>
-                        <p>Upload to SynBioHub</p>
-                    </Center>
-                </Tabs.Tab>
-            </Tabs> */}
             <SynBioHubFrame/>
             <PanelSaver id={activePanel} />
         </PanelContext.Provider>
