@@ -1,10 +1,17 @@
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
-from flask import jsonify, send_file
 import requests
 from .utils import sbh_get_subCollection_uris
-import json
 from io import BytesIO
+
+# (connect, read) seconds for the GitHub template download. /api/v1 reaches it,
+# and a hung fetch would hold a uwsgi worker until harakiri, just like a hung
+# SynBioHub call (see SBH_TIMEOUT in utils.py).
+TEMPLATE_FETCH_TIMEOUT = (5, 30)
+
+
+class UnknownTemplateError(ValueError):
+    """The caller asked for a template type there is no template for."""
 
 '''
 Helper function to download Excel template
@@ -30,10 +37,10 @@ def fetch_template_bytes(object_type_id):
     }
 
     if object_type_id not in templates:
-        raise ValueError(f"Unknown object type: {object_type_id}")
+        raise UnknownTemplateError(f"Unknown object type: {object_type_id}")
 
     url, filename = templates[object_type_id]
-    response = requests.get(url)
+    response = requests.get(url, timeout=TEMPLATE_FETCH_TIMEOUT)
     response.raise_for_status()
     return response.content, filename
 
@@ -74,102 +81,74 @@ def expand_table_in_xlsm(wb, sheet_name, table_name, new_rows):
 '''
 Helper function to download Excel template and populate tables from SynBioHub
 '''
-def sbh_download_template(files):
-    if 'Params' not in files:
-        return jsonify({"error": "No Params file part"}), 400
+def build_template(template_type, sbh_url, sbh_prefix, sbh_token, collection_url):
+    """Blank Excel template with its SBH_* lookup sheets filled from the study.
 
-    params_file = files['Params']
-    if params_file.filename == '':
-        return jsonify({"error": "No selected Params file"}), 400
+    Data rows stay empty -- the lookup sheets are what let a sheet
+    cross-reference objects that already exist. Returns (BytesIO, filename).
+    Shared by POST /api/downloadTemplate and GET /api/v1/{collection}/template.
+    """
+    usergraph = "/".join(collection_url.split("/")[:5])
+    sbh_collection_url = collection_url
 
-    params_from_request = json.loads(params_file.read())
+    template_bytes, filename = fetch_template_bytes(template_type)
 
-    required_params = ['template_type', 'sbh_url', 'sbh_prefix', 'sbh_token', 'collection_url']
-    for param in required_params:
-        if param not in params_from_request:
-            return jsonify({"error": f"Parameter {param} not found in request"}), 400
+    # Resources is the one template with no SBH_* sheets to fill, so it is
+    # returned byte-for-byte: an openpyxl load/save round trip gains nothing
+    # here and is lossy for .xlsm. Matches POST /api/downloadTemplate on master.
+    if template_type == "synbio.object-type.resources":
+        return BytesIO(template_bytes), filename
 
-    if params_from_request['sbh_token'] is None:
-        return jsonify({"error": "No SBH credentials provided"}), 400
+    wb = load_workbook(BytesIO(template_bytes), keep_vba=True)
 
-    sbh_url = params_from_request['sbh_url']
-    sbh_prefix = params_from_request.get('sbh_prefix')
-    sbh_collection_url = params_from_request['collection_url'] 
-    sbh_token = params_from_request['sbh_token']
-    parts = sbh_collection_url.split("/")
-    usergraph = "/".join(parts[:5])
+    if template_type == "synbio.object-type.strains":
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://identifiers.org/ncit/NCIT:C14419")
+        new_rows = []
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            id = binding["id"]["value"]
+            new_rows.append([id, uri])
+        expand_table_in_xlsm(wb,sheet_name="SBH_chassis_collections",table_name="SBH_chassis_collections",new_rows=new_rows)
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://identifiers.org/so/SO:0000637")
+        new_rows = []
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            id = binding["id"]["value"]
+            new_rows.append([id, uri])
+        expand_table_in_xlsm(wb,sheet_name="SBH_plasmids_collections",table_name="SBH_plasmids_collections",new_rows=new_rows)
+    elif template_type == "synbio.object-type.sample-designs":
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://identifiers.org/ncit/NCIT:C48164")
+        new_rows = []
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            id = binding["id"]["value"]
+            new_rows.append([id, uri])
+        expand_table_in_xlsm(wb,sheet_name="SBH_media_collection",table_name="SBH_media_collection",new_rows=new_rows)
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,type="http://www.biopax.org/release/biopax-level3.owl#SmallMolecule")
+        new_rows = []
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            id = binding["id"]["value"]
+            new_rows.append([id, uri])
+        expand_table_in_xlsm(wb,sheet_name="SBH_chemicals_collection",table_name="SBH_chemicals_collection",new_rows=new_rows)
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://purl.obolibrary.org/obo/NCIT_C97158")
+        new_rows = []
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            id = binding["id"]["value"]
+            new_rows.append([id, uri])
+        expand_table_in_xlsm(wb,sheet_name="SBH_strains_collection",table_name="SBH_strains_collection",new_rows=new_rows)
+    elif template_type == "synbio.object-type.study-data":
+        search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"https://wiki.synbiohub.org/wiki/Terms/SynBioSuite#SampleDesign")
+        new_rows = []
+        for binding in search_result["results"]["bindings"]:
+            uri = binding["s"]["value"]
+            id = binding["id"]["value"]
+            new_rows.append([id, uri])
+        expand_table_in_xlsm(wb,sheet_name="SBH_sampledesigns_collection",table_name="SBH_sampledesigns_collection",new_rows=new_rows)
 
-    template_type = params_from_request['template_type']
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
 
-    try:
-        template_bytes, filename = fetch_template_bytes(template_type)
-        
-        if template_type == "synbio.object-type.resources":
-            return send_file(
-                BytesIO(template_bytes),
-                as_attachment=True,
-                download_name=filename,
-                mimetype="application/vnd.ms-excel.sheet.macroEnabled.12",
-            )
-
-        wb = load_workbook(BytesIO(template_bytes), keep_vba=True)
-
-        if template_type == "synbio.object-type.strains":
-            search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://identifiers.org/ncit/NCIT:C14419")
-            new_rows = []
-            for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                id = binding["id"]["value"]
-                new_rows.append([id, uri])
-            expand_table_in_xlsm(wb,sheet_name="SBH_chassis_collections",table_name="SBH_chassis_collections",new_rows=new_rows)
-            search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://identifiers.org/so/SO:0000637")
-            new_rows = []
-            for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                id = binding["id"]["value"]
-                new_rows.append([id, uri])
-            expand_table_in_xlsm(wb,sheet_name="SBH_plasmids_collections",table_name="SBH_plasmids_collections",new_rows=new_rows)
-        elif template_type == "synbio.object-type.sample-designs":
-            search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://identifiers.org/ncit/NCIT:C48164")
-            new_rows = []
-            for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                id = binding["id"]["value"]
-                new_rows.append([id, uri])
-            expand_table_in_xlsm(wb,sheet_name="SBH_media_collection",table_name="SBH_media_collection",new_rows=new_rows)
-            search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,type="http://www.biopax.org/release/biopax-level3.owl#SmallMolecule")
-            new_rows = []
-            for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                id = binding["id"]["value"]
-                new_rows.append([id, uri])
-            expand_table_in_xlsm(wb,sheet_name="SBH_chemicals_collection",table_name="SBH_chemicals_collection",new_rows=new_rows)
-            search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"http://purl.obolibrary.org/obo/NCIT_C97158")
-            new_rows = []
-            for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                id = binding["id"]["value"]
-                new_rows.append([id, uri])
-            expand_table_in_xlsm(wb,sheet_name="SBH_strains_collection",table_name="SBH_strains_collection",new_rows=new_rows)
-        elif template_type == "synbio.object-type.study-data":
-            search_result = sbh_get_subCollection_uris(sbh_url,sbh_prefix,sbh_token,usergraph,sbh_collection_url,"https://wiki.synbiohub.org/wiki/Terms/SynBioSuite#SampleDesign")
-            new_rows = []
-            for binding in search_result["results"]["bindings"]:
-                uri = binding["s"]["value"]
-                id = binding["id"]["value"]
-                new_rows.append([id, uri])
-            expand_table_in_xlsm(wb,sheet_name="SBH_sampledesigns_collection",table_name="SBH_sampledesigns_collection",new_rows=new_rows)
-
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-
-        return send_file(
-            output,
-            as_attachment=True,
-            download_name=filename,
-            mimetype="application/vnd.ms-excel.sheet.macroEnabled.12",
-        )
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return output, filename
